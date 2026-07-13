@@ -17,6 +17,7 @@ Read AGENTS.md, PROJECT_STATUS.md, and docs/workflow/*.md. Classify the request,
 
 - `AGENTS.md`
 - `PROJECT_STATUS.md`
+- `docs/contracts/bug-fix-workflow.yaml`
 - `docs/workflow/dynamic-routing.md`
 - `docs/workflow/role-definitions.md`
 - `docs/workflow/quality-gates.md`
@@ -29,3 +30,6 @@ Read AGENTS.md, PROJECT_STATUS.md, and docs/workflow/*.md. Classify the request,
 - Document assumptions and open questions.
 - Do not skip required gates.
 - Update `PROJECT_STATUS.md` and `TASK_LOG.md` when the platform allows file edits.
+
+For Bug Fix work, read and validate against `docs/contracts/bug-fix-workflow.yaml`.
+It is the canonical state, evidence, and two-rework stop policy; this adapter must not redefine it.

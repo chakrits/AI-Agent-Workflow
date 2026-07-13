@@ -3,6 +3,22 @@ import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 import { validateContracts } from '../scripts/validate-contracts.mjs';
 
+const adapterPaths = [
+  '.agents/skills/dynamic-workflow/SKILL.md',
+  '.agents/workflows/dynamic-workflow.md',
+  '.claude/agents/orchestrator-agent.md',
+  '.claude/skills/dynamic-workflow/SKILL.md',
+  '.agent/skills/dynamic-workflow/SKILL.md'
+];
+
+test('all dynamic-workflow adapters point to the canonical Bug Fix contract', async () => {
+  for (const path of adapterPaths) {
+    const content = await readFile(path, 'utf8');
+    assert.match(content, /docs\/contracts\/bug-fix-workflow\.yaml/);
+    assert.doesNotMatch(content, /max_rework_attempts:\s*[^2]/);
+  }
+});
+
 test('CI runs install, tests, and contract validation', async () => {
   const ci = await readFile('.github/workflows/validate-contracts.yml', 'utf8');
   assert.match(ci, /npm ci/);

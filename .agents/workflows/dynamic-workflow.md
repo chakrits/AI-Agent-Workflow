@@ -16,3 +16,6 @@ Use this workflow for all software engineering tasks unless a more specific work
 6. Validate quality gate.
 7. Produce handoff.
 8. Update state and task log.
+
+For Bug Fix work, read and validate against `docs/contracts/bug-fix-workflow.yaml`.
+It is the canonical state, evidence, and two-rework stop policy; this adapter must not redefine it.

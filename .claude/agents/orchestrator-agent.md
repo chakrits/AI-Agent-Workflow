@@ -27,3 +27,6 @@ Follow `AGENTS.md` and `docs/workflow/`. This file is a Claude Code adapter.
 4. Create a handoff using `docs/templates/HANDOFF.md`.
 5. Update `PROJECT_STATUS.md` and `TASK_LOG.md` when appropriate.
 6. Do not perform work outside this role unless explicitly routed.
+
+For Bug Fix work, read and validate against `docs/contracts/bug-fix-workflow.yaml`.
+It is the canonical state, evidence, and two-rework stop policy; this adapter must not redefine it.
