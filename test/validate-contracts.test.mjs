@@ -138,3 +138,21 @@ test('rejects a retry-limit block when human-review evidence is not true', async
     /blocked task after retry limit requires terminal verifying -> blocked with human_review_required: true/
   );
 });
+
+test('rejects verifying -> blocked before the retry budget is exhausted', async () => {
+  const errors = await validateContracts(process.cwd(), [
+    'test/fixtures/invalid-premature-human-review-block.yaml'
+  ]);
+  assert.match(
+    errors.join('\n'),
+    /verifying -> blocked is allowed only after exactly 2 rework transitions/
+  );
+});
+
+test('rejects empty or false evidence on a permitted rework transition', async () => {
+  const errors = await validateContracts(process.cwd(), [
+    'test/fixtures/invalid-empty-rework-evidence.yaml'
+  ]);
+  assert.match(errors.join('\n'), /evidence verification_failed must have a meaningful value/);
+  assert.match(errors.join('\n'), /evidence rework_route must have a meaningful value/);
+});

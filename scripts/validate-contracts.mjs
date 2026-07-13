@@ -19,6 +19,23 @@ function eventKey(event) {
   return `${event.from} -> ${event.to}`;
 }
 
+function hasMeaningfulValue(value) {
+  if (value === null || value === false) {
+    return false;
+  }
+  if (typeof value === 'string') {
+    return value.trim().length > 0;
+  }
+  if (Array.isArray(value)) {
+    return value.length > 0 && value.every(hasMeaningfulValue);
+  }
+  if (typeof value === 'object') {
+    const values = Object.values(value);
+    return values.length > 0 && values.every(hasMeaningfulValue);
+  }
+  return true;
+}
+
 function validateHistory(policy, state, displayPath) {
   const errors = [];
   const transitions = new Map(
@@ -49,10 +66,34 @@ function validateHistory(policy, state, displayPath) {
       if (!event.evidence_refs.includes(evidence)) {
         errors.push(`${displayPath}: ${eventKey(event)} requires evidence ${evidence}`);
       }
+      if (!hasMeaningfulValue(state.evidence[evidence])) {
+        errors.push(`${displayPath}: evidence ${evidence} must have a meaningful value`);
+      }
     }
     for (const evidence of event.evidence_refs) {
       if (!Object.hasOwn(state.evidence, evidence)) {
         errors.push(`${displayPath}: evidence ${evidence} must exist in evidence map`);
+      }
+    }
+    if (transition.terminal_requirements) {
+      const requirements = transition.terminal_requirements;
+      if (state.rework_count !== requirements.rework_count) {
+        errors.push(
+          `${displayPath}: ${eventKey(event)} is allowed only after exactly ${requirements.rework_count} rework transitions`
+        );
+      }
+      if (
+        index !== state.history.length - 1 ||
+        state.state !== requirements.state ||
+        state.stop_reason !== requirements.stop_reason ||
+        state.next_route !== requirements.next_route ||
+        Object.entries(requirements.evidence).some(
+          ([key, value]) => state.evidence[key] !== value
+        )
+      ) {
+        errors.push(
+          `${displayPath}: ${eventKey(event)} requires terminal blocked state, human_review_required stop reason, human-reviewer route, and human_review_required: true`
+        );
       }
     }
   }

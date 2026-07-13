@@ -25,7 +25,7 @@
 - Human approved the Phase 1 design spec for implementation planning.
 - Created a task-by-task implementation plan with TDD, CI, rollback, and review gates.
 - Completed Tasks 1–5: validation toolchain, canonical Bug Fix policy and schema, fixtures, CI, vocabulary alignment, and adapter parity links.
-- Ran the complete local verification set on 2026-07-14: `npm ci`, `npm test` (13 passing tests), `npm run validate:contracts` (`Contract validation passed.`), and `git diff --check`.
+- Remediated final-review findings on 2026-07-14: policy-declared exhausted-retry blocking, meaningful required evidence validation, and removal of two tracked local session reports; `npm test` now passes 15 tests, `npm run validate:contracts` passes, and `git diff --check` passes.
 - Created the Phase 1 completion record and independent reviewer / QA handoff.
 
 ## In Progress

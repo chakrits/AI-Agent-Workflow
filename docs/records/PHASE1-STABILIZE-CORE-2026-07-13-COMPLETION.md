@@ -106,3 +106,21 @@ Recommended next step: Reviewer / QA independently runs the documented verificat
 ## 9. Final Recommendation
 
 **Ready for independent review with the residual risks above. Human review and merge approval remain required.**
+
+## 10. Final Review Remediation — 2026-07-14
+
+The final review identified two contract-validation gaps and two tracked local session reports.
+The remediation adds policy-declared terminal requirements for `verifying -> blocked`,
+rejects premature blocks and non-meaningful required evidence, and removes only
+`.superpowers/sdd/task-2-report.md` and `.superpowers/sdd/task-3-report.md` from Git.
+The local files remain ignored; this durable completion record remains tracked.
+
+Validation after the remediation:
+
+```bash
+npm test
+npm run validate:contracts
+git diff --check
+```
+
+Result: 15 tests passed; contract validation passed; no whitespace errors.

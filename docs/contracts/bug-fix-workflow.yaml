@@ -9,5 +9,14 @@ transitions:
   - { from: implementing, to: verifying, requires: [changed_files, validation_plan] }
   - { from: verifying, to: handoff, requires: [original_repro_result, verification_result] }
   - { from: verifying, to: rework, requires: [verification_failed, rework_route] }
-  - { from: verifying, to: blocked, requires: [verification_failed, human_review_required] }
+  - from: verifying
+    to: blocked
+    requires: [verification_failed, human_review_required]
+    terminal_requirements:
+      rework_count: 2
+      state: blocked
+      stop_reason: human_review_required
+      next_route: human-reviewer
+      evidence:
+        human_review_required: true
   - { from: rework, to: implementing, requires: [rework_route] }
