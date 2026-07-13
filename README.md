@@ -6,6 +6,16 @@ This version uses a canonical shared layer so the process is not locked to Claud
 
 For a linked map of the repository, see [PROJECT_INDEX.md](./PROJECT_INDEX.md).
 
+## Workflow Contract Validation
+
+Run the same validation sequence locally before submitting workflow changes:
+
+```bash
+npm ci
+npm test
+npm run validate:contracts
+```
+
 ## Core Idea
 
 ```text

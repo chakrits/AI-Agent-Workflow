@@ -1,6 +1,14 @@
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 import { validateContracts } from '../scripts/validate-contracts.mjs';
+
+test('CI runs install, tests, and contract validation', async () => {
+  const ci = await readFile('.github/workflows/validate-contracts.yml', 'utf8');
+  assert.match(ci, /npm ci/);
+  assert.match(ci, /npm test/);
+  assert.match(ci, /npm run validate:contracts/);
+});
 
 test('accepts the three canonical Bug Fix examples', async () => {
   const errors = await validateContracts(process.cwd());
