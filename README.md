@@ -4,6 +4,8 @@ Cross-platform-first workflow kit for software engineering teams using AI agents
 
 This version uses a canonical shared layer so the process is not locked to Claude Code, Codex, or Antigravity.
 
+For a linked map of the repository, see [PROJECT_INDEX.md](./PROJECT_INDEX.md).
+
 ## Core Idea
 
 ```text
