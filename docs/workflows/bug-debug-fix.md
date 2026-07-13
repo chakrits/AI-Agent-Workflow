@@ -37,6 +37,8 @@ Postmortem if learning value exists
 - Do not propose a fix before repro and fail path evidence exist.
 - Do not change tests merely to pass CI.
 - Do not close as fixed until original repro passes.
+- Use `docs/contracts/bug-fix-workflow.yaml` as the canonical Bug Fix policy and validate the current `task-state` before each handoff.
+- Allow at most two verifying -> rework transitions. On the next failed verification, set state to `blocked` with `stop_reason: human_review_required` and hand off to a human.
 - Route back to BA if expected behavior is unclear.
 - Route to Security Reviewer if auth, permission, secrets, sensitive data, financial logic, or trust boundary is involved.
 

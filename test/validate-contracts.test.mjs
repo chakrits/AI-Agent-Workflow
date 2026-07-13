@@ -10,6 +10,14 @@ test('CI runs install, tests, and contract validation', async () => {
   assert.match(ci, /npm run validate:contracts/);
 });
 
+test('Bug Fix documentation points to the canonical contract and uses the two-rework rule', async () => {
+  const bugFix = await readFile('docs/workflows/bug-fix.md', 'utf8');
+  const routing = await readFile('docs/workflow/dynamic-routing.md', 'utf8');
+  assert.match(bugFix, /docs\/contracts\/bug-fix-workflow\.yaml/);
+  assert.match(routing, /two rework transitions/);
+  assert.doesNotMatch(routing, /more than 3 fix attempts/);
+});
+
 test('accepts the three canonical Bug Fix examples', async () => {
   const errors = await validateContracts(process.cwd());
   assert.deepEqual(errors, []);

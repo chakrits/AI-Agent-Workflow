@@ -93,7 +93,7 @@ Every agent should follow this cycle:
 Stop instead of continuing when:
 
 - Required input is missing and assumptions would affect correctness.
-- More than 3 fix attempts fail.
+- A Bug Fix task-state reaches two verifying -> rework transitions and the next verification fails; set it to `blocked` with `stop_reason: human_review_required` and hand off to a human.
 - Test failures are broad or unrelated to the current change.
 - The task touches a human approval gate.
 - The agent cannot identify the source of truth.
@@ -111,3 +111,13 @@ Use this priority order when sources conflict:
 6. Agent inference or assumptions
 
 Assumptions must be labeled clearly and never presented as confirmed requirements.
+
+## Bug Fix Contract
+
+For Bug Fix work, `docs/contracts/bug-fix-workflow.yaml` is the canonical policy.
+Validate the work item's `task-state` against that policy before each handoff.
+The policy defines the state vocabulary, legal transitions, evidence requirements,
+and the two-rework stop rule; workflow prose must not redefine them.
+
+Allow at most two verifying -> rework transitions. On the next failed verification,
+set state to blocked with `stop_reason: human_review_required` and hand off to a human.

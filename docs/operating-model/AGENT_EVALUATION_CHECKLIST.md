@@ -21,6 +21,16 @@ Completion means: the output is useful, grounded, reviewable, and ready for the 
 | Minimal Change | No unrelated changes or scope creep were introduced | TODO |
 | Next Step Clear | Next agent/action/stop condition is explicit | TODO |
 
+## Bug Fix Contract Evaluation
+
+| Check | Requirement | Status |
+|---|---|---|
+| Canonical Policy Used | `docs/contracts/bug-fix-workflow.yaml` is referenced for Bug Fix work | TODO |
+| Task-State Validated | The current `task-state` passes contract validation before handoff | TODO |
+| Evidence Referenced | Transition and verification evidence is linked in the handoff | TODO |
+| Rework Limit Enforced | No more than two verifying -> rework transitions occurred | TODO |
+| Human Review Stop | A next failed verification after two reworks is `blocked` with `stop_reason: human_review_required` and handed to a human | TODO |
+
 ## Orchestrator Evaluation
 
 | Check | Requirement | Status |

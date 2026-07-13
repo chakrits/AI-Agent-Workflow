@@ -72,6 +72,18 @@ Stop and request human decision when:
 - Architecture decision affects multiple systems
 - Security risk is high or critical
 - Production data is destructive or irreversible
-- Repeated fix loop exceeds 3 attempts
+- A Bug Fix reaches two rework transitions and the next verification fails; set the `task-state` to `blocked` with `stop_reason: human_review_required` and hand off to a human
 - Test failures cannot be explained
 - Required approval is missing
+
+## Bug Fix Contract Routing
+
+For Bug Fix work, `docs/contracts/bug-fix-workflow.yaml` is the canonical
+state, transition, evidence, and retry policy. Validate the current `task-state`
+before each Bug Fix handoff.
+
+Allow at most two rework transitions from verifying -> rework. On the next failed
+verification, set state to blocked with `stop_reason: human_review_required` and
+hand off to a human. Preserve backward routing: unclear expected behavior goes to
+BA, contract or design gaps go to SA, and auth/security concerns go to Security
+Reviewer.

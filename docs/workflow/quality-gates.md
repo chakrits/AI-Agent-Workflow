@@ -42,6 +42,15 @@
 - Known limitations are documented
 - Test data and environment notes are provided
 
+## Bug Fix Contract Gate
+
+- `docs/contracts/bug-fix-workflow.yaml` is the policy reference
+- Current `task-state` passes validation before handoff
+- State transition evidence references are included
+- Rework count records verifying -> rework transitions
+- Allow at most two verifying -> rework transitions
+- On the next failed verification, state is `blocked` with `stop_reason: human_review_required` and work is handed to a human
+
 ## Config/Data -> QA Gate
 
 - Business approval exists

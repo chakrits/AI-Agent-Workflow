@@ -19,6 +19,15 @@ Low / Medium / High / Critical
 ## Current Stage
 
 
+## Task State
+
+
+## Contract Version
+
+
+## Rework Count
+
+
 ## Completed Work
 
 - 
@@ -35,6 +44,13 @@ Low / Medium / High / Critical
 
 - 
 
+## Evidence References
+
+-
+
+## Stop Reason
+
+
 ## Known Limitations
 
 - 
@@ -48,5 +64,3 @@ Low / Medium / High / Critical
 - 
 
 ## Recommended Next Step
-
-

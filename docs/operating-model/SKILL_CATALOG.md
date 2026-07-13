@@ -20,7 +20,7 @@ Agents must consult this catalog before selecting a skill. The goal is to preven
 
 | Skill | Path | Trigger | Inputs | Outputs | Do Not Use When | Next Skill / Agent |
 |---|---|---|---|---|---|---|
-| Dynamic Workflow | `.agents/skills/dynamic-workflow/` | Need to classify change type, select workflow, route agents, or enforce gates | User request, PROJECT_STATUS.md, workflow docs | Selected workflow, required agents, gates, next step | The user already selected a specific role/task and no routing is needed | Orchestrator, PM/BA/SA/Dev/QA/etc. |
+| Dynamic Workflow | `.agents/skills/dynamic-workflow/` | Need to classify change type, select workflow, route agents, enforce gates, or perform contract-first Bug Fix validation | User request, PROJECT_STATUS.md, workflow docs, and `task-state` for Bug Fix work | Selected workflow, required agents, gates, next step, and Bug Fix contract-validation status | The user already selected a specific role/task and no routing or contract validation is needed | Orchestrator, PM/BA/SA/Dev/QA/etc. |
 | Functional Test Design | `.agents/skills/functional-test-design/` | Need functional test cases from requirements, FS, business rules, IPO matrix, BVA/EP, risk-based testing, traceability | URS/BRD, FS/TSD, user stories, AC, API/field rules | Function Test Report or Focused Functional Test Pack | Need automation script implementation only | Playwright/E2E skill, API test skill, regression planning, QA Agent |
 | Playwright QA | `.agents/skills/playwright-qa/` | Need browser E2E automation, UI flow testing, screenshots/traces | Test scenarios, target URL/app, credentials/test data, selectors/locators | Playwright specs, test run notes, screenshots/traces | Need only functional test design without automation | QA Agent, Defect Analysis |
 | Security Review | `.agents/skills/security-review/` | Auth, authorization, secrets, sensitive data, input validation, dependency/security review | Code diff, architecture, API, data flow, threat context | Security review notes, findings, severity, recommended fixes | Pure functional happy path test design | Security Reviewer, SA, Developer |
@@ -164,3 +164,8 @@ Each skill output should include:
 | Open Questions | Items requiring user/BA/SA/Dev clarification |
 | Next Recommended Agent | Who should receive handoff next |
 | Quality Gate Status | Passed / Failed / Blocked / N/A |
+| Task State | Current canonical `task-state` for Bug Fix work |
+| Contract Version | Version from the Bug Fix contract used for validation |
+| Rework Count | Number of verifying -> rework transitions recorded |
+| Evidence References | Evidence keys/locations that support the transition or handoff |
+| Stop Reason | Required when Bug Fix work is blocked; use `human_review_required` after the two-rework limit |

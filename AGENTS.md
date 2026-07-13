@@ -207,6 +207,13 @@ Recommended flow:
 QA/BA -> Developer -> QA -> Reviewer
 ```
 
+For every Bug Fix work item, use `docs/contracts/bug-fix-workflow.yaml` as the
+canonical policy and validate its `task-state` before handoff. The policy owns
+the allowed states, transitions, required evidence, and retry budget.
+
+Allow at most two verifying -> rework transitions. On the next failed verification,
+set state to blocked with `stop_reason: human_review_required` and hand off to a human.
+
 Route backward if:
 
 - Expected behavior is unclear -> BA
@@ -302,10 +309,15 @@ Every agent handoff must include:
 - Work item
 - Change type
 - Risk level
+- Task state
+- Contract version
+- Rework count
 - Completed work
 - Artifacts produced
 - Files changed
 - Verification performed
+- Evidence references
+- Stop reason
 - Known limitations
 - Open questions
 - Recommended next agent
