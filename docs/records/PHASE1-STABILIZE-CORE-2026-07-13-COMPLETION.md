@@ -4,13 +4,13 @@
 
 | Item | Detail |
 |---|---|
-| Claimed Status | Ready for Review |
+| Claimed Status | Merged / Closed |
 | Work Item | PHASE1-STABILIZE-CORE-2026-07-13 |
 | Agent / Owner | Developer / Implementation Agent |
 | Change Type | Process architecture and documentation with local Node validation tooling |
 | Risk Level | Medium |
 
-This record declares the implementation package ready for independent review. It does not approve a merge, release, policy exception, or human-review decision.
+This record captures the implementation package that was independently reviewed and merged into `main` through GitHub Pull Request #1 on 2026-07-14. It does not approve a release or policy exception.
 
 ## 2. Acceptance-Criteria Coverage
 
@@ -29,11 +29,11 @@ This record declares the implementation package ready for independent review. It
 | Evidence Type | Detail | Result |
 |---|---|---|
 | Dependency installation | `npm ci` installed the lockfile dependencies | Pass |
-| Unit / semantic tests | `npm test` ran 13 Node tests | Pass — 13 passed, 0 failed |
+| Unit / semantic tests | `npm test` ran 15 Node tests after final remediation | Pass — 15 passed, 0 failed |
 | Contract validation | `npm run validate:contracts` | Pass — `Contract validation passed.` |
 | Static whitespace check | `git diff --check` | Pass — exit 0, no output |
 | CI definition | `.github/workflows/validate-contracts.yml` runs install, tests, and validation on Node 22 | Present; local workflow-file assertion passed |
-| Human approval | Independent Reviewer / QA and human decision | Pending |
+| Human approval | Independent Reviewer / QA and human decision | Pass — approved and merged through PR #1 |
 
 ## 4. Commands Run
 
@@ -41,14 +41,14 @@ This record declares the implementation package ready for independent review. It
 npm ci && npm test && npm run validate:contracts && git diff --check
 ```
 
-Result: exit 0. `npm ci` added 6 packages; `npm test` reported 13 passing tests and 0 failures; the validator printed `Contract validation passed.`; `git diff --check` produced no output.
+Result: exit 0 after final remediation. `npm ci` installed the lockfile dependencies; `npm test` reported 15 passing tests and 0 failures; the validator printed `Contract validation passed.`; `git diff --check` produced no output.
 
 ## 5. Artifacts Updated
 
 | Artifact | Updated? | Notes |
 |---|---|---|
 | `docs/records/PHASE1-STABILIZE-CORE-2026-07-13-COMPLETION.md` | Yes | This evidence and review-handoff record |
-| `PROJECT_STATUS.md` | Yes | Status moved to Ready for Review |
+| `PROJECT_STATUS.md` | Yes | Status moved to Merged / Closed after PR #1 |
 | `TASK_LOG.md` | Yes | Task 6 completion evidence appended |
 | `CHANGELOG.md` | Yes | Unreleased Phase 1 validation entry added |
 | `DECISIONS.md` | No | ADR-0002 remains the approved design decision |
@@ -65,7 +65,7 @@ Validated:
 
 Not validated:
 
-- A GitHub Actions run on GitHub.
+- The result of the first GitHub Actions run on GitHub has not been recorded here.
 - Any autonomous runtime, scheduler, queue, database, or automatic code-edit loop; these are outside Phase 1 scope.
 - Workflows other than Bug Fix.
 
@@ -73,7 +73,7 @@ Not validated:
 
 | Risk / Follow-up | Owner | Tracking |
 |---|---|---|
-| New `yaml` and `ajv` validation dependencies need hosted-CI confirmation on Node 22 | Reviewer / QA Agent | Review the first GitHub Actions run after merge approval |
+| New `yaml` and `ajv` validation dependencies need hosted-CI confirmation on Node 22 | Reviewer / QA Agent | Review the first GitHub Actions run on `main` after merge |
 | A future Bug Fix state not represented by the contract must not be added ad hoc | SA / Human Reviewer | New approved work item and ADR amendment |
 | Retry-budget or policy exceptions require an explicit human decision | Human Reviewer | ADR-0002 amendment if approved |
 
@@ -86,12 +86,12 @@ Not validated:
 | Work Item | PHASE1-STABILIZE-CORE-2026-07-13 |
 | Change Type | Process architecture and documentation with local validation tooling |
 | Risk Level | Medium |
-| Current Stage | Independent review gate |
-| Task State | Ready for Review; Bug Fix contract policy version 1 |
+| Current Stage | Merged / post-merge CI confirmation |
+| Task State | Merged / Closed; Bug Fix contract policy version 1 |
 | Contract Version | 1 |
 | Rework Count | N/A — this is the Phase 1 implementation package, not an individual Bug Fix task-state instance |
 | Evidence References | This record; `docs/contracts/`; `test/validate-contracts.test.mjs`; `.github/workflows/validate-contracts.yml` |
-| Stop Reason | None; human approval is pending by design |
+| Stop Reason | None; human approval was granted and PR #1 merged |
 
 Review focus:
 
@@ -101,11 +101,11 @@ Review focus:
 - Confirm CI uses Node 22 and runs `npm ci`, `npm test`, and `npm run validate:contracts`.
 - Confirm no Phase 1 artifact introduces an autonomous loop or bypasses existing Security Reviewer or human-approval gates.
 
-Recommended next step: Reviewer / QA independently runs the documented verification set and reviews the changed contract, validator, fixtures, CI workflow, docs, and adapter links. A Human Reviewer must decide whether to merge; no release decision is requested.
+Recommended next step: Reviewer / QA confirms the first hosted GitHub Actions result on `main`, then the Human / Phase 2 Planning owner may begin the next roadmap phase.
 
 ## 9. Final Recommendation
 
-**Ready for independent review with the residual risks above. Human review and merge approval remain required.**
+**Merged into `main`; hosted-CI confirmation remains the only tracked follow-up.**
 
 ## 10. Final Review Remediation — 2026-07-14
 
