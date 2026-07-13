@@ -1,53 +1,47 @@
 # PROJECT_STATUS.md
 
 ## Current Work Item
-- ID: PHASE1-STABILIZE-CORE-2026-07-13
-- Title: Define contract-first Bug Fix workflow foundation
-- Owner: Human Reviewer / Maintainer
-- Status: Merged / Closed
+- ID: POST-MERGE-DOCUMENTATION-STEWARDSHIP-2026-07-14
+- Title: Require documentation-impact review after every merge into main
+- Owner: Documentation Agent / Maintainer
+- Status: Ready for Review
 
 ## Current Stage
-- Phase 1 Closed / Post-merge CI Confirmation
+- Documentation Stewardship / Reviewer Gate
 
 ## Change Classification
-- Change Type: Process architecture and documentation with local Node validation tooling
+- Change Type: Documentation and process-governance change with regression coverage
 - Risk Level: Medium
-- Code Change Required: Yes — scoped validator and contract-test tooling completed
-- Architecture Change Required: Yes — workflow contract only, per ADR-0002
+- Code Change Required: Yes — scoped Node regression coverage for the documentation rule
+- Architecture Change Required: No — implements the approved documentation-stewardship design
 - Security Review Required: No
 
 ## Completed
-- Approved Phase 1 direction: contract-first, not runtime-first.
-- Selected YAML as canonical policy authoring format and JSON Schema as validation contract.
-- Selected Bug Fix as the reference workflow.
-- Set a maximum of two rework transitions, then mandatory human review.
-- Recorded ADR-0002 and Phase 1 design spec.
-- Human approved the Phase 1 design spec for implementation planning.
-- Created a task-by-task implementation plan with TDD, CI, rollback, and review gates.
-- Completed Tasks 1–5: validation toolchain, canonical Bug Fix policy and schema, fixtures, CI, vocabulary alignment, and adapter parity links.
-- Remediated final-review findings on 2026-07-14: policy-declared exhausted-retry blocking, meaningful required evidence validation, and removal of two tracked local session reports; `npm test` now passes 15 tests, `npm run validate:contracts` passes, and `git diff --check` passes.
-- Created the Phase 1 completion record and independent reviewer / QA handoff.
-- Passed independent whole-branch review after remediation of contract-validation gaps.
-- Merged into `main` through GitHub Pull Request #1 on 2026-07-14.
+- Approved the mandatory Documentation Agent review after every merge into `main`.
+- Added the canonical post-merge stewardship rule and review template.
+- Linked the template from `PROJECT_INDEX.md`.
+- Aligned the Claude Documentation Agent adapter with the canonical rule.
+- Added regression coverage for the every-merge trigger, seven review targets, template, and evidence boundaries.
+- Recorded the outstanding Phase 1 hosted-CI confirmation as owned risk R-001.
 
 ## In Progress
-- Confirm the first hosted GitHub Actions run on `main`.
+- Independent review of the post-merge documentation stewardship instruction, template, and regression coverage.
 
 ## Blockers / Open Questions
-- Hosted GitHub Actions result on `main` has not been recorded in this repository yet.
+- The first hosted GitHub Actions result for Phase 1 on `main` has not been recorded; tracked as R-001.
 
 ## Required Artifacts
-- `docs/superpowers/specs/2026-07-13-phase-1-stabilize-core-design.md`
-- `docs/superpowers/plans/2026-07-13-phase-1-stabilize-core.md`
-- `docs/records/PHASE1-STABILIZE-CORE-2026-07-13-COMPLETION.md`
+- `docs/superpowers/specs/2026-07-14-post-merge-documentation-stewardship-design.md`
+- `docs/superpowers/plans/2026-07-14-post-merge-documentation-stewardship.md`
+- `docs/templates/POST_MERGE_DOCUMENTATION_REVIEW.md`
+- `docs/records/POST-MERGE-DOCUMENTATION-STEWARDSHIP-2026-07-14-COMPLETION.md`
 
 ## Next Quality Gate
-- Hosted GitHub Actions confirmation on `main`
+- Reviewer confirms the canonical rule, Claude adapter, template, and regression test agree.
 
 ## Recommended Next Agent
-- Reviewer / QA Agent for hosted-CI confirmation, then Human / Phase 2 Planning
+- Reviewer, then Reviewer / QA Agent for the outstanding Phase 1 hosted-CI confirmation
 
 ## Notes
-- No autonomous loop, runtime, or model-specific integration is approved in Phase 1.
-- `.agent/`, `.agents/`, and `.claude/` remain shareable adapters; `.superpowers/` is local brainstorming-session output and is ignored.
-- PR #1 was merged into `main`; this is not a release decision.
+- The post-merge rule applies to pull requests merged into `main`; it does not infer release approval, hosted-CI success, human approval, or risk closure.
+- Phase 1 remains merged and closed; its hosted-CI confirmation is a separate open follow-up.
