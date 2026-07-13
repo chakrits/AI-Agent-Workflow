@@ -1,4 +1,4 @@
-# AI Agent Dynamic Workflow v2
+# AI Agent Dynamic Workflow
 
 Cross-platform-first workflow kit for software engineering teams using AI agents.
 
@@ -58,14 +58,14 @@ project/
 
 ## Layer Responsibilities
 
-| Layer | Purpose |
-|---|---|
-| `AGENTS.md` | Cross-platform project rules and routing policy |
-| `docs/workflow/` | Source of truth for workflow, roles, gates, handoff contracts |
+| Layer             | Purpose                                                          |
+| ----------------- | ---------------------------------------------------------------- |
+| `AGENTS.md`       | Cross-platform project rules and routing policy                  |
+| `docs/workflow/`  | Source of truth for workflow, roles, gates, handoff contracts    |
 | `.agents/skills/` | Portable skill layer for Codex / Antigravity / compatible agents |
-| `.claude/agents/` | Claude Code native subagent wrappers |
-| `.claude/skills/` | Claude Code skill adapter |
-| `.agent/skills/` | Antigravity CLI compatibility adapter |
+| `.claude/agents/` | Claude Code native subagent wrappers                             |
+| `.claude/skills/` | Claude Code skill adapter                                        |
+| `.agent/skills/`  | Antigravity CLI compatibility adapter                            |
 
 ## First Prompt
 
