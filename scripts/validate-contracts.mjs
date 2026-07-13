@@ -28,7 +28,18 @@ function validateHistory(policy, state, displayPath) {
     (event) => event.from === 'verifying' && event.to === 'rework'
   ).length;
 
-  for (const event of state.history) {
+  if (state.history.length === 0 && state.state !== 'intake') {
+    errors.push(`${displayPath}: non-intake state requires history`);
+  }
+  if (state.history.length > 0 && state.history[0].from !== 'intake') {
+    errors.push(`${displayPath}: history must start at intake`);
+  }
+
+  for (const [index, event] of state.history.entries()) {
+    const previousEvent = state.history[index - 1];
+    if (previousEvent && previousEvent.to !== event.from) {
+      errors.push(`${displayPath}: history must be continuous`);
+    }
     const transition = transitions.get(eventKey(event));
     if (!transition) {
       errors.push(`${displayPath}: illegal transition: ${eventKey(event)}`);
@@ -39,6 +50,19 @@ function validateHistory(policy, state, displayPath) {
         errors.push(`${displayPath}: ${eventKey(event)} requires evidence ${evidence}`);
       }
     }
+    for (const evidence of event.evidence_refs) {
+      if (!Object.hasOwn(state.evidence, evidence)) {
+        errors.push(`${displayPath}: evidence ${evidence} must exist in evidence map`);
+      }
+    }
+  }
+  if (state.history.length > 0 && state.history.at(-1).to !== state.state) {
+    errors.push(`${displayPath}: final history transition must reach state ${state.state}`);
+  }
+  if (state.max_rework_attempts !== policy.max_rework_attempts) {
+    errors.push(
+      `${displayPath}: max_rework_attempts must equal policy value ${policy.max_rework_attempts}`
+    );
   }
   if (reworks !== state.rework_count) {
     errors.push(`${displayPath}: rework_count must equal history rework transitions`);
@@ -46,12 +70,21 @@ function validateHistory(policy, state, displayPath) {
   if (reworks > policy.max_rework_attempts) {
     errors.push(`${displayPath}: rework_count must not exceed ${policy.max_rework_attempts}`);
   }
-  if (
-    state.state === 'blocked' &&
-    reworks === policy.max_rework_attempts &&
-    state.stop_reason !== 'human_review_required'
-  ) {
-    errors.push(`${displayPath}: blocked task after retry limit requires human_review_required`);
+  if (state.state === 'blocked' && reworks === policy.max_rework_attempts) {
+    const terminalEvent = state.history.at(-1);
+    const hasTerminalHumanReview =
+      terminalEvent?.from === 'verifying' &&
+      terminalEvent.to === 'blocked' &&
+      terminalEvent.evidence_refs.includes('human_review_required') &&
+      state.evidence.human_review_required === true;
+    if (!hasTerminalHumanReview) {
+      errors.push(
+        `${displayPath}: blocked task after retry limit requires terminal verifying -> blocked with human_review_required: true`
+      );
+    }
+    if (state.stop_reason !== 'human_review_required') {
+      errors.push(`${displayPath}: blocked task after retry limit requires human_review_required`);
+    }
   }
   return errors;
 }

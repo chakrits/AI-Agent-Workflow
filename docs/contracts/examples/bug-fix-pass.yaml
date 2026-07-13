@@ -28,6 +28,12 @@ history:
     actor: qa-agent
     evidence_refs: [original_repro_result, verification_result]
 evidence:
+  failure_description: failing test
+  repro: test command
+  fail_path: validator
+  hypothesis_matrix: review finding
+  changed_files: validator
+  validation_plan: unit test
   original_repro_result: passed
   verification_result: passed
 next_route: reviewer-agent

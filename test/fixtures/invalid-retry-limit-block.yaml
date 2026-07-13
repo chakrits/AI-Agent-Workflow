@@ -1,4 +1,4 @@
-task_id: BUG-HUMAN-REVIEW
+task_id: BUG-RETRY-LIMIT-BLOCK
 workflow_id: bug-fix
 contract_version: 1
 change_type: bug-fix
@@ -9,54 +9,39 @@ max_rework_attempts: 2
 history:
   - from: intake
     to: investigating
-    at: 2026-07-13T00:00:00Z
+    at: 2026-07-14T00:00:00Z
     actor: qa-agent
     evidence_refs: [failure_description, repro]
   - from: investigating
     to: implementing
-    at: 2026-07-13T00:01:00Z
+    at: 2026-07-14T00:01:00Z
     actor: developer-agent
     evidence_refs: [fail_path, hypothesis_matrix]
   - from: implementing
     to: verifying
-    at: 2026-07-13T00:02:00Z
+    at: 2026-07-14T00:02:00Z
     actor: developer-agent
     evidence_refs: [changed_files, validation_plan]
   - from: verifying
     to: rework
-    at: 2026-07-13T00:03:00Z
+    at: 2026-07-14T00:03:00Z
     actor: qa-agent
     evidence_refs: [verification_failed, rework_route]
   - from: rework
     to: implementing
-    at: 2026-07-13T00:04:00Z
+    at: 2026-07-14T00:04:00Z
     actor: developer-agent
     evidence_refs: [rework_route]
   - from: implementing
     to: verifying
-    at: 2026-07-13T00:05:00Z
+    at: 2026-07-14T00:05:00Z
     actor: developer-agent
     evidence_refs: [changed_files, validation_plan]
   - from: verifying
     to: rework
-    at: 2026-07-13T00:06:00Z
+    at: 2026-07-14T00:06:00Z
     actor: qa-agent
     evidence_refs: [verification_failed, rework_route]
-  - from: rework
-    to: implementing
-    at: 2026-07-13T00:07:00Z
-    actor: developer-agent
-    evidence_refs: [rework_route]
-  - from: implementing
-    to: verifying
-    at: 2026-07-13T00:08:00Z
-    actor: developer-agent
-    evidence_refs: [changed_files, validation_plan]
-  - from: verifying
-    to: blocked
-    at: 2026-07-13T00:09:00Z
-    actor: qa-agent
-    evidence_refs: [verification_failed, human_review_required]
 evidence:
   failure_description: failing test
   repro: test command
@@ -64,7 +49,7 @@ evidence:
   hypothesis_matrix: review finding
   changed_files: validator
   validation_plan: unit test
-  verification_failed: retry budget exhausted
+  verification_failed: test failure
   rework_route: developer-agent
   human_review_required: true
 next_route: human-reviewer
