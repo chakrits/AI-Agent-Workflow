@@ -304,23 +304,25 @@ Security Reviewer must be included for:
 
 Every agent handoff must include:
 
-- From
-- To
-- Work item
-- Change type
-- Risk level
-- Task state
-- Contract version
-- Rework count
-- Completed work
-- Artifacts produced
-- Files changed
-- Verification performed
-- Evidence references
-- Stop reason
-- Known limitations
-- Open questions
-- Recommended next agent
+- From Agent
+- To Agent
+- Work Item
+- Change Type
+- Risk Level
+- Current Stage
+- Task State
+- Contract Version
+- Rework Count
+- Completed Work
+- Artifacts Produced
+- Files Changed
+- Verification Performed
+- Evidence References
+- Stop Reason
+- Known Limitations
+- Open Questions
+- QA / Review Focus
+- Recommended Next Step
 
 Use `docs/templates/HANDOFF.md`.
 

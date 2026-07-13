@@ -18,6 +18,44 @@ test('Bug Fix documentation points to the canonical contract and uses the two-re
   assert.doesNotMatch(routing, /more than 3 fix attempts/);
 });
 
+test('handoff vocabulary stays in parity across AGENTS, contract, and template', async () => {
+  const [agents, contract, template] = await Promise.all([
+    readFile('AGENTS.md', 'utf8'),
+    readFile('docs/workflow/handoff-contract.md', 'utf8'),
+    readFile('docs/templates/HANDOFF.md', 'utf8')
+  ]);
+  const requiredFields = [
+    'From Agent',
+    'To Agent',
+    'Work Item',
+    'Change Type',
+    'Risk Level',
+    'Current Stage',
+    'Task State',
+    'Contract Version',
+    'Rework Count',
+    'Completed Work',
+    'Artifacts Produced',
+    'Files Changed',
+    'Verification Performed',
+    'Evidence References',
+    'Stop Reason',
+    'Known Limitations',
+    'Open Questions',
+    'QA / Review Focus',
+    'Recommended Next Step'
+  ];
+  const listFields = (content, heading) => content
+    .match(new RegExp(`## ${heading}\\n\\n([\\s\\S]*?)(?=\\n## |$)`))[1]
+    .match(/^- (.+)$/gm)
+    .map((field) => field.slice(2));
+  const templateFields = [...template.matchAll(/^## (.+)$/gm)].map(([, field]) => field);
+
+  assert.deepEqual(listFields(agents, 'Required Handoff'), requiredFields);
+  assert.deepEqual(listFields(contract, 'Required Fields'), requiredFields);
+  assert.deepEqual(templateFields, requiredFields);
+});
+
 test('accepts the three canonical Bug Fix examples', async () => {
   const errors = await validateContracts(process.cwd());
   assert.deepEqual(errors, []);
