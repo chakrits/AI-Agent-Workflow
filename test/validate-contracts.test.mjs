@@ -72,6 +72,47 @@ test('handoff vocabulary stays in parity across AGENTS, contract, and template',
   assert.deepEqual(templateFields, requiredFields);
 });
 
+test('Documentation Agent requires post-merge review and a complete record', async () => {
+  const [roleDefinition, adapter, template] = await Promise.all([
+    readFile('docs/workflow/role-definitions.md', 'utf8'),
+    readFile('.claude/agents/documentation-agent.md', 'utf8'),
+    readFile('docs/templates/POST_MERGE_DOCUMENTATION_REVIEW.md', 'utf8')
+  ]);
+  const requiredTargets = [
+    'PROJECT_INDEX.md',
+    'PROJECT_STATUS.md',
+    'TASK_LOG.md',
+    'CHANGELOG.md',
+    'DECISIONS.md',
+    'RISKS.md',
+    'Canonical workflow documents and platform adapters'
+  ];
+  const requiredHeadings = [
+    'Merge Reference',
+    'Change Classification',
+    'Impact Assessment',
+    'Documentation Updates',
+    'Verification Performed',
+    'Known Limitations and Unverified Evidence',
+    'Risks and Open Questions',
+    'Reviewer Handoff',
+    'Completion Check'
+  ];
+
+  for (const content of [roleDefinition, adapter]) {
+    assert.match(content, /every merge into `?main`?/i);
+    assert.match(content, /POST_MERGE_DOCUMENTATION_REVIEW\.md/);
+    assert.match(content, /No update required/);
+  }
+  for (const target of requiredTargets) {
+    assert.match(roleDefinition, new RegExp(target.replace('.', '\\.')));
+  }
+  for (const heading of requiredHeadings) {
+    assert.match(template, new RegExp(`## ${heading}`));
+  }
+  assert.match(adapter, /must not approve release, hosted CI, human gates, or risk closure without evidence/i);
+});
+
 test('accepts the three canonical Bug Fix examples', async () => {
   const errors = await validateContracts(process.cwd());
   assert.deepEqual(errors, []);
