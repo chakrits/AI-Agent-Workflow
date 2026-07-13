@@ -1,0 +1,19 @@
+task_id: BUG-FINAL-STATE-MISMATCH
+workflow_id: bug-fix
+contract_version: 1
+change_type: bug-fix
+risk_level: medium
+state: implementing
+rework_count: 0
+max_rework_attempts: 2
+history:
+  - from: intake
+    to: investigating
+    at: 2026-07-14T00:00:00Z
+    actor: qa-agent
+    evidence_refs: [failure_description, repro]
+evidence:
+  failure_description: failing test
+  repro: test command
+next_route: developer-agent
+stop_reason: null

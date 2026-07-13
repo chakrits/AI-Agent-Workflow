@@ -1,8 +1,20 @@
-# AI Agent Dynamic Workflow v2
+# AI Agent Dynamic Workflow
 
 Cross-platform-first workflow kit for software engineering teams using AI agents.
 
 This version uses a canonical shared layer so the process is not locked to Claude Code, Codex, or Antigravity.
+
+For a linked map of the repository, see [PROJECT_INDEX.md](./PROJECT_INDEX.md).
+
+## Workflow Contract Validation
+
+Run the same validation sequence locally before submitting workflow changes:
+
+```bash
+npm ci
+npm test
+npm run validate:contracts
+```
 
 ## Core Idea
 
@@ -58,14 +70,14 @@ project/
 
 ## Layer Responsibilities
 
-| Layer | Purpose |
-|---|---|
-| `AGENTS.md` | Cross-platform project rules and routing policy |
-| `docs/workflow/` | Source of truth for workflow, roles, gates, handoff contracts |
+| Layer             | Purpose                                                          |
+| ----------------- | ---------------------------------------------------------------- |
+| `AGENTS.md`       | Cross-platform project rules and routing policy                  |
+| `docs/workflow/`  | Source of truth for workflow, roles, gates, handoff contracts    |
 | `.agents/skills/` | Portable skill layer for Codex / Antigravity / compatible agents |
-| `.claude/agents/` | Claude Code native subagent wrappers |
-| `.claude/skills/` | Claude Code skill adapter |
-| `.agent/skills/` | Antigravity CLI compatibility adapter |
+| `.claude/agents/` | Claude Code native subagent wrappers                             |
+| `.claude/skills/` | Claude Code skill adapter                                        |
+| `.agent/skills/`  | Antigravity CLI compatibility adapter                            |
 
 ## First Prompt
 

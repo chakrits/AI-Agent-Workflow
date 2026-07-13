@@ -1,0 +1,17 @@
+task_id: BUG-ILLEGAL-TRANSITION
+workflow_id: bug-fix
+contract_version: 1
+change_type: bug-fix
+risk_level: medium
+state: verifying
+rework_count: 0
+max_rework_attempts: 2
+history:
+  - from: intake
+    to: verifying
+    at: 2026-07-13T00:00:00Z
+    actor: qa-agent
+    evidence_refs: []
+evidence: {}
+next_route: qa-agent
+stop_reason: null
