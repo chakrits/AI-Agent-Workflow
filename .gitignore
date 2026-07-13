@@ -1,5 +1,8 @@
 # Local visual-brainstorming session artifacts.
 .superpowers/
 
+# Local npm dependency installation output.
+node_modules/
+
 # Isolated local Git worktrees.
 .worktrees/
