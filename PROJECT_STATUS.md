@@ -1,54 +1,55 @@
 # PROJECT_STATUS.md
 
 ## Current Work Item
-- ID: BA-AGENT-INSTRUCTION-2026-07-14
-- Title: Give BA Agent an illustrative, non-binding UX sketch capability with an explicit boundary against SA Agent's design work
+- ID: QA-AGENT-INSTRUCTION-2026-07-14
+- Title: Fix QA Agent's canonical/adapter inversion and add evidence-based reporting, API contract validation, and NFR validation rules
 - Owner: Developer / Implementation Agent
 - Status: Ready for Review
 
 ## Current Stage
-- BA Agent Instruction / Reviewer Gate
+- QA Agent Instruction / Reviewer Gate
 
 ## Change Classification
 - Change Type: Documentation and process-governance change with regression coverage
 - Risk Level: Medium
-- Code Change Required: Yes — scoped Node regression coverage for the BA rule
-- Architecture Change Required: No — extends the existing BA role definition and requirement-discovery template
+- Code Change Required: Yes — scoped Node regression coverage for the QA rules
+- Architecture Change Required: No — restructures existing QA Agent content and extends the SDD/API-contract loop already landed for SA Agent
 - Security Review Required: No
 
 ## Completed
-- Orchestrator Agent and SA Agent instructions committed to `main` (`28af98e`): unclassified-request rule, escalation tiers, decision routing checklist (Orchestrator); architecture pattern selection, dependency boundary, API contract governance, migration safety (SA); both regression-tested.
-- Reviewed five external agent-persona references (Developer Advocate, Business Strategist, UX Architect, UX Researcher, UI Designer) for concepts applicable to BA Agent; excluded Developer Advocate (DX/community/content marketing) and Business Strategist (exec-level strategy frameworks that would overlap PM Agent) entirely; excluded UI Designer's design-system ownership (color tokens, WCAG contrast, component library) as out of scope for BA.
-- Consulted the advisor tool for a second opinion; it was unavailable, so self-critiqued the initial plan and found three gaps before implementing: (1) no boundary against SA Agent's Component Design, (2) no rule for when a sketch is skipped, (3) no escalation path when a sketch isn't enough.
-- Confirmed the repo's existing diagram convention (plain ` ```text ` fenced arrow diagrams, used throughout `docs/workflow/` and `docs/workflows/`, no Mermaid) before choosing the sketch format, to stay consistent.
-- Added an Illustrative Draft Rule: BA Agent may sketch a low-fidelity screen or `->` flow diagram, using the existing plain-text convention, only when the requirement has user-facing interaction.
-- Added a Sketch Boundary: a BA sketch stops at what appears and in what order — no layout, component hierarchy, or visual detail; every sketch is labeled `Illustrative — not a UI spec`.
-- Added a Production UI/UX Escalation rule: if real UI/UX design work is needed, BA Agent escalates to Human rather than deciding to create a new role itself.
-- Added section 11 ("Illustrative UX Sketch (Optional)") to `docs/templates/REQUIREMENT_DISCOVERY.md`.
-- Aligned the Claude BA adapter with the canonical rule.
-- Added regression coverage for the illustrative-draft rule, the sketch boundary, and the escalation rule; verified the test fails when a required phrase is removed and passes when restored.
+- BA Agent instruction committed to `main` (`ed1090e`): illustrative draft rule, sketch boundary, production-UI escalation; regression-tested.
+- Fixed QA Agent's canonical/adapter inversion: policy that only lived in `.claude/agents/qa-agent.md` (skill routing, dynamic routing, output expectations) now lives in `docs/workflow/role-definitions.md`; the Claude adapter restates without redefining, matching the SA/BA Agent pattern.
+- Reviewed eight external testing-persona references; adopted reduced concepts from API Tester, Test Automation Engineer, Evidence Collector, Reality Checker, and Performance Benchmarker; excluded Test Results Analyzer, Tool Evaluator, and Workflow Optimizer as out of scope.
+- Added Evidence-Based Reporting: QA claims require attached command-output/screenshot/log evidence; explicitly rejected the "find a minimum of 3-5 issues" quota mechanic as a fantasy-reporting failure mode in disguise.
+- Added API Contract Validation: QA validates implementations against SA Agent's OpenAPI schema (from SA's API Contract Governance rule); mismatches are defects routed to Developer or SA Agent.
+- Added NFR Validation: QA checks the SDD's stated Performance/Reliability/Observability/Scalability targets were validated, or records `Not validated — <reason>`.
+- Expanded `docs/templates/TEST_PLAN.md` from a blank Summary/Details stub into QA-specific fields (Test Types In Scope, Environment, Entry/Exit Criteria, NFR Targets Under Test).
+- Added an Automation Discipline section to `.agents/skills/qa-playwright-testing/SKILL.md` (no hard waits, role-based selectors, API-seeded test data, 24-hour flake quarantine with root cause).
+- Added regression coverage; verified it is not tautological (fails when a required phrase is removed, passes when restored).
 
 ## In Progress
-- Independent review of the BA Agent instruction, adapter, template change, and regression coverage (uncommitted).
+- Independent review of the QA Agent canonical/adapter fix, the three new rules, the template and skill changes, and regression coverage (uncommitted until Task 4 lands).
 
 ## Blockers / Open Questions
-- Two follow-up opportunities remain identified but deliberately deferred, not started: (1) a new "Prototype/Spike" workflow route in `AGENTS.md` Dynamic Routing Rules; (2) a Release Agent enrichment using CI/CD, deployment-strategy, and observability concepts. Neither is scheduled.
-- No UI/UX design role exists in this workflow. If a real production design need surfaces, it currently has nowhere defined to go beyond "escalate to Human" — tracked here as a known gap, not yet a blocker.
+- Three follow-up opportunities remain identified but deliberately deferred, not started: (1) a "Prototype/Spike" workflow route in `AGENTS.md`; (2) a Release Agent enrichment from a DevOps Automator reference; (3) whether a shared cross-role template pattern should be extracted now that six roles (Documentation, PM, Orchestrator, SA, BA, QA) follow the same canonical/adapter structure. None are scheduled.
 - R-001 (Phase 1 hosted-CI confirmation) remains a separate open item owned by Reviewer / QA Agent.
 
 ## Required Artifacts
-- `docs/workflow/role-definitions.md` (canonical BA Agent section)
-- `.claude/agents/ba-agent.md`
-- `docs/templates/REQUIREMENT_DISCOVERY.md`
+- `docs/superpowers/specs/2026-07-14-qa-agent-instruction-design.md`
+- `docs/superpowers/plans/2026-07-14-qa-agent-instruction.md`
+- `docs/workflow/role-definitions.md` (canonical QA Agent section)
+- `.claude/agents/qa-agent.md`
+- `docs/templates/TEST_PLAN.md`
+- `.agents/skills/qa-playwright-testing/SKILL.md`
 - `test/validate-contracts.test.mjs`
 
 ## Next Quality Gate
-- Reviewer confirms the canonical rule and Claude adapter agree, that the sketch boundary against SA Agent is unambiguous, and that the regression test is meaningful.
+- Reviewer confirms the canonical rule and Claude adapter agree, that API Contract Validation correctly references SA Agent's existing rule rather than redefining it, and that the regression test is meaningful.
 
 ## Recommended Next Agent
 - Reviewer, then Reviewer / QA Agent for the outstanding Phase 1 hosted-CI confirmation (R-001)
 
 ## Notes
-- BA Agent's sketch capability intentionally does not adopt the UX Researcher reference's formal research methodology (usability testing protocols, statistically-sized samples, empirical personas) — too heavy for this repo's current process; only the lightweight "flow sketch" shape was kept.
-- BA Agent's sketch capability intentionally does not adopt the UX Architect reference's CSS/theme-system code — that is Developer/SA implementation detail, not requirement illustration.
+- This work item intentionally did not create a new "Reality Checker" role — that responsibility is folded into QA Agent's own Evidence-Based Reporting rule and the existing Reviewer gate used throughout this session's role-enrichment work.
+- This work item intentionally did not adopt statistical/ML defect prediction, tool procurement/TCO evaluation, or generic business-process optimization — all judged disproportionate to or out of scope for this repo.
 - R-001 (Phase 1 hosted-CI confirmation) is unaffected by this work item and remains open.
