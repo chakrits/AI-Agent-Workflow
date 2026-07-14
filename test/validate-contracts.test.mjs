@@ -213,6 +213,35 @@ test('BA Agent requires the illustrative-draft boundary and production-UI escala
   assert.match(template, /Illustrative — not a UI spec/);
 });
 
+test('QA Agent canonical rule carries its policy and the new evidence, contract, and NFR rules', async () => {
+  const [roleDefinition, adapter, testPlan, playwrightSkill] = await Promise.all([
+    readFile('docs/workflow/role-definitions.md', 'utf8'),
+    readFile('.claude/agents/qa-agent.md', 'utf8'),
+    readFile('docs/templates/TEST_PLAN.md', 'utf8'),
+    readFile('.agents/skills/qa-playwright-testing/SKILL.md', 'utf8')
+  ]);
+
+  assert.match(roleDefinition, /### Skill Routing/);
+  assert.match(roleDefinition, /### Dynamic Routing/);
+  assert.match(roleDefinition, /### Output Expectations/);
+
+  for (const content of [roleDefinition, adapter]) {
+    assert.match(content, /Evidence-Based Reporting/);
+    assert.match(content, /must reference the actual command output|attached evidence/i);
+    assert.match(content, /API Contract Validation/);
+    assert.match(content, /NFR Validation/);
+  }
+  assert.doesNotMatch(roleDefinition, /minimum of \d+[-–]\d+ issues/i);
+
+  assert.match(testPlan, /Test Types In Scope/);
+  assert.match(testPlan, /NFR Targets Under Test/);
+
+  assert.match(playwrightSkill, /Automation Discipline/);
+  assert.match(playwrightSkill, /No hard waits/);
+  assert.match(playwrightSkill, /role-based selectors/i);
+  assert.match(playwrightSkill, /24 hours/);
+});
+
 test('accepts the three canonical Bug Fix examples', async () => {
   const errors = await validateContracts(process.cwd());
   assert.deepEqual(errors, []);
