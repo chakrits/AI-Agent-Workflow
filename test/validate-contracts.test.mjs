@@ -113,6 +113,51 @@ test('Documentation Agent requires post-merge review and a complete record', asy
   assert.match(adapter, /must not approve release, hosted CI, human gates, or risk closure without evidence/i);
 });
 
+test('PM Agent requires the mandatory business assessment and measurable success metrics', async () => {
+  const [roleDefinition, adapter, template] = await Promise.all([
+    readFile('docs/workflow/role-definitions.md', 'utf8'),
+    readFile('.claude/agents/pm-agent.md', 'utf8'),
+    readFile('docs/templates/PROJECT_BRIEF.md', 'utf8')
+  ]);
+  const requiredDimensions = [
+    'Business Goal',
+    'Scope',
+    'Stakeholder Impact',
+    'Success Metric',
+    'Priority',
+    'Release Intent'
+  ];
+  const requiredHeadings = [
+    'Metadata',
+    'Business Goal',
+    'In Scope',
+    'Out of Scope',
+    'Stakeholder Impact',
+    'Success Metric',
+    'Priority',
+    'Release Intent / Roadmap Fit',
+    'Assumptions',
+    'Open Questions',
+    'Risks',
+    'Approval / Review'
+  ];
+
+  for (const content of [roleDefinition, adapter]) {
+    for (const dimension of requiredDimensions) {
+      assert.match(content, new RegExp(dimension));
+    }
+    assert.match(content, /must be measurable/i);
+    assert.match(content, /not traceable to the original request/i);
+  }
+  for (const heading of requiredHeadings) {
+    assert.match(template, new RegExp(`#+ ${heading}`));
+  }
+  assert.match(
+    adapter,
+    /does not approve architecture, implementation, or release decisions/i
+  );
+});
+
 test('accepts the three canonical Bug Fix examples', async () => {
   const errors = await validateContracts(process.cwd());
   assert.deepEqual(errors, []);
