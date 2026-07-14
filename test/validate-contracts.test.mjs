@@ -148,14 +148,12 @@ test('PM Agent requires the mandatory business assessment and measurable success
     }
     assert.match(content, /must be measurable/i);
     assert.match(content, /not traceable to the original request/i);
+    assert.match(content, /invoked when Orchestrator/i);
+    assert.match(content, /does not approve architecture, implementation, or release decisions/i);
   }
   for (const heading of requiredHeadings) {
     assert.match(template, new RegExp(`#+ ${heading}`));
   }
-  assert.match(
-    adapter,
-    /does not approve architecture, implementation, or release decisions/i
-  );
 });
 
 test('accepts the three canonical Bug Fix examples', async () => {
