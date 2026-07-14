@@ -8,23 +8,49 @@
 - Date:
 - Status: Draft / Review / Approved
 
-## Summary
+## Business Goal
 
 
-## Details
+
+## Scope
+
+### In Scope
+
+-
+
+### Out of Scope
+
+-
+
+## Stakeholder Impact
+
+
+
+## Success Metric
+
+| Metric | Target | Measurement Method |
+|---|---|---|
+|  |  |  |
+
+## Priority
+
+
+
+## Release Intent / Roadmap Fit
+
 
 
 ## Assumptions
 
-- 
+-
 
 ## Open Questions
 
-- 
+-
 
 ## Risks
 
-- 
+-
 
 ## Approval / Review
 

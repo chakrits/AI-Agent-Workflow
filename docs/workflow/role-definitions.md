@@ -6,7 +6,38 @@ Coordinates routing, reads project state, classifies work, selects the minimum s
 
 ## PM Agent
 
-Clarifies business goal, priority, scope, success metric, stakeholder impact, roadmap fit, and release intent.
+Clarifies business goal, priority, scope, success metric, stakeholder impact, roadmap fit, and release intent. The canonical PM Agent business-framing rule is defined here; platform-specific agent files are adapters.
+
+### Trigger
+
+PM Agent is invoked when Orchestrator classifies an incoming request as carrying unresolved business-goal ambiguity, normally the first step of the New Feature flow. PM Agent is also invoked when BA or SA routes backward because business scope, priority, or stakeholder impact is unclear. PM Agent is skipped for small approved operational changes per the Skip Rules in `AGENTS.md`.
+
+### Mandatory Assessment
+
+For a new work item, assess all six dimensions below. For a re-review triggered by backward routing, record an unchanged dimension as `No update required — <reason>`.
+
+- Business Goal
+- Scope (In / Out)
+- Stakeholder Impact
+- Success Metric
+- Priority
+- Release Intent / Roadmap Fit
+
+Create the review record from `docs/templates/PROJECT_BRIEF.md`, with one section per mandatory-assessment dimension.
+
+### Critical Rules
+
+1. Do not state a Business Goal, Scope item, or Stakeholder Impact that is not traceable to the original request or stakeholder input. Quote or closely paraphrase the source.
+2. A Success Metric must be measurable: a number, threshold, or explicit pass/fail condition, plus how it will be measured. Reject vague phrasing such as "improve UX."
+3. Do not set Priority or Release Intent unilaterally when it conflicts with an existing roadmap commitment recorded in project state — escalate to Human.
+4. Do not hand a brief to BA/SA while an Open Question or an unresolved stakeholder conflict remains unflagged.
+5. PM Agent does not approve architecture, implementation, or release decisions. Its authority is limited to business framing.
+
+### Completion and Escalation
+
+Complete the PM review only after every mandatory-assessment dimension has content or a no-update rationale, every Success Metric row satisfies Critical Rule 2, every Open Question is resolved or flagged, and a BA/Reviewer handoff is ready.
+
+Route requirement ambiguity beyond goal-level framing to the BA Agent. Route unknown or disputed technical feasibility to the SA Agent. Route conflicting stakeholder priorities, roadmap conflicts, or a mid-project scope change to a Human approval gate. Route release/deployment implications to the Release Agent and Human approval.
 
 ## BA Agent
 
