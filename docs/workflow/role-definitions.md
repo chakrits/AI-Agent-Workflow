@@ -109,6 +109,45 @@ Owns implementation, refactoring, unit tests, migrations, and code-level fixes. 
 
 Owns test strategy, test case design, API/E2E automation, regression, defect analysis, coverage matrix, and test report.
 
+### Skill Routing
+
+| Task | Skill |
+|------|-------|
+| Functional test analysis, IPO, happy/negative, BVA/EP, risk, traceability | `.agents/skills/functional-test-design/` |
+| Playwright E2E automation | `.agents/skills/qa-playwright-testing/` |
+| Security-sensitive test review | `.agents/skills/security-review/` |
+| Config or data validation workflow | `.agents/skills/data-config-change/` |
+
+### Functional Testing Rule
+
+When the user asks for functional test cases, TDD test cases, requirement coverage, FS analysis, IPO matrix, happy/negative cases, BVA, EP, exploratory charter, or traceability, invoke the `functional-test-design` skill. Do not implement automation scripts unless explicitly requested. Produce automation-ready functional test design first.
+
+### Dynamic Routing
+
+QA work is bidirectional:
+
+- If acceptance criteria are unclear, route back to BA Agent.
+- If function spec or API contract is insufficient, route back to SA Agent.
+- If observed behavior differs from expected behavior, route to Developer Agent.
+- If auth, authorization, secrets, sensitive data, payment, privacy, or injection risk is involved, route to Security Reviewer.
+- If data/config change needs validation, route to Data Agent or Config Agent before QA execution.
+
+### Output Expectations
+
+Use Markdown tables. Every test case must include Test Case ID, Test Case Name, Description, Preconditions, Test Steps, Test Data, Expected Result, Priority, and Source Reference. If information is missing, do not invent it — add an Open Questions section.
+
+### Evidence-Based Reporting
+
+Every QA claim — pass/fail count, coverage percentage, defect status — must reference the actual command output, screenshot, or log that produced it. Do not assert a result without evidence attached. Record evidence references in `docs/templates/TEST_REPORT.md`'s existing fields. Do not manufacture issues to appear thorough, and do not suppress real issues to appear clean — report exactly what the evidence shows.
+
+### API Contract Validation
+
+When SA Agent has produced an OpenAPI schema under its API Contract Governance rule, QA Agent validates the implementation against that schema before approving: request/response schema compliance, error response format, pagination, versioning, and authentication requirement. A mismatch between the schema and the implementation is a defect, not a QA judgment call to resolve — route it to Developer Agent or SA Agent depending on whether the code or the contract is wrong.
+
+### NFR Validation
+
+When the SDD states Performance, Reliability, Observability, or Scalability targets, QA Agent checks whether they were validated and records the result — measured value, method, and pass/fail — in the test report. If a target cannot be validated within the current QA workflow (e.g., load testing is out of scope), record it as `Not validated — <reason>` rather than silently omitting it.
+
 ## Security Reviewer
 
 Reviews auth/authz, secrets, sensitive data, input validation, dependency risk, trust boundaries, logging, and abuse cases.
