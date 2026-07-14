@@ -198,6 +198,21 @@ test('SA Agent requires architecture pattern discipline, API contract governance
   }
 });
 
+test('BA Agent requires the illustrative-draft boundary and production-UI escalation', async () => {
+  const [roleDefinition, adapter, template] = await Promise.all([
+    readFile('docs/workflow/role-definitions.md', 'utf8'),
+    readFile('.claude/agents/ba-agent.md', 'utf8'),
+    readFile('docs/templates/REQUIREMENT_DISCOVERY.md', 'utf8')
+  ]);
+  for (const content of [roleDefinition, adapter]) {
+    assert.match(content, /Illustrative — not a UI spec/);
+    assert.match(content, /layout system, component hierarchy/i);
+    assert.match(content, /No UI\/UX design role exists/i);
+  }
+  assert.match(template, /Illustrative UX Sketch/);
+  assert.match(template, /Illustrative — not a UI spec/);
+});
+
 test('accepts the three canonical Bug Fix examples', async () => {
   const errors = await validateContracts(process.cwd());
   assert.deepEqual(errors, []);

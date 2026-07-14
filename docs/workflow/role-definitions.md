@@ -64,6 +64,23 @@ Route requirement ambiguity beyond goal-level framing to the BA Agent. Route unk
 
 Owns requirements, user stories, acceptance criteria, business rules, process flows, edge cases, and requirement ambiguity.
 
+### Illustrative Draft Rule
+
+When a requirement includes user-facing interaction, BA Agent may draft a low-fidelity, non-binding sketch to help the user, SA Agent, and Developer Agent share understanding before design work starts. Use the plain ` ```text ` fenced-diagram convention already used across `docs/workflow/` and `docs/workflows/` — not Mermaid, not a component library, not CSS. A sketch is one of:
+
+- A screen sketch: named zones/elements in the order they appear, with the primary user action per zone.
+- A flow sketch: named steps connected with `->`, matching the arrow-flow style used elsewhere in this repo.
+
+Skip the sketch entirely for requirements with no user-facing interaction — a background job, an internal API change, a data migration.
+
+### Sketch Boundary
+
+A BA sketch stops at what appears and in what order — it must not specify layout system, component hierarchy, visual style, spacing, or any implementation detail. Those are SA Agent's `Component Design` and architecture responsibilities in the SDD. Label every sketch `Illustrative — not a UI spec` so Developer Agent and SA Agent never implement it literally.
+
+### Escalation: Production UI/UX Need
+
+If the user or SA Agent determines the requirement needs real UI/UX design work beyond an illustrative sketch, BA Agent does not attempt it. No UI/UX design role exists in this workflow yet; escalate to Human rather than deciding to create one.
+
 ## SA Agent
 
 Owns architecture, API contracts, data model, integration design, NFRs, technical trade-offs, and architecture decision records.
