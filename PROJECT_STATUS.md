@@ -4,7 +4,7 @@
 - ID: POST-MERGE-DOCUMENTATION-STEWARDSHIP-2026-07-14
 - Title: Require documentation-impact review after every merge into main
 - Owner: Documentation Agent / Maintainer
-- Status: Ready for Review
+- Status: Reviewed — Closed
 
 ## Current Stage
 - Documentation Stewardship / Reviewer Gate
@@ -25,10 +25,10 @@
 - Recorded the outstanding Phase 1 hosted-CI confirmation as owned risk R-001.
 
 ## In Progress
-- Independent review of the post-merge documentation stewardship instruction, template, and regression coverage.
+- None. Reviewer confirmed canonical rule, Claude adapter, and template parity; regression test verified meaningful (`npm test` 16/16, `npm run validate:contracts` passed, `git diff --check` clean).
 
 ## Blockers / Open Questions
-- The first hosted GitHub Actions result for Phase 1 on `main` has not been recorded; tracked as R-001.
+- The first hosted GitHub Actions result for Phase 1 on `main` has not been recorded; tracked as R-001, owned by Reviewer / QA Agent.
 
 ## Required Artifacts
 - `docs/superpowers/specs/2026-07-14-post-merge-documentation-stewardship-design.md`
@@ -37,10 +37,10 @@
 - `docs/records/POST-MERGE-DOCUMENTATION-STEWARDSHIP-2026-07-14-COMPLETION.md`
 
 ## Next Quality Gate
-- Reviewer confirms the canonical rule, Claude adapter, template, and regression test agree.
+- Reviewer / QA Agent records the first hosted GitHub Actions run for Phase 1 on `main` (R-001).
 
 ## Recommended Next Agent
-- Reviewer, then Reviewer / QA Agent for the outstanding Phase 1 hosted-CI confirmation
+- Reviewer / QA Agent for the outstanding Phase 1 hosted-CI confirmation
 
 ## Notes
 - The post-merge rule applies to pull requests merged into `main`; it does not infer release approval, hosted-CI success, human approval, or risk closure.
