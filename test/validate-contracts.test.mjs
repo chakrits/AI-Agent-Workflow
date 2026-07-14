@@ -156,6 +156,48 @@ test('PM Agent requires the mandatory business assessment and measurable success
   }
 });
 
+test('Orchestrator Agent requires the unclassified-request rule and escalation tiers', async () => {
+  const [roleDefinition, adapter] = await Promise.all([
+    readFile('docs/workflow/role-definitions.md', 'utf8'),
+    readFile('.claude/agents/orchestrator-agent.md', 'utf8')
+  ]);
+  for (const content of [roleDefinition, adapter]) {
+    assert.match(content, /Unclassified/);
+    assert.match(content, /Escalate now/i);
+    assert.match(content, /Log and proceed/i);
+    assert.match(content, /Park/);
+    assert.match(content, /reversible or irreversible|reversibility/i);
+  }
+});
+
+test('SA Agent requires architecture pattern discipline, API contract governance, and migration safety', async () => {
+  const [roleDefinition, adapter, template] = await Promise.all([
+    readFile('docs/workflow/role-definitions.md', 'utf8'),
+    readFile('.claude/agents/sa-agent.md', 'utf8'),
+    readFile('docs/templates/SDD.md', 'utf8')
+  ]);
+  for (const content of [roleDefinition, adapter]) {
+    assert.match(content, /modular monolith/i);
+    assert.match(content, /service layer/i);
+    assert.match(content, /OpenAPI/);
+    assert.match(content, /migration strategy/i);
+    assert.match(content, /expand\/contract/i);
+  }
+  const requiredTemplateFields = [
+    'OpenAPI schema reference',
+    'Migration strategy',
+    'Backfill plan',
+    'Rollback plan',
+    'Performance target',
+    'Reliability target',
+    'Observability plan',
+    'Scalability target'
+  ];
+  for (const field of requiredTemplateFields) {
+    assert.match(template, new RegExp(field));
+  }
+});
+
 test('accepts the three canonical Bug Fix examples', async () => {
   const errors = await validateContracts(process.cwd());
   assert.deepEqual(errors, []);

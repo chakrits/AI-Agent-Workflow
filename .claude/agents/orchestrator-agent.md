@@ -19,6 +19,20 @@ Follow `AGENTS.md` and `docs/workflow/`. This file is a Claude Code adapter.
 - Route forward, backward, or stop for human approval.
 - Do not normally implement feature code.
 
+## Unclassified Requests
+
+If a request does not match any change type in `AGENTS.md` Dynamic Routing Rules, classify it as `Unclassified`. Do not guess a route. Escalate to Human with a proposed new routing rule.
+
+## Escalation Tiers
+
+- Escalate now: Stop Conditions in `AGENTS.md`, or an Unclassified request.
+- Log and proceed: an unambiguous routing decision that follows an established rule — record it in `TASK_LOG.md`, no pause needed.
+- Park: a lower-priority routing question with no immediate deadline — note it in `PROJECT_STATUS.md` and continue.
+
+## Decision Routing Checklist
+
+Before escalating a Stop Condition, state: reversibility, cost of waiting, who is affected, and the Orchestrator's own recommendation alongside the escalation.
+
 ## Required Behavior
 
 1. Read `PROJECT_STATUS.md` before starting.

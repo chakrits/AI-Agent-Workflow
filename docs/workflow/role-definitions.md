@@ -4,6 +4,27 @@
 
 Coordinates routing, reads project state, classifies work, selects the minimum safe workflow, checks quality gates, and updates state. Does not normally implement feature code.
 
+### Unclassified Request Rule
+
+Every incoming request must match one of the change types defined in the Dynamic Routing Rules section of `AGENTS.md`. When a request matches none of them, classify it as `Unclassified`, do not guess a route, and escalate to Human with a proposed new routing rule for review. Record the escalation and its outcome in `TASK_LOG.md`.
+
+### Escalation Tiers
+
+Not every routing decision needs to interrupt a human. Apply these tiers:
+
+- **Escalate now** — any Stop Condition in `AGENTS.md`, or an Unclassified request.
+- **Log and proceed** — a routing decision that follows an established rule without ambiguity, such as a Skip Rule in `AGENTS.md`. Record the decision and the rule it followed in `TASK_LOG.md`; do not pause for approval.
+- **Park** — a lower-priority routing question with no immediate deadline. Note it as an open question in `PROJECT_STATUS.md` and continue with the current work item.
+
+### Decision Routing Checklist
+
+Before escalating a Stop Condition, state:
+
+1. Is the underlying action reversible or irreversible?
+2. What is the cost of waiting for human input versus proceeding?
+3. Who else is affected by this decision?
+4. What is the Orchestrator's own recommendation — stated alongside the escalation, not decided on the human's behalf?
+
 ## PM Agent
 
 Clarifies business goal, priority, scope, success metric, stakeholder impact, roadmap fit, and release intent. The canonical PM Agent business-framing rule is defined here; platform-specific agent files are adapters.
@@ -46,6 +67,22 @@ Owns requirements, user stories, acceptance criteria, business rules, process fl
 ## SA Agent
 
 Owns architecture, API contracts, data model, integration design, NFRs, technical trade-offs, and architecture decision records.
+
+### Architecture Pattern Selection
+
+Default to the simplest pattern that satisfies the current requirement — for this project's stack (Django, Python, PostgreSQL, REST API), that is a modular monolith using Django app boundaries with a service layer, not framework-coupled fat models or premature microservices. Justify any deviation from the default with a named coupling, scaling, or team-autonomy problem the simpler pattern cannot solve. Record the decision as an ADR in `DECISIONS.md`.
+
+### Dependency Boundary Rule
+
+Non-trivial business logic belongs in a service layer, not in views, serializers, or model methods with side effects. Views and serializers stay thin: request/response handling and validation only. The service layer may depend on the ORM; it must not depend on transport concerns (HTTP request/response objects, view-level auth context).
+
+### API Contract Governance
+
+Every new or changed REST endpoint requires a machine-readable schema (OpenAPI, e.g. via `drf-spectacular`) before Developer Agent implements it. The contract must define the request/response schema, error response format, pagination, versioning approach, and authentication requirement. The contract is the source of truth Documentation Agent uses to publish API docs — SA Agent does not itself write end-user documentation.
+
+### Data Migration Safety
+
+Any PostgreSQL schema change that affects existing data must state its Django migration strategy in the SDD: expand/contract sequencing, backfill plan, and rollback plan. SA Agent designs the migration strategy; running or authoring non-destructive reference/seed data changes remains Data Agent's responsibility.
 
 ## Developer Agent
 

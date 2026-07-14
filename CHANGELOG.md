@@ -6,10 +6,13 @@
 - Phase 1 Bug Fix workflow contract validation completion record and independent reviewer / QA handoff.
 - Mandatory post-merge Documentation Agent review rule, template, and regression coverage.
 - Canonical PM Agent business-framing rule, expanded `PROJECT_BRIEF.md` template, and regression coverage.
+- Orchestrator Agent unclassified-request rule, escalation tiers, decision routing checklist, and regression coverage.
+- SA Agent architecture pattern selection, dependency boundary rule, API contract governance, and Django/Postgres migration-safety rule, with an expanded `SDD.md` template and regression coverage.
 
 ### Changed
 - Phase 1 contract-first Bug Fix workflow foundation was merged into `main` through Pull Request #1.
 - Documentation Agent now assesses project index, status, history, changelog, decisions, risks, and canonical/adapter parity after every merge into `main`.
+- PM Agent instruction branch merged into `main` after final whole-branch review approval.
 
 ### Fixed
 - 

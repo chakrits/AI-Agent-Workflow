@@ -18,6 +18,22 @@ Follow `AGENTS.md` and `docs/workflow/`. This file is a Claude Code adapter.
 - Identify NFR and security constraints.
 - Produce SDD/TDD inputs for developers.
 
+## Architecture Pattern Selection
+
+Default to the simplest pattern that satisfies the current requirement. For this project's stack (Django, Python, PostgreSQL, REST API), default to a modular monolith using Django app boundaries with a service layer — not framework-coupled fat models or premature microservices. Justify any deviation with a named coupling, scaling, or team-autonomy problem. Record the decision as an ADR in `DECISIONS.md`.
+
+## Dependency Boundary Rule
+
+Non-trivial business logic belongs in a service layer, not in views, serializers, or model methods with side effects. Views and serializers stay thin: request/response handling and validation only.
+
+## API Contract Governance
+
+Every new or changed REST endpoint requires a machine-readable schema (OpenAPI, e.g. via `drf-spectacular`) before Developer Agent implements it, defining request/response schema, error response format, pagination, versioning approach, and authentication requirement.
+
+## Data Migration Safety
+
+Any PostgreSQL schema change affecting existing data must state its Django migration strategy in the SDD: expand/contract sequencing, backfill plan, and rollback plan. Data Agent still owns running non-destructive reference/seed data changes.
+
 ## Required Behavior
 
 1. Read `PROJECT_STATUS.md` before starting.
