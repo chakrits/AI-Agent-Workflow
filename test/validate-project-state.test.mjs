@@ -75,3 +75,13 @@ test('GitHub separates normal post-merge closeout from documentation-sync except
   assert.doesNotMatch(workflow, /pull_request:/);
   assert.doesNotMatch(workflow, /types:\s*\[closed\]/);
 });
+
+test('GitHub post-merge closeout script compiles and preserves its completion instruction', async () => {
+  const workflow = await readFile('.github/workflows/documentation-sync.yml', 'utf8');
+  const scriptMarker = '          script: |\n';
+  const script = workflow.slice(workflow.lastIndexOf(scriptMarker) + scriptMarker.length);
+  const AsyncFunction = Object.getPrototypeOf(async () => {}).constructor;
+
+  assert.doesNotThrow(() => new AsyncFunction(script));
+  assert.match(script, /post-merge-closeout: complete; source-pr-/);
+});

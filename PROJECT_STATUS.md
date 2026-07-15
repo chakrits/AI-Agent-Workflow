@@ -1,17 +1,17 @@
 # PROJECT_STATUS.md
 
 ## Current Work Item
-- ID: GitHub Issue #10
-- Title: Post-Merge Closeout Contract
-- Owner: Human / Maintainer
-- Status: QA passed — ready for human review
+- ID: GitHub Issue #12
+- Title: Restore Post-Merge Closeout Handoff
+- Owner: Developer Agent / QA Agent
+- Status: Implementation complete — QA verification pending
 
 ## Current Stage
-- Human Review
+- QA Verification
 
 ## Change Classification
-- Change Type: Workflow / agent-instruction enhancement
-- Risk Level: Medium
+- Change Type: Bug Fix — GitHub workflow automation
+- Risk Level: Low–Medium
 - Code Change Required: Yes — workflow automation and regression coverage
 - Architecture Change Required: No
 - Security Review Required: No
@@ -28,22 +28,21 @@
 - GitHub Issue #7, Cross-platform QA acceptance gate, merged through PR #8 as commit `f35c8b8`; QA evidence confirmed all six acceptance criteria, and the passing default-branch audit created no `documentation-sync` exception issue.
 
 ## In Progress
-- GitHub Issue #10: QA passed all acceptance criteria for PR #11 at `ad73573`; human review and merge are pending.
+- GitHub Issue #12: PR #11 merged as `4b95889`, but its normal closeout handoff failed to compile. The parse-safe fix and regression test are ready for QA verification.
 
 ## Blockers / Open Questions
 - R-002: `.gitlab-ci.yml` has not yet been validated on a live GitLab runner; this is an external verification follow-up, not an active implementation task.
 - Deferred and unscheduled: a Prototype/Spike workflow route and a shared cross-role template pattern.
 
 ## Required Artifacts
-- Canonical closeout contract, adapters/templates, GitHub workflow, and regression coverage.
-- GitHub `status:development-done`, `status:verification-done`, and `post-merge-closeout` labels.
-- QA evidence comment/review URL and hosted check results.
+- Parse-safe GitHub closeout workflow, compile regression test, RCA/postmortem, QA evidence, and hosted post-merge result.
 
 ## Next Quality Gate
-- Human review and approval of PR #11; after merge, confirm the default-branch audit emits the temporary `post-merge-closeout` signal without a `documentation-sync` exception Issue.
+- QA verifies every Issue #12 acceptance criterion and records hosted evidence; then human review/merge. After merge, perform PR #11's compensating closeout and verify no loop.
 
 ## Recommended Next Agent
-- Human / Maintainer for PR review and merge; Documentation Agent for the first closeout-signal lifecycle check.
+- QA Agent, then Human / Maintainer; Documentation Agent only after hosted success.
 
 ## Notes
 - R-002 remains the separate live-GitLab-runner follow-up. GitLab uses the manual closeout label/comment equivalent until API automation is separately approved.
+- PR #11 remains at `Human Review` in the project record until the compensating closeout is merged; this is intentional and tracked by Issue #12.

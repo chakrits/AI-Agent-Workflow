@@ -149,11 +149,15 @@ jobs:
               return;
             }
 
+            const handoffBody = [
+              marker,
+              '',
+              `Default-branch validation passed for ${context.sha}. Documentation Agent: claim the post-merge-closeout label, open a closeout PR that updates project state/history, and include <!-- post-merge-closeout: complete; source-pr-${pullRequest.number} --> in its body. The closeout merge removes this label. No documentation-sync Issue is required for a passing audit.`
+            ].join('\n');
+
             await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: pullRequest.number,
-              body: `${marker}
-
-            Default-branch validation passed for ${context.sha}. Documentation Agent: claim the `post-merge-closeout` label, open a closeout PR that updates project state/history, and include `<!-- post-merge-closeout: complete; source-pr-${pullRequest.number} -->` in its body. The closeout merge removes this label. No `documentation-sync` Issue is required for a passing audit.`
+              body: handoffBody
             });
