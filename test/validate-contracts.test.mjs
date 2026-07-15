@@ -404,6 +404,81 @@ test('Security Reviewer carries the scan checklist, severity scale, and fix-befo
   assert.match(template, /Fix-Before-Merge\?/);
 });
 
+test('Release Agent carries versioning contract, evidence checklist, and triple rollback confirmation', async () => {
+  const [roleDefinition, adapter, template] = await Promise.all([
+    readFile('docs/workflow/role-definitions.md', 'utf8'),
+    readFile('.claude/agents/release-agent.md', 'utf8'),
+    readFile('docs/templates/RELEASE_PLAN.md', 'utf8')
+  ]);
+
+  for (const content of [roleDefinition, adapter]) {
+    assert.match(content, /MAJOR\.MINOR\.PATCH/);
+    assert.match(content, /tag/i);
+    assert.match(content, /hosted CI/i);
+    assert.match(content, /Documentation Agent/);
+    assert.match(content, /code rollback/i);
+    assert.match(content, /schema rollback/i);
+    assert.match(content, /config rollback/i);
+    assert.match(content, /blast radius/i);
+  }
+
+  assert.match(template, /## Version/);
+  assert.match(template, /## Deployment Strategy/);
+  assert.match(template, /## Release Evidence Checklist/);
+  assert.match(template, /## Rollback Plan/);
+});
+
+test('Config Agent carries the config/data boundary, reload behavior, flag lifecycle, and escalation guard', async () => {
+  const [roleDefinition, adapter, skill, template] = await Promise.all([
+    readFile('docs/workflow/role-definitions.md', 'utf8'),
+    readFile('.claude/agents/config-agent.md', 'utf8'),
+    readFile('.agents/skills/data-config-change/SKILL.md', 'utf8'),
+    readFile('docs/templates/CONFIG_CHANGE_PLAN.md', 'utf8')
+  ]);
+
+  for (const content of [roleDefinition, adapter]) {
+    assert.match(content, /controls system \*?behavior\*?/i);
+    assert.match(content, /Restart-Required|restart/i);
+    assert.match(content, /removal condition/i);
+    assert.match(content, /Escalation Guard/);
+    assert.match(content, /Developer-skip shortcut/);
+  }
+
+  assert.match(skill, /Config vs Data Boundary/);
+  assert.match(skill, /Escalation Guard/);
+
+  assert.match(template, /Reload Behavior/);
+  assert.match(template, /## Feature Flags/);
+  assert.match(template, /Removal Condition/);
+  assert.match(template, /## Escalation Check/);
+});
+
+test('Data Agent carries non-destructive mechanics, the SA boundary, re-run safety, PII routing, and escalation guard', async () => {
+  const [roleDefinition, adapter, skill, template] = await Promise.all([
+    readFile('docs/workflow/role-definitions.md', 'utf8'),
+    readFile('.claude/agents/data-agent.md', 'utf8'),
+    readFile('.agents/skills/data-config-change/SKILL.md', 'utf8'),
+    readFile('docs/templates/DATA_CHANGE_PLAN.md', 'utf8')
+  ]);
+
+  for (const content of [roleDefinition, adapter]) {
+    assert.match(content, /ON CONFLICT DO UPDATE/);
+    assert.match(content, /row-count delta/i);
+    assert.match(content, /does not author Django migration files/i);
+    assert.match(content, /safe to run twice/i);
+    assert.match(content, /PII/);
+    assert.match(content, /Security Reviewer/);
+    assert.match(content, /Escalation Guard/);
+  }
+
+  assert.match(skill, /Non-destructive means/i);
+  assert.match(skill, /PII/);
+
+  assert.match(template, /Touches PII/);
+  assert.match(template, /Expected row-count delta/);
+  assert.match(template, /## Escalation Check/);
+});
+
 test('accepts the three canonical Bug Fix examples', async () => {
   const errors = await validateContracts(process.cwd());
   assert.deepEqual(errors, []);

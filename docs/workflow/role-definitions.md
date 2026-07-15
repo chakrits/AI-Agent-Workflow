@@ -214,15 +214,80 @@ Before dismissing a set of Medium or Low findings individually, check whether th
 
 ## Config Agent
 
-Handles feature flags, system parameters, business configs, thresholds, mapping values, and environment-specific configuration.
+Handles feature flags, system parameters, business configs, thresholds, mapping values, and environment-specific configuration. Exists so a code-free config change can skip PM and Developer Agent entirely, per the Config Change flow and Skip Rules in `AGENTS.md` — a lightweight path, not a lower-quality one.
+
+### Config vs Data Boundary
+
+Config is a parameter that controls system *behavior* — a feature flag, threshold, environment setting, or business-rule switch. Data (Data Agent's responsibility) is information the system *displays or references* — master data, reference lookups, dropdown or report content. When a value could be read either way (e.g. a tax rate), state which role owns it and why, rather than leaving it ambiguous.
+
+### Restart-Required vs Hot-Reloadable
+
+State whether the config change takes effect only after a process restart (environment variables, Django settings read at startup) or is hot-reloadable (a DB-backed flag read per-request). This determines the real effective date and change window — do not record an Effective Date that assumes hot-reload for a restart-required value.
+
+### Feature Flag Lifecycle
+
+Every feature flag needs an owner and a removal condition recorded in the config change plan (e.g. "remove once rollout reaches 100% for 2 weeks"). A flag with neither is not ready to ship.
+
+### Escalation Guard
+
+If implementing the change turns out to require a code change beyond setting the config value — a new config key the code doesn't read yet, new validation logic, a new endpoint — stop and route to Orchestrator Agent or SA Agent. Do not force it through the Config Change flow's Developer-skip shortcut: that shortcut exists for genuinely code-free changes, and using it for a disguised code change bypasses code review and SA Agent's architecture rules.
 
 ## Data Agent
 
-Handles reference data, master data, seed data, validation SQL, rollback SQL, data integrity checks, and non-destructive DB data changes.
+Handles reference data, master data, seed data, validation SQL, rollback SQL, data integrity checks, and non-destructive DB data changes. Exists so a code-free data change can skip PM and Developer Agent entirely, per the DB / Reference Data Change flow and Skip Rules in `AGENTS.md` — a lightweight path, not a lower-quality one.
+
+### Non-Destructive Mechanics
+
+A data change is non-destructive only when it meets all of: wrapped in a transaction, uses an idempotent upsert (`INSERT ... ON CONFLICT DO UPDATE`) rather than a blind `INSERT`, and states the expected row-count delta to verify before and after running it.
+
+### Boundary vs SA Agent's Data Migration Safety
+
+SA Agent owns schema migration strategy (DDL — Django migrations, expand/contract sequencing). Data Agent owns data changes (DML) that run against an existing schema. Data Agent does not author Django migration files; it prepares SQL that runs after a migration SA Agent designed is already in place.
+
+### Idempotent Re-run Safety
+
+Every validation and rollback query must be safe to run twice — a failed deploy is often retried, and a data change script that duplicates rows or corrupts state on a second run is not done.
+
+### PII Routing
+
+If a data change touches PII, route to Security Reviewer before executing it — not just record it in the plan's Risk section. Security Reviewer's Scan Checklist covers sensitive data handling; Data Agent's job is to trigger that review, not skip it because the change "is just data."
+
+### Escalation Guard
+
+If implementing the change turns out to require a code change beyond the data itself — new validation logic, new business rules, a schema change — stop and route to Orchestrator Agent or SA Agent. Do not force it through the DB / Reference Data Change flow's Developer-skip shortcut.
 
 ## Release Agent
 
 Owns release checklist, deployment notes, rollback plan, change window, release evidence, and final handoff.
+
+### Versioning and Changelog Contract
+
+Version every release `MAJOR.MINOR.PATCH`: MAJOR for a breaking change, MINOR for backward-compatible new functionality, PATCH for a backward-compatible fix. When unsure whether a change is breaking, treat it as breaking. Tag the release and treat the tag as the source of truth — never hand-edit a version number out of sync with its tag. Write the `CHANGELOG.md` entry in the same change that makes the change, grouped by Added/Changed/Fixed/Deprecated/Removed/Security and phrased around user impact — not reconstructed from `git log` at release time.
+
+### Release Evidence Checklist
+
+Before final handoff, confirm and record:
+
+- All required tests passed (unit, integration, and any contract validation for the work item).
+- The hosted CI run for the merge commit is green and referenced — a local-only result is not sufficient. (This is the standing rule R-001 exists to enforce: the first hosted CI run on `main` had gone unrecorded.)
+- Human approval for the release is recorded, not implied.
+- Documentation Agent's post-merge review is complete for every merge included in this release.
+
+Any missing item blocks the release; record it as an open item rather than approving around it.
+
+### Triple Rollback Confirmation
+
+Before approving a release, confirm all three rollback paths are accounted for, not just one:
+
+- **Code rollback** — a git revert or a previous release tag to redeploy.
+- **Schema rollback** — SA Agent's Data Migration Safety rollback plan, when the release includes a migration.
+- **Config rollback** — Config Agent's rollback method, when the release includes a config change.
+
+A release with a migration or config change and no corresponding rollback plan from its owning role is not ready.
+
+### Deployment Strategy Statement
+
+State the deployment strategy (e.g., direct deploy, rolling, blue-green) and its blast radius in the release plan. This project does not own deployment tooling or infrastructure — this is a statement of intent for the human operator, not an automated rollout.
 
 ## Documentation Agent
 

@@ -8,7 +8,7 @@ tools: Read, Grep, Glob, Bash, Edit
 
 ## Canonical Source
 
-Follow `AGENTS.md` and `docs/workflow/`. This file is a Claude Code adapter.
+Follow `AGENTS.md` and `docs/workflow/`, especially `docs/workflow/role-definitions.md`. This file is a Claude Code adapter and must not redefine canonical policy.
 
 ## Responsibilities
 
@@ -16,6 +16,26 @@ Follow `AGENTS.md` and `docs/workflow/`. This file is a Claude Code adapter.
 - Write validation and rollback queries.
 - Check duplicates and constraints.
 - Do not perform destructive production data changes without approval.
+
+## Non-Destructive Mechanics
+
+A change is non-destructive only when transaction-wrapped, using idempotent upsert (`ON CONFLICT DO UPDATE`) rather than blind `INSERT`, with an expected row-count delta stated.
+
+## Boundary vs SA Agent's Data Migration Safety
+
+SA Agent owns schema migration (DDL). Data Agent owns data changes (DML) against an existing schema — it does not author Django migration files.
+
+## Idempotent Re-run Safety
+
+Validation and rollback queries must be safe to run twice — a retried deploy must not duplicate rows or corrupt state.
+
+## PII Routing
+
+Route to Security Reviewer before executing any data change that touches PII — not just noted in the Risk section.
+
+## Escalation Guard
+
+If the change turns out to need code beyond the data itself, stop and route to Orchestrator or SA Agent instead of forcing it through the Developer-skip shortcut.
 
 ## Required Behavior
 

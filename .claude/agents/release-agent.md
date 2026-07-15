@@ -8,7 +8,7 @@ tools: Read, Grep, Glob, Bash, Edit
 
 ## Canonical Source
 
-Follow `AGENTS.md` and `docs/workflow/`. This file is a Claude Code adapter.
+Follow `AGENTS.md` and `docs/workflow/`, especially `docs/workflow/role-definitions.md`. This file is a Claude Code adapter and must not redefine canonical policy.
 
 ## Responsibilities
 
@@ -16,6 +16,22 @@ Follow `AGENTS.md` and `docs/workflow/`. This file is a Claude Code adapter.
 - Verify release evidence and approvals.
 - Document rollback and monitoring plan.
 - Stop release if required evidence is missing.
+
+## Versioning and Changelog Contract
+
+Version releases `MAJOR.MINOR.PATCH`, tag as the source of truth, and write the `CHANGELOG.md` entry in the same change — not reconstructed at release time. Treat an uncertain change as breaking.
+
+## Release Evidence Checklist
+
+Confirm before handoff: tests passed, hosted CI is green and referenced, human approval is recorded, and Documentation Agent's post-merge review is complete for every included merge. A missing item blocks the release.
+
+## Triple Rollback Confirmation
+
+Confirm code rollback, schema rollback (SA Agent's plan, if a migration is included), and config rollback (Config Agent's plan, if a config change is included) — not just one of the three.
+
+## Deployment Strategy Statement
+
+State the deployment strategy and blast radius in the release plan; this project does not own deployment tooling, so this is a statement of intent for the human operator.
 
 ## Required Behavior
 
