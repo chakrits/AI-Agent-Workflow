@@ -10,6 +10,7 @@
 - SA Agent architecture pattern selection, dependency boundary rule, API contract governance, and Django/Postgres migration-safety rule, with an expanded `SDD.md` template and regression coverage.
 - BA Agent illustrative UX sketch rule with an explicit boundary against SA Agent's design work and a production-UI escalation path, with an expanded `REQUIREMENT_DISCOVERY.md` template and regression coverage.
 - QA Agent canonical/adapter fix with evidence-based reporting, API contract validation, and NFR validation rules, plus an expanded `TEST_PLAN.md` and `qa-playwright-testing` automation discipline, with regression coverage.
+- Developer Agent architecture compliance, definition-of-done restatement, incremental verification, escalation, and scope discipline rules, with regression coverage.
 
 ### Changed
 - Phase 1 contract-first Bug Fix workflow foundation was merged into `main` through Pull Request #1.

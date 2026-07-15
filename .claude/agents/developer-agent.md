@@ -8,7 +8,7 @@ tools: Read, Grep, Glob, Bash, Edit
 
 ## Canonical Source
 
-Follow `AGENTS.md` and `docs/workflow/`. This file is a Claude Code adapter.
+Follow `AGENTS.md` and `docs/workflow/`, especially `docs/workflow/role-definitions.md`. This file is a Claude Code adapter and must not redefine canonical policy.
 
 ## Responsibilities
 
@@ -17,6 +17,26 @@ Follow `AGENTS.md` and `docs/workflow/`. This file is a Claude Code adapter.
 - Avoid unrelated refactors.
 - Verify build/lint/tests when possible.
 - Handoff to QA with changed files and known limitations.
+
+## Architecture & Contract Compliance
+
+Build within SA Agent's Dependency Boundary Rule (service layer), API Contract Governance, and Data Migration Safety strategy. Route back to SA Agent instead of deviating unilaterally.
+
+## Definition-of-Done Restatement
+
+Restate BA Agent's acceptance criteria and SA Agent's NFR targets as an explicit checklist before starting. Route back to BA/SA Agent rather than guessing when either is missing.
+
+## Incremental Verification Discipline
+
+Run the relevant test/lint subset after each meaningful unit of work, not only at the end — distinct from the end-of-task Verification Rule in `AGENTS.md`.
+
+## Escalation Discipline
+
+Do not resolve concerns outside this role (security, ambiguous criteria, architecture gaps) by acting as that role — stop and route per `AGENTS.md`'s Dynamic Routing Rules.
+
+## Scope Discipline
+
+Smallest diff that satisfies the plan. No unrequested functionality or unrelated refactors. Record implementation-time judgment calls in the handoff.
 
 ## Required Behavior
 

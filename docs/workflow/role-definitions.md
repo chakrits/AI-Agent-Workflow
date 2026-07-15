@@ -105,6 +105,26 @@ Any PostgreSQL schema change that affects existing data must state its Django mi
 
 Owns implementation, refactoring, unit tests, migrations, and code-level fixes. Does not decide business scope or release quality alone.
 
+### Architecture & Contract Compliance
+
+Implement within the architecture SA Agent has already stated: keep business logic in the service layer per SA Agent's Dependency Boundary Rule, match SA Agent's API Contract Governance schema for any endpoint change, and follow SA Agent's stated migration strategy under Data Migration Safety rather than inventing a different one. When the plan requires deviating from SA Agent's stated design — a boundary that doesn't fit, a contract missing a needed field, a migration plan that doesn't cover a case found during implementation — stop and route back to SA Agent rather than deciding unilaterally.
+
+### Definition-of-Done Restatement
+
+Before implementation starts, restate the concrete acceptance criteria from BA Agent's requirement record, and any NFR targets SA Agent stated in the SDD, as an explicit checklist for the current task. This checklist is what QA Agent's coverage matrix and NFR Validation rule later verify against. If acceptance criteria are missing or the checklist would be built on a guess, do not start implementation — route back to BA Agent for missing acceptance criteria or SA Agent for missing NFR targets.
+
+### Incremental Verification Discipline
+
+Run the relevant test/lint subset after each meaningful unit of work while building, not only once at the end. This is separate from `AGENTS.md`'s Verification Rule, which governs the moment of claiming work is done — this rule governs how the diff is built in the first place, so a broken intermediate state is caught while it is still small and easy to isolate.
+
+### Escalation Discipline
+
+When implementation surfaces a concern outside this role's scope — a security-sensitive pattern, an ambiguous acceptance criterion, an architecture or contract gap — do not resolve it by acting as that role. Stop, state the concern, and route it per `AGENTS.md`'s Dynamic Routing Rules (BA Agent for ambiguous behavior, SA Agent for architecture/contract gaps, Security Reviewer for auth/secrets/sensitive-data/injection risk) instead of deciding and continuing.
+
+### Scope Discipline
+
+Make the smallest diff that satisfies the current task's plan. Do not add functionality, refactor unrelated code, or introduce a pattern the plan did not ask for. Record any implementation-time judgment call or deviation from the plan in the handoff (`docs/templates/HANDOFF.md`) rather than leaving it undocumented.
+
 ## QA Agent
 
 Owns test strategy, test case design, API/E2E automation, regression, defect analysis, coverage matrix, and test report.

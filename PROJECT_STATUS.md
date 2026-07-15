@@ -1,41 +1,48 @@
 # PROJECT_STATUS.md
 
 ## Current Work Item
-- ID: None
-- Title: No active work item
-- Owner: —
-- Status: Idle — awaiting next role-enrichment or other work item
+- ID: DEVELOPER-AGENT-INSTRUCTION-2026-07-15
+- Title: Enrich Developer Agent with architecture compliance, definition-of-done restatement, incremental verification, escalation, and scope discipline rules
+- Owner: Developer / Implementation Agent
+- Status: Implemented, uncommitted — pending review
 
 ## Current Stage
-- Between work items. QA Agent instruction (`QA-AGENT-INSTRUCTION-2026-07-14`) and the README onboarding rework (`README-ONBOARDING-2026-07-15`) are both closed and on `main`.
+- Developer Agent Instruction / Reviewer Gate
 
 ## Change Classification
-- N/A — no work item in progress.
+- Change Type: Documentation and process-governance change with regression coverage
+- Risk Level: Low
+- Code Change Required: Yes — scoped Node regression coverage for the new rules
+- Architecture Change Required: No — restates and cross-references SA Agent's existing rules rather than defining new architecture
+- Security Review Required: No
 
 ## Completed
-- BA Agent instruction (`ed1090e`): illustrative draft rule, sketch boundary, production-UI escalation; regression-tested.
-- QA Agent instruction (`62b0cf1`..`3ea2c61`, merged to `main`, pushed to `origin/main`): fixed the canonical/adapter inversion (policy moved from `.claude/agents/qa-agent.md` into `docs/workflow/role-definitions.md`); added Evidence-Based Reporting, API Contract Validation, and NFR Validation rules; expanded `docs/templates/TEST_PLAN.md` and `.agents/skills/qa-playwright-testing/SKILL.md`'s Automation Discipline section; regression coverage added and verified non-tautological.
-- README onboarding rework (`5b56e3c`): reworked `README.md` as a newcomer-first entry point covering project structure, quick start, routing model, role overview, workflow selection, Bug Fix contract, and validation.
-- Role enrichment now covers 6 of 11 roles: Documentation, PM, Orchestrator, SA, BA, QA.
-- R-001 (Phase 1 hosted-CI confirmation) closed 2026-07-15 — Human Reviewer confirmed Phase 1 hosted CI is merged and running on `main`. See `RISKS.md`.
+- QA Agent instruction (`62b0cf1`..`3ea2c61`, merged to `main`, pushed to `origin/main`).
+- README onboarding rework (`5b56e3c`).
+- R-001 (Phase 1 hosted-CI confirmation) closed 2026-07-15.
+- Reviewed three external references (Senior Developer, two Code Reviewer personas) for the Developer Agent role. Extracted structural concepts, not stack-specific content: "verify as you build" (from the Senior Developer's staged Implementation Process) and "restate the definition of done before starting" (from its Success Criteria section). Excluded both Code Reviewer references' review-dimension/severity content entirely — this repo's existing `code-review-gate` skill already covers the same ground (10 review dimensions, Critical/Major/Minor/Question taxonomy); adopted only their "read the spec/tests before touching code" and "don't silently act outside your role, escalate instead" structural ideas.
+- Added five rules to the canonical Developer Agent section in `docs/workflow/role-definitions.md`: Architecture & Contract Compliance, Definition-of-Done Restatement, Incremental Verification Discipline, Escalation Discipline, Scope Discipline.
+- Restated the same five rules (briefly, without redefining) in `.claude/agents/developer-agent.md`, matching the SA/BA/QA adapter pattern.
+- Added regression coverage in `test/validate-contracts.test.mjs`; verified it is not tautological (temporarily broke the Scope Discipline phrase, confirmed FAIL, restored, confirmed PASS).
 
 ## In Progress
-- Nothing in progress.
+- Independent review of the Developer Agent rules and regression coverage before commit.
 
 ## Blockers / Open Questions
-- Three follow-up opportunities remain identified but deliberately deferred, not started: (1) a "Prototype/Spike" workflow route in `AGENTS.md`; (2) a Release Agent enrichment from a DevOps Automator reference; (3) whether a shared cross-role template pattern should be extracted now that six roles (Documentation, PM, Orchestrator, SA, BA, QA) follow the same canonical/adapter structure. None are scheduled.
-- Five roles remain under-specified in `docs/workflow/role-definitions.md`: Developer, Security Reviewer, Config Agent, Data Agent, Release Agent.
+- Three follow-up opportunities remain identified but deliberately deferred, not started: (1) a "Prototype/Spike" workflow route in `AGENTS.md`; (2) a Release Agent enrichment from a DevOps Automator reference; (3) whether a shared cross-role template pattern should be extracted now that seven roles (Documentation, PM, Orchestrator, SA, BA, QA, Developer) follow the same canonical/adapter structure.
+- Four roles remain under-specified in `docs/workflow/role-definitions.md`: Security Reviewer, Config Agent, Data Agent, Release Agent.
 
 ## Required Artifacts
-- None outstanding for the current (idle) state.
+- `docs/workflow/role-definitions.md` (canonical Developer Agent section)
+- `.claude/agents/developer-agent.md`
+- `test/validate-contracts.test.mjs`
 
 ## Next Quality Gate
-- N/A until the next work item is scoped.
+- Reviewer confirms the canonical rule and Claude adapter agree, that Architecture & Contract Compliance correctly cross-references SA Agent's existing rules rather than redefining them, and that the regression test is meaningful.
 
 ## Recommended Next Agent
-- Human, to select the next work item (e.g., one of the remaining under-specified roles, or one of the deferred follow-up ideas).
+- Reviewer, then Human to select the next work item (remaining under-specified roles or deferred follow-up ideas).
 
 ## Notes
-- The QA Agent work item intentionally did not create a new "Reality Checker" role — that responsibility is folded into QA Agent's own Evidence-Based Reporting rule and the existing Reviewer gate used throughout this session's role-enrichment work.
-- The QA Agent work item intentionally did not adopt statistical/ML defect prediction, tool procurement/TCO evaluation, or generic business-process optimization — all judged disproportionate to or out of scope for this repo.
+- This work item intentionally excluded both Code Reviewer references' review-dimension and severity-taxonomy content — already covered by the existing `code-review-gate` skill; importing it into Developer Agent would have duplicated that skill.
 - R-001 is closed; see `RISKS.md` for the closure note.

@@ -242,6 +242,28 @@ test('QA Agent canonical rule carries its policy and the new evidence, contract,
   assert.match(playwrightSkill, /24 hours/);
 });
 
+test('Developer Agent requires architecture compliance, definition-of-done restatement, incremental verification, and escalation discipline', async () => {
+  const [roleDefinition, adapter] = await Promise.all([
+    readFile('docs/workflow/role-definitions.md', 'utf8'),
+    readFile('.claude/agents/developer-agent.md', 'utf8')
+  ]);
+
+  assert.match(roleDefinition, /### Architecture & Contract Compliance/);
+  assert.match(roleDefinition, /### Definition-of-Done Restatement/);
+  assert.match(roleDefinition, /### Incremental Verification Discipline/);
+  assert.match(roleDefinition, /### Escalation Discipline/);
+  assert.match(roleDefinition, /### Scope Discipline/);
+
+  for (const content of [roleDefinition, adapter]) {
+    assert.match(content, /Dependency Boundary Rule/);
+    assert.match(content, /route back to SA Agent/i);
+    assert.match(content, /acceptance criteria/i);
+    assert.match(content, /not only.*the end/i);
+    assert.match(content, /do not resolve/i);
+    assert.match(content, /smallest diff/i);
+  }
+});
+
 test('accepts the three canonical Bug Fix examples', async () => {
   const errors = await validateContracts(process.cwd());
   assert.deepEqual(errors, []);
