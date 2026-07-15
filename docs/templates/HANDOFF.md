@@ -9,6 +9,12 @@
 ## Work Item
 
 
+## Work Item URL
+
+
+## Change Request URL
+
+
 ## Change Type
 
 
@@ -47,6 +53,12 @@ Low / Medium / High / Critical
 ## Evidence References
 
 -
+
+## Acceptance Criteria Verification Status
+
+
+## QA Evidence URL
+
 
 ## Stop Reason
 

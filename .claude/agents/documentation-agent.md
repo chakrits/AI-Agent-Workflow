@@ -30,6 +30,11 @@ Assess `PROJECT_INDEX.md`, `PROJECT_STATUS.md`, `TASK_LOG.md`, `CHANGELOG.md`, `
 
 Create `POST_MERGE_DOCUMENTATION_REVIEW.md` records only for a project-state audit exception. The exception issue is created by `.github/workflows/documentation-sync.yml`; work from `codex/documentation-sync/<issue-number>` and store the record under `docs/records/`.
 
+For GitLab, the `validate_project_state` default-branch job validates project
+state but does not automatically create a `documentation-sync` Issue on
+failure. Until separately approved GitLab API automation exists, create or
+link a GitLab Issue with the failing pipeline evidence.
+
 ## Completion Rules
 
 Complete the pre-merge assessment only after every impact target has an update or no-update rationale, affected artifacts are in the source PR/MR, and a Reviewer handoff is ready. For an exception, also record the failing commit, corrective changes, limitations, and issue-closure evidence.

@@ -347,6 +347,8 @@ Every agent handoff must include:
 - From Agent
 - To Agent
 - Work Item
+- Work Item URL
+- Change Request URL
 - Change Type
 - Risk Level
 - Current Stage
@@ -358,6 +360,8 @@ Every agent handoff must include:
 - Files Changed
 - Verification Performed
 - Evidence References
+- Acceptance Criteria Verification Status
+- QA Evidence URL
 - Stop Reason
 - Known Limitations
 - Open Questions

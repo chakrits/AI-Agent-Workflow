@@ -42,6 +42,14 @@
 - Known limitations are documented
 - Test data and environment notes are provided
 
+## QA Acceptance Criteria Gate
+
+- Work Item URL and Draft Change Request URL are recorded
+- QA verifies every Issue Acceptance Criteria item against the exact PR/MR and evidence
+- QA, not Developer Agent, records the Acceptance Criteria Verification Status and QA Evidence URL
+- Unverified or failed criteria route backward; only a complete QA pass can move the Draft PR/MR to human review
+- QA evidence does not replace human merge approval
+
 ## Bug Fix Contract Gate
 
 - `docs/contracts/bug-fix-workflow.yaml` is the policy reference

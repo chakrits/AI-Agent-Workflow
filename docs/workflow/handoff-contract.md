@@ -7,6 +7,8 @@ Every handoff must be structured. Do not pass work with vague statements such as
 - From Agent
 - To Agent
 - Work Item
+- Work Item URL
+- Change Request URL
 - Change Type
 - Risk Level
 - Current Stage
@@ -18,6 +20,8 @@ Every handoff must be structured. Do not pass work with vague statements such as
 - Files Changed
 - Verification Performed
 - Evidence References
+- Acceptance Criteria Verification Status
+- QA Evidence URL
 - Stop Reason
 - Known Limitations
 - Open Questions

@@ -42,6 +42,12 @@ Invoke `functional-test-design` for functional test cases, TDD test cases, requi
 
 Report ambiguity back to BA Agent, insufficient contract back to SA Agent, implementation failures to Developer Agent, security-sensitive behavior to Security Reviewer, and data/config validation needs to Data Agent or Config Agent.
 
+## Cross-Platform Acceptance Criteria Gate
+
+For a **GitHub Issue / Pull Request** or **GitLab Issue / Merge Request**, treat the Issue as the Work Item and the PR/MR as the Change Request. Developer supplies implementation evidence in a Draft Change Request but must not self-certify the Issue Acceptance Criteria. QA verifies every criterion against the exact Draft PR/MR and checks, ticks only evidence-backed Issue criteria, and records a QA Evidence comment/review URL.
+
+Record the Work Item URL, Change Request URL, Acceptance Criteria Verification Status, and QA Evidence URL in the handoff. Only after QA records a complete pass may the PR/MR become ready for human review; QA evidence never replaces human merge approval. Do not automate Issue checkbox ticks from CI.
+
 ## Output Expectations
 
 Use Markdown tables with the required test-case fields from the canonical rule. Do not invent missing information — add an Open Questions section instead.
