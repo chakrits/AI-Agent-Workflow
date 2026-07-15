@@ -23,6 +23,37 @@ test('every .agents/skills/ directory is named somewhere in SKILL_CATALOG.md', a
   }
 });
 
+test('Frontend UI Engineering stays discoverable and routes UI work safely', async () => {
+  const paths = [
+    '.agents/skills/frontend-ui-engineering/SKILL.md',
+    '.claude/skills/frontend-ui-engineering/SKILL.md',
+    '.agent/skills/frontend-ui-engineering/SKILL.md'
+  ];
+  const [canonical, claudeAdapter, antigravityAdapter, catalog] = await Promise.all([
+    readFile(paths[0], 'utf8'),
+    readFile(paths[1], 'utf8'),
+    readFile(paths[2], 'utf8'),
+    readFile('docs/operating-model/SKILL_CATALOG.md', 'utf8')
+  ]);
+
+  for (const content of [claudeAdapter, antigravityAdapter]) {
+    assert.match(content, /\.agents\/skills\/frontend-ui-engineering\/SKILL\.md/);
+  }
+  for (const requirement of [
+    /semantic HTML/i,
+    /WCAG 2\.1 AA/i,
+    /keyboard/i,
+    /focus/i,
+    /loading, error, and empty states/i,
+    /320px, 768px, 1024px, and 1440px/i,
+    /qa-playwright-testing/i,
+    /design system/i
+  ]) {
+    assert.match(canonical, requirement);
+  }
+  assert.match(catalog, /frontend-ui-engineering/);
+});
+
 test('all dynamic-workflow adapters point to the canonical Bug Fix contract', async () => {
   for (const path of adapterPaths) {
     const content = await readFile(path, 'utf8');

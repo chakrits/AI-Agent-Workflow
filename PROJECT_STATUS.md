@@ -23,6 +23,7 @@
 - R-001 (Phase 1 hosted GitHub Actions confirmation) is closed.
 - `DOCUMENTATION-SYNC-ENFORCEMENT-2026-07-15` merged through PR #2 as commit `0e03c62`; GitHub created issue #3, confirming the post-merge issue trigger works in the live repository.
 - `DOCUMENTATION-SYNC-3-2026-07-15` completed the review record for PR #2 and moved normal documentation assessment to the pre-merge path; post-merge issues are now reserved for failed state audits.
+- PR #4 merged the exception-driven documentation workflow as `320c144`; the legacy routine issue #3 was closed as completed.
 
 ## In Progress
 - None.
@@ -35,7 +36,7 @@
 - N/A — no active work item.
 
 ## Next Quality Gate
-- After this PR merges, close GitHub issue #3 and select `Validate documentation impact` as a Required status check once its first run appears.
+- For every PR: complete the Documentation Impact assessment before merge; after each default-branch push, confirm the project-state audit passes and no `documentation-sync` exception issue was created.
 
 ## Recommended Next Agent
 - Human / Maintainer for the next work intake; Reviewer / QA Agent when GitLab CI evidence is available.
