@@ -24,6 +24,7 @@
 - `qa-playwright-testing` BDD Scenario Workflow, recommending `playwright-bdd` for Gherkin-based E2E tests when explicitly requested (necessity check, scenario approval gate, scenario writing rules, scoped steps), with regression coverage.
 
 ### Changed
+- The post-merge `documentation-sync` trigger was verified live: PR #2 created GitHub issue #3 with the source PR and merge evidence required by Documentation Agent.
 - `README.md` updated for team onboarding: explicit clone/install steps, a Prerequisites note (Node.js 22+, git — and that the Django/Python/PostgreSQL references elsewhere describe the target application stack, not a dependency of this repo), and links to both CI configs.
 - Phase 1 contract-first Bug Fix workflow foundation was merged into `main` through Pull Request #1.
 - Documentation Agent now assesses project index, status, history, changelog, decisions, risks, and canonical/adapter parity after every merge into `main`.
