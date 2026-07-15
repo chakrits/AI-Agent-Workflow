@@ -65,6 +65,8 @@ test('GitHub separates normal post-merge closeout from documentation-sync except
   assert.match(workflow, /needs\.validate-project-state\.result\s*==\s*'failure'/);
   assert.match(workflow, /documentation-sync:commit-/);
   assert.match(workflow, /issues:\s*write/);
+  const closeoutJob = workflow.slice(workflow.indexOf('  create-post-merge-closeout-handoff:'));
+  assert.match(closeoutJob, /permissions:\s*\n\s+issues:\s*write\s*\n\s+pull-requests:\s*write/);
   assert.match(workflow, /actions\/github-script@v7/);
   assert.match(workflow, /needs\.validate-project-state\.result\s*==\s*'success'/);
   assert.match(workflow, /post-merge-closeout/);

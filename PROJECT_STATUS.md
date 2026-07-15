@@ -4,7 +4,7 @@
 - ID: GitHub Issue #12
 - Title: Restore Post-Merge Closeout Handoff
 - Owner: Developer Agent / QA Agent
-- Status: Implementation complete — QA verification pending
+- Status: Permission follow-up implemented — QA verification pending
 
 ## Current Stage
 - QA Verification
@@ -28,14 +28,14 @@
 - GitHub Issue #7, Cross-platform QA acceptance gate, merged through PR #8 as commit `f35c8b8`; QA evidence confirmed all six acceptance criteria, and the passing default-branch audit created no `documentation-sync` exception issue.
 
 ## In Progress
-- GitHub Issue #12: PR #11 merged as `4b95889`, but its normal closeout handoff failed to compile. The parse-safe fix and regression test are ready for QA verification.
+- GitHub Issue #12: PR #13 proved the syntax fix, then exposed a `403` because the closeout job capped `pull-requests` at read. The one-line permission follow-up and regression assertion are ready for QA verification.
 
 ## Blockers / Open Questions
 - R-002: `.gitlab-ci.yml` has not yet been validated on a live GitLab runner; this is an external verification follow-up, not an active implementation task.
 - Deferred and unscheduled: a Prototype/Spike workflow route and a shared cross-role template pattern.
 
 ## Required Artifacts
-- Parse-safe GitHub closeout workflow, compile regression test, RCA/postmortem, QA evidence, and hosted post-merge result.
+- Parse-safe GitHub closeout workflow, compile and permission regression tests, RCA/postmortem, QA evidence, and hosted post-merge result.
 
 ## Next Quality Gate
 - QA verifies every Issue #12 acceptance criterion and records hosted evidence; then human review/merge. After merge, perform PR #11's compensating closeout and verify no loop.

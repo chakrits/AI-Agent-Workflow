@@ -47,12 +47,17 @@ The original regression coverage asserted that expected workflow strings existed
 
 | Action | Owner | Tracking |
 |---|---|---|
+| Correct the closeout job's `pull-requests` permission from `read` to `write` | Developer Agent | GitHub Issue #12 follow-up after the live PR #13 run |
 | QA verifies Issue #12 acceptance criteria and the hosted Action result | QA Agent | GitHub Issue #12 |
-| Merge the fix through human review | Human Maintainer | Fix PR for Issue #12 |
 | Perform a one-time compensating documentation closeout for PR #11 after the fix lands | Documentation Agent / Human Maintainer | GitHub Issue #12 |
+
+## Live Follow-up Discovered After PR #13
+
+PR #13 proved the syntax fix: the workflow reached `issues.addLabels`, which the earlier parse failure had never reached. Its live run then failed with `403 Resource not accessible by integration`. Repository-level Actions permissions had been changed to write, but the closeout job still declared `pull-requests: read`. GitHub's response for the PR-label endpoint required `issues=write; pull_requests=write`; the job-level declaration reduced the token and blocked the call. The follow-up changes only this job permission to `pull-requests: write` and adds a regression assertion for it.
 
 ## References
 
 - Issue: https://github.com/chakrits/AI-Agent-Workflow/issues/12
 - Source PR: https://github.com/chakrits/AI-Agent-Workflow/pull/11
 - Failed workflow: https://github.com/chakrits/AI-Agent-Workflow/actions/runs/29438529157
+- Follow-up failed workflow: https://github.com/chakrits/AI-Agent-Workflow/actions/runs/29439690055
