@@ -140,7 +140,7 @@ npm run validate:contracts
 
 Every meaningful stage should produce a structured artifact and handoff. Use the [handoff template](./docs/templates/HANDOFF.md) and the [quality gates](./docs/workflow/quality-gates.md) instead of informal “done” messages.
 
-After every pull request merge into `main`, GitHub creates a `documentation-sync` follow-up issue for the Documentation Agent. The agent reviews the impact on project index, state, history, changelog, decisions, risks, and canonical/adapter parity from a `codex/documentation-sync/<issue-number>` branch. Use the [post-merge documentation review template](./docs/templates/POST_MERGE_DOCUMENTATION_REVIEW.md) to record the result, then close the issue when its documentation-sync PR merges.
+Before a pull request or merge request targets `main`, complete its Documentation Impact assessment and include affected documentation updates in the same change. GitHub validates the completed PR-template marker; GitLab provides the equivalent MR template. After merge, the project-state audit creates a `documentation-sync` issue only when it detects stale state. Use the [post-merge documentation review template](./docs/templates/POST_MERGE_DOCUMENTATION_REVIEW.md) only for that exception, then close the issue when its correction PR merges.
 
 ## Where to Go Next
 
