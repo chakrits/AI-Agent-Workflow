@@ -3,6 +3,7 @@
 ## Unreleased
 
 ### Added
+- `frontend-ui-engineering` portable skill with Claude and Antigravity adapters: design-system-aware, accessible, responsive UI guidance and a `qa-playwright-testing` handoff, with regression coverage.
 - Pre-merge Documentation Impact templates and GitHub validation gate; a project-state stale-marker validator and GitHub/GitLab default-branch audit that opens `documentation-sync` issues only on failure.
 - Phase 1 Bug Fix workflow contract validation completion record and independent reviewer / QA handoff.
 - Mandatory post-merge Documentation Agent review rule, template, and regression coverage.

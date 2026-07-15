@@ -12,6 +12,7 @@ This file is the navigation map for the repository. Prefer the linked sections b
 - [DECISIONS.md](./DECISIONS.md) - Architecture and process decisions.
 - [RISKS.md](./RISKS.md) - Known project risks.
 - [CHANGELOG.md](./CHANGELOG.md) - Human-facing change history.
+- [THIRD_PARTY_NOTICES.md](./THIRD_PARTY_NOTICES.md) - Source attribution and license notices for incorporated or adapted third-party material.
 
 ## Canonical Operating Model
 
