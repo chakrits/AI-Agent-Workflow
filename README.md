@@ -7,11 +7,12 @@ The shared process is not tied to one tool. Codex, Claude Code, Antigravity, and
 ## What You Get
 
 - Dynamic routing instead of a fixed PM → BA → SA → Developer → QA pipeline.
-- Clear ownership for Orchestrator, PM, BA, SA, Developer, QA, Security, Config, Data, Release, and Documentation roles.
+- All 11 roles — Orchestrator, PM, BA, SA, Developer, QA, Security Reviewer, Config, Data, Release, and Documentation — have concrete, regression-tested canonical rules, not just a one-line description.
 - Required quality gates, structured handoffs, and explicit human approval boundaries.
 - A machine-checkable Bug Fix workflow contract: legal states, evidence requirements, retry limits, and human escalation.
-- Reusable templates for briefs, requirements, designs, test plans, handoffs, completion checks, and post-merge documentation reviews.
+- Reusable templates for briefs, requirements, designs, test plans, handoffs, completion checks, security/release reviews, and post-merge documentation reviews.
 - Portable skills and platform adapters that refer back to the same canonical policy.
+- Hosted CI on both GitHub Actions and GitLab CI, running the same test/contract-validation suite.
 
 ## Project Structure
 
@@ -38,24 +39,32 @@ AI-Agent-Workflow/
 ├── .agent/                   # Antigravity CLI skill adapters
 ├── test/                     # Regression checks for workflow rules and docs
 ├── scripts/                  # Contract validation command
-└── .github/workflows/        # GitHub Actions validation
+├── .github/workflows/        # GitHub Actions validation
+└── .gitlab-ci.yml            # GitLab CI validation (same checks, different platform)
 ```
 
 ## Quick Start
 
-### 1. Install and validate
+### 1. Clone and install
 
-Requires Node.js 22 or later.
+**Prerequisites:** [Node.js](https://nodejs.org/) 22 or later, and `git`. That's the only runtime dependency this repo itself has — it's a Node.js tooling/documentation kit. The Django/Python/PostgreSQL references you'll see in role definitions (e.g. SA Agent, Security Reviewer) describe the *target application stack this workflow is configured for*, not a dependency of this repo.
 
 ```bash
-npm ci
+git clone <this-repo-url>
+cd AI-Agent-Workflow
+npm install
+```
+
+### 2. Verify your clone
+
+```bash
 npm test
 npm run validate:contracts
 ```
 
-The same commands run in GitHub Actions for every push and pull request.
+Both commands should exit clean. This is the same check hosted CI runs on every push and pull/merge request — on GitHub Actions ([.github/workflows/validate-contracts.yml](./.github/workflows/validate-contracts.yml)) and on GitLab CI ([.gitlab-ci.yml](./.gitlab-ci.yml)), whichever platform this repo is hosted on.
 
-### 2. Give your agent a safe first prompt
+### 3. Give your agent a safe first prompt
 
 ```text
 Read AGENTS.md, PROJECT_STATUS.md, and the operating-model read order.
@@ -65,7 +74,7 @@ List required artifacts, required agents, skipped agents, quality gates,
 and any human approval gate before implementation begins.
 ```
 
-### 3. Work from the canonical layer
+### 4. Work from the canonical layer
 
 Use [PROJECT_INDEX.md](./PROJECT_INDEX.md) to navigate. Treat `docs/operating-model/` and `docs/workflow/` as the source of truth; do not let a platform adapter redefine policy.
 

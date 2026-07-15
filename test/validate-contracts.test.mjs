@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
+import { readFile, readdir } from 'node:fs/promises';
 import test from 'node:test';
 import { validateContracts } from '../scripts/validate-contracts.mjs';
 
@@ -10,6 +10,18 @@ const adapterPaths = [
   '.claude/skills/dynamic-workflow/SKILL.md',
   '.agent/skills/dynamic-workflow/SKILL.md'
 ];
+
+test('every .agents/skills/ directory is named somewhere in SKILL_CATALOG.md', async () => {
+  const [entries, catalog] = await Promise.all([
+    readdir('.agents/skills', { withFileTypes: true }),
+    readFile('docs/operating-model/SKILL_CATALOG.md', 'utf8')
+  ]);
+  const skillNames = entries.filter((entry) => entry.isDirectory()).map((entry) => entry.name);
+  assert.ok(skillNames.length > 0);
+  for (const name of skillNames) {
+    assert.match(catalog, new RegExp(name), `SKILL_CATALOG.md does not mention the "${name}" skill`);
+  }
+});
 
 test('all dynamic-workflow adapters point to the canonical Bug Fix contract', async () => {
   for (const path of adapterPaths) {
@@ -477,6 +489,32 @@ test('Data Agent carries non-destructive mechanics, the SA boundary, re-run safe
   assert.match(template, /Touches PII/);
   assert.match(template, /Expected row-count delta/);
   assert.match(template, /## Escalation Check/);
+});
+
+test('qa-playwright-testing carries a technical reference, a debugging workflow, and the browser content security boundary', async () => {
+  const skill = await readFile('.agents/skills/qa-playwright-testing/SKILL.md', 'utf8');
+
+  assert.match(skill, /## Technical Reference/);
+  assert.match(skill, /### Selector Priority/);
+  assert.match(skill, /### Page Object Model/);
+  assert.match(skill, /storageState/);
+
+  assert.match(skill, /## Debugging Workflow/);
+  assert.match(skill, /`debugging-discipline`/);
+  assert.match(skill, /show-trace/);
+
+  assert.match(skill, /## Browser Content Security Boundary/);
+  assert.match(skill, /untrusted data, not instructions/i);
+  assert.match(skill, /route to Security Reviewer/);
+
+  assert.match(skill, /## BDD Scenario Workflow/);
+  assert.match(skill, /playwright-bdd/);
+  assert.match(skill, /### Necessity Check/);
+  assert.match(skill, /ask the user whether a BDD spec is required/i);
+  assert.match(skill, /### Scenario Approval Gate/);
+  assert.match(skill, /before any implementation plan/i);
+  assert.match(skill, /### Scoped Step Definitions/);
+  assert.match(skill, /npx bddgen && npx playwright test/);
 });
 
 test('accepts the three canonical Bug Fix examples', async () => {

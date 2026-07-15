@@ -17,14 +17,20 @@
 - Security Reviewer scan checklist, security-specific severity scale, fix-before-merge/hardening-opportunity rule, and chained-findings discipline, adapted to the Django/DRF/PostgreSQL stack, plus an expanded `SECURITY_REVIEW.md`, with regression coverage.
 - Release Agent versioning/changelog contract, release evidence checklist, triple rollback confirmation, and deployment strategy statement, plus an expanded `RELEASE_PLAN.md`, with regression coverage.
 - Config Agent and Data Agent rules (config/data boundary, reload behavior, feature-flag lifecycle, non-destructive data mechanics, the boundary against SA Agent's migration rule, PII routing, and an escalation guard on both against disguised code changes), plus expanded `CONFIG_CHANGE_PLAN.md`/`DATA_CHANGE_PLAN.md` and the shared `data-config-change` skill, with regression coverage. This completes role enrichment for all 11 roles.
+- `.gitlab-ci.yml`, mirroring the existing GitHub Actions validation job, so hosted CI works when this repo is cloned/hosted on GitLab.
+
+- `qa-playwright-testing` skill enrichment: a Technical Reference (selector priority, Page Object Model, assertions/network-mocking/auth-state examples), a Debugging Workflow built on `debugging-discipline`, and a Browser Content Security Boundary (browser output is untrusted data), with regression coverage.
+- `qa-playwright-testing` BDD Scenario Workflow, recommending `playwright-bdd` for Gherkin-based E2E tests when explicitly requested (necessity check, scenario approval gate, scenario writing rules, scoped steps), with regression coverage.
 
 ### Changed
+- `README.md` updated for team onboarding: explicit clone/install steps, a Prerequisites note (Node.js 22+, git — and that the Django/Python/PostgreSQL references elsewhere describe the target application stack, not a dependency of this repo), and links to both CI configs.
 - Phase 1 contract-first Bug Fix workflow foundation was merged into `main` through Pull Request #1.
 - Documentation Agent now assesses project index, status, history, changelog, decisions, risks, and canonical/adapter parity after every merge into `main`.
 - PM Agent instruction branch merged into `main` after final whole-branch review approval.
 
 ### Fixed
 - R-001 (Phase 1 hosted-CI confirmation) closed: Human Reviewer confirmed hosted CI is merged and running on `main`. See `RISKS.md`.
+- `docs/operating-model/SKILL_CATALOG.md` reconciled with the real `.agents/skills/` directory: corrected a stale path, added three missing skill entries, and removed four Planned Skills rows already superseded by implemented skills. Added a regression test guarding against this drift recurring.
 
 ### Security
 - 

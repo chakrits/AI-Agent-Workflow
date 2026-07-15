@@ -22,7 +22,7 @@ Agents must consult this catalog before selecting a skill. The goal is to preven
 |---|---|---|---|---|---|---|
 | Dynamic Workflow | `.agents/skills/dynamic-workflow/` | Need to classify change type, select workflow, route agents, enforce gates, or perform contract-first Bug Fix validation | User request, PROJECT_STATUS.md, workflow docs, and `task-state` for Bug Fix work | Selected workflow, required agents, gates, next step, and Bug Fix contract-validation status | The user already selected a specific role/task and no routing or contract validation is needed | Orchestrator, PM/BA/SA/Dev/QA/etc. |
 | Functional Test Design | `.agents/skills/functional-test-design/` | Need functional test cases from requirements, FS, business rules, IPO matrix, BVA/EP, risk-based testing, traceability | URS/BRD, FS/TSD, user stories, AC, API/field rules | Function Test Report or Focused Functional Test Pack | Need automation script implementation only | Playwright/E2E skill, API test skill, regression planning, QA Agent |
-| Playwright QA | `.agents/skills/playwright-qa/` | Need browser E2E automation, UI flow testing, screenshots/traces | Test scenarios, target URL/app, credentials/test data, selectors/locators | Playwright specs, test run notes, screenshots/traces | Need only functional test design without automation | QA Agent, Defect Analysis |
+| Playwright QA | `.agents/skills/qa-playwright-testing/` | Need browser E2E automation, UI flow testing, screenshots/traces | Test scenarios, target URL/app, credentials/test data, selectors/locators | Playwright specs, test run notes, screenshots/traces | Need only functional test design without automation | QA Agent, Defect Analysis |
 | Security Review | `.agents/skills/security-review/` | Auth, authorization, secrets, sensitive data, input validation, dependency/security review | Code diff, architecture, API, data flow, threat context | Security review notes, findings, severity, recommended fixes | Pure functional happy path test design | Security Reviewer, SA, Developer |
 
 
@@ -51,12 +51,43 @@ These are intentionally not implemented yet but reserved for Phase 2+.
 | Regression Test Planning | Regression scope, impact matrix, smoke/sanity/regression set | `.agents/skills/regression-test-planning/` |
 | Defect Analysis | Analyze test failures, logs, screenshots, reproduce steps, severity | `.agents/skills/defect-analysis/` |
 | Robot Framework Automation | Convert test cases into Robot Framework scripts | `.agents/skills/robot-framework-automation/` |
-| Data Change Validation | SQL/data config validation, duplicate checks, rollback checks | `.agents/skills/data-change-validation/` |
-| Config Change Validation | Feature flags/config behavior verification | `.agents/skills/config-change-validation/` |
-| Code Review | Maintainability, correctness, design, performance, testability review | `.agents/skills/code-review/` |
-| System Design Review | Review SDD/API/data model/NFR/ADR | `.agents/skills/system-design-review/` |
 | Project Spec Bootstrap | One compact spec (Objective, Commands, Structure, Code Style, Testing, Boundaries) for a *new target application repo* — not this meta-repo. Deferred until a real target app exists; PM/BA/SA's existing artifacts already cover this repo's own needs. | `.agents/skills/project-spec-bootstrap/` |
 
+Superseded (removed from this table because a real skill already covers the purpose): Data Change Validation and Config Change Validation → `data-config-change`; Code Review → `code-review-gate`; System Design Review → `sa-architecture-design`.
+
+
+## ba-requirement-analysis
+
+| Field | Detail |
+|---|---|
+| Trigger | Requirements, user stories, acceptance criteria, business rules, process flows, or ambiguity analysis needed |
+| Primary Agent | BA Agent |
+| Input | PM brief, stakeholder notes, existing `REQUIREMENTS.md` |
+| Output | `docs/templates/REQUIREMENTS.md` |
+| Do Not Use When | Business scope itself is unresolved — route to PM Agent first |
+| Next Skill / Agent | implementation-planning, functional-test-design, SA Agent |
+
+## sa-architecture-design
+
+| Field | Detail |
+|---|---|
+| Trigger | Architecture, API contract, data design, integration flow, NFR, or ADR needed |
+| Primary Agent | SA Agent |
+| Input | Approved requirements, existing architecture docs |
+| Output | SDD/TDD, ADR entries in `DECISIONS.md` |
+| Do Not Use When | Requirements are still unclear — route to BA Agent first |
+| Next Skill / Agent | implementation-planning, Developer Agent |
+
+## data-config-change
+
+| Field | Detail |
+|---|---|
+| Trigger | Config change, reference/master data change, validation SQL, rollback SQL, or non-code operational change |
+| Primary Agent | Config Agent / Data Agent |
+| Input | Approved requirement, target environment, current values |
+| Output | `CONFIG_CHANGE_PLAN.md` or `DATA_CHANGE_PLAN.md` |
+| Do Not Use When | The change needs code beyond the config/data value itself — the skill's Escalation Guard routes this to Orchestrator/SA Agent instead |
+| Next Skill / Agent | QA Agent, Release Agent |
 
 ## requirement-brainstorming
 
