@@ -1,27 +1,34 @@
-name: Create documentation sync follow-up
+name: Create documentation sync exception
 
 on:
-  pull_request:
-    types: [closed]
+  push:
+    branches: [main]
 
 permissions:
-  issues: write
-  pull-requests: read
+  contents: read
 
 jobs:
-  create-follow-up:
-    if: >-
-      github.event.pull_request.merged == true &&
-      github.event.pull_request.base.ref == 'main' &&
-      !startsWith(github.event.pull_request.head.ref, 'codex/documentation-sync/')
+  validate-project-state:
     runs-on: ubuntu-latest
     steps:
-      - name: Create Documentation Agent follow-up issue
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - run: npm run validate:project-state
+
+  create-documentation-sync-issue:
+    needs: validate-project-state
+    if: ${{ always() && needs.validate-project-state.result == 'failure' }}
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - name: Create a documentation-sync exception issue
         uses: actions/github-script@v7
         with:
           script: |
-            const pr = context.payload.pull_request;
-            const marker = `<!-- documentation-sync:pr-${pr.number} -->`;
+            const marker = `<!-- documentation-sync:commit-${context.sha} -->`;
             try {
               await github.rest.issues.getLabel({
                 owner: context.repo.owner,
@@ -34,10 +41,11 @@ jobs:
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 name: 'documentation-sync',
-                color: '0e8a16',
-                description: 'Post-merge Documentation Agent follow-up'
+                color: 'd93f0b',
+                description: 'Documentation state audit exception'
               });
             }
+
             const { data: issues } = await github.rest.issues.listForRepo({
               owner: context.repo.owner,
               repo: context.repo.repo,
@@ -45,24 +53,21 @@ jobs:
               state: 'all',
               per_page: 100
             });
-
             if (issues.some((issue) => issue.body?.includes(marker))) {
-              core.info(`Documentation sync follow-up already exists for PR #${pr.number}.`);
+              core.info(`Documentation sync exception already exists for ${context.sha}.`);
               return;
             }
 
             await github.rest.issues.create({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              title: `[Documentation Sync] PR #${pr.number}: ${pr.title}`,
+              title: `[Documentation Sync] State audit failed for ${context.sha.slice(0, 7)}`,
               labels: ['documentation-sync'],
               body: `${marker}
 
-            A pull request has merged into \`main\` and requires the Documentation Agent review.
+            The default-branch project-state audit failed after this commit:
 
-            - Pull request: ${pr.html_url}
-            - Merge commit: ${pr.merge_commit_sha ?? 'not reported by GitHub'}
-            - Source branch: \`${pr.head.ref}\`
+            - Commit: https://github.com/${context.repo.owner}/${context.repo.repo}/commit/${context.sha}
 
-            Complete the review using \`docs/templates/POST_MERGE_DOCUMENTATION_REVIEW.md\`. Update every affected project-state artifact, record the review under \`docs/records/\`, then close this issue with links to the documentation-sync PR and review record.`
+            Review \`PROJECT_STATUS.md\`, correct the stale state in a dedicated documentation-sync PR, then close this issue with the PR and review-record links.`
             });

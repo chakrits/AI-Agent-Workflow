@@ -3,7 +3,7 @@
 ## Unreleased
 
 ### Added
-- GitHub post-merge `documentation-sync` issue handoff, a project-state stale-marker validator, and GitHub/GitLab CI checks that run it after the default-branch push.
+- Pre-merge Documentation Impact templates and GitHub validation gate; a project-state stale-marker validator and GitHub/GitLab default-branch audit that opens `documentation-sync` issues only on failure.
 - Phase 1 Bug Fix workflow contract validation completion record and independent reviewer / QA handoff.
 - Mandatory post-merge Documentation Agent review rule, template, and regression coverage.
 - Canonical PM Agent business-framing rule, expanded `PROJECT_BRIEF.md` template, and regression coverage.
@@ -24,6 +24,7 @@
 - `qa-playwright-testing` BDD Scenario Workflow, recommending `playwright-bdd` for Gherkin-based E2E tests when explicitly requested (necessity check, scenario approval gate, scenario writing rules, scoped steps), with regression coverage.
 
 ### Changed
+- Documentation review now happens in the source PR/MR before merge; post-merge review records and issues are exception-driven rather than created for every merge.
 - The post-merge `documentation-sync` trigger was verified live: PR #2 created GitHub issue #3 with the source PR and merge evidence required by Documentation Agent.
 - `README.md` updated for team onboarding: explicit clone/install steps, a Prerequisites note (Node.js 22+, git — and that the Django/Python/PostgreSQL references elsewhere describe the target application stack, not a dependency of this repo), and links to both CI configs.
 - Phase 1 contract-first Bug Fix workflow foundation was merged into `main` through Pull Request #1.

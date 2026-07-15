@@ -40,16 +40,32 @@ test('rejects a status that still says pending merge', async () => {
   });
 });
 
-test('GitHub creates one documentation-sync follow-up only for a merged PR into main', async () => {
-  const workflow = await readFile('.github/workflows/documentation-sync.yml', 'utf8');
+test('GitHub requires a completed documentation-impact assessment before a PR can merge', async () => {
+  const [workflow, template] = await Promise.all([
+    readFile('.github/workflows/documentation-impact-gate.yml', 'utf8'),
+    readFile('.github/pull_request_template.md', 'utf8')
+  ]);
 
   assert.match(workflow, /pull_request:/);
-  assert.match(workflow, /types:\s*\[closed\]/);
-  assert.match(workflow, /github\.event\.pull_request\.merged\s*==\s*true/);
-  assert.match(workflow, /github\.event\.pull_request\.base\.ref\s*==\s*'main'/);
-  assert.match(workflow, /codex\/documentation-sync\//);
-  assert.match(workflow, /issues:\s*write/);
+  assert.match(workflow, /types:\s*\[opened, edited, reopened, synchronize\]/);
   assert.match(workflow, /pull-requests:\s*read/);
   assert.match(workflow, /actions\/github-script@v7/);
-  assert.match(workflow, /documentation-sync/);
+  assert.match(workflow, /documentation-impact: complete/);
+  assert.match(template, /documentation-impact: pending/);
+  assert.match(template, /## Documentation Impact/);
+  assert.match(template, /No documentation impact/);
+});
+
+test('GitHub creates a documentation-sync issue only when main state validation fails', async () => {
+  const workflow = await readFile('.github/workflows/documentation-sync.yml', 'utf8');
+
+  assert.match(workflow, /push:/);
+  assert.match(workflow, /branches:\s*\[main\]/);
+  assert.match(workflow, /validate-project-state/);
+  assert.match(workflow, /needs\.validate-project-state\.result\s*==\s*'failure'/);
+  assert.match(workflow, /documentation-sync:commit-/);
+  assert.match(workflow, /issues:\s*write/);
+  assert.match(workflow, /actions\/github-script@v7/);
+  assert.doesNotMatch(workflow, /pull_request:/);
+  assert.doesNotMatch(workflow, /types:\s*\[closed\]/);
 });

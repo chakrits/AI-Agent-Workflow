@@ -75,7 +75,7 @@ Use these files as artifact starters when a workflow requires structured output.
 - [docs/templates/DATA_CHANGE_PLAN.md](./docs/templates/DATA_CHANGE_PLAN.md) - Data change plan template.
 - [docs/templates/HANDOFF.md](./docs/templates/HANDOFF.md) - Agent handoff template.
 - [docs/templates/COMPLETION_CHECK.md](./docs/templates/COMPLETION_CHECK.md) - Completion evidence template.
-- [docs/templates/POST_MERGE_DOCUMENTATION_REVIEW.md](./docs/templates/POST_MERGE_DOCUMENTATION_REVIEW.md) - Mandatory documentation-impact review after each merge to `main`.
+- [docs/templates/POST_MERGE_DOCUMENTATION_REVIEW.md](./docs/templates/POST_MERGE_DOCUMENTATION_REVIEW.md) - Documentation-state audit exception record after a failed `main` validation.
 - [docs/templates/RELEASE_PLAN.md](./docs/templates/RELEASE_PLAN.md) - Release plan template.
 
 ## Platform Adapter Layers

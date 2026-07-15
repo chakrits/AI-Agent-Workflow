@@ -271,7 +271,7 @@ Before final handoff, confirm and record:
 - All required tests passed (unit, integration, and any contract validation for the work item).
 - The hosted CI run for the merge commit is green and referenced — a local-only result is not sufficient. (This is the standing rule R-001 exists to enforce: the first hosted CI run on `main` had gone unrecorded.)
 - Human approval for the release is recorded, not implied.
-- Documentation Agent's post-merge review is complete for every merge included in this release.
+- Documentation Impact assessment is complete for every merge included in this release, and any post-merge audit exception is closed with evidence.
 
 Any missing item blocks the release; record it as an open item rather than approving around it.
 
@@ -291,17 +291,17 @@ State the deployment strategy (e.g., direct deploy, rolling, blue-green) and its
 
 ## Documentation Agent
 
-Updates README, architecture docs, user docs, changelog, decision logs, and operational runbooks. The canonical post-merge documentation stewardship rule is defined here; platform-specific agent files are adapters.
+Updates README, architecture docs, user docs, changelog, decision logs, and operational runbooks. The canonical pre-merge documentation-impact rule is defined here; platform-specific agent files are adapters.
 
-### Post-Merge Trigger
+### Pre-Merge Trigger
 
-After every merge into `main`, the Documentation Agent performs a documentation-impact review. Classify this review as documentation-only with Medium risk unless the merged change requires a higher-risk route. The review is required even when the merge contains no documentation changes.
+Before a pull request or merge request targets `main`, the Documentation Agent performs a documentation-impact assessment in the source change. Classify this assessment as documentation-only with Medium risk unless the change requires a higher-risk route. The assessment is required even when no documentation update is needed.
 
-For a GitHub pull-request merge, `.github/workflows/documentation-sync.yml` creates or reuses a `documentation-sync` issue. Treat that issue as the required handoff: work from a `codex/documentation-sync/<issue-number>` branch, link the issue in the review record, and close it only after the documentation-sync PR is merged. The workflow skips that branch prefix so the follow-up cannot create another follow-up.
+On GitHub, complete the `Documentation Impact` section and the `documentation-impact: complete` marker in the pull-request template; `.github/workflows/documentation-impact-gate.yml` checks their presence. On GitLab, use `.gitlab/merge_request_templates/Default.md` and have the reviewer verify the same assessment.
 
 ### Mandatory Impact Assessment
 
-Assess each target below. Update an affected artifact or record `No update required — <reason>` in the review record.
+Assess each target below. Update an affected artifact in the source PR/MR or record `No update required — <reason>` in its Documentation Impact section.
 
 - `PROJECT_INDEX.md`
 - `PROJECT_STATUS.md`
@@ -311,11 +311,13 @@ Assess each target below. Update an affected artifact or record `No update requi
 - `RISKS.md`
 - Canonical workflow documents and platform adapters
 
-Create the review record from `docs/templates/POST_MERGE_DOCUMENTATION_REVIEW.md` and store it under `docs/records/` using `POST-MERGE-DOCUMENTATION-REVIEW-<YYYY-MM-DD>-PR-<number>.md` when the pull-request number is known.
+### Post-Merge Exception
+
+After a `main` project-state audit fails, `.github/workflows/documentation-sync.yml` creates one idempotent `documentation-sync` issue keyed to the failing commit. Treat that issue as the handoff: work from `codex/documentation-sync/<issue-number>`, create the record from `docs/templates/POST_MERGE_DOCUMENTATION_REVIEW.md`, and close the issue only after its correction PR is merged. Normal merges create no issue.
 
 ### Completion and Escalation
 
-Complete the documentation review only after every target has an update or no-update rationale, `TASK_LOG.md` records the merge, remaining limitations and next quality gate are explicit, the follow-up issue is linked and ready to close, and a Reviewer handoff is ready.
+Complete the pre-merge assessment only after every target has an update or no-update rationale, affected artifacts are included in the source PR/MR, and a Reviewer handoff is ready. For a post-merge exception, additionally record the failing commit, corrective changes, limitations, and issue-closure evidence.
 
 Route a conflict with implementation, tests, or a contract to the Developer Agent or SA Agent. Route unverified hosted CI to Reviewer / QA, release implications to the Release Agent and Human approval, and unresolved risks to an owner recorded in `RISKS.md`.
 

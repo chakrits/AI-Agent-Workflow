@@ -56,13 +56,17 @@ test('requirement-brainstorming adapters all carry the assumptions-surfacing tec
   }
 });
 
-test('CI runs install, tests, and contract validation', async () => {
-  const ci = await readFile('.github/workflows/validate-contracts.yml', 'utf8');
+test('CI runs install, tests, contract validation, and a dedicated main-state audit', async () => {
+  const [ci, documentationSync] = await Promise.all([
+    readFile('.github/workflows/validate-contracts.yml', 'utf8'),
+    readFile('.github/workflows/documentation-sync.yml', 'utf8')
+  ]);
   assert.match(ci, /npm ci/);
   assert.match(ci, /npm test/);
   assert.match(ci, /npm run validate:contracts/);
-  assert.match(ci, /npm run validate:project-state/);
-  assert.match(ci, /github\.ref\s*==\s*'refs\/heads\/main'/);
+  assert.doesNotMatch(ci, /npm run validate:project-state/);
+  assert.match(documentationSync, /npm run validate:project-state/);
+  assert.match(documentationSync, /branches:\s*\[main\]/);
 });
 
 test('Bug Fix documentation points to the canonical contract and uses the two-rework rule', async () => {
@@ -111,7 +115,7 @@ test('handoff vocabulary stays in parity across AGENTS, contract, and template',
   assert.deepEqual(templateFields, requiredFields);
 });
 
-test('Documentation Agent requires post-merge review and a complete record', async () => {
+test('Documentation Agent requires a pre-merge review and an exception-only post-merge record', async () => {
   const [roleDefinition, adapter, template] = await Promise.all([
     readFile('docs/workflow/role-definitions.md', 'utf8'),
     readFile('.claude/agents/documentation-agent.md', 'utf8'),
@@ -139,11 +143,12 @@ test('Documentation Agent requires post-merge review and a complete record', asy
   ];
 
   for (const content of [roleDefinition, adapter]) {
-    assert.match(content, /every merge into `?main`?/i);
+    assert.match(content, /before.*merge.*`?main`?/i);
+    assert.match(content, /Documentation Impact/);
     assert.match(content, /POST_MERGE_DOCUMENTATION_REVIEW\.md/);
-    assert.match(content, /No update required/);
+    assert.match(content, /state audit/i);
+    assert.match(content, /exception/i);
     assert.match(content, /documentation-sync/);
-    assert.match(content, /codex\/documentation-sync\//);
   }
   for (const target of requiredTargets) {
     assert.match(roleDefinition, new RegExp(target.replace('.', '\\.')));

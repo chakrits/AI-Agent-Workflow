@@ -1,20 +1,20 @@
 # PROJECT_STATUS.md
 
 ## Current Work Item
-- ID: DOCUMENTATION-SYNC-3-2026-07-15
-- Title: Complete post-merge documentation review for PR #2
-- Owner: Documentation Agent
-- Status: Ready for merge — documentation review awaiting protected-PR review
+- ID: None
+- Title: No active work item
+- Owner: Human / Maintainer
+- Status: Idle — no active work item
 
 ## Current Stage
-- Documentation Stewardship / Protected PR
+- Ready for New Work Intake
 
 ## Change Classification
-- Change Type: Documentation-only post-merge review
-- Risk Level: Medium
-- Code Change Required: No
+- Change Type: N/A
+- Risk Level: N/A
+- Code Change Required: N/A
 - Architecture Change Required: No
-- Security Review Required: No
+- Security Review Required: N/A
 
 ## Completed
 - All 11 agent roles have their current canonical rules, adapters, and regression coverage on `main`.
@@ -22,22 +22,23 @@
 - `7386ce2` committed and pushed the combined Skill Catalog sync, GitLab CI, README onboarding, Playwright technical guidance, and BDD Scenario Workflow work items.
 - R-001 (Phase 1 hosted GitHub Actions confirmation) is closed.
 - `DOCUMENTATION-SYNC-ENFORCEMENT-2026-07-15` merged through PR #2 as commit `0e03c62`; GitHub created issue #3, confirming the post-merge issue trigger works in the live repository.
+- `DOCUMENTATION-SYNC-3-2026-07-15` completed the review record for PR #2 and moved normal documentation assessment to the pre-merge path; post-merge issues are now reserved for failed state audits.
 
 ## In Progress
-- `DOCUMENTATION-SYNC-3-2026-07-15`: record the documentation-impact review for PR #2 and reconcile project state before closing GitHub issue #3.
+- None.
 
 ## Blockers / Open Questions
 - R-002: `.gitlab-ci.yml` has not yet been validated on a live GitLab runner; this is an external verification follow-up, not an active implementation task.
 - Deferred and unscheduled: a Prototype/Spike workflow route and a shared cross-role template pattern.
 
 ## Required Artifacts
-- `docs/records/POST-MERGE-DOCUMENTATION-REVIEW-2026-07-15-PR-2.md` and protected-PR review.
+- N/A — no active work item.
 
 ## Next Quality Gate
-- Reviewer verifies this documentation-sync record; after merge, close GitHub issue #3 with the record and PR links.
+- After this PR merges, close GitHub issue #3 and select `Validate documentation impact` as a Required status check once its first run appears.
 
 ## Recommended Next Agent
-- Reviewer, then Human / Maintainer to merge through the protected PR and close GitHub issue #3.
+- Human / Maintainer for the next work intake; Reviewer / QA Agent when GitLab CI evidence is available.
 
 ## Notes
 - All tracked work items listed above are on `main`; no feature branch or uncommitted working-tree change is required for their completion.
