@@ -35,6 +35,12 @@ state but does not automatically create a `documentation-sync` Issue on
 failure. Until separately approved GitLab API automation exists, create or
 link a GitLab Issue with the failing pipeline evidence.
 
+## Normal Post-Merge Closeout
+
+For a successful GitHub default-branch audit, claim the temporary `post-merge-closeout` label/comment on the merged PR, then open a dedicated documentation closeout PR. Include `<!-- post-merge-closeout: complete; source-pr-<number> -->` in that PR body, update project state/history/changelog as needed, and verify the source label is removed after the closeout PR merges. Do not create a normal Issue. On GitLab, use the equivalent MR label/comment manually until separately approved API automation exists.
+
+Recognize `status:development-done` and `status:verification-done` as Developer and QA evidence labels; Documentation Agent does not apply either label.
+
 ## Completion Rules
 
 Complete the pre-merge assessment only after every impact target has an update or no-update rationale, affected artifacts are in the source PR/MR, and a Reviewer handoff is ready. For an exception, also record the failing commit, corrective changes, limitations, and issue-closure evidence.

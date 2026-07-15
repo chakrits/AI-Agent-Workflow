@@ -171,6 +171,8 @@ Apply this gate to every **Work Item** and its Draft **Change Request**. Platfor
 
 Use native checklist/comment surfaces where available. Do not automate checklist ticks from CI: checks demonstrate execution, while QA owns the judgment that the Acceptance Criteria are satisfied.
 
+Developer Agent adds `status:development-done` to the Work Item only after implementation evidence and local checks are ready. QA Agent adds `status:verification-done` only after the Work Item acceptance criteria, QA evidence comment, Change Request QA checklist, and Change Request QA Evidence URL are synchronized. These are additive evidence labels, not a replacement for human merge approval.
+
 ### Output Expectations
 
 Use Markdown tables. Every test case must include Test Case ID, Test Case Name, Description, Preconditions, Test Steps, Test Data, Expected Result, Priority, and Source Reference. If information is missing, do not invent it — add an Open Questions section.
@@ -327,6 +329,17 @@ Assess each target below. Update an affected artifact in the source PR/MR or rec
 After a `main` project-state audit fails, `.github/workflows/documentation-sync.yml` creates one idempotent `documentation-sync` issue keyed to the failing commit. Treat that issue as the handoff: work from `codex/documentation-sync/<issue-number>`, create the record from `docs/templates/POST_MERGE_DOCUMENTATION_REVIEW.md`, and close the issue only after its correction PR is merged. Normal merges create no issue.
 
 GitLab's `validate_project_state` job validates default-branch state, but it does not automatically create a documentation-sync Issue after failure. Until separately approved GitLab API automation exists, Documentation Agent must create or link a GitLab Issue with the failing pipeline evidence.
+
+### Post-Merge Closeout Contract
+
+Apply this portable contract after a Change Request merges. Platform adapters implement the signal with their native labels and comments.
+
+1. Developer Agent adds `status:development-done` to the Work Item after implementation evidence is ready; QA Agent adds `status:verification-done` only after the Work Item and Change Request evidence are synchronized.
+2. After a successful default-branch audit, Documentation Agent claims the temporary `post-merge-closeout` signal, updates project state/history/changelog as needed in a dedicated closeout Change Request, and records the source Change Request reference in its completion marker.
+3. Human Maintainer reviews and merges the closeout Change Request. Its completion marker causes the source `post-merge-closeout` signal to be removed and prevents a second normal closeout signal.
+4. A successful normal audit does not create a `documentation-sync` Issue. A failed audit follows the exception handoff instead; it must not also create a normal closeout signal.
+
+Documentation-only closeout work with no Work Item acceptance criteria uses Documentation Agent review and the human merge gate; it does not require an invented QA checklist result.
 
 ### Completion and Escalation
 

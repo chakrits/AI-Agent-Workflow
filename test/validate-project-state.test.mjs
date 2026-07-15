@@ -56,7 +56,7 @@ test('GitHub requires a completed documentation-impact assessment before a PR ca
   assert.match(template, /No documentation impact/);
 });
 
-test('GitHub creates a documentation-sync issue only when main state validation fails', async () => {
+test('GitHub separates normal post-merge closeout from documentation-sync exceptions', async () => {
   const workflow = await readFile('.github/workflows/documentation-sync.yml', 'utf8');
 
   assert.match(workflow, /push:/);
@@ -66,6 +66,12 @@ test('GitHub creates a documentation-sync issue only when main state validation 
   assert.match(workflow, /documentation-sync:commit-/);
   assert.match(workflow, /issues:\s*write/);
   assert.match(workflow, /actions\/github-script@v7/);
+  assert.match(workflow, /needs\.validate-project-state\.result\s*==\s*'success'/);
+  assert.match(workflow, /post-merge-closeout/);
+  assert.match(workflow, /listPullRequestsAssociatedWithCommit/);
+  assert.match(workflow, /github\.paginate\(github\.rest\.issues\.listComments/);
+  assert.match(workflow, /post-merge-closeout:commit-/);
+  assert.match(workflow, /closeout: complete/);
   assert.doesNotMatch(workflow, /pull_request:/);
   assert.doesNotMatch(workflow, /types:\s*\[closed\]/);
 });

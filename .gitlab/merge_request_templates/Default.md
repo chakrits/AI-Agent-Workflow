@@ -9,11 +9,12 @@
 
 ## QA Acceptance Criteria Verification
 
-> QA only: verify the linked Issue Acceptance Criteria against this merge request; the Developer must not self-certify this gate.
+> Ownership: Developer supplies the Work Item URL; QA verifies the linked Issue Acceptance Criteria and evidence. Developer must not self-certify this gate.
 
-- [ ] Work Item (Issue) URL:
-- [ ] QA reviewed every Issue Acceptance Criteria item and recorded its result in the Issue.
-- [ ] QA evidence comment or review URL:
+- [ ] Developer: Work Item (Issue) URL:
+- [ ] QA: reviewed every Issue Acceptance Criteria item and recorded its result in the Issue.
+- [ ] QA: evidence comment or review URL:
+- [ ] Documentation-only closeout: N/A — no Work Item acceptance criteria; Documentation Agent review applies.
 
 ## Verification
 

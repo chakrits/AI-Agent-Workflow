@@ -50,6 +50,14 @@
 - Unverified or failed criteria route backward; only a complete QA pass can move the Draft PR/MR to human review
 - QA evidence does not replace human merge approval
 
+## Post-Merge Closeout Gate
+
+- Developer adds `status:development-done` only after implementation evidence and local checks are ready.
+- QA adds `status:verification-done` only after the Work Item and Change Request evidence locations are synchronized.
+- A successful default-branch audit emits one temporary `post-merge-closeout` signal on the source Change Request; it creates no Issue.
+- Documentation Agent completes the signal with a marked closeout Change Request that updates project state/history; its merge removes the source signal and emits no second closeout signal.
+- A failed audit creates the `documentation-sync` exception Issue and does not emit the normal closeout signal.
+
 ## Bug Fix Contract Gate
 
 - `docs/contracts/bug-fix-workflow.yaml` is the policy reference
