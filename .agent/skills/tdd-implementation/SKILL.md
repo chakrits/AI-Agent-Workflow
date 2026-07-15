@@ -63,6 +63,15 @@ Rules:
 - Re-run relevant tests.
 - Keep the diff reviewable.
 
+## Test Design Rules
+
+Apply when writing the test in the RED step:
+
+- **Test sizing** — most tests should be small (single process, no I/O/network/DB). Reach for a medium test (crosses a boundary — API, DB, filesystem) or a large test (E2E, critical path) only when a small test cannot prove the behavior.
+- **Prefer real implementations over mocks.** Preference order: real implementation > fake (in-memory) > stub (canned data) > mock (interaction verification). Use a mock only when the real dependency is slow, non-deterministic, or has side effects you cannot control.
+- **Test state, not interactions.** Assert on the outcome, not on which internal method was called — interaction-based tests break under refactors that don't change behavior.
+- **DAMP over DRY in tests.** A test should read as a self-contained specification. Some duplication across tests is acceptable if it keeps each test independently understandable; do not extract shared setup just to avoid repeating the input shape.
+
 ### 5. Handoff
 
 Provide changed files, tests added/updated, commands run, and known gaps.

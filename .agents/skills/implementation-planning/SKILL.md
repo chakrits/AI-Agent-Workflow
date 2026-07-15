@@ -35,13 +35,24 @@ At least one of:
 ## Process
 
 1. Identify change type and risk.
-2. List affected components and files/directories.
-3. Define implementation tasks in small, reviewable chunks.
+2. List affected components and files/directories, and map the dependency graph between them (what must exist before what).
+3. Define implementation tasks in small, reviewable chunks — slice vertically (one complete path through the layers touched) rather than horizontally (all of one layer before the next), ordered by the dependency graph.
 4. Define required tests per task.
 5. Define verification commands.
 6. Define rollback or fallback path where relevant.
-7. Define handoff to QA/Reviewer/Security.
-8. Identify blockers and unresolved decisions.
+7. Place a checkpoint every 2-3 tasks: re-run tests, confirm the build/system still works, before continuing.
+8. Note which tasks are safe to parallelize (independent slices) versus must be sequential (shared state, migrations, dependency chains).
+9. Define handoff to QA/Reviewer/Security.
+10. Identify blockers and unresolved decisions.
+
+## Task Sizing
+
+A task is too large when any of these hold — split it before starting:
+
+- It would take more than one focused session.
+- Its acceptance criteria cannot be stated in 3 or fewer bullet points.
+- It touches two or more independent subsystems.
+- Its title needs "and" to describe it — that is usually two tasks.
 
 ## Planning rules
 

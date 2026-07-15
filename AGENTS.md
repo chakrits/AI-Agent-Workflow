@@ -19,6 +19,16 @@ The workflow is dynamic, bidirectional, and risk-based. Do not force all request
 9. Do not make unrelated changes.
 10. Prefer small, reviewable increments.
 
+### Change Sizing
+
+Principle 10 in concrete terms: target ~100 changed lines per commit/task, ~300 is acceptable for a single logical change, ~1000 is too large and must be split. When a task is too large, split it one of these ways rather than landing it whole:
+
+- **Stack** — land a small change, base the next one on it.
+- **Vertical slice** — one complete path through the layers touched (e.g., schema + endpoint + UI for one behavior) rather than one layer at a time across every behavior.
+- **By file group** — separate changes for groups that need different reviewers.
+
+Refactoring and feature work are two different changes — land them separately, even when both are small.
+
 ## Core Operating Model
 
 Before selecting an agent, selecting a skill, or marking work complete, follow the shared operating model.
@@ -74,6 +84,31 @@ Stop and ask for human approval when the task touches:
 - Release/deployment decision
 - Security exception
 - Removing or weakening validation, controls, or tests
+
+### Boundaries (Always / Ask First / Never)
+
+The rules above are stated once each, in the section that owns them. This section indexes them into a three-tier boundary so an agent can check where it stands in one place, instead of scanning the whole file. It does not add new policy.
+
+**Always**
+
+- Classify the change and select the minimum safe workflow before starting (Core Operating Principles 1–2).
+- Run the applicable skill's verification step before claiming work done (Verification Rule).
+- Write or identify a failing test before a behavior change, unless project context says TDD is impractical (TDD Rule).
+- Keep implementer and verifier responsibilities separate (Core Operating Principle 4).
+- Update project state after every meaningful step (Core Operating Principle 6).
+
+**Ask First**
+
+- Every condition listed in Stop Conditions above.
+- Any request that matches no defined change type (Orchestrator Agent's Unclassified Request Rule).
+
+**Never**
+
+- Commit secrets, credentials, or tokens.
+- Weaken or delete a test merely to make a pipeline pass (Engineering Discipline Rules).
+- Make an unrelated change under cover of an approved task (Core Operating Principle 9).
+- Skip security review for a security-sensitive change (Core Operating Principle 8).
+- Mark work complete without meeting the Completion Rule's conditions.
 
 ## Canonical Sources
 
@@ -171,6 +206,10 @@ Use `code-review-gate` before QA/release handoff when code changed.
 
 Do not skip code review for security-sensitive, auth, permission, data migration, production config, or payment/financial logic changes.
 
+### Git Workflow Rule
+
+Use `git-workflow-and-versioning` for every commit: atomic commits, the type-prefixed message convention, pre-commit hygiene, and the change-summary format for handoff.
+
 ### Routing Summary
 
 - Vague business request → `requirement-brainstorming`
@@ -178,6 +217,7 @@ Do not skip code review for security-sensitive, auth, permission, data migration
 - Code behavior change → `tdd-implementation`
 - Before done/ready/fixed claim → `verification-before-completion`
 - Before QA/release/merge after code change → `code-review-gate`
+- Every commit → `git-workflow-and-versioning`
 
 
 

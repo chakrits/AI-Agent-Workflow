@@ -64,6 +64,19 @@ Extract:
 - Risks.
 - Unknowns.
 
+### 2a. Assumptions surfacing
+
+Before shaping the requirement, state every assumption filling a gap in what the user provided — as an explicit numbered list, not folded silently into the draft:
+
+```text
+ASSUMPTIONS I'M MAKING:
+1. <assumption>
+2. <assumption>
+→ Correct me now, or the draft proceeds on these.
+```
+
+This is stronger than the "separate assumptions from facts" operating rule above: it forces each assumption into the open before drafting starts, rather than leaving the user to spot it inside a finished document. Skip this step only when there are no gaps to fill.
+
 ### 3. Requirement shaping
 
 Produce:

@@ -19,6 +19,31 @@ test('all dynamic-workflow adapters point to the canonical Bug Fix contract', as
   }
 });
 
+test('AGENTS.md defines the Always/Ask First/Never boundary without introducing new policy', async () => {
+  const agents = await readFile('AGENTS.md', 'utf8');
+  assert.match(agents, /### Boundaries \(Always \/ Ask First \/ Never\)/);
+  assert.match(agents, /\*\*Always\*\*/);
+  assert.match(agents, /\*\*Ask First\*\*/);
+  assert.match(agents, /\*\*Never\*\*/);
+  assert.match(agents, /Commit secrets, credentials, or tokens/);
+  assert.match(agents, /does not add new policy/i);
+});
+
+const requirementBrainstormingPaths = [
+  '.agents/skills/requirement-brainstorming/SKILL.md',
+  '.claude/skills/requirement-brainstorming/SKILL.md',
+  '.agent/skills/requirement-brainstorming/SKILL.md'
+];
+
+test('requirement-brainstorming adapters all carry the assumptions-surfacing technique', async () => {
+  for (const path of requirementBrainstormingPaths) {
+    const content = await readFile(path, 'utf8');
+    assert.match(content, /### 2a\. Assumptions surfacing/);
+    assert.match(content, /ASSUMPTIONS I'M MAKING:/);
+    assert.match(content, /Correct me now/);
+  }
+});
+
 test('CI runs install, tests, and contract validation', async () => {
   const ci = await readFile('.github/workflows/validate-contracts.yml', 'utf8');
   assert.match(ci, /npm ci/);
@@ -275,6 +300,85 @@ test('Developer Agent requires architecture compliance, definition-of-done resta
     assert.match(content, /not only.*the end/i);
     assert.match(content, /do not resolve/i);
     assert.match(content, /smallest diff/i);
+  }
+});
+
+test('AGENTS.md Change Sizing gives concrete size thresholds and splitting strategies', async () => {
+  const agents = await readFile('AGENTS.md', 'utf8');
+  assert.match(agents, /### Change Sizing/);
+  assert.match(agents, /~100 changed lines/);
+  assert.match(agents, /\*\*Vertical slice\*\*/);
+  assert.match(agents, /Refactoring and feature work are two different changes/);
+});
+
+const gitWorkflowPaths = [
+  '.agents/skills/git-workflow-and-versioning/SKILL.md',
+  '.claude/skills/git-workflow-and-versioning/SKILL.md',
+  '.agent/skills/git-workflow-and-versioning/SKILL.md'
+];
+
+test('git-workflow-and-versioning skill exists in all three adapter copies with the commit and change-summary rules', async () => {
+  for (const path of gitWorkflowPaths) {
+    const content = await readFile(path, 'utf8');
+    assert.match(content, /## Atomic Commits/);
+    assert.match(content, /<type>: <short, imperative description>/);
+    assert.match(content, /Scan the diff for secrets/);
+    assert.match(content, /NOTICED BUT NOT TOUCHING:/);
+  }
+  const agents = await readFile('AGENTS.md', 'utf8');
+  assert.match(agents, /### Git Workflow Rule/);
+  assert.match(agents, /`git-workflow-and-versioning`/);
+  const catalog = await readFile('docs/operating-model/SKILL_CATALOG.md', 'utf8');
+  assert.match(catalog, /## git-workflow-and-versioning/);
+});
+
+const tddPaths = [
+  '.agents/skills/tdd-implementation/SKILL.md',
+  '.claude/skills/tdd-implementation/SKILL.md',
+  '.agent/skills/tdd-implementation/SKILL.md'
+];
+
+test('tdd-implementation adapters all carry the test-sizing, mock-preference, and DAMP rules', async () => {
+  for (const path of tddPaths) {
+    const content = await readFile(path, 'utf8');
+    assert.match(content, /## Test Design Rules/);
+    assert.match(content, /real implementation > fake .*> stub .*> mock/i);
+    assert.match(content, /DAMP over DRY/);
+  }
+});
+
+const codeReviewGatePaths = [
+  '.agents/skills/code-review-gate/SKILL.md',
+  '.claude/skills/code-review-gate/SKILL.md',
+  '.agent/skills/code-review-gate/SKILL.md'
+];
+
+test('code-review-gate adapters all carry structural remedies, dead code hygiene, and dependency discipline', async () => {
+  for (const path of codeReviewGatePaths) {
+    const content = await readFile(path, 'utf8');
+    assert.match(content, /## Structural Remedies/);
+    assert.match(content, /## Dead Code Hygiene/);
+    assert.match(content, /DEAD CODE IDENTIFIED:/);
+    assert.match(content, /## Dependency Discipline/);
+    assert.match(content, /one dependency per change/i);
+  }
+});
+
+const implementationPlanningPaths = [
+  '.agents/skills/implementation-planning/SKILL.md',
+  '.claude/skills/implementation-planning/SKILL.md',
+  '.agent/skills/implementation-planning/SKILL.md'
+];
+
+test('implementation-planning adapters all carry dependency mapping, vertical slicing, task sizing, and checkpoints', async () => {
+  for (const path of implementationPlanningPaths) {
+    const content = await readFile(path, 'utf8');
+    assert.match(content, /dependency graph/i);
+    assert.match(content, /slice vertically/i);
+    assert.match(content, /## Task Sizing/);
+    assert.match(content, /needs "and" to describe it/);
+    assert.match(content, /checkpoint every 2-3 tasks/i);
+    assert.match(content, /safe to parallelize/i);
   }
 });
 

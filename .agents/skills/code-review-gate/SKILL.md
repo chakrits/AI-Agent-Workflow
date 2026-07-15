@@ -44,12 +44,45 @@ Check:
 3. Identify review focus areas.
 4. Identify high-risk areas.
 5. Confirm tests and verification.
-6. Produce review request.
-7. Classify findings:
+6. Check for dead code and undisclosed new dependencies (see below).
+7. Produce review request.
+8. Classify findings:
    - Critical: must fix before proceeding.
    - Major: should fix before merge unless explicitly accepted.
    - Minor: cleanup or improvement.
    - Question: requires clarification.
+
+## Structural Remedies
+
+When a finding is structural (not a one-line fix), name the specific restructuring, not just the problem — the author should not have to guess what "fix" means:
+
+- Replace a chain of conditionals with a typed model or explicit dispatcher.
+- Collapse duplicate branches into a single clearer flow.
+- Separate orchestration from business logic.
+- Move feature-specific logic out of a shared module into the code that owns the concept.
+- Reuse the existing canonical helper instead of a near-duplicate.
+
+Prefer the remedy that removes moving pieces over one that just relocates the same complexity.
+
+## Dead Code Hygiene
+
+After a change, list anything left unreachable or unused. Do not delete it unasked and do not leave it silently — ask:
+
+```text
+DEAD CODE IDENTIFIED:
+- <file>: <symbol> — <why it's now unused>
+→ Safe to remove these?
+```
+
+## Dependency Discipline
+
+Before approving a change that adds a dependency, confirm:
+
+1. Does the existing stack already solve this?
+2. Is it actively maintained, with a compatible license?
+3. Any known vulnerabilities?
+
+For a dependency version bump: review the changelog, not just the version number diff — a "patch" can still carry a behavior change. Bump one dependency per change so a break is traceable to its cause.
 
 ## Output
 

@@ -55,6 +55,7 @@ These are intentionally not implemented yet but reserved for Phase 2+.
 | Config Change Validation | Feature flags/config behavior verification | `.agents/skills/config-change-validation/` |
 | Code Review | Maintainability, correctness, design, performance, testability review | `.agents/skills/code-review/` |
 | System Design Review | Review SDD/API/data model/NFR/ADR | `.agents/skills/system-design-review/` |
+| Project Spec Bootstrap | One compact spec (Objective, Commands, Structure, Code Style, Testing, Boundaries) for a *new target application repo* — not this meta-repo. Deferred until a real target app exists; PM/BA/SA's existing artifacts already cover this repo's own needs. | `.agents/skills/project-spec-bootstrap/` |
 
 
 ## requirement-brainstorming
@@ -111,6 +112,17 @@ These are intentionally not implemented yet but reserved for Phase 2+.
 | Output | CODE_REVIEW_REQUEST.md, CODE_REVIEW_FINDINGS.md |
 | Do Not Use When | No code changed or the task is requirement-only/test-design-only |
 | Next Skill / Agent | QA Agent, Security Reviewer, Developer Agent for fixes |
+
+## git-workflow-and-versioning
+
+| Field | Detail |
+|---|---|
+| Trigger | Every commit, or handing off a diff for review |
+| Primary Agent | Any agent |
+| Input | Staged changes |
+| Output | An atomic, type-prefixed commit; a change summary when handing off |
+| Do Not Use When | Nothing has been changed yet; choosing a release version or writing a changelog entry (Release Agent's job) |
+| Next Skill / Agent | code-review-gate, QA Agent |
 
 
 
