@@ -10,3 +10,6 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: npm run validate:contracts
+      - name: Validate project state after a main push
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: npm run validate:project-state

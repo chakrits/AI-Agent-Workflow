@@ -6,6 +6,7 @@
 - Merge Commit:
 - Merge Date:
 - Source Branch:
+- Documentation Sync Issue:
 
 ## Change Classification
 
@@ -49,6 +50,7 @@ Update an affected artifact or write `No update required — <reason>`.
 - To: Reviewer
 - Next Quality Gate:
 - Recommended Next Step:
+- Issue Closure Evidence:
 
 ## Completion Check
 
