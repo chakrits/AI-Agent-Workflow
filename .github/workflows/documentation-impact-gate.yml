@@ -23,6 +23,7 @@ jobs:
             const missing = required.filter((value) => !body.includes(value));
             if (missing.length) {
               core.setFailed(
-                'Complete the Documentation Impact section in the pull request template before merge.'
+                `Missing required Documentation Impact value(s): ${missing.join(', ')}. ` +
+                'Complete the Documentation Impact section and replace the pending marker before merge.'
               );
             }

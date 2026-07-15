@@ -48,6 +48,8 @@ For a **GitHub Issue / Pull Request** or **GitLab Issue / Merge Request**, treat
 
 Record the Work Item URL, Change Request URL, Acceptance Criteria Verification Status, and QA Evidence URL in the handoff. Only after QA records a complete pass may the PR/MR become ready for human review; QA evidence never replaces human merge approval. Do not automate Issue checkbox ticks from CI.
 
+Developer adds `status:development-done` after implementation evidence and local checks are ready. QA adds `status:verification-done` only after all four closeout locations agree: Work Item acceptance criteria, QA evidence comment, Change Request QA checklist, and Change Request QA Evidence URL. A documentation-only closeout with no Work Item acceptance criteria is N/A for this QA gate; Documentation Agent and human review own that path. When the platform emits `post-merge-closeout`, do not treat it as QA completion evidence.
+
 ## Output Expectations
 
 Use Markdown tables with the required test-case fields from the canonical rule. Do not invent missing information — add an Open Questions section instead.

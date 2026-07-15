@@ -1,20 +1,20 @@
 # PROJECT_STATUS.md
 
 ## Current Work Item
-- ID: None
-- Title: No active work item
+- ID: GitHub Issue #10
+- Title: Post-Merge Closeout Contract
 - Owner: Human / Maintainer
-- Status: Idle — no active work item
+- Status: QA passed — ready for human review
 
 ## Current Stage
-- Ready for New Work Intake
+- Human Review
 
 ## Change Classification
-- Change Type: N/A
-- Risk Level: N/A
-- Code Change Required: N/A
+- Change Type: Workflow / agent-instruction enhancement
+- Risk Level: Medium
+- Code Change Required: Yes — workflow automation and regression coverage
 - Architecture Change Required: No
-- Security Review Required: N/A
+- Security Review Required: No
 
 ## Completed
 - All 11 agent roles have their current canonical rules, adapters, and regression coverage on `main`.
@@ -28,20 +28,22 @@
 - GitHub Issue #7, Cross-platform QA acceptance gate, merged through PR #8 as commit `f35c8b8`; QA evidence confirmed all six acceptance criteria, and the passing default-branch audit created no `documentation-sync` exception issue.
 
 ## In Progress
-- None.
+- GitHub Issue #10: QA passed all acceptance criteria for PR #11 at `ad73573`; human review and merge are pending.
 
 ## Blockers / Open Questions
 - R-002: `.gitlab-ci.yml` has not yet been validated on a live GitLab runner; this is an external verification follow-up, not an active implementation task.
 - Deferred and unscheduled: a Prototype/Spike workflow route and a shared cross-role template pattern.
 
 ## Required Artifacts
-- N/A — no active work item.
+- Canonical closeout contract, adapters/templates, GitHub workflow, and regression coverage.
+- GitHub `status:development-done`, `status:verification-done`, and `post-merge-closeout` labels.
+- QA evidence comment/review URL and hosted check results.
 
 ## Next Quality Gate
-- For every PR: complete the Documentation Impact assessment before merge; after each default-branch push, confirm the project-state audit passes and no `documentation-sync` exception issue was created.
+- Human review and approval of PR #11; after merge, confirm the default-branch audit emits the temporary `post-merge-closeout` signal without a `documentation-sync` exception Issue.
 
 ## Recommended Next Agent
-- Human / Maintainer for the next work intake; Reviewer / QA Agent when GitLab CI evidence is available.
+- Human / Maintainer for PR review and merge; Documentation Agent for the first closeout-signal lifecycle check.
 
 ## Notes
-- All tracked work items listed above are on `main`; no feature branch or uncommitted working-tree change is required for their completion. R-002 remains the separate live-GitLab-runner follow-up.
+- R-002 remains the separate live-GitLab-runner follow-up. GitLab uses the manual closeout label/comment equivalent until API automation is separately approved.

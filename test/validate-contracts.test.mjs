@@ -173,11 +173,48 @@ test('QA verifies issue acceptance criteria across GitHub PRs and GitLab MRs', a
   }
   for (const template of [githubTemplate, gitlabTemplate]) {
     assert.match(template, /## QA Acceptance Criteria Verification/);
-    assert.match(template, /QA only/i);
-    assert.match(template, /QA evidence/i);
+    assert.match(template, /Ownership: Developer/i);
+    assert.match(template, /QA:\s*evidence/i);
   }
   assert.match(qualityGates, /## QA Acceptance Criteria Gate/);
   assert.match(roleDefinition, /does not automatically create.*Issue/i);
+});
+
+test('post-merge closeout keeps QA evidence and normal-merge handoff ownership explicit', async () => {
+  const [roleDefinition, qaAdapter, documentationAdapter, githubTemplate, gitlabTemplate, qualityGates] = await Promise.all([
+    readFile('docs/workflow/role-definitions.md', 'utf8'),
+    readFile('.claude/agents/qa-agent.md', 'utf8'),
+    readFile('.claude/agents/documentation-agent.md', 'utf8'),
+    readFile('.github/pull_request_template.md', 'utf8'),
+    readFile('.gitlab/merge_request_templates/Default.md', 'utf8'),
+    readFile('docs/workflow/quality-gates.md', 'utf8')
+  ]);
+
+  const closeout = roleDefinition.match(
+    /### Post-Merge Closeout Contract([\s\S]*?)### Completion and Escalation/
+  )?.[1];
+  assert.ok(closeout, 'canonical post-merge closeout contract should exist');
+  assert.match(closeout, /Developer Agent/);
+  assert.match(closeout, /QA Agent/);
+  assert.match(closeout, /Documentation Agent/);
+  assert.match(closeout, /Human Maintainer/);
+  assert.match(closeout, /Work Item/);
+  assert.match(closeout, /Change Request/);
+  assert.match(closeout, /post-merge-closeout/);
+  assert.match(closeout, /documentation-sync/);
+  assert.doesNotMatch(closeout, /GitHub|GitLab|Pull Request|Merge Request/i);
+
+  for (const content of [qaAdapter, documentationAdapter]) {
+    assert.match(content, /status:development-done/);
+    assert.match(content, /status:verification-done/);
+    assert.match(content, /post-merge-closeout/);
+  }
+  for (const template of [githubTemplate, gitlabTemplate]) {
+    assert.match(template, /Developer:.*Work Item/i);
+    assert.match(template, /QA:.*evidence/i);
+    assert.match(template, /Documentation-only closeout/i);
+  }
+  assert.match(qualityGates, /## Post-Merge Closeout Gate/);
 });
 
 test('Documentation Agent requires a pre-merge review and an exception-only post-merge record', async () => {
