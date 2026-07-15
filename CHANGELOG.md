@@ -3,6 +3,7 @@
 ## Unreleased
 
 ### Added
+- GitHub post-merge `documentation-sync` issue handoff, a project-state stale-marker validator, and GitHub/GitLab CI checks that run it after the default-branch push.
 - Phase 1 Bug Fix workflow contract validation completion record and independent reviewer / QA handoff.
 - Mandatory post-merge Documentation Agent review rule, template, and regression coverage.
 - Canonical PM Agent business-framing rule, expanded `PROJECT_BRIEF.md` template, and regression coverage.

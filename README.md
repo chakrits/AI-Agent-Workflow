@@ -140,7 +140,7 @@ npm run validate:contracts
 
 Every meaningful stage should produce a structured artifact and handoff. Use the [handoff template](./docs/templates/HANDOFF.md) and the [quality gates](./docs/workflow/quality-gates.md) instead of informal “done” messages.
 
-After every pull request merge into `main`, the Documentation Agent reviews the impact on project index, state, history, changelog, decisions, risks, and canonical/adapter parity. Use the [post-merge documentation review template](./docs/templates/POST_MERGE_DOCUMENTATION_REVIEW.md) to record the result.
+After every pull request merge into `main`, GitHub creates a `documentation-sync` follow-up issue for the Documentation Agent. The agent reviews the impact on project index, state, history, changelog, decisions, risks, and canonical/adapter parity from a `codex/documentation-sync/<issue-number>` branch. Use the [post-merge documentation review template](./docs/templates/POST_MERGE_DOCUMENTATION_REVIEW.md) to record the result, then close the issue when its documentation-sync PR merges.
 
 ## Where to Go Next
 

@@ -5,7 +5,8 @@
   "engines": { "node": ">=22" },
   "scripts": {
     "test": "node --test",
-    "validate:contracts": "node scripts/validate-contracts.mjs"
+    "validate:contracts": "node scripts/validate-contracts.mjs",
+    "validate:project-state": "node scripts/validate-project-state.mjs"
   },
   "devDependencies": {
     "ajv": "^8.17.1",

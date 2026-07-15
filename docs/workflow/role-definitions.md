@@ -297,6 +297,8 @@ Updates README, architecture docs, user docs, changelog, decision logs, and oper
 
 After every merge into `main`, the Documentation Agent performs a documentation-impact review. Classify this review as documentation-only with Medium risk unless the merged change requires a higher-risk route. The review is required even when the merge contains no documentation changes.
 
+For a GitHub pull-request merge, `.github/workflows/documentation-sync.yml` creates or reuses a `documentation-sync` issue. Treat that issue as the required handoff: work from a `codex/documentation-sync/<issue-number>` branch, link the issue in the review record, and close it only after the documentation-sync PR is merged. The workflow skips that branch prefix so the follow-up cannot create another follow-up.
+
 ### Mandatory Impact Assessment
 
 Assess each target below. Update an affected artifact or record `No update required — <reason>` in the review record.
@@ -313,7 +315,7 @@ Create the review record from `docs/templates/POST_MERGE_DOCUMENTATION_REVIEW.md
 
 ### Completion and Escalation
 
-Complete the documentation review only after every target has an update or no-update rationale, `TASK_LOG.md` records the merge, remaining limitations and next quality gate are explicit, and a Reviewer handoff is ready.
+Complete the documentation review only after every target has an update or no-update rationale, `TASK_LOG.md` records the merge, remaining limitations and next quality gate are explicit, the follow-up issue is linked and ready to close, and a Reviewer handoff is ready.
 
 Route a conflict with implementation, tests, or a contract to the Developer Agent or SA Agent. Route unverified hosted CI to Reviewer / QA, release implications to the Release Agent and Human approval, and unresolved risks to an owner recorded in `RISKS.md`.
 

@@ -1,0 +1,68 @@
+name: Create documentation sync follow-up
+
+on:
+  pull_request:
+    types: [closed]
+
+permissions:
+  issues: write
+  pull-requests: read
+
+jobs:
+  create-follow-up:
+    if: >-
+      github.event.pull_request.merged == true &&
+      github.event.pull_request.base.ref == 'main' &&
+      !startsWith(github.event.pull_request.head.ref, 'codex/documentation-sync/')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create Documentation Agent follow-up issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            const marker = `<!-- documentation-sync:pr-${pr.number} -->`;
+            try {
+              await github.rest.issues.getLabel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                name: 'documentation-sync'
+              });
+            } catch (error) {
+              if (error.status !== 404) throw error;
+              await github.rest.issues.createLabel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                name: 'documentation-sync',
+                color: '0e8a16',
+                description: 'Post-merge Documentation Agent follow-up'
+              });
+            }
+            const { data: issues } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              labels: 'documentation-sync',
+              state: 'all',
+              per_page: 100
+            });
+
+            if (issues.some((issue) => issue.body?.includes(marker))) {
+              core.info(`Documentation sync follow-up already exists for PR #${pr.number}.`);
+              return;
+            }
+
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `[Documentation Sync] PR #${pr.number}: ${pr.title}`,
+              labels: ['documentation-sync'],
+              body: `${marker}
+
+            A pull request has merged into \`main\` and requires the Documentation Agent review.
+
+            - Pull request: ${pr.html_url}
+            - Merge commit: ${pr.merge_commit_sha ?? 'not reported by GitHub'}
+            - Source branch: \`${pr.head.ref}\`
+
+            Complete the review using \`docs/templates/POST_MERGE_DOCUMENTATION_REVIEW.md\`. Update every affected project-state artifact, record the review under \`docs/records/\`, then close this issue with links to the documentation-sync PR and review record.`
+            });

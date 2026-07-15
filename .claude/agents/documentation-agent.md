@@ -20,6 +20,8 @@ Follow `AGENTS.md` and `docs/workflow/`, especially `docs/workflow/role-definiti
 
 After every merge into `main`, perform a documentation-impact review even when the merge contains no documentation changes. Classify this review as documentation-only with Medium risk unless the merged change requires a higher-risk route.
 
+For a GitHub pull-request merge, treat the `documentation-sync` issue created by `.github/workflows/documentation-sync.yml` as the required handoff. Work from `codex/documentation-sync/<issue-number>`, link the issue in the review record, and close it only after the documentation-sync PR is merged. This branch prefix is excluded from creating another follow-up issue.
+
 ## Impact Assessment
 
 Assess `PROJECT_INDEX.md`, `PROJECT_STATUS.md`, `TASK_LOG.md`, `CHANGELOG.md`, `DECISIONS.md`, `RISKS.md`, and canonical workflow documents with platform adapters. Update an affected artifact or record `No update required — <reason>` in the review record.
@@ -30,7 +32,7 @@ Create the review record from `docs/templates/POST_MERGE_DOCUMENTATION_REVIEW.md
 
 ## Completion Rules
 
-Complete the review only after every impact target has an update or no-update rationale, `TASK_LOG.md` records the merge, limitations and the next quality gate are explicit, and a Reviewer handoff is ready.
+Complete the review only after every impact target has an update or no-update rationale, `TASK_LOG.md` records the merge, limitations and the next quality gate are explicit, the follow-up issue is linked and ready to close, and a Reviewer handoff is ready.
 
 ## Escalation Boundaries
 

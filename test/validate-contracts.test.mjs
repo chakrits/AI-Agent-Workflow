@@ -61,6 +61,8 @@ test('CI runs install, tests, and contract validation', async () => {
   assert.match(ci, /npm ci/);
   assert.match(ci, /npm test/);
   assert.match(ci, /npm run validate:contracts/);
+  assert.match(ci, /npm run validate:project-state/);
+  assert.match(ci, /github\.ref\s*==\s*'refs\/heads\/main'/);
 });
 
 test('Bug Fix documentation points to the canonical contract and uses the two-rework rule', async () => {
@@ -140,6 +142,8 @@ test('Documentation Agent requires post-merge review and a complete record', asy
     assert.match(content, /every merge into `?main`?/i);
     assert.match(content, /POST_MERGE_DOCUMENTATION_REVIEW\.md/);
     assert.match(content, /No update required/);
+    assert.match(content, /documentation-sync/);
+    assert.match(content, /codex\/documentation-sync\//);
   }
   for (const target of requiredTargets) {
     assert.match(roleDefinition, new RegExp(target.replace('.', '\\.')));
