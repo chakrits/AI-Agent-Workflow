@@ -17,7 +17,7 @@
 - PM Agent instruction branch merged into `main` after final whole-branch review approval.
 
 ### Fixed
-- 
+- R-001 (Phase 1 hosted-CI confirmation) closed: Human Reviewer confirmed hosted CI is merged and running on `main`. See `RISKS.md`.
 
 ### Security
 - 
