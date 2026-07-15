@@ -118,6 +118,8 @@ test('handoff vocabulary stays in parity across AGENTS, contract, and template',
     'From Agent',
     'To Agent',
     'Work Item',
+    'Work Item URL',
+    'Change Request URL',
     'Change Type',
     'Risk Level',
     'Current Stage',
@@ -129,6 +131,8 @@ test('handoff vocabulary stays in parity across AGENTS, contract, and template',
     'Files Changed',
     'Verification Performed',
     'Evidence References',
+    'Acceptance Criteria Verification Status',
+    'QA Evidence URL',
     'Stop Reason',
     'Known Limitations',
     'Open Questions',
@@ -144,6 +148,36 @@ test('handoff vocabulary stays in parity across AGENTS, contract, and template',
   assert.deepEqual(listFields(agents, 'Required Handoff'), requiredFields);
   assert.deepEqual(listFields(contract, 'Required Fields'), requiredFields);
   assert.deepEqual(templateFields, requiredFields);
+});
+
+test('QA verifies issue acceptance criteria across GitHub PRs and GitLab MRs', async () => {
+  const [roleDefinition, adapter, githubTemplate, gitlabTemplate, qualityGates] = await Promise.all([
+    readFile('docs/workflow/role-definitions.md', 'utf8'),
+    readFile('.claude/agents/qa-agent.md', 'utf8'),
+    readFile('.github/pull_request_template.md', 'utf8'),
+    readFile('.gitlab/merge_request_templates/Default.md', 'utf8'),
+    readFile('docs/workflow/quality-gates.md', 'utf8')
+  ]);
+
+  const qaGate = roleDefinition.match(
+    /### Cross-Platform Acceptance Criteria Gate([\s\S]*?)### Output Expectations/
+  )?.[1];
+  assert.ok(qaGate, 'canonical QA acceptance gate should exist');
+  assert.match(qaGate, /Work Item/i);
+  assert.match(qaGate, /Change Request/i);
+  assert.doesNotMatch(qaGate, /GitHub|GitLab|Pull Request|Merge Request/i);
+  for (const content of [adapter]) {
+    assert.match(content, /Acceptance Criteria/i);
+    assert.match(content, /QA Evidence/i);
+    assert.match(content, /must not self-certify/i);
+  }
+  for (const template of [githubTemplate, gitlabTemplate]) {
+    assert.match(template, /## QA Acceptance Criteria Verification/);
+    assert.match(template, /QA only/i);
+    assert.match(template, /QA evidence/i);
+  }
+  assert.match(qualityGates, /## QA Acceptance Criteria Gate/);
+  assert.match(roleDefinition, /does not automatically create.*Issue/i);
 });
 
 test('Documentation Agent requires a pre-merge review and an exception-only post-merge record', async () => {
@@ -180,6 +214,7 @@ test('Documentation Agent requires a pre-merge review and an exception-only post
     assert.match(content, /state audit/i);
     assert.match(content, /exception/i);
     assert.match(content, /documentation-sync/);
+    assert.match(content, /does not automatically create.*Issue/i);
   }
   for (const target of requiredTargets) {
     assert.match(roleDefinition, new RegExp(target.replace('.', '\\.')));
