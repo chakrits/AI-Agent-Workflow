@@ -382,6 +382,28 @@ test('implementation-planning adapters all carry dependency mapping, vertical sl
   }
 });
 
+test('Security Reviewer carries the scan checklist, severity scale, and fix-before-merge rule', async () => {
+  const [roleDefinition, adapter, skill, template] = await Promise.all([
+    readFile('docs/workflow/role-definitions.md', 'utf8'),
+    readFile('.claude/agents/security-reviewer.md', 'utf8'),
+    readFile('.agents/skills/security-review/SKILL.md', 'utf8'),
+    readFile('docs/templates/SECURITY_REVIEW.md', 'utf8')
+  ]);
+
+  for (const content of [roleDefinition, adapter, skill]) {
+    assert.match(content, /DEBUG = True/);
+    assert.match(content, /CORS_ALLOW_ALL_ORIGINS/);
+    assert.match(content, /permission_classes/);
+    assert.match(content, /Critical/);
+    assert.match(content, /Informational/);
+    assert.match(content, /Never downgrade a Critical/);
+    assert.match(content, /compose(?:s)? into/i);
+  }
+
+  assert.match(template, /## Scan Checklist/);
+  assert.match(template, /Fix-Before-Merge\?/);
+});
+
 test('accepts the three canonical Bug Fix examples', async () => {
   const errors = await validateContracts(process.cwd());
   assert.deepEqual(errors, []);

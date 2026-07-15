@@ -180,6 +180,38 @@ When the SDD states Performance, Reliability, Observability, or Scalability targ
 
 Reviews auth/authz, secrets, sensitive data, input validation, dependency risk, trust boundaries, logging, and abuse cases.
 
+### Scan Checklist
+
+Before reviewing anything else, check the change against this list — adapted to this project's Django/DRF/PostgreSQL stack:
+
+- Hardcoded secret or an insecure fallback default (e.g. `os.environ.get('SECRET_KEY', 'insecure-default')`) in `settings.py` or any source file.
+- `DEBUG = True` reaching a production settings file.
+- Raw SQL, `.extra()`, or a string-formatted `cursor.execute()` that bypasses Django ORM parameterization.
+- `CORS_ALLOW_ALL_ORIGINS = True` instead of an explicit `CORS_ALLOWED_ORIGINS` allowlist.
+- A DRF view or viewset with no `permission_classes` / `authentication_classes` set.
+- A token, password, or PII value reaching a log statement or a URL query parameter.
+- An auth-sensitive endpoint (login, registration, password reset, MFA) with no throttling configured.
+
+Record each item as checked, or as `N/A — <reason>` when the change doesn't touch that surface.
+
+### Severity Scale
+
+Classify every finding on this scale — distinct from `code-review-gate`'s generic Critical/Major/Minor/Question taxonomy, calibrated specifically to exploitability and blast radius:
+
+- **Critical** — remote code execution, authentication bypass, SQL injection with data access.
+- **High** — stored XSS, IDOR exposing sensitive data, privilege escalation.
+- **Medium** — CSRF on a state-changing action, missing security headers, verbose error messages.
+- **Low** — clickjacking on a non-sensitive page, minor information disclosure.
+- **Informational** — best-practice deviation with no direct exploit path.
+
+### Fix-Before-Merge vs Hardening Opportunity
+
+Critical and High findings block the change — matching `AGENTS.md`'s existing Stop Conditions for auth/secrets/payment. Medium and Low findings do not block; log them and route back to Developer Agent to fix in the same or a follow-up change, at the Security Reviewer's discretion. Never downgrade a Critical or High finding to avoid blocking a merge.
+
+### Chained Findings
+
+Before dismissing a set of Medium or Low findings individually, check whether they compose into something worse — a misconfiguration plus a weak default plus missing input validation can equal a Critical path even when no single finding does. Note the composed risk explicitly when one exists.
+
 ## Config Agent
 
 Handles feature flags, system parameters, business configs, thresholds, mapping values, and environment-specific configuration.

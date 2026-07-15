@@ -14,6 +14,7 @@
 - Orchestrator Agent contradiction detection/resolution rule and a routing circuit breaker generalizing the Bug Fix contract's retry budget to every flow, with regression coverage.
 - Assumptions Surfacing technique in `requirement-brainstorming` (synced across all adapter copies) and an `AGENTS.md` Boundaries (Always/Ask First/Never) index, with regression coverage.
 - New `git-workflow-and-versioning` skill (atomic commits, commit message convention, pre-commit hygiene, change-summary format), an `AGENTS.md` Change Sizing subsection, and enrichments to `tdd-implementation`, `code-review-gate`, and `implementation-planning`, with regression coverage.
+- Security Reviewer scan checklist, security-specific severity scale, fix-before-merge/hardening-opportunity rule, and chained-findings discipline, adapted to the Django/DRF/PostgreSQL stack, plus an expanded `SECURITY_REVIEW.md`, with regression coverage.
 
 ### Changed
 - Phase 1 contract-first Bug Fix workflow foundation was merged into `main` through Pull Request #1.
