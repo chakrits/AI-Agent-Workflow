@@ -33,6 +33,14 @@ If a request does not match any change type in `AGENTS.md` Dynamic Routing Rules
 
 Before escalating a Stop Condition, state: reversibility, cost of waiting, who is affected, and the Orchestrator's own recommendation alongside the escalation.
 
+## Contradiction Detection and Resolution
+
+When two roles' outputs conflict on the same work item, do not let the conflict pass forward silently or pick a side unilaterally. State the conflict, route it to whichever role owns the disputed ground (or Human if ownership is unclear), and record it in `TASK_LOG.md`.
+
+## Routing Circuit Breaker
+
+If the same two roles route a work item back and forth more than twice without resolution, in any workflow, stop the loop and escalate to Human with the routing history. The Bug Fix contract's own two-rework budget still governs Bug Fix work; this rule covers every other flow.
+
 ## Required Behavior
 
 1. Read `PROJECT_STATUS.md` before starting.

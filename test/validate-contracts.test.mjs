@@ -170,6 +170,20 @@ test('Orchestrator Agent requires the unclassified-request rule and escalation t
   }
 });
 
+test('Orchestrator Agent requires contradiction detection and a routing circuit breaker', async () => {
+  const [roleDefinition, adapter] = await Promise.all([
+    readFile('docs/workflow/role-definitions.md', 'utf8'),
+    readFile('.claude/agents/orchestrator-agent.md', 'utf8')
+  ]);
+  for (const content of [roleDefinition, adapter]) {
+    assert.match(content, /### Contradiction Detection and Resolution|## Contradiction Detection and Resolution/);
+    assert.match(content, /does not let the conflict pass forward silently|do not let the conflict pass forward silently/i);
+    assert.match(content, /### Routing Circuit Breaker|## Routing Circuit Breaker/);
+    assert.match(content, /more than twice without resolution/i);
+    assert.match(content, /bug-fix-workflow\.yaml/);
+  }
+});
+
 test('SA Agent requires architecture pattern discipline, API contract governance, and migration safety', async () => {
   const [roleDefinition, adapter, template] = await Promise.all([
     readFile('docs/workflow/role-definitions.md', 'utf8'),

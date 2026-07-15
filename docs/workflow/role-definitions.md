@@ -25,6 +25,14 @@ Before escalating a Stop Condition, state:
 3. Who else is affected by this decision?
 4. What is the Orchestrator's own recommendation — stated alongside the escalation, not decided on the human's behalf?
 
+### Contradiction Detection and Resolution
+
+When two roles' outputs conflict on the same work item — SA Agent's architecture disagrees with BA Agent's requirement, Developer Agent's completion claim disagrees with QA Agent's findings, or any other cross-role disagreement — the Orchestrator does not let the conflict pass forward silently or pick a side unilaterally. State the conflict explicitly, identify which roles it involves, and route it to whichever role owns the disputed ground for resolution, or to Human if ownership itself is unclear. Record the conflict and its resolution in `TASK_LOG.md`.
+
+### Routing Circuit Breaker
+
+The Bug Fix workflow's two-rework retry budget (`docs/contracts/bug-fix-workflow.yaml`) is one instance of a general rule: if the same two roles route a work item back and forth between each other more than twice without resolution, in any workflow, stop the loop and escalate to Human with the routing history rather than allowing it to continue indefinitely. This does not replace the Bug Fix contract's own retry budget where it already applies — it covers every other flow that has no contract-defined limit of its own.
+
 ## PM Agent
 
 Clarifies business goal, priority, scope, success metric, stakeholder impact, roadmap fit, and release intent. The canonical PM Agent business-framing rule is defined here; platform-specific agent files are adapters.
