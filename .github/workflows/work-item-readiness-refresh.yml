@@ -1,0 +1,53 @@
+name: Refresh work item readiness after lifecycle change
+
+on:
+  issues:
+    types: [labeled, unlabeled]
+
+jobs:
+  refresh-linked-pull-requests:
+    if: >-
+      startsWith(github.event.label.name, 'phase:') ||
+      startsWith(github.event.label.name, 'status:')
+    runs-on: ubuntu-latest
+    environment: work-item-refresh
+    permissions: {}
+    steps:
+      - name: Create the refresh GitHub App token
+        id: refresh-token
+        uses: actions/create-github-app-token@v3
+        with:
+          client-id: ${{ vars.WORK_ITEM_REFRESH_APP_CLIENT_ID }}
+          private-key: ${{ secrets.WORK_ITEM_REFRESH_APP_PRIVATE_KEY }}
+
+      - name: Refresh linked pull request readiness
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ steps.refresh-token.outputs.token }}
+          script: |
+            const issue = context.payload.issue;
+            const escaped = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const workItemUrl = new RegExp(
+              `Developer: Work Item \\(Issue\\) URL:\\s*https://github\\.com/${escaped(context.repo.owner)}/${escaped(context.repo.repo)}/issues/${issue.number}(?:\\b|/)`,
+              'i'
+            );
+            const marker = `<!-- work-item-readiness-refresh: issue-${issue.number}-${context.payload.action}-${issue.updated_at} -->`;
+            const pulls = await github.paginate(github.rest.pulls.list, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              base: context.payload.repository.default_branch,
+              per_page: 100
+            });
+            for (const pull of pulls) {
+              if (!workItemUrl.test(pull.body ?? '')) continue;
+              const bodyWithoutRefresh = (pull.body ?? '')
+                .replace(/\n?<!-- work-item-readiness-refresh: [^>]* -->/g, '');
+              const separator = bodyWithoutRefresh && !bodyWithoutRefresh.endsWith('\n') ? '\n' : '';
+              await github.rest.pulls.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: pull.number,
+                body: `${bodyWithoutRefresh}${separator}${marker}`
+              });
+            }
