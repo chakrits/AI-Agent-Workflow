@@ -1,20 +1,20 @@
 # PROJECT_STATUS.md
 
 ## Current Work Item
-- ID: None
-- Title: No active work item
-- Owner: Human / Maintainer
-- Status: Idle — no active work item
+- ID: GitHub Issue #19
+- Title: Add lifecycle stages and automated PR readiness gate
+- Owner: Developer Agent / Human Maintainer
+- Status: Bootstrap remediation in progress — trusted decision module must land on `main` before the activation workflow can import it
 
 ## Current Stage
-- Ready for New Work Intake
+- Developer Remediation
 
 ## Change Classification
-- Change Type: N/A
-- Risk Level: N/A
-- Code Change Required: N/A
+- Change Type: Bug Fix — GitHub Actions bootstrap ordering
+- Risk Level: Medium — a readiness gate must not execute untrusted pull-request code
+- Code Change Required: Yes — trusted pure decision module and unit coverage
 - Architecture Change Required: No
-- Security Review Required: No
+- Security Review Required: Yes — trusted evaluator boundary
 
 ## Completed
 - All 11 agent roles have their current canonical rules, adapters, and regression coverage on `main`.
@@ -31,20 +31,21 @@
 - GitHub Issue #16, canonical agent personas, merged through PR #17 as commit `8e4a3e0`; all seven QA acceptance criteria passed, the default-branch audit run `29510562131` passed, and no `documentation-sync` exception Issue was created.
 
 ## In Progress
-- None.
+- Issue #19 bootstrap increment: add the pure, testable readiness decision module to `main`; activation remains in Draft PR #20 until this increment merges.
 
 ## Blockers / Open Questions
 - R-002: `.gitlab-ci.yml` has not yet been validated on a live GitLab runner; this is an external verification follow-up, not an active implementation task.
 - Deferred and unscheduled: a Prototype/Spike workflow route and a shared cross-role template pattern.
 
 ## Required Artifacts
-- N/A — no active work item.
+- Bootstrap module and unit tests; independent security and code review; hosted activation-check evidence after PR #20 is rebased.
 
 ## Next Quality Gate
-- For every PR: complete the Documentation Impact assessment before merge; after each default-branch push, confirm the project-state audit passes and no `documentation-sync` exception Issue was created.
+- Security/code review of the bootstrap PR, human merge into `main`, then QA re-check of the rebased PR #20 hosted readiness workflow.
 
 ## Recommended Next Agent
-- Human / Maintainer for the next work intake; Reviewer / QA Agent when GitLab CI evidence is available.
+- Security Reviewer, then Human Maintainer for bootstrap-PR merge; QA Agent after activation PR #20 is rebased.
 
 ## Notes
+- Root cause: PR #20's adapter checks out trusted `main`, but `scripts/work-item-readiness.mjs` existed only on the PR branch. Do not use a PR-head import fallback; that would weaken the trusted evaluation boundary.
 - R-002 remains the separate live-GitLab-runner follow-up. GitLab uses the manual closeout label/comment equivalent until API automation is separately approved.
