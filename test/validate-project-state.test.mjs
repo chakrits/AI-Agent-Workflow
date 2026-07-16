@@ -56,6 +56,31 @@ test('GitHub requires a completed documentation-impact assessment before a PR ca
   assert.match(template, /No documentation impact/);
 });
 
+test('GitHub validates lifecycle readiness without automating QA acceptance decisions', async () => {
+  const workflow = await readFile('.github/workflows/work-item-readiness.yml', 'utf8');
+
+  assert.match(workflow, /pull_request:/);
+  assert.match(workflow, /ready_for_review/);
+  assert.match(workflow, /labeled/);
+  assert.match(workflow, /unlabeled/);
+  assert.match(workflow, /pull-requests:\s*read/);
+  assert.match(workflow, /issues:\s*read/);
+  assert.match(workflow, /actions\/github-script@v7/);
+  assert.match(workflow, /status:spec-ready/);
+  assert.match(workflow, /status:development-done/);
+  assert.match(workflow, /status:verification-done/);
+  assert.match(workflow, /post-merge-closeout: complete; source-pr-/);
+  assert.doesNotMatch(workflow, /documentationOnly\s*=.*Documentation-only closeout/);
+  assert.match(workflow, /workItemOwner !== context\.repo\.owner/);
+  assert.match(workflow, /workItem\.pull_request/);
+  assert.match(workflow, /listFiles/);
+  assert.match(workflow, /PROJECT_STATUS\.md/);
+  assert.match(workflow, /HANDOFF-POST-MERGE-CLOSEOUT-/);
+  assert.match(workflow, /QA: evidence comment or review URL/);
+  assert.doesNotMatch(workflow, /issues\.update/);
+  assert.doesNotMatch(workflow, /updateIssue/);
+});
+
 test('GitHub separates normal post-merge closeout from documentation-sync exceptions', async () => {
   const workflow = await readFile('.github/workflows/documentation-sync.yml', 'utf8');
 
