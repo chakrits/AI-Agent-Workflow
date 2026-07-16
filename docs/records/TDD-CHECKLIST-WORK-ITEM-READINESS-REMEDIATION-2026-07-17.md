@@ -22,7 +22,7 @@
 
 | Command | Result |
 |---|---|
-| `node --test test/work-item-readiness.test.mjs test/validate-project-state.test.mjs test/validate-contracts.test.mjs` | Pass — 58 tests |
+| `node --test test/work-item-readiness.test.mjs test/validate-project-state.test.mjs test/validate-contracts.test.mjs` | Pass — 56 tests after Bootstrap PR #21 moved the five readiness tests onto `main` |
 | Full repository validation | Pending final developer checkpoint |
 
 ## Scope Limitation

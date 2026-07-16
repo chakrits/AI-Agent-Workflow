@@ -17,7 +17,7 @@
 | Completed Work | Added a tested decision module; connected it to the GitHub adapter; documented GitLab manual readiness and GitHub linked-Issue rerun behavior; synchronized records. |
 | Artifacts Produced | Debug ledger, TDD checklist, code-review request, completion check, platform operations guide. |
 | Files Changed | See remediation commit and PR #20 Files changed. |
-| Verification Performed | `npm test` (58 tests), `npm run validate:contracts`, `npm run validate:project-state`, `git diff --check`, and a GitHub readiness workflow parse/compile check all passed. |
+| Verification Performed | `npm test` (56 tests after Bootstrap PR #21), `npm run validate:contracts`, `npm run validate:project-state`, `git diff --check`, and a GitHub readiness workflow parse/compile check all passed. |
 | Evidence References | QA blocker comment `4994472846`; remediation records in this directory. |
 | Acceptance Criteria Verification Status | Not self-certified by Developer; QA must re-check all Issue #19 AC. |
 | QA Evidence URL | Pending QA re-verification. |

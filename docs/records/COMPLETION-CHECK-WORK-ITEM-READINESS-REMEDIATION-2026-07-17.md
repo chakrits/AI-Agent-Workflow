@@ -13,7 +13,7 @@
 
 | Command | Result |
 |---|---|
-| `npm test` | Pass — 58 tests |
+| `npm test` | Pass — 56 tests after Bootstrap PR #21 moved the five readiness tests onto `main` |
 | `npm run validate:contracts` | Pass |
 | `npm run validate:project-state` | Pass |
 | `git diff --check` | Pass |
