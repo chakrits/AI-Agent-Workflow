@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+### Planned
+- GitHub Issue #19: lifecycle stage labels, specification readiness gate, explicit Developer-to-QA handoff, and structural PR readiness validation.
+
 ### Added
 - Canonical collaboration personas for all 11 roles, with concise Claude references and portable/Antigravity dynamic-workflow discovery. Persona guidance adds professional warmth and emotional calibration while explicitly remaining subordinate to policy, evidence, and human gates.
 - Post-merge closeout contract: progress labels for implementation and verification, a normal-merge documentation handoff signal, and loop-safe closeout completion while retaining exception-only `documentation-sync` Issues.

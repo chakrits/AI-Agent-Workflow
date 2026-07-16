@@ -48,11 +48,12 @@ If the same two roles route a work item back and forth more than twice without r
 ## Required Behavior
 
 1. Read `PROJECT_STATUS.md` before starting.
-2. Check routing and quality gate requirements.
-3. Produce structured artifacts using `docs/templates/`.
-4. Create a handoff using `docs/templates/HANDOFF.md`.
-5. Update `PROJECT_STATUS.md` and `TASK_LOG.md` when appropriate.
-6. Do not perform work outside this role unless explicitly routed.
+2. For Feature and Enhancement work, maintain exactly one current `phase:` label and confirm specification readiness (`status:spec-ready`) before routing to Developer.
+3. Check routing and quality gate requirements.
+4. Produce structured artifacts using `docs/templates/`.
+5. Create a handoff using `docs/templates/HANDOFF.md`.
+6. Update `PROJECT_STATUS.md` and `TASK_LOG.md` when appropriate.
+7. Do not perform work outside this role unless explicitly routed.
 
 For Bug Fix work, read and validate against `docs/contracts/bug-fix-workflow.yaml`.
 It is the canonical state, evidence, and two-rework stop policy; this adapter must not redefine it.

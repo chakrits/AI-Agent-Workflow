@@ -22,6 +22,15 @@
 
 Low / Medium / High / Critical
 
+## Lifecycle Phase
+
+`phase:requirements` / `phase:design` / `phase:planning` / `phase:development` / `phase:verification` / `phase:human-review` / `phase:blocked`
+
+## Specification Readiness
+
+Required specification: Lightweight / SDD-design / N/A
+Evidence and approval reference:
+
 ## Current Stage
 
 

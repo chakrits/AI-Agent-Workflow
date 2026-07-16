@@ -122,6 +122,8 @@ test('handoff vocabulary stays in parity across AGENTS, contract, and template',
     'Change Request URL',
     'Change Type',
     'Risk Level',
+    'Lifecycle Phase',
+    'Specification Readiness',
     'Current Stage',
     'Task State',
     'Contract Version',
@@ -148,6 +150,46 @@ test('handoff vocabulary stays in parity across AGENTS, contract, and template',
   assert.deepEqual(listFields(agents, 'Required Handoff'), requiredFields);
   assert.deepEqual(listFields(contract, 'Required Fields'), requiredFields);
   assert.deepEqual(templateFields, requiredFields);
+});
+
+test('lifecycle stages make specification readiness a portable pre-development gate', async () => {
+  const [agents, routing, roles, qualityGates, handoff, template, portableWorkflow, claudeAdapter] = await Promise.all([
+    readFile('AGENTS.md', 'utf8'),
+    readFile('docs/workflow/dynamic-routing.md', 'utf8'),
+    readFile('docs/workflow/role-definitions.md', 'utf8'),
+    readFile('docs/workflow/quality-gates.md', 'utf8'),
+    readFile('docs/workflow/handoff-contract.md', 'utf8'),
+    readFile('docs/templates/HANDOFF.md', 'utf8'),
+    readFile('.agents/workflows/dynamic-workflow.md', 'utf8'),
+    readFile('.claude/agents/orchestrator-agent.md', 'utf8')
+  ]);
+
+  const expectedPhases = [
+    'phase:requirements',
+    'phase:design',
+    'phase:planning',
+    'phase:development',
+    'phase:verification',
+    'phase:human-review',
+    'phase:blocked'
+  ];
+  for (const phase of expectedPhases) {
+    assert.match(routing, new RegExp(phase.replace(':', '\\:')));
+  }
+  for (const content of [agents, routing, roles, qualityGates]) {
+    assert.match(content, /status:spec-ready/);
+    assert.match(content, /mutually exclusive|exactly one/i);
+  }
+  assert.match(qualityGates, /## Specification Readiness Gate/);
+  assert.match(roles, /Developer.*must not.*begin implementation/i);
+  assert.match(roles, /Developer.*QA|QA.*Developer/i);
+  for (const content of [handoff, template]) {
+    assert.match(content, /Lifecycle Phase/);
+    assert.match(content, /Specification Readiness/);
+  }
+  for (const content of [portableWorkflow, claudeAdapter]) {
+    assert.match(content, /specification readiness|spec-ready/i);
+  }
 });
 
 test('QA verifies issue acceptance criteria across GitHub PRs and GitLab MRs', async () => {
