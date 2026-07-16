@@ -3,11 +3,11 @@
 ## Current Work Item
 - ID: GitHub Issue #16
 - Title: Add personality for agents
-- Owner: QA Agent
-- Status: Developer remediation is committed and hosted checks pass; final QA verification is in progress
+- Owner: Human Maintainer
+- Status: QA passed all acceptance criteria; ready for human review and merge decision
 
 ## Current Stage
-- QA Verification
+- Human Review
 
 ## Change Classification
 - Change Type: New Feature (agent-instruction behaviour)
@@ -30,7 +30,7 @@
 - PR #14's default-branch audit passed in run `29440627931`, created one `post-merge-closeout` signal, and its successful rerun confirmed the handoff is idempotent without creating a `documentation-sync` exception.
 
 ## In Progress
-- GitHub Issue #16: developer remediation added the required PR marker and completion/handoff records; hosted checks pass. QA is performing final acceptance verification; human review/merge remain pending.
+- GitHub Issue #16: QA passed all seven acceptance criteria and recorded Issue evidence. PR #17 is ready for human review; human merge remains pending.
 
 ## Blockers / Open Questions
 - R-002: `.gitlab-ci.yml` has not yet been validated on a live GitLab runner; this is an external verification follow-up, not an active implementation task.
@@ -40,10 +40,10 @@
 - Requirements, implementation plan, TDD evidence, security review, QA evidence, code-review request, completion check, and handoff for Issue #16.
 
 ## Next Quality Gate
-- QA confirms the synchronized project state and records Issue evidence before handoff to human review.
+- Human Maintainer reviews PR #17 and decides whether to merge. After merge, Documentation Agent completes normal post-merge closeout.
 
 ## Recommended Next Agent
-- QA Agent; Human Maintainer reviews and merges only after QA evidence and documentation impact are complete.
+- Human Maintainer; Documentation Agent performs normal post-merge closeout only after a merge.
 
 ## Notes
 - R-002 remains the separate live-GitLab-runner follow-up. GitLab uses the manual closeout label/comment equivalent until API automation is separately approved.

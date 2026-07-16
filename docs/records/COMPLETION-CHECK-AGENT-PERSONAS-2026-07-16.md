@@ -4,7 +4,7 @@
 
 | Item | Detail |
 |---|---|
-| Claimed Status | Ready for QA (not ready for human merge) |
+| Claimed Status | Ready for Human Review (not merged) |
 | Work Item | GitHub Issue #16 — Add personality for agents |
 | Agent / Owner | Developer Agent |
 
@@ -41,16 +41,15 @@
 
 Validated: canonical role completeness, non-override boundary, Claude/portable/Antigravity discovery, local regression and validators, and targeted Security Reviewer review.
 
-Not validated: hosted CI after the PR-body remediation, human review, human merge, and any runtime application behaviour (none changed).
+Not validated: human review, human merge, and any runtime application behaviour (none changed).
 
 ## 6. Residual Risks / Follow-ups
 
 | Risk / Follow-up | Owner | Tracking |
 |---|---|---|
-| Re-run the hosted documentation gate after correcting the PR description | Developer Agent then QA Agent | Draft PR #17 |
-| Independently re-verify all Issue criteria | QA Agent | GitHub Issue #16 |
-| Review and merge if gates pass | Human Maintainer | Draft PR #17 |
+| Review and merge if acceptable | Human Maintainer | Ready PR #17 |
+| Complete normal post-merge closeout after merge | Documentation Agent | PR #17 / default-branch audit |
 
 ## 7. Final Recommendation
 
-Not ready for human merge. Ready for QA re-verification after the documented remediation.
+Ready for human review. Merge remains a Human Maintainer decision.
