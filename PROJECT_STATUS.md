@@ -3,11 +3,11 @@
 ## Current Work Item
 - ID: GitHub Issue #16
 - Title: Add personality for agents
-- Owner: Developer Agent
-- Status: QA found documentation/handoff blockers; developer remediation in progress
+- Owner: QA Agent
+- Status: Developer remediation is committed and hosted checks pass; final QA verification is in progress
 
 ## Current Stage
-- Developer Remediation
+- QA Verification
 
 ## Change Classification
 - Change Type: New Feature (agent-instruction behaviour)
@@ -30,7 +30,7 @@
 - PR #14's default-branch audit passed in run `29440627931`, created one `post-merge-closeout` signal, and its successful rerun confirmed the handoff is idempotent without creating a `documentation-sync` exception.
 
 ## In Progress
-- GitHub Issue #16: QA passed six acceptance criteria but blocked the documentation/handoff criterion because PR #17 lacked its completed Documentation Impact marker and the promised completion/handoff records. Developer remediation is in progress; human review/merge remain blocked.
+- GitHub Issue #16: developer remediation added the required PR marker and completion/handoff records; hosted checks pass. QA is performing final acceptance verification; human review/merge remain pending.
 
 ## Blockers / Open Questions
 - R-002: `.gitlab-ci.yml` has not yet been validated on a live GitLab runner; this is an external verification follow-up, not an active implementation task.
@@ -40,10 +40,10 @@
 - Requirements, implementation plan, TDD evidence, security review, QA evidence, code-review request, completion check, and handoff for Issue #16.
 
 ## Next Quality Gate
-- Developer restores the PR marker and required records; QA then repeats acceptance verification and checks the hosted result.
+- QA confirms the synchronized project state and records Issue evidence before handoff to human review.
 
 ## Recommended Next Agent
-- Developer Agent, then QA Agent; Human Maintainer reviews and merges only after QA evidence and documentation impact are complete.
+- QA Agent; Human Maintainer reviews and merges only after QA evidence and documentation impact are complete.
 
 ## Notes
 - R-002 remains the separate live-GitLab-runner follow-up. GitLab uses the manual closeout label/comment equivalent until API automation is separately approved.

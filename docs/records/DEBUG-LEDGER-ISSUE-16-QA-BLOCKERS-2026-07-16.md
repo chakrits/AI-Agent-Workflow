@@ -45,10 +45,11 @@
 | RUN-001 | QA independent verification | Criteria 1–6 passed; criterion 7 failed on documentation marker and absent completion/handoff records. | Reproduce from CI and records. |
 | RUN-002 | `gh run view 29508992566 --log-failed` | Exact missing marker captured from GitHub Actions. | Edit PR body with exact marker. |
 | RUN-003 | Inspect `PROJECT_STATUS.md` and `docs/records/` | Completion-check and handoff were required but missing. | Add both records, update state, rerun checks, request QA re-verification. |
+| RUN-004 | QA re-verification after `a4a3e8b` and hosted pass `29509451943` | Marker and records were fixed, but project status still said developer remediation was in progress. | Synchronize project status to final QA verification and request one final QA check. |
 
 ## Current Conclusion and Fix Direction
 
-- Confirmed root cause: developer handoff omitted a literal PR-body gate marker and two records required by the project's own status contract.
+- Confirmed root cause: the initial developer handoff omitted a literal PR-body gate marker and two records required by the project's own status contract; the remediation then failed to advance project status after those items passed.
 - Confidence: High.
-- Proposed fix: add the marker to PR #17; add completion-check and Developer-to-QA handoff records; update task/status records; rerun local checks and obtain a new hosted result.
+- Proposed fix: add the marker to PR #17; add completion-check and Developer-to-QA handoff records; synchronize project status after remediation; rerun local checks and obtain final QA evidence.
 - Risk: the original failure is documentation-process only; no runtime or security behaviour changed.
