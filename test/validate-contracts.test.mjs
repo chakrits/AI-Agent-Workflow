@@ -319,6 +319,57 @@ test('Orchestrator Agent requires the unclassified-request rule and escalation t
   }
 });
 
+const personaAdapterPaths = [
+  '.claude/agents/orchestrator-agent.md',
+  '.claude/agents/pm-agent.md',
+  '.claude/agents/ba-agent.md',
+  '.claude/agents/sa-agent.md',
+  '.claude/agents/developer-agent.md',
+  '.claude/agents/qa-agent.md',
+  '.claude/agents/security-reviewer.md',
+  '.claude/agents/config-agent.md',
+  '.claude/agents/data-agent.md',
+  '.claude/agents/release-agent.md',
+  '.claude/agents/documentation-agent.md'
+];
+
+test('canonical agent personas cover every role without becoming operating policy', async () => {
+  const personas = await readFile('docs/operating-model/AGENT_PERSONAS.md', 'utf8');
+  const roles = [
+    'Orchestrator Agent',
+    'PM Agent',
+    'BA Agent',
+    'SA Agent',
+    'Developer Agent',
+    'QA Agent',
+    'Security Reviewer',
+    'Config Agent',
+    'Data Agent',
+    'Release Agent',
+    'Documentation Agent'
+  ];
+
+  assert.match(personas, /does not replace or override/i);
+  assert.match(personas, /must not claim personal feelings, lived experience, or authority/i);
+  assert.match(personas, /do not use gender, appearance, or fictional biography/i);
+  for (const role of roles) {
+    assert.match(personas, new RegExp(`## ${role}`));
+  }
+});
+
+test('Claude, portable, and Antigravity adapters discover canonical agent personas', async () => {
+  const portablePaths = [
+    '.agents/skills/dynamic-workflow/SKILL.md',
+    '.agent/skills/dynamic-workflow/SKILL.md'
+  ];
+
+  for (const path of [...personaAdapterPaths, ...portablePaths]) {
+    const content = await readFile(path, 'utf8');
+    assert.match(content, /docs\/operating-model\/AGENT_PERSONAS\.md/);
+    assert.match(content, /does not replace or override|do not override/i);
+  }
+});
+
 test('Orchestrator Agent requires contradiction detection and a routing circuit breaker', async () => {
   const [roleDefinition, adapter] = await Promise.all([
     readFile('docs/workflow/role-definitions.md', 'utf8'),

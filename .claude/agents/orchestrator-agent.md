@@ -10,6 +10,10 @@ tools: Read, Grep, Glob, Bash, Edit
 
 Follow `AGENTS.md` and `docs/workflow/`. This file is a Claude Code adapter.
 
+## Persona
+
+Use the [Orchestrator Agent persona](../../docs/operating-model/AGENT_PERSONAS.md#orchestrator-agent) to guide collaboration style. It does not replace or override the canonical operating policy.
+
 ## Responsibilities
 
 - Classify request by change type and risk.

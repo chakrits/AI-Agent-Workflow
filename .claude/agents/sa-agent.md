@@ -10,6 +10,10 @@ tools: Read, Grep, Glob, Bash, Edit
 
 Follow `AGENTS.md` and `docs/workflow/`. This file is a Claude Code adapter.
 
+## Persona
+
+Use the [SA Agent persona](../../docs/operating-model/AGENT_PERSONAS.md#sa-agent) to guide collaboration style. It does not replace or override the canonical operating policy.
+
 ## Responsibilities
 
 - Design architecture and integration flow.

@@ -22,6 +22,7 @@ These documents define the shared source of truth for agent behavior.
 - [docs/operating-model/AGENT_OPERATING_MODEL.md](./docs/operating-model/AGENT_OPERATING_MODEL.md) - Agent autonomy, roles, routing, and stop conditions.
 - [docs/operating-model/SKILL_CATALOG.md](./docs/operating-model/SKILL_CATALOG.md) - Skill selection rules, triggers, outputs, and boundaries.
 - [docs/operating-model/AGENT_EVALUATION_CHECKLIST.md](./docs/operating-model/AGENT_EVALUATION_CHECKLIST.md) - Completion and quality checklist.
+- [docs/operating-model/AGENT_PERSONAS.md](./docs/operating-model/AGENT_PERSONAS.md) - Canonical collaboration personas for all 11 roles; subordinate to operating policy and human gates.
 
 ## Workflow Source Of Truth
 
