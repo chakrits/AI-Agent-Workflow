@@ -6,6 +6,7 @@
 - GitHub Issue #19: lifecycle stage labels, specification readiness gate, explicit Developer-to-QA handoff, and structural PR readiness validation.
 
 ### Added
+- Work Item readiness now has a tested pure decision module used by the read-only GitHub Actions adapter, plus platform-readiness operations for GitHub linked-Issue reruns and GitLab's manual/no-credential API boundary.
 - Canonical collaboration personas for all 11 roles, with concise Claude references and portable/Antigravity dynamic-workflow discovery. Persona guidance adds professional warmth and emotional calibration while explicitly remaining subordinate to policy, evidence, and human gates.
 - Post-merge closeout contract: progress labels for implementation and verification, a normal-merge documentation handoff signal, and loop-safe closeout completion while retaining exception-only `documentation-sync` Issues.
 - Cross-platform QA acceptance-criteria gate: independent QA verification, common Work Item/Change Request/evidence handoff fields, matching GitHub PR and GitLab MR templates, and regression coverage. GitLab default-branch exception-Issue creation remains manual until separately approved API automation exists.

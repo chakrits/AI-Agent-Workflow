@@ -5,6 +5,7 @@ on:
     types: [opened, edited, reopened, synchronize, ready_for_review, labeled, unlabeled]
 
 permissions:
+  contents: read
   pull-requests: read
   issues: read
 
@@ -12,81 +13,71 @@ jobs:
   validate-work-item-readiness:
     runs-on: ubuntu-latest
     steps:
+      - name: Check out the trusted default-branch decision module
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+
       - name: Require structural lifecycle evidence
         uses: actions/github-script@v7
         with:
           script: |
-            const body = context.payload.pull_request.body ?? '';
+            const { validateReadiness } = await import(
+              `${process.env.GITHUB_WORKSPACE}/scripts/work-item-readiness.mjs`
+            );
+            const pullRequest = context.payload.pull_request;
+            const body = pullRequest.body ?? '';
             const closeout = body.match(/<!-- post-merge-closeout: complete; source-pr-(\d+) -->/);
+            let sourcePullRequest;
+            let changedFiles = [];
+            let workItem;
+
             if (closeout) {
-              const { data: sourcePullRequest } = await github.rest.issues.get({
+              const { data: source } = await github.rest.issues.get({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 issue_number: Number(closeout[1])
               });
-              const sourceLabels = sourcePullRequest.labels.map((label) =>
-                typeof label === 'string' ? label : label.name
-              );
-              if (!sourcePullRequest.pull_request || !sourceLabels.includes('post-merge-closeout')) {
-                core.setFailed('Closeout exemption requires a labeled source pull request.');
-                return;
-              }
-              const changedFiles = await github.paginate(github.rest.pulls.listFiles, {
+              sourcePullRequest = {
+                isPullRequest: Boolean(source.pull_request),
+                labels: source.labels.map((label) => typeof label === 'string' ? label : label.name)
+              };
+              const files = await github.paginate(github.rest.pulls.listFiles, {
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                pull_number: context.payload.pull_request.number,
+                pull_number: pullRequest.number,
                 per_page: 100
               });
-              const allowedCloseoutPath = (filename) =>
-                ['PROJECT_STATUS.md', 'TASK_LOG.md', 'CHANGELOG.md'].includes(filename) ||
-                /^docs\/records\/HANDOFF-POST-MERGE-CLOSEOUT-[^/]+\.md$/.test(filename);
-              if (!changedFiles.length || changedFiles.some((file) => !allowedCloseoutPath(file.filename))) {
-                core.setFailed('Closeout exemption permits only project-state and post-merge handoff files.');
-                return;
+              changedFiles = files.map((file) => file.filename);
+            } else {
+              const match = body.match(
+                /Developer: Work Item \(Issue\) URL:\s*(https:\/\/github\.com\/([^/]+)\/([^/]+)\/issues\/(\d+))/i
+              );
+              if (match) {
+                const [, , owner, repo, issueNumberText] = match;
+                const sameRepository = owner === context.repo.owner && repo === context.repo.repo;
+                if (sameRepository) {
+                  const { data: issue } = await github.rest.issues.get({
+                    owner,
+                    repo,
+                    issue_number: Number(issueNumberText)
+                  });
+                  workItem = {
+                    isPullRequest: Boolean(issue.pull_request),
+                    isSameRepository: true,
+                    labels: issue.labels.map((label) => typeof label === 'string' ? label : label.name)
+                  };
+                } else {
+                  workItem = { isSameRepository: false };
+                }
               }
-              core.info('Authorized post-merge closeout is exempt from Work Item lifecycle readiness.');
-              return;
             }
 
-            const workItemMatch = body.match(
-              /Developer: Work Item \(Issue\) URL:\s*(https:\/\/github\.com\/([^/]+)\/([^/]+)\/issues\/(\d+))/i
-            );
-            if (!workItemMatch) {
-              core.setFailed('Missing Developer Work Item (Issue) URL.');
-              return;
-            }
-
-            const [, , workItemOwner, workItemRepo, issueNumberText] = workItemMatch;
-            if (workItemOwner !== context.repo.owner || workItemRepo !== context.repo.repo) {
-              core.setFailed('Work Item URL must point to this repository.');
-              return;
-            }
-            const issueNumber = Number(issueNumberText);
-            const { data: workItem } = await github.rest.issues.get({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: issueNumber
+            const errors = validateReadiness({
+              body,
+              draft: pullRequest.draft,
+              workItem,
+              changedFiles,
+              sourcePullRequest
             });
-            const labels = workItem.labels.map((label) =>
-              typeof label === 'string' ? label : label.name
-            );
-            if (workItem.pull_request) {
-              core.setFailed('Work Item URL must reference an Issue, not a pull request.');
-              return;
-            }
-            const phases = labels.filter((label) => label?.startsWith('phase:'));
-            const missing = [];
-            if (phases.length !== 1) missing.push('exactly one current phase: label');
-            if (!labels.includes('status:spec-ready')) missing.push('status:spec-ready');
-
-            if (!context.payload.pull_request.draft) {
-              if (!labels.includes('status:development-done')) missing.push('status:development-done');
-              if (!labels.includes('status:verification-done')) missing.push('status:verification-done');
-              if (!/QA: evidence comment or review URL:\s*https:\/\//i.test(body)) {
-                missing.push('QA: evidence comment or review URL');
-              }
-            }
-
-            if (missing.length) {
-              core.setFailed(`Work Item readiness is incomplete: ${missing.join(', ')}.`);
-            }
+            if (errors.length) core.setFailed(`Work Item readiness is incomplete: ${errors.join(', ')}.`);

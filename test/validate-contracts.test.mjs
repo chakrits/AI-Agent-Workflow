@@ -222,6 +222,19 @@ test('work-item and change-request templates preserve lifecycle readiness owners
   }
 });
 
+test('GitLab documents lifecycle label setup and manual readiness enforcement without API credentials', async () => {
+  const guide = await readFile('docs/workflow/platform-readiness.md', 'utf8');
+
+  for (const label of ['phase:requirements', 'phase:design', 'phase:planning', 'phase:development', 'phase:verification', 'phase:human-review', 'phase:blocked', 'status:spec-ready', 'status:development-done', 'status:verification-done']) {
+    assert.match(guide, new RegExp(label.replace(':', '\\:')));
+  }
+  assert.match(guide, /GitLab CI/i);
+  assert.match(guide, /does not.*API.*readiness/i);
+  assert.match(guide, /without.*approved credentials/i);
+  assert.match(guide, /manual/i);
+  assert.match(guide, /Issue label.*does not.*pull_request/i);
+});
+
 test('QA verifies issue acceptance criteria across GitHub PRs and GitLab MRs', async () => {
   const [roleDefinition, adapter, githubTemplate, gitlabTemplate, qualityGates] = await Promise.all([
     readFile('docs/workflow/role-definitions.md', 'utf8'),

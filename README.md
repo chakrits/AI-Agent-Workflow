@@ -62,7 +62,7 @@ npm test
 npm run validate:contracts
 ```
 
-Both commands should exit clean. This is the same check hosted CI runs on every push and pull/merge request — on GitHub Actions ([.github/workflows/validate-contracts.yml](./.github/workflows/validate-contracts.yml)) and on GitLab CI ([.gitlab-ci.yml](./.gitlab-ci.yml)), whichever platform this repo is hosted on.
+Both commands should exit clean. This is the same check hosted CI runs on every push and pull/merge request — on GitHub Actions ([.github/workflows/validate-contracts.yml](./.github/workflows/validate-contracts.yml)) and on GitLab CI ([.gitlab-ci.yml](./.gitlab-ci.yml)), whichever platform this repo is hosted on. For lifecycle labels and platform-specific readiness operations, see [Platform Readiness Operations](./docs/workflow/platform-readiness.md).
 
 ### 3. Give your agent a safe first prompt
 
