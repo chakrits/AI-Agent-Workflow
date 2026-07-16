@@ -13,5 +13,7 @@ This is a platform adapter. The canonical source is:
 
 Follow the canonical files. Do not treat this adapter as the source of truth.
 
+For Feature and Enhancement work, require `status:spec-ready` before Developer implementation and keep exactly one current `phase:` label. Follow `docs/workflow/dynamic-routing.md` for the portable lifecycle contract and exceptions.
+
 For Bug Fix work, read and validate against `docs/contracts/bug-fix-workflow.yaml`.
 It is the canonical state, evidence, and two-rework stop policy; this adapter must not redefine it.

@@ -14,6 +14,8 @@ This is a platform adapter. The canonical source is:
 
 Follow the canonical files. Do not treat this adapter as the source of truth.
 
+For Feature and Enhancement work, require `status:spec-ready` before Developer implementation and keep exactly one current `phase:` label. Follow `docs/workflow/dynamic-routing.md` for the portable lifecycle contract and exceptions.
+
 After selecting a role, read its matching canonical persona to calibrate collaboration and communication. A persona does not replace or override the operating policy, role definition, evidence requirement, or human gate.
 
 For Bug Fix work, read and validate against `docs/contracts/bug-fix-workflow.yaml`.

@@ -192,6 +192,36 @@ test('lifecycle stages make specification readiness a portable pre-development g
   }
 });
 
+test('work-item and change-request templates preserve lifecycle readiness ownership across platforms', async () => {
+  const [githubIssue, gitlabIssue, githubPr, gitlabMr, claudeSkill, antigravitySkill] = await Promise.all([
+    readFile('.github/ISSUE_TEMPLATE/work-item.md', 'utf8'),
+    readFile('.gitlab/issue_templates/Work Item.md', 'utf8'),
+    readFile('.github/pull_request_template.md', 'utf8'),
+    readFile('.gitlab/merge_request_templates/Default.md', 'utf8'),
+    readFile('.claude/skills/dynamic-workflow/SKILL.md', 'utf8'),
+    readFile('.agent/skills/dynamic-workflow/SKILL.md', 'utf8')
+  ]);
+
+  for (const template of [githubIssue, gitlabIssue]) {
+    assert.match(template, /phase:requirements/);
+    assert.match(template, /Required Specification/i);
+    assert.match(template, /Lightweight specification|SDD/i);
+    assert.match(template, /Acceptance Criteria/i);
+  }
+  for (const template of [githubPr, gitlabMr]) {
+    assert.match(template, /Lifecycle Readiness/i);
+    assert.match(template, /status:spec-ready/);
+    assert.match(template, /phase:verification/);
+    assert.match(template, /phase:human-review/);
+    assert.match(template, /Ownership: Developer/i);
+    assert.match(template, /QA:.*evidence/i);
+  }
+  for (const adapter of [claudeSkill, antigravitySkill]) {
+    assert.match(adapter, /status:spec-ready/);
+    assert.match(adapter, /docs\/workflow\/dynamic-routing\.md/);
+  }
+});
+
 test('QA verifies issue acceptance criteria across GitHub PRs and GitLab MRs', async () => {
   const [roleDefinition, adapter, githubTemplate, gitlabTemplate, qualityGates] = await Promise.all([
     readFile('docs/workflow/role-definitions.md', 'utf8'),
