@@ -1,20 +1,20 @@
 # PROJECT_STATUS.md
 
 ## Current Work Item
-- ID: None
-- Title: No active work item
-- Owner: Human / Maintainer
-- Status: Idle — no active work item
+- ID: GitHub Issue #16
+- Title: Add personality for agents
+- Owner: Developer Agent
+- Status: Implementation and focused security review complete locally; independent QA verification in progress
 
 ## Current Stage
-- Ready for New Work Intake
+- QA Verification
 
 ## Change Classification
-- Change Type: N/A
-- Risk Level: N/A
-- Code Change Required: N/A
+- Change Type: New Feature (agent-instruction behaviour)
+- Risk Level: Medium
+- Code Change Required: Yes — contract regression coverage
 - Architecture Change Required: No
-- Security Review Required: No
+- Security Review Required: Yes — targeted persona-boundary review required by Issue #16
 
 ## Completed
 - All 11 agent roles have their current canonical rules, adapters, and regression coverage on `main`.
@@ -30,20 +30,20 @@
 - PR #14's default-branch audit passed in run `29440627931`, created one `post-merge-closeout` signal, and its successful rerun confirmed the handoff is idempotent without creating a `documentation-sync` exception.
 
 ## In Progress
-- None.
+- GitHub Issue #16: canonical 11-role personas, Claude adapter references, and portable/Antigravity discovery guidance are implemented locally. Focused Security Reviewer review passed; independent QA acceptance verification and human review/merge remain.
 
 ## Blockers / Open Questions
 - R-002: `.gitlab-ci.yml` has not yet been validated on a live GitLab runner; this is an external verification follow-up, not an active implementation task.
 - Deferred and unscheduled: a Prototype/Spike workflow route and a shared cross-role template pattern.
 
 ## Required Artifacts
-- N/A — no active work item.
+- Requirements, implementation plan, TDD evidence, security review, QA evidence, code-review request, completion check, and handoff for Issue #16.
 
 ## Next Quality Gate
-- For every PR: complete the Documentation Impact assessment before merge; after each default-branch push, confirm the project-state audit passes and no `documentation-sync` exception Issue was created.
+- QA verifies every Issue #16 acceptance criterion and records evidence before human review.
 
 ## Recommended Next Agent
-- Human / Maintainer for the next work intake; Reviewer / QA Agent when GitLab CI evidence is available.
+- QA Agent; Human Maintainer reviews and merges only after QA evidence and documentation impact are complete.
 
 ## Notes
 - R-002 remains the separate live-GitLab-runner follow-up. GitLab uses the manual closeout label/comment equivalent until API automation is separately approved.

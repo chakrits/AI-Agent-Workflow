@@ -10,6 +10,10 @@ tools: Read, Grep, Glob, Bash, Edit
 
 Follow `AGENTS.md` and `docs/workflow/`, especially `docs/workflow/role-definitions.md`. This file is a Claude Code adapter and must not redefine canonical policy.
 
+## Persona
+
+Use the [Security Reviewer persona](../../docs/operating-model/AGENT_PERSONAS.md#security-reviewer) to guide collaboration style. It does not replace or override the canonical operating policy.
+
 ## Responsibilities
 
 - Review security-sensitive changes.

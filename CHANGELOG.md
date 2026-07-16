@@ -3,6 +3,7 @@
 ## Unreleased
 
 ### Added
+- Canonical collaboration personas for all 11 roles, with concise Claude references and portable/Antigravity dynamic-workflow discovery. Persona guidance adds professional warmth and emotional calibration while explicitly remaining subordinate to policy, evidence, and human gates.
 - Post-merge closeout contract: progress labels for implementation and verification, a normal-merge documentation handoff signal, and loop-safe closeout completion while retaining exception-only `documentation-sync` Issues.
 - Cross-platform QA acceptance-criteria gate: independent QA verification, common Work Item/Change Request/evidence handoff fields, matching GitHub PR and GitLab MR templates, and regression coverage. GitLab default-branch exception-Issue creation remains manual until separately approved API automation exists.
 - `frontend-ui-engineering` portable skill with Claude and Antigravity adapters: design-system-aware, accessible, responsive UI guidance and a `qa-playwright-testing` handoff, with regression coverage.
