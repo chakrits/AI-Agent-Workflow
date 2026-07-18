@@ -3,14 +3,14 @@
 ## Current Work Item
 - ID: GitHub Issue #19
 - Title: Add lifecycle stages and automated PR readiness gate
-- Owner: Developer Agent / Human Maintainer
-- Status: Hosted readiness-gate bootstrap verified; the remaining Issue #19 lifecycle implementation is still Draft PR #20
+- Owner: Human Maintainer
+- Status: QA verified — PR #20 is ready for human review
 
 ## Current Stage
-- Development — Draft PR #20 requires its remaining QA acceptance-criteria work
+- Human Review
 
 ## Change Classification
-- Change Type: Bug Fix — stale readiness result after linked-Issue label change
+- Change Type: Workflow/process enhancement with readiness-gate remediation
 - Risk Level: High — dedicated GitHub App Check Run write
 - Code Change Required: Yes — trusted direct evaluator and regression coverage
 - Architecture Change Required: Yes — branch protection will consume an App-owned Check Run instead of an event-chained PR workflow
@@ -32,24 +32,25 @@
 - PR #23 merged as `1eb0465`. Its trusted direct readiness evaluator passed independent code and security review. Hosted tests proved both lifecycle-label and `pull_request_target` edited events create an App-owned `work-item-readiness-freshness` Check Run on PR #20; `main` now requires that check from **AI Agent Workflow**.
 
 ## In Progress
-- Issue #19 lifecycle-stage implementation remains in Draft PR #20; its QA acceptance criteria and final review are not yet complete.
+- PR #20 is ready for human review; all Issue #19 Acceptance Criteria have independent QA evidence.
 
 ## Blockers / Open Questions
 - R-002: `.gitlab-ci.yml` has not yet been validated on a live GitLab runner; this is an external verification follow-up, not an active implementation task.
 - Deferred and unscheduled: a Prototype/Spike workflow route and a shared cross-role template pattern.
 
 ## Required Artifacts
-- Draft PR #20 rebase/current-state review, QA acceptance-criteria evidence, and final human review.
+- Human review/merge decision for PR #20, followed by normal post-merge documentation closeout.
 
 ## Next Quality Gate
-- Rebase Draft PR #20 onto current `main`, then route its scoped lifecycle-stage changes through code review and QA acceptance-criteria verification.
+- Human review and merge decision for PR #20.
 
 ## Recommended Next Agent
-- Developer Agent, then Code Reviewer and QA Agent for Draft PR #20.
+- Human Maintainer.
 
 ## Notes
 - RCA evidence: refresh runs `29635734227` and `29635753891` successfully used the App token to edit PR #20, but no `pull_request.edited` readiness run was created. The direct evaluator removes that unsupported event dependency.
 - The direct evaluator uses a short-lived GitHub App token with only Pull requests: read, Issues: read, and Checks: read & write. Its Client ID is a repository variable; its private key is an environment secret in protected `work-item-refresh`, never a repository secret or committed value. The environment's `main` branch restriction does not itself protect a `pull_request_target` run from fork context; safety comes from checking out only trusted `main` and never executing PR-head content. Main branch protection must pin `work-item-readiness-freshness` to the AI Agent Workflow App source, never Any source.
 - Hosted evidence: Issue-label runs `29636953171` (expected failure while `phase:development` was absent) and `29636978535` (success after restoration) published App Check Runs on PR #20. The `pull_request_target` edited-event run `29637202523` also passed and published App Check Run `88061518191`; its restoration run `29637225455` passed.
+- QA evidence: all 10 Issue #19 Acceptance Criteria passed at `c50c1c6`; the evidence comment is `5010624465`. Issue labels are `phase:human-review`, `status:spec-ready`, `status:development-done`, and `status:verification-done`.
 - R-002 remains the separate live-GitLab-runner follow-up. GitLab uses the manual closeout label/comment equivalent until API automation is separately approved.
 - Issue #19 must preserve the existing Bug Fix contract and exception-driven post-merge closeout behavior; it does not alter either state machine.
