@@ -4,10 +4,10 @@
 - ID: GitHub Issue #26
 - Title: Add platform definition-of-ready and QA acceptance traceability
 - Owner: SA Agent
-- Status: Requirements, design, and Security review are complete; awaiting Human specification acceptance
+- Status: Specification approved; Portable Contract implementation planning is complete
 
 ## Current Stage
-- Design
+- Planning
 
 ## Change Classification
 - Change Type: Workflow/process improvement with hosted-platform activation controls
@@ -33,7 +33,7 @@
 - GitHub Issue #19 merged through PR #20 as `fef37cc`; its closeout PR #25 merged as `3f5e4c9`, closed Issue #19, removed the source closeout signal, and passed default-branch validation/audit without a `documentation-sync` exception.
 
 ## In Progress
-- Issue #26 REQ-01/SA-01/SEC-01: requirements record, lightweight SDD, and design Security review are complete. `SEC-26-01` requires immutable Action pins or an approved exception before Hosted Activation merge.
+- Issue #26: Portable Contract implementation plan is ready for Developer. `SEC-26-01` requires immutable Action pins or an approved exception before Hosted Activation merge.
 
 ## Blockers / Open Questions
 - R-002: `.gitlab-ci.yml` has not yet been validated on a live GitLab runner; this is an external verification follow-up, not an active implementation task.
@@ -43,12 +43,13 @@
 - `docs/records/REQUIREMENTS-PLATFORM-READINESS-TRACEABILITY-2026-07-18.md`
 - `docs/records/SDD-PLATFORM-READINESS-TRACEABILITY-2026-07-18.md`
 - `docs/records/SECURITY-REVIEW-PLATFORM-READINESS-TRACEABILITY-2026-07-18.md`
+- `docs/records/IMPLEMENTATION-PLAN-PLATFORM-READINESS-TRACEABILITY-2026-07-18.md`
 
 ## Next Quality Gate
-- Human Maintainer accepts the requirements/SDD/security controls, then adds `status:spec-ready` before implementation planning.
+- Developer implements PR-A Portable Contract with regression coverage; no privileged workflow/App/ruleset scope is permitted in PR-A.
 
 ## Recommended Next Agent
-- Human Maintainer
+- Developer Agent
 
 ## Notes
 - RCA evidence: refresh runs `29635734227` and `29635753891` successfully used the App token to edit PR #20, but no `pull_request.edited` readiness run was created. The direct evaluator removes that unsupported event dependency.
