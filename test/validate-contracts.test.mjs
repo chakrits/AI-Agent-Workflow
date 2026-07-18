@@ -255,7 +255,9 @@ test('asynchronous Codex handoffs require bounded monitor supervision and exactl
     assert.match(content, /monitor_expired/);
     assert.match(content, /exactly.once|idempoten/i);
   }
-  assert.match(codexAdapter, /collaboration\.wait_agent/);
+  assert.match(codexAdapter, /codex_app__automation_update/);
+  assert.match(codexAdapter, /heartbeat/);
+  assert.match(codexAdapter, /not a substitute for the heartbeat/i);
   assert.match(codexAdapter, /without a new Boss message/i);
   assert.match(codexAdapter, /cancel/i);
   assert.match(codexAdapter, /does not create a webhook, queue, persistent worker, or auto-merge/i);
