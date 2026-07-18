@@ -236,7 +236,7 @@ test('dynamic-workflow adapters require receipt evidence instead of prose-only n
   }
 });
 
-test('event-driven child completion requires parent ownership, native evidence, and truthful unsupported-host blocking', async () => {
+test('in-turn dispatch completion requires parent ownership, native evidence, and truthful unsupported-host blocking', async () => {
   const [contract, routing, gates, roles, codexAdapter] = await Promise.all([
     readFile('docs/workflow/handoff-contract.md', 'utf8'),
     readFile('docs/workflow/dynamic-routing.md', 'utf8'),

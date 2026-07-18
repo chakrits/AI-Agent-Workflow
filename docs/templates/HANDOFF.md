@@ -132,19 +132,19 @@ Stable ID for this terminal handoff. Required for every terminal handoff.
 
 ## Parent Orchestrator ID
 
-Identity of the Orchestrator that owns this child receipt. Required for asynchronous `Dispatch`; otherwise `N/A — synchronous or blocked route`.
+Identity of the Orchestrator that owns this child receipt. Required for `Dispatch`; otherwise `N/A — blocked route`.
 
 ## Child Task ID
 
-Identity of the dispatched child/task. Required for asynchronous `Dispatch`; otherwise `N/A — synchronous or blocked route`.
+Identity of the dispatched child/task. Required for `Dispatch`; otherwise `N/A — blocked route`.
 
 ## Terminal Result ID
 
-Immutable child terminal-result identity once delivered; otherwise `pending` or `N/A`.
+Immutable child terminal-result identity once delivered within the same active turn; otherwise `pending` or `N/A`.
 
 ## Completion Event Evidence
 
-Native await/callback receipt binding parent, child, handoff event, and terminal result. Required before the parent ends or yields for asynchronous `Dispatch`; otherwise `N/A — synchronous or blocked route`.
+Native in-turn await receipt binding parent, child, handoff event, and terminal result. Required before the parent ends or yields for `Dispatch`; no host capability resumes the parent after it ends or yields, so `Dispatch` without in-turn delivery must instead record `Dispatch State: blocked`, `Stop Reason: host_completion_unavailable`. Otherwise `N/A — blocked route`.
 
 ## Consumption Evidence
 

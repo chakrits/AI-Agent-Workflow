@@ -236,3 +236,33 @@ QA must observe one live host run, without a new Boss message after dispatch:
 - Negative tests prove `dispatched` cannot be represented as `acknowledged`/`completed` without target evidence.
 - The live proof above is mandatory; a simulated transcript, prose handoff, or a monitor registration alone cannot pass `ORCH-02`, `ORCH-04`, or `ORCH-06`.
 - Negative scenarios prove unsupported-host block, deadline expiry, cancellation, and duplicate terminal notification become evidence-backed terminal outcomes rather than a silent stall.
+
+## SA Capability Decision — 2026-07-19
+
+### QA Escalation
+
+QA's final recheck on Issue #33 (comment 5012113857) failed `ORCH-02`, `ORCH-04`, and `ORCH-06` with `Stop Reason: host_completion_unavailable`. QA's finding, verified live: `collaboration.wait_agent` only works during an active turn; once Root yields, nothing in this host resumes it. No repository-only Developer change can create a native same-parent resume primitive. QA escalated to SA for one of two outcomes: provide a host capability that keeps and resumes the parent, or explicitly defer the event-driven orchestration goal to a separately approved durable control-plane design. QA also ruled that heartbeat/schedule polling must not be reinstated as acceptance evidence — the Codex heartbeat adapter change in commit `ca311e5` had reintroduced polling as a happy path and is rejected.
+
+### Decision
+
+No native same-parent resume primitive exists on this host, and building one is out of scope for a documentation/contract change. The prior "event-driven completion" design (Sections 3–4, "Same-Orchestration-Turn Invariant") is superseded. The revised, human-approved (Boss) decision:
+
+1. **Supervision is in-turn only.** Root may declare `Next Action: Dispatch` only when it will invoke the child and await its terminal receipt within the same active turn, for the whole chain (e.g., Root → Security → consume receipt → dispatch QA → consume receipt → one Boss event → stop at the human-review gate). Fire-and-forget dispatch is forbidden in every case. If Root cannot await in-turn, it must declare `Dispatch State: blocked`, `Stop Reason: host_completion_unavailable`, with a Boss-visible event in the current turn.
+2. **Cross-turn / event-driven orchestration is explicitly deferred** to GitHub Issue #35, "feat(P3): durable event-driven agent dispatcher — design proposal." It is out of scope for this contract and is not acceptance evidence for `ORCH-02`, `ORCH-04`, or `ORCH-06`.
+3. **The Codex heartbeat mechanism is demoted to an operator-invoked emergency diagnostic only** — never a happy path, never acceptance evidence. `.codex/orchestrator-supervision.md` is amended: in-turn `collaboration.wait_agent` is the only supervision mechanism, and heartbeat text is reduced to the diagnostic caveat only.
+4. **P0.5 receipt semantics that survive:** `Handoff Event ID`, parent/child identity, the exactly-once key `(Handoff Event ID, Terminal Result ID)`, duplicate no-op, bounded in-turn wait with expiry recorded as `timed_out`/`cancelled`, and one Boss event per consumed receipt. These now apply within a single active turn rather than across a yield/resume boundary.
+
+This decision changes the Goals/Non-goals, Architecture Overview, Component Design (Sections 2–6), State Model, Same-Orchestration-Turn Invariant, and Alternatives Considered sections above: any language implying a native parent resume after yield, or heartbeat/schedule as canonical/happy-path evidence, is superseded by the in-turn-only rule stated here and mirrored in `docs/workflow/handoff-contract.md`, `docs/workflow/dynamic-routing.md`, `docs/workflow/role-definitions.md`, `docs/workflow/quality-gates.md`, `docs/templates/HANDOFF.md`, and `.codex/orchestrator-supervision.md` (canonical governs; adapter copies restate only).
+
+### Revised Acceptance Path
+
+QA must observe:
+
+1. **One live transcript proving the full in-turn chain**, without a new Boss message triggering resumption after a yield:
+   - Root dispatches Security within the active turn and consumes Security's terminal receipt in that same turn (`Handoff Event ID`, `Terminal Result ID`, `Consumption Evidence`).
+   - Root then dispatches QA within the same active turn and consumes QA's terminal receipt in that same turn.
+   - A deliberate duplicate delivery of one terminal receipt proves a no-op: no second successor route and no second Boss event.
+   - Root emits exactly one Boss-visible event for the full chain and stops at the human-review gate.
+2. **One controlled bounded-wait expiry/cancellation demonstration for `ORCH-06`:** a bounded in-turn deadline expires (or an explicit cancellation occurs) during an active `collaboration.wait_agent` wait, and Root records `timed_out` (or `cancelled`) with `Timeout / Cancellation Reason`, rejects any stale child output, and emits one Boss event — all within the same active turn, with no polling loop as a substitute.
+
+A simulated transcript, prose handoff, monitor-registration-only claim, or any reliance on cross-turn resumption or heartbeat polling as evidence does not satisfy `ORCH-02`, `ORCH-04`, or `ORCH-06`.
