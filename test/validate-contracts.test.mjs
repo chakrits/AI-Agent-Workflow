@@ -134,6 +134,9 @@ test('handoff vocabulary stays in parity across AGENTS, contract, and template',
     'Verification Performed',
     'Evidence References',
     'Acceptance Criteria Verification Status',
+    'Acceptance Traceability Matrix URL',
+    'Verified Commit SHA',
+    'Platform Activation Record URL / Status',
     'QA Evidence URL',
     'Stop Reason',
     'Known Limitations',
@@ -219,6 +222,31 @@ test('work-item and change-request templates preserve lifecycle readiness owners
   for (const adapter of [claudeSkill, antigravitySkill]) {
     assert.match(adapter, /status:spec-ready/);
     assert.match(adapter, /docs\/workflow\/dynamic-routing\.md/);
+  }
+});
+
+test('platform readiness and AC traceability remain portable and evidence-owned', async () => {
+  const paths = [
+    'docs/templates/AC_TRACEABILITY.md',
+    'docs/templates/PLATFORM_ACTIVATION.md',
+    '.github/ISSUE_TEMPLATE/work-item.md',
+    '.gitlab/issue_templates/Work Item.md',
+    '.github/pull_request_template.md',
+    '.gitlab/merge_request_templates/Default.md'
+  ];
+  const content = await Promise.all(paths.map((path) => readFile(path, 'utf8')));
+  for (const template of [content[0], content[2], content[3]]) {
+    assert.match(template, /Acceptance Traceability Matrix/i);
+  }
+  for (const template of [content[0]]) {
+    assert.match(template, /AC ID/i);
+    assert.match(template, /Evidence/i);
+  }
+  assert.match(content[1], /least-privilege/i);
+  assert.match(content[1], /rollback|disable/i);
+  for (const template of content.slice(4)) {
+    assert.match(template, /verified commit SHA/i);
+    assert.match(template, /must not self-certify/i);
   }
 });
 

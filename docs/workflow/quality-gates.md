@@ -52,6 +52,8 @@
 
 ## QA Acceptance Criteria Gate
 
+- For medium-risk workflow/platform work, QA verifies the single Work Item `Acceptance Traceability Matrix`; every approved Issue/design/contract criterion has an ID, exact-commit evidence, or an evidence-backed N/A result.
+- Platform activation is separately recorded with owner, least-privilege permissions, required-check source, smoke evidence, and rollback/disable action; it is not a lifecycle label.
 - Developer supplies `status:spec-ready`, implementation evidence, and `status:development-done` before QA handoff.
 - Work Item URL and Draft Change Request URL are recorded
 - QA verifies every Issue Acceptance Criteria item against the exact PR/MR and evidence

@@ -33,6 +33,13 @@
 
 - [ ]
 
+## Acceptance Traceability Matrix
+
+| AC ID | Source URL | Testable criterion | Owner | Evidence URL or `N/A — reason` | Result |
+|---|---|---|---|---|---|
+
+Use this as the only canonical AC matrix. Add approved design/contract criteria here before QA completion.
+
 ## Assumptions and Open Questions
 
 -
