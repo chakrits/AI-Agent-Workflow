@@ -6,44 +6,47 @@
 |---|---|
 | Work Item | GitHub Issue #33 |
 | Owner | SA Agent |
-| Status | Amended for P0.5 Human design acceptance |
-| Scope | P0/P1 contract plus P0.5 supervised completion monitoring; P3 autonomous dispatcher deferred |
+| Status | Revised — event-driven parent/child completion is the canonical design |
+| Scope | P0/P1 dispatch contract plus native parent-owned child-completion lifecycle; autonomous repository dispatcher deferred |
 
 ## Context
 
-The repository has a valid routing policy and handoff template, but no enforceable distinction between an announced next owner and a dispatched next owner. Agent terminal results may also fail to reach Boss promptly. The design adds an observable, portable control contract without pretending GitHub/GitLab labels execute agents.
+The P0/P1 contract distinguished an announced next owner from a real dispatch, but live QA demonstrated that a terminal child result can remain unconsumed after the Root Orchestrator ends its turn. The earlier P0.5 heartbeat proposal was a bounded polling fallback; it does not meet the intended ownership model and must not be represented as the solution.
+
+The correct goal is event-driven parent/child completion: an Orchestrator that dispatches a child retains ownership of that child receipt, waits for its terminal receipt, validates it, routes the successor, and emits one Boss-visible result before ending its own task. GitHub/GitLab Issues and labels remain evidence stores, not an execution engine.
 
 ## Goals / Non-goals
 
 ### Goals
 
-- Make terminal routing deterministic and visible.
+- Make a terminal child receipt an event that resumes its owning Orchestrator, without schedule/heartbeat polling on the happy path.
+- Keep ownership, validation, routing, and Boss visibility with the dispatching Orchestrator.
 - Preserve independent agent ownership, human gates, and QA judgment.
 - Distinguish attempted dispatch from accepted/acknowledged work.
 - Keep the contract portable across Codex, Claude, Antigravity, GitHub, and GitLab adapters.
 
 ### Non-goals
 
-- Build a webhook, queue, scheduler, bot, or background execution runtime.
+- Build a webhook, queue, scheduler, bot, persistent worker, or repository event listener.
 - Add credentials, permissions, or repository automation triggers.
 - Guarantee an elapsed dispatch-latency SLA.
 - Replace Issue/PR lifecycle status or evidence.
-- Let a monitor make QA judgement, merge, approve, or bypass a human gate.
+- Let an event callback judge QA, merge, approve, or bypass a human gate.
+- Treat heartbeat/schedule polling as the canonical implementation or acceptance evidence.
 
 ## Architecture Overview
 
 ```text
-Terminal Agent Result
-  -> Terminal Handoff Contract
-  -> Orchestrator validation and target invocation
-  -> Dispatch receipt + temporary completion monitor registration
-  -> Root may yield while monitor observes the target terminal result
-  -> Monitor wake-up event
-  -> Orchestrator continuation consumes terminal proof
-  -> Boss event + next permitted route OR human/blocked stop
+Terminal Agent Handoff
+  -> Parent Orchestrator validates and dispatches child
+  -> Durable-in-session Child Receipt registered to Parent
+  -> Parent awaits native terminal-receipt event
+  -> Parent continuation validates receipt once
+  -> Parent routes one permitted successor OR stops at human/blocked gate
+  -> Parent emits one Boss event, then closes the receipt
 ```
 
-The Orchestrator owns the transition from a terminal handoff to its outcome and from a monitored terminal receipt to its next permitted action. The receiving agent owns acknowledgement and validates handoff inputs. The monitor is a host-native, temporary supervisory primitive: it observes completion and wakes the Orchestrator, but it does not make delivery decisions. Boss owns every human-review decision. A GitHub/GitLab Issue may store evidence links, but does not execute the route.
+The parent Orchestrator owns the receipt lifecycle until it has consumed a terminal result. The child owns its work and structured terminal handoff. A host-native completion callback/wait primitive only delivers the receipt event; it has no workflow decision authority. Boss owns every human-review decision. A GitHub/GitLab Issue may store evidence links but cannot execute or acknowledge routing.
 
 ## Component Design
 
@@ -58,71 +61,67 @@ Extend the existing handoff with:
 | `Orchestration Turn ID` | Identifier for the active Orchestrator run; binds terminal handoff and receipt. |
 | `Boss Event Required` | `Yes` for every terminal outcome. |
 
-### 2. Dispatch Receipt
+### 2. Parent-owned Child Receipt
 
 The receipt is a structured section within the handoff record, Issue comment, or platform-native equivalent:
 
 | Field | Meaning |
 |---|---|
-| `Dispatch State` | `pending`, `dispatched`, `acknowledged`, `completed`, or `blocked`. |
-| `Source Agent` / `Target Agent` | Origin and intended receiver. |
+| `Handoff Event ID` | Stable identity for one parent-to-child dispatch. |
+| `Parent Orchestrator ID` / `Child Task ID` | Owning parent and dispatched child identity. |
+| `Dispatch State` | `pending`, `dispatched`, `acknowledged`, `awaiting_terminal`, `completed`, `cancelled`, `timed_out`, or `blocked`. |
 | `Work Item` / `Change Request` | Stable URLs or `N/A — reason`. |
 | `Evidence References` | Required artifacts/checks supplied to the receiver. |
 | `Dispatch Result` | Runtime/tool result, or explicit reason dispatch was not possible. |
 | `Acknowledgement Evidence` | Target-agent receipt/result; absent only while honestly `dispatched`. |
-| `Stop Reason` | Required for `blocked` or `Human review`. |
+| `Terminal Result ID` | Immutable child terminal-receipt identity once delivered. |
+| `Completion Event Evidence` | Native await/callback receipt binding parent, child, handoff event, and terminal result. |
+| `Consumption Evidence` | Parent continuation evidence: validation decision, route/stop outcome, Boss event ID, and closed receipt. |
+| `Timeout / Cancellation Reason` | Required for `timed_out`, `cancelled`, or `blocked`. |
 
-### 3. Temporary Completion Monitor (P0.5)
-
-A `Dispatch` receipt is not complete merely because a target invocation was accepted. Before the Orchestrator yields, it must register one temporary host-native heartbeat/monitor for that receipt whenever the target can complete asynchronously.
-
-| Field | Meaning |
-|---|---|
-| `Monitor ID` | Stable, receipt-scoped host-monitor identity; unique for a handoff event. |
-| `Monitor Owner` | `Orchestrator`; the monitor has no independent workflow authority. |
-| `Monitor Target` | The dispatched target-agent/task identity that the monitor observes. |
-| `Monitor State` | `registered`, `waiting`, `wake-pending`, `consumed`, `cancelled`, `expired`, or `failed`. |
-| `Terminal Result ID` | Immutable target terminal-receipt/result identity once observed. |
-| `Terminal Consumption Evidence` | Continuation-turn evidence that binds `Monitor ID`, `Terminal Result ID`, the resulting receipt state, and the Boss event. |
-| `Expiry / Cancellation Reason` | Required for `cancelled`, `expired`, or `failed`. |
-
-The monitor is created only after target invocation succeeds and before Root ends the turn. It waits for either a target terminal result, an explicit target cancellation/failure, or its bounded expiry. On one of those events it requests a Root continuation turn. It must be cancelled immediately after successful terminal consumption; it must never survive as an unbounded recurring poll.
-
-### 4. Monitor Lifecycle and Ownership
+### 3. Native Completion Lifecycle
 
 ```text
 dispatch accepted
-  -> register monitor (`registered`)
-  -> Root yields (`waiting`)
-  -> target terminal result / cancellation / expiry (`wake-pending`)
-  -> Root continuation validates and consumes exactly once (`consumed`)
-  -> monitor cancellation proof (`cancelled`)
+  -> parent registers receipt and await/callback before ending
+  -> child runs (`awaiting_terminal`)
+  -> child terminal receipt event resumes parent
+  -> parent validates and consumes once
+  -> successor dispatch OR human/blocked stop
+  -> one Boss event; receipt closed (`completed`)
 
-registration failure -> `blocked` + Boss event
-wake/continuation failure -> monitor remains `waiting` or records `failed`/`expired`
-expiry -> `blocked` + Boss event; Boss may choose a new supervised route
+cancellation -> parent records `cancelled` + one Boss event
+deadline exceeded -> parent records `timed_out` + one Boss event
+host cannot retain/resume parent -> `blocked: host_completion_unavailable` + one Boss event
 ```
 
-The host monitor may use its native task/thread completion wait and wake capability. It is not a repository service, GitHub/GitLab event listener, webhook, queue, background worker, or external scheduler. The monitor has no GitHub/GitLab credentials and cannot change repository state.
+The parent must register the native completion wait/callback after successful child invocation and before the parent can end. The host delivers the terminal receipt by resuming the owning parent; a polling loop is not a substitute. A timeout is an event/deadline owned by the same receipt, not repeated status polling.
 
-### 5. Wake-up and Terminal Consumption
+### 4. Completion Consumption and Routing
 
-On a monitor event, the host wakes the Root Orchestrator with the monitor identity and target terminal-result identity. The continuation turn must:
+When a native terminal-receipt event arrives, the resumed parent must:
 
-1. load the receipt by `Handoff Event ID` / `Monitor ID`;
-2. verify target/result identity and all required handoff evidence;
-3. atomically record one terminal-consumption outcome;
+1. load the receipt by `Handoff Event ID` and verify the parent/child/result identities;
+2. validate required handoff evidence and the applicable quality gate;
+3. record one authoritative consumption outcome;
 4. emit the required Boss-visible event in that continuation turn;
-5. either dispatch the next permitted non-human owner and register its monitor, stop for Human review, or mark the route blocked; and
-6. cancel the consumed monitor and retain cancellation evidence.
+5. either dispatch the next permitted non-human owner with its own receipt, stop for Human review, or mark the route blocked; and
+6. close the receipt with completion, cancellation, timeout, or block evidence.
 
-If a host cannot provide both a monitor registration receipt and a Root wake-up primitive, the Orchestrator must not claim P0.5 supervision. It records `blocked` with `monitor_unavailable`, emits a Boss event in the current turn, and asks Boss for the next action.
+The parent must not end after dispatch while the child is outstanding unless the host durably retains and resumes that parent receipt. If that capability is absent, it must state the limitation and stop; it must not claim automatic continuation or silently rely on a future Boss message.
 
-### 6. Idempotency and De-duplication
+### 5. Exactly-once and Idempotency
 
-Each terminal handoff has a stable `Handoff Event ID`; each monitor is bound to exactly one such event. The consumption key is `(Handoff Event ID, Terminal Result ID)`. The first valid continuation records the terminal-consumption outcome and Boss event identifier. Repeated completion notifications, duplicate wake-ups, late callbacks after cancellation, or a resumed Root turn with the same key must return the recorded outcome without emitting another Boss event or dispatching another next owner.
+The consumption key is `(Handoff Event ID, Terminal Result ID)`. The first valid parent continuation writes the authoritative route/stop outcome and one Boss event identifier. A duplicate terminal receipt, duplicate callback, late delivery after cancellation, or parent resume retry must return the stored outcome without another successor dispatch or Boss event.
 
-`acknowledged` remains target receipt evidence; `completed` is not set until the target terminal result is consumed by Root. A target agent's terminal comment/result alone is therefore not proof that Boss has been notified.
+`acknowledged` proves receipt by the child/runtime. `completed` requires parent consumption. A child terminal comment alone is not evidence that Boss was informed or that the next agent was actually invoked.
+
+### 6. Timeouts, Cancellation, and Capability Limit
+
+- A parent may set a bounded receipt deadline before waiting. Deadline expiry resumes/returns control to the parent as `timed_out`; it does not poll the child.
+- An explicit child cancellation is a terminal event. The parent records `cancelled`, does not route a successor from stale output, and emits one Boss event.
+- If the host cannot preserve a parent-owned wait or resume the parent on child completion, record `blocked` with `host_completion_unavailable`, include the exact missing primitive and any child state known now, and request a human/SA capability decision.
+- A heartbeat may be used only as an operator-invoked emergency diagnostic for an already-blocked receipt. It is not an acceptance-path mechanism, may not make routing decisions, and may not convert an unavailable capability into a completion claim.
 
 ### 7. Boss Event
 
@@ -138,26 +137,27 @@ This is a communication contract. It does not promise a third-party notification
 ## State Model
 
 ```text
-pending -> dispatched -> acknowledged -> completed
+pending -> dispatched -> acknowledged -> awaiting_terminal -> completed
 pending -> blocked
-dispatched -> blocked
+dispatched|acknowledged|awaiting_terminal -> cancelled|timed_out|blocked
 ```
 
 - `pending`: terminal handoff validated; Orchestrator outcome not yet recorded.
 - `dispatched`: Orchestrator made a target-agent dispatch attempt in the same active turn and retains its result.
 - `acknowledged`: target agent/runtime confirmed receipt.
-- `completed`: target agent produced a terminal result; it starts its own terminal-handoff cycle.
+- `awaiting_terminal`: parent has registered native completion ownership and is waiting for a child terminal event.
+- `completed`: parent consumed the child terminal result and completed its own route/stop event.
 - `blocked`: a dispatch attempt cannot proceed or a human gate/required input prevents continuation.
 
 `Human review` is a terminal routing action, not a `Dispatch State`; its receipt is `blocked` with `stop_reason: human_review_required` until Boss acts.
 
-The receipt carries the companion monitor lifecycle. `completed` requires terminal-consumption evidence. Monitor state is not a work-item lifecycle label and does not replace `phase:` / `status:` evidence.
+`completed` requires parent consumption evidence. Receipt state is not a work-item lifecycle label and does not replace `phase:` / `status:` evidence.
 
 ## Same-Orchestration-Turn Invariant
 
-The P0/P1 invariant is satisfied only when the Orchestrator records a receipt before ending the active run that consumed the terminal handoff. P0.5 extends it: an asynchronous target must also have a monitor-registration receipt before Root yields. Valid outcomes are:
+The P0/P1 invariant is satisfied only when the Orchestrator records a receipt before ending the active run that consumed the terminal handoff. The event-driven extension requires an asynchronous target to have a parent-owned native await/callback receipt before the parent can end. Valid outcomes are:
 
-- target dispatch attempt accepted and monitor registered → `dispatched` / `waiting`;
+- target dispatch attempt accepted and native parent await registered → `awaiting_terminal`;
 - target acknowledges synchronously → `acknowledged`;
 - human gate or inability to dispatch → `blocked` with reason and Boss event.
 
@@ -168,7 +168,7 @@ Writing “Next Agent: QA” without a receipt is invalid. This is deliberately 
 - No database, API, secret, permission, GitHub App, webhook, or ruleset change.
 - Canonical documents and templates are the P0/P1 source of truth.
 - GitHub/GitLab adapters may render equivalent fields, but cannot claim they caused a dispatch.
-- P0.5 uses only the interactive host's temporary agent/thread monitor and continuation capability. It does not use hosted-repository events or create a persistent execution plane.
+- The event-driven path uses only an interactive host's native parent/child wait and resume capability. It does not use hosted-repository events or create a persistent execution plane.
 
 ## Error Handling
 
@@ -178,25 +178,26 @@ Writing “Next Agent: QA” without a receipt is invalid. This is deliberately 
 | Target is unavailable / tool dispatch fails | `blocked`; Boss event explains failure and recovery owner. |
 | Target does not acknowledge | Retain `dispatched`; report acknowledgement pending, do not claim completion. |
 | Required human gate reached | `blocked` with `human_review_required`; do not dispatch a bypass route. |
-| Monitor registration unavailable | `blocked` with `monitor_unavailable`; emit Boss event in the current turn and do not yield with a false supervision claim. |
-| Monitor expiry before a terminal result | `blocked` with `monitor_expired`; wake/report Boss and require an explicit supervised next step. |
-| Duplicate/late completion notification | Match the consumption key; retain the first outcome without duplicate Boss event or dispatch. |
-| Root continuation cannot consume result | Keep monitor active only within its bounded lifetime; retry through the host primitive when available, otherwise record `monitor_failed`/`monitor_expired` and notify Boss. |
+| Parent completion capability unavailable | `blocked` with `host_completion_unavailable`; disclose the limitation and route SA/Human. |
+| Receipt deadline expires | `timed_out`; one Boss event requires explicit next action. |
+| Child is cancelled | `cancelled`; reject stale result and report one terminal outcome. |
+| Duplicate/late terminal receipt | Match the consumption key and return stored outcome without duplicate route/event. |
 
 ## Security Considerations
 
 - P0/P1 cannot introduce an execution endpoint, credential, secret, permission, or automatic merge/approval path.
 - Handoff content remains evidence, not authority: agents must still enforce existing role boundaries and treat Issue/PR text as untrusted where applicable.
-- P0.5 monitor input is limited to host task/thread metadata and terminal receipt identity. It does not execute target content, impersonate an agent, or mutate GitHub/GitLab state.
-- P3 must receive a separate SA/Security design before any event-driven dispatcher is built.
+- Native callback input is restricted to host task/thread identities and terminal receipt metadata; it must not execute child-provided content or impersonate an agent.
+- A durable external dispatcher, cross-session persistence, or external callback integration requires a separate SA/Security threat-model and human approval.
 
 ## NFRs
 
 | Area | Target |
 |---|---|
 | Reliability | No terminal handoff ends without a receipt or explicit human/block reason. |
-| Completion supervision | A dispatched asynchronous handoff has one temporary monitor registration before Root yields, and one consumption/cancellation outcome. |
-| Observability | Boss event has the four required content groups for every terminal result and is emitted from the consumption continuation without a new Boss message. |
+| Event-driven completion | Happy path uses a native child-terminal receipt to resume its parent; no schedule/heartbeat polling. |
+| Idempotency | One receipt terminal result produces at most one successor route and one Boss event. |
+| Observability | Evidence links parent, child, handoff event, terminal result, outcome, and Boss event. |
 | Portability | Canonical contract has adapter parity; no GitHub-only execution assumption. |
 | Maintainability | One state vocabulary and one template section; no new lifecycle label taxonomy. |
 
@@ -207,12 +208,25 @@ Writing “Next Agent: QA” without a receipt is invalid. This is deliberately 
 | Add more GitHub labels | Rejected: labels communicate lifecycle state but do not execute/acknowledge agents. |
 | Build webhook dispatcher now | Deferred: requires credential, idempotency, retry, and security architecture beyond the observed P0/P1 gap. |
 | Treat a target terminal result as a Boss event | Rejected: a result can sit in an idle Root mailbox; consumption and user-visible reporting must be proved separately. |
-| Leave a permanent polling loop | Rejected: creates a hidden execution runtime and leak risk; P0.5 monitor is per-handoff, bounded, and cancelled after consumption. |
+| Recurring heartbeat/schedule polling | Rejected for happy path: consumes tokens, has unknown completion latency, and breaks parent ownership. |
+| No continuation on unsupported host | Accepted as truthful blocked behavior, not as a successful automation result. |
 | Leave routing as prose | Rejected: cannot detect a silent stall or show Boss actual dispatch state. |
 
 ## Decision
 
-Adopt a portable assisted-orchestration contract: terminal handoff → Orchestrator receipt/outcome → temporary host-native completion monitor → Root terminal consumption → Boss event. Enforce the P0/P1 contract and P0.5 supervision semantics through templates, canonical policy, adapters, and regression tests. Keep autonomous dispatch P3 as a separately approved architecture/security initiative.
+Adopt native event-driven parent/child completion as the only canonical happy path: dispatch → parent-owned receipt and await → child terminal event resumes parent → validate → route/stop → one Boss event. Heartbeat/schedule polling is non-canonical emergency diagnostics only. A host that cannot retain and resume its parent is explicitly `blocked`, with the capability limitation routed to SA/Human.
+
+## Controlled End-to-End Proof Plan
+
+QA must observe one live host run, without a new Boss message after dispatch:
+
+1. Parent dispatches a real child and records `Handoff Event ID`, child identity, and native await/callback registration before ending.
+2. Child reaches a real terminal result.
+3. Host resumes the same parent from the child-terminal event, with immutable terminal-result identity.
+4. Parent validates/consumes exactly once, routes the required successor or stops at the required gate, and emits one Boss event.
+5. A deliberate duplicate delivery proves no second route or Boss event.
+6. A cancellation and a deadline case prove one terminal event each with no stale route.
+7. On a host lacking this capability, QA verifies the explicit `host_completion_unavailable` block and no claim of automatic dispatch.
 
 ## Testability Notes
 
@@ -220,5 +234,5 @@ Adopt a portable assisted-orchestration contract: terminal handoff → Orchestra
 - A regression accepts a human gate only with an explicit `human_review_required` stop reason.
 - Adapter-parity tests confirm canonical and platform-specific documents use the same state vocabulary.
 - Negative tests prove `dispatched` cannot be represented as `acknowledged`/`completed` without target evidence.
-- An end-to-end host scenario proves: Root dispatches and registers a monitor, Root yields, the target completes, the host wakes Root, Root consumes the target result once, Boss receives an event without sending a new message, and the monitor is cancelled.
-- Negative scenarios prove monitor registration failure, expiry, and duplicate terminal notification become an evidence-backed block/idempotent no-op rather than a silent stall.
+- The live proof above is mandatory; a simulated transcript, prose handoff, or a monitor registration alone cannot pass `ORCH-02`, `ORCH-04`, or `ORCH-06`.
+- Negative scenarios prove unsupported-host block, deadline expiry, cancellation, and duplicate terminal notification become evidence-backed terminal outcomes rather than a silent stall.
