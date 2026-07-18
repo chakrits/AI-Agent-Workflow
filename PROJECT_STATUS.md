@@ -3,15 +3,15 @@
 ## Current Work Item
 - ID: GitHub Issue #33
 - Title: Enforce Orchestrator dispatch and Boss visibility
-- Owner: BA Agent / SA Agent
-- Status: Requirements and SDD accepted; executable implementation plan is ready for Developer Agent
+- Owner: SA Agent
+- Status: P0.5 design correction is ready for Human acceptance; Draft PR #34 must not merge before the amended runtime-notification evidence passes
 
 ## Current Stage
-- Planning
+- Design
 
 ## Change Classification
 - Change Type: Workflow/process improvement
-- Risk Level: Medium — changes agent-routing and delivery-observability contracts without adding an execution runtime
+- Risk Level: Medium — changes agent-routing, host-supervision, and delivery-observability contracts without adding a repository execution runtime
 - Code Change Required: Yes — canonical workflow, templates/adapters, and regression coverage
 - Architecture Change Required: Yes — terminal handoff, dispatch receipt, and Boss event boundary
 - Security Review Required: Not for approved P0/P1 scope; mandatory if P3 dispatcher, credentials, permissions, or execution endpoints are proposed
@@ -36,7 +36,7 @@
 - GitHub Issues #26 and #29 were closed by documentation closeout PR #32; child #28 was already closed by PR #30, and PR #31's `post-merge-closeout` signal was removed.
 
 ## In Progress
-- Issue #33 P0/P1 plan delivers a portable terminal-handoff, dispatch-receipt, and Boss-event contract; P3 autonomous dispatch remains explicitly deferred.
+- Issue #33 P0/P1 contract is implemented in Draft PR #34 but its live QA completion exposed a P0.5 gap: Root can yield before an asynchronous terminal receipt is consumed and reported to Boss. The P0.5 amended SDD/plan define a per-handoff temporary host-native monitor, Root wake-up, exactly-once consumption, and cancellation proof; P3 autonomous dispatch remains explicitly deferred.
 
 ## Blockers / Open Questions
 - R-002: `.gitlab-ci.yml` has not yet been validated on a live GitLab runner; this is an external verification follow-up, not an active implementation task.
@@ -48,10 +48,10 @@
 - `docs/records/IMPLEMENTATION-PLAN-ORCHESTRATOR-DISPATCH-VISIBILITY-2026-07-18.md` — ready for Developer Agent
 
 ## Next Quality Gate
-- Developer Agent executes IMP-33-01 through IMP-33-04 with TDD, then routes the Draft PR and exact commit to QA.
+- Human accepts the P0.5 amended SDD/plan; then Developer Agent executes IMP-33-05 through IMP-33-08 on Draft PR #34 and routes Security Reviewer then QA with live-host terminal-consumption proof.
 
 ## Recommended Next Agent
-- Developer Agent
+- Human Maintainer (P0.5 design acceptance)
 
 ## Notes
 - RCA evidence: refresh runs `29635734227` and `29635753891` successfully used the App token to edit PR #20, but no `pull_request.edited` readiness run was created. The direct evaluator removes that unsupported event dependency.
