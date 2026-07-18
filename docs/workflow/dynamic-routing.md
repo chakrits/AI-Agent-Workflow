@@ -19,6 +19,22 @@ Route work by change type, risk, and required artifacts instead of forcing a lin
 10. Update PROJECT_STATUS.md and TASK_LOG.md
 ```
 
+## Terminal Routing and Dispatch Receipt
+
+A terminal handoff must end with exactly one `Next Action`: `Dispatch`, `Human review`, or `Blocked`. `Next Owner` is mandatory: a named non-human agent for `Dispatch`, the human gate owner for `Human review`, or the resolution owner for `Blocked`.
+
+The Orchestrator must record the outcome in the same active Orchestrator turn that accepts the terminal handoff. A `Dispatch` outcome needs a receipt with source/target, Work Item/Change Request references, supplied evidence, and the dispatch result. A prose-only instruction such as “send to QA” is not a routed handoff.
+
+Use the portable dispatch-state vocabulary `pending`, `dispatched`, `acknowledged`, `awaiting_terminal`, `completed`, `cancelled`, `timed_out`, and `blocked`. `dispatched` records an attempt; it must not be represented as `acknowledged` without receiving-agent or runtime evidence. Where callbacks are unavailable, report `acknowledgement pending` rather than claiming receipt or completion.
+
+Every terminal outcome must produce a Boss-visible event with completed work and gate result, next action/owner, dispatch state/evidence, and a blocker or decision need where applicable. `Human review` stops autonomous routing: record `Dispatch State: blocked` and `Stop Reason: human_review_required`. These dispatch-control states are not lifecycle labels and do not replace phase/status evidence.
+
+### In-Turn Dispatch Completion
+
+Every terminal handoff has a stable `Handoff Event ID`, `Parent Orchestrator ID`, and `Child Task ID`. Supervision is in-turn only: the parent must invoke the target child and await its terminal receipt within the same active Orchestrator turn for the whole dispatch chain (for example Root -> Security -> consume receipt -> dispatch QA -> consume receipt -> one Boss event -> stop at the human-review gate). After target invocation succeeds, the parent registers its native in-turn wait (`Completion Event Evidence`) before the parent can end or yield. A terminal result is complete only when the parent consumes `(Handoff Event ID, Terminal Result ID)` exactly once, emits one Boss event, then routes a permitted successor within the same turn or stops with `Consumption Evidence`.
+
+The native completion primitive only delivers the child receipt within the active turn; it cannot judge QA, merge, approve, alter a repository, or bypass a human gate. No host capability in this contract keeps and resumes a parent after it has ended or yielded its turn. If the parent cannot complete a required dispatch in-turn, it must record `Dispatch State: blocked` with `Stop Reason: host_completion_unavailable` and a Boss event in the current turn — it must not end or yield while claiming a later automatic continuation. A deadline expiry during an active in-turn wait records `timed_out`, and an explicit cancellation records `cancelled`; these are explicit Boss-visible outcomes, not a fallback to prose routing or polling. Cross-turn or event-driven orchestration that resumes a parent after it has ended its turn is explicitly deferred to a separately approved durable control-plane design (GitHub Issue #35) and is not acceptance evidence for this contract. A heartbeat/schedule mechanism may be used only as an operator-invoked emergency diagnostic after a block; it is never the happy path and can never route work or establish acceptance evidence.
+
 ## Lifecycle Labels for Feature and Enhancement Work
 
 Keep the current lifecycle stage separate from evidence milestones.

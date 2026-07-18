@@ -142,7 +142,24 @@ test('handoff vocabulary stays in parity across AGENTS, contract, and template',
     'Known Limitations',
     'Open Questions',
     'QA / Review Focus',
-    'Recommended Next Step'
+    'Recommended Next Step',
+    'Next Action',
+    'Next Owner',
+    'Orchestration Turn ID',
+    'Boss Event Required',
+    'Dispatch State',
+    'Source Agent',
+    'Target Agent',
+    'Dispatch Result',
+    'Acknowledgement Evidence',
+    'Boss Event',
+    'Handoff Event ID',
+    'Parent Orchestrator ID',
+    'Child Task ID',
+    'Terminal Result ID',
+    'Completion Event Evidence',
+    'Consumption Evidence',
+    'Timeout / Cancellation Reason'
   ];
   const listFields = (content, heading) => content
     .match(new RegExp(`## ${heading}\\n\\n([\\s\\S]*?)(?=\\n## |$)`))[1]
@@ -153,6 +170,100 @@ test('handoff vocabulary stays in parity across AGENTS, contract, and template',
   assert.deepEqual(listFields(agents, 'Required Handoff'), requiredFields);
   assert.deepEqual(listFields(contract, 'Required Fields'), requiredFields);
   assert.deepEqual(templateFields, requiredFields);
+});
+
+test('terminal handoffs require a receipt, an explicit routing outcome, and a Boss-visible event', async () => {
+  const [agents, contract, template, routing, qualityGates, roles] = await Promise.all([
+    readFile('AGENTS.md', 'utf8'),
+    readFile('docs/workflow/handoff-contract.md', 'utf8'),
+    readFile('docs/templates/HANDOFF.md', 'utf8'),
+    readFile('docs/workflow/dynamic-routing.md', 'utf8'),
+    readFile('docs/workflow/quality-gates.md', 'utf8'),
+    readFile('docs/workflow/role-definitions.md', 'utf8')
+  ]);
+
+  const requiredFields = [
+    'Next Action',
+    'Next Owner',
+    'Orchestration Turn ID',
+    'Boss Event Required',
+    'Dispatch State',
+    'Source Agent',
+    'Target Agent',
+    'Dispatch Result',
+    'Acknowledgement Evidence',
+    'Boss Event',
+    'Handoff Event ID',
+    'Parent Orchestrator ID',
+    'Child Task ID',
+    'Terminal Result ID',
+    'Completion Event Evidence',
+    'Consumption Evidence',
+    'Timeout / Cancellation Reason'
+  ];
+  const listFields = (content, heading) => content
+    .match(new RegExp(`## ${heading}\\n\\n([\\s\\S]*?)(?=\\n## |$)`))[1]
+    .match(/^- (.+)$/gm)
+    .map((field) => field.slice(2));
+  const handoffFields = listFields(contract, 'Required Fields');
+  const templateFields = [...template.matchAll(/^## (.+)$/gm)].map(([, field]) => field);
+
+  for (const field of requiredFields) {
+    assert.ok(handoffFields.includes(field), `handoff contract is missing ${field}`);
+    assert.ok(templateFields.includes(field), `handoff template is missing ${field}`);
+    assert.match(agents, new RegExp(`- ${field.replace(/[\\/]/g, '\\$&')}`));
+  }
+  for (const content of [contract, routing, qualityGates, roles]) {
+    assert.match(content, /exactly one.*Dispatch.*Human review.*Blocked|Dispatch.*Human review.*Blocked/i);
+    assert.match(content, /same active (Orchestrator )?turn/i);
+    assert.match(content, /acknowledg/i);
+    assert.match(content, /Boss-visible|Boss event/i);
+  }
+  assert.match(contract, /non-human.*Dispatch|Dispatch.*non-human/i);
+  assert.match(contract, /human_review_required/);
+  assert.match(contract, /not.*lifecycle label/i);
+});
+
+test('dynamic-workflow adapters require receipt evidence instead of prose-only non-human routing', async () => {
+  const contents = await Promise.all(adapterPaths.map((path) => readFile(path, 'utf8')));
+
+  for (const content of contents) {
+    assert.match(content, /docs\/workflow\/handoff-contract\.md/);
+    assert.match(content, /Dispatch.*Human review.*Blocked/i);
+    assert.match(content, /dispatch receipt|receipt.*dispatch/i);
+    assert.match(content, /acknowledgement pending/i);
+    assert.doesNotMatch(content, /GitHub-only|GitHub specific/i);
+  }
+});
+
+test('in-turn dispatch completion requires parent ownership, native evidence, and truthful unsupported-host blocking', async () => {
+  const [contract, routing, gates, roles, codexAdapter] = await Promise.all([
+    readFile('docs/workflow/handoff-contract.md', 'utf8'),
+    readFile('docs/workflow/dynamic-routing.md', 'utf8'),
+    readFile('docs/workflow/quality-gates.md', 'utf8'),
+    readFile('docs/workflow/role-definitions.md', 'utf8'),
+    readFile('.codex/orchestrator-supervision.md', 'utf8')
+  ]);
+
+  for (const content of [contract, routing, gates, roles]) {
+    assert.match(content, /Handoff Event ID/);
+    assert.match(content, /Parent Orchestrator ID/);
+    assert.match(content, /Child Task ID/);
+    assert.match(content, /Completion Event Evidence/);
+    assert.match(content, /Consumption Evidence/);
+    assert.match(content, /before (the )?(parent|Root|Orchestrator).*(end|yield)|before.*(end|yield).*parent/i);
+    assert.match(content, /host_completion_unavailable/);
+    assert.match(content, /timed_out/);
+    assert.match(content, /cancelled/);
+    assert.match(content, /exactly.once|idempoten/i);
+  }
+  assert.match(codexAdapter, /collaboration\.wait_agent/);
+  assert.match(codexAdapter, /parent.*await|await.*parent/i);
+  assert.match(codexAdapter, /native.*terminal.*receipt|terminal.*receipt.*native/i);
+  assert.match(codexAdapter, /host_completion_unavailable/);
+  assert.match(codexAdapter, /diagnostic-only/i);
+  assert.doesNotMatch(codexAdapter, /heartbeat.*before.*yield|yield.*heartbeat/i);
+  assert.match(codexAdapter, /does not create a webhook, queue, persistent worker, or auto-merge/i);
 });
 
 test('lifecycle stages make specification readiness a portable pre-development gate', async () => {

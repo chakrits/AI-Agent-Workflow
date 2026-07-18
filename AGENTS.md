@@ -383,6 +383,23 @@ Every agent handoff must include:
 - Open Questions
 - QA / Review Focus
 - Recommended Next Step
+- Next Action
+- Next Owner
+- Orchestration Turn ID
+- Boss Event Required
+- Dispatch State
+- Source Agent
+- Target Agent
+- Dispatch Result
+- Acknowledgement Evidence
+- Boss Event
+- Handoff Event ID
+- Parent Orchestrator ID
+- Child Task ID
+- Terminal Result ID
+- Completion Event Evidence
+- Consumption Evidence
+- Timeout / Cancellation Reason
 
 Use `docs/templates/HANDOFF.md`.
 

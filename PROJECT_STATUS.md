@@ -1,20 +1,20 @@
 # PROJECT_STATUS.md
 
 ## Current Work Item
-- ID: None
-- Title: No active delivery work item
-- Owner: Human Maintainer
-- Status: Issue #28 is closed; this closeout PR will close Issue #29 and its parent coordination Issue #26 together
+- ID: GitHub Issue #33
+- Title: Enforce Orchestrator dispatch and Boss visibility
+- Owner: Security Reviewer
+- Status: Developer implemented the approved event-driven parent-owned child-completion contract; Draft PR #34 must not merge before Security review and QA's live native-parent-resumption evidence pass
 
 ## Current Stage
-- Human Review — Documentation Closeout
+- Security review
 
 ## Change Classification
-- Change Type: Documentation-only closeout for a completed security-sensitive workflow change
-- Risk Level: Medium — the source change affected a privileged GitHub Actions workflow; this closeout changes project-state records only
-- Code Change Required: No
-- Architecture Change Required: No
-- Security Review Required: Completed for source PR #31; no security-sensitive configuration changes in this closeout
+- Change Type: Workflow/process architecture correction
+- Risk Level: Medium — changes parent/child routing, host-resumption, and delivery-observability contracts without adding a repository execution runtime
+- Code Change Required: Yes — canonical workflow, templates/adapters, and regression coverage
+- Architecture Change Required: Yes — terminal handoff, dispatch receipt, and Boss event boundary
+- Security Review Required: Not for approved P0/P1 scope; mandatory if P3 dispatcher, credentials, permissions, or execution endpoints are proposed
 
 ## Completed
 - All 11 agent roles have their current canonical rules, adapters, and regression coverage on `main`.
@@ -33,28 +33,25 @@
 - GitHub Issue #19 merged through PR #20 as `fef37cc`; its closeout PR #25 merged as `3f5e4c9`, closed Issue #19, removed the source closeout signal, and passed default-branch validation/audit without a `documentation-sync` exception.
 - GitHub Issue #28 Portable Contract merged through PR #27 as `70a9303`; QA evidence covered PC-01 through PC-05, and default-branch validation/audit runs `29642349695` and `29642349720` passed without a `documentation-sync` exception.
 - GitHub Issue #29 Hosted Activation merged through PR #31 as `196aeb0`; Security review `SEC-02` and QA's full seven-row Acceptance Criteria matrix passed at `f839d1a`. Default-branch contract validation and documentation audit both passed, and GitHub emitted one normal `post-merge-closeout` signal with no `documentation-sync` exception.
+- GitHub Issues #26 and #29 were closed by documentation closeout PR #32; child #28 was already closed by PR #30, and PR #31's `post-merge-closeout` signal was removed.
 
 ## In Progress
-- This marked documentation closeout PR closes Issue #29 and parent coordination Issue #26, then removes PR #31's temporary `post-merge-closeout` signal when merged.
-- No implementation work remains for the #26 parent / #28 Portable Contract / #29 Hosted Activation delivery set.
+- Issue #33 P0/P1 contract is implemented in Draft PR #34. The approved correction replaces the earlier heartbeat-based P0.5 design with native event-driven parent retention/resumption, exactly-once consumption, cancellation/timeout outcomes, and truthful unsupported-host blocking. Heartbeat is diagnostic-only; P3 durable cross-session dispatch remains deferred. Developer local evidence is ready for Security review; live host proof remains a QA gate.
 
 ## Blockers / Open Questions
 - R-002: `.gitlab-ci.yml` has not yet been validated on a live GitLab runner; this is an external verification follow-up, not an active implementation task.
 - Deferred and unscheduled: a Prototype/Spike workflow route and a shared cross-role template pattern.
 
 ## Required Artifacts
-- `docs/records/REQUIREMENTS-PLATFORM-READINESS-TRACEABILITY-2026-07-18.md` — completed
-- `docs/records/SDD-PLATFORM-READINESS-TRACEABILITY-2026-07-18.md` — completed
-- `docs/records/SECURITY-REVIEW-PLATFORM-READINESS-TRACEABILITY-2026-07-18.md` — completed
-- `docs/records/IMPLEMENTATION-PLAN-PLATFORM-READINESS-TRACEABILITY-2026-07-18.md` — completed
-- Issue #29 Security review: https://github.com/chakrits/AI-Agent-Workflow/issues/29#issuecomment-5011569777
-- Issue #29 QA evidence: https://github.com/chakrits/AI-Agent-Workflow/issues/29#issuecomment-5011585179
+- `docs/records/REQUIREMENTS-ORCHESTRATOR-DISPATCH-VISIBILITY-2026-07-18.md` — approved
+- `docs/records/SDD-ORCHESTRATOR-DISPATCH-VISIBILITY-2026-07-18.md` — approved
+- `docs/records/IMPLEMENTATION-PLAN-ORCHESTRATOR-DISPATCH-VISIBILITY-2026-07-18.md` — ready for Developer Agent
 
 ## Next Quality Gate
-- Human review and merge of this marked documentation closeout PR; then verify the PR #31 closeout signal is removed and Issues #29 and #26 are closed.
+- Security Reviewer checks the exact Draft PR #34 diff for host/control-plane boundary regressions; then QA performs the mandatory live parent-resumption proof without a new Boss message.
 
 ## Recommended Next Agent
-- Human Maintainer
+- Security Reviewer, then QA Agent if Security passes
 
 ## Notes
 - RCA evidence: refresh runs `29635734227` and `29635753891` successfully used the App token to edit PR #20, but no `pull_request.edited` readiness run was created. The direct evaluator removes that unsupported event dependency.

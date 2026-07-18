@@ -91,3 +91,65 @@ Evidence and approval reference:
 - 
 
 ## Recommended Next Step
+
+## Next Action
+
+Exactly one: `Dispatch` / `Human review` / `Blocked`
+
+## Next Owner
+
+Named non-human agent for `Dispatch`; human gate owner for `Human review`; resolution owner for `Blocked`.
+
+## Orchestration Turn ID
+
+## Boss Event Required
+
+Yes — every terminal outcome
+
+## Dispatch State
+
+`pending` / `dispatched` / `acknowledged` / `awaiting_terminal` / `completed` / `cancelled` / `timed_out` / `blocked`
+
+## Source Agent
+
+## Target Agent
+
+## Dispatch Result
+
+Record the active-turn dispatch result, or why dispatch was not possible.
+
+## Acknowledgement Evidence
+
+Target-agent/runtime receipt. If unavailable while dispatched, state `acknowledgement pending`.
+
+## Boss Event
+
+Concise user-visible result: completed work and gate result; next action/owner; receipt state/evidence; blocker or decision needed.
+
+## Handoff Event ID
+
+Stable ID for this terminal handoff. Required for every terminal handoff.
+
+## Parent Orchestrator ID
+
+Identity of the Orchestrator that owns this child receipt. Required for `Dispatch`; otherwise `N/A — blocked route`.
+
+## Child Task ID
+
+Identity of the dispatched child/task. Required for `Dispatch`; otherwise `N/A — blocked route`.
+
+## Terminal Result ID
+
+Immutable child terminal-result identity once delivered within the same active turn; otherwise `pending` or `N/A`.
+
+## Completion Event Evidence
+
+Native in-turn await receipt binding parent, child, handoff event, and terminal result. Required before the parent ends or yields for `Dispatch`; no host capability resumes the parent after it ends or yields, so `Dispatch` without in-turn delivery must instead record `Dispatch State: blocked`, `Stop Reason: host_completion_unavailable`. Otherwise `N/A — blocked route`.
+
+## Consumption Evidence
+
+Parent-continuation evidence: validation decision, one Boss event ID, one route/stop outcome, and closed receipt. Required before claiming `completed`.
+
+## Timeout / Cancellation Reason
+
+Required for `cancelled`, `timed_out`, or blocked `host_completion_unavailable` outcomes; otherwise `N/A`.

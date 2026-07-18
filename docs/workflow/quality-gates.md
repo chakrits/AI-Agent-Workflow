@@ -49,6 +49,21 @@
 - Changed files are listed
 - Known limitations are documented
 - Test data and environment notes are provided
+- Terminal handoff has exactly one `Next Action` and a valid `Next Owner`.
+- For a non-human `Dispatch`, the active Orchestrator turn records a dispatch receipt/result; prose-only routing is incomplete.
+- The receipt distinguishes `dispatched` from `acknowledged`; missing callback evidence is reported as `acknowledgement pending`.
+- A Boss-visible event records the completed work/gate result, next action/owner, receipt evidence, and any blocker or decision need.
+- Supervision is in-turn only: before the parent ends or yields, native parent-owned await evidence within the same active turn records `Handoff Event ID`, `Parent Orchestrator ID`, `Child Task ID`, and `Completion Event Evidence`; no host capability resumes a parent after it has ended or yielded.
+- The parent consumes a terminal result exactly once within that turn, emits one Boss event, and records `Consumption Evidence`; `host_completion_unavailable`, `timed_out`, and `cancelled` are explicit terminal outcomes rather than a silent stall. Cross-turn/event-driven resumption is deferred to GitHub Issue #35 and heartbeat/schedule use is an operator-invoked emergency diagnostic only, never acceptance evidence.
+
+## Orchestrator Dispatch Gate
+
+- Every terminal handoff chooses exactly one action: `Dispatch`, `Human review`, or `Blocked`.
+- A dispatch receipt includes `Dispatch State`, `Source Agent`, `Target Agent`, `Dispatch Result`, and `Acknowledgement Evidence`.
+- The Orchestrator records the receipt in the same active Orchestrator turn that consumes the handoff.
+- `Human review` records `Dispatch State: blocked` and `Stop Reason: human_review_required`; it does not continue through an autonomous route.
+- Dispatch-control states are not lifecycle labels and do not replace phase/status evidence.
+- Parent-owned receipt state is separate from dispatch/lifecycle state. Duplicate or late completion events are idempotent no-ops after the first terminal consumption.
 
 ## QA Acceptance Criteria Gate
 

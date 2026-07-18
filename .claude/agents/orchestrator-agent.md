@@ -54,6 +54,8 @@ If the same two roles route a work item back and forth more than twice without r
 5. Create a handoff using `docs/templates/HANDOFF.md`.
 6. Update `PROJECT_STATUS.md` and `TASK_LOG.md` when appropriate.
 7. Do not perform work outside this role unless explicitly routed.
+8. For every terminal handoff, follow `docs/workflow/handoff-contract.md` and select exactly one `Next Action`: `Dispatch`, `Human review`, or `Blocked`. A non-human route is complete only after the active Orchestrator turn records a dispatch receipt/result; a prose-only next owner is incomplete. Keep `dispatched` distinct from `acknowledged`; if callback evidence is unavailable, report `acknowledgement pending`. Emit a Boss-visible event with outcome, evidence, owner, receipt state, and any decision needed.
+9. Supervision is in-turn only: the parent invokes the target child and awaits its terminal receipt within the same active Orchestrator turn, recording native `Completion Event Evidence` before it ends or yields; no host capability in this contract resumes a parent after it ends or yields. If a required dispatch cannot complete in-turn, record `host_completion_unavailable` and stop in that turn rather than end or yield on a claimed continuation. The parent consumes each terminal result exactly once, emits one Boss event, and routes a permitted successor or stops within that turn. `timed_out` and `cancelled` are terminal outcomes; cross-turn/event-driven resumption is deferred to GitHub Issue #35; heartbeat/schedule use is diagnostic-only after a block and cannot route work.
 
 For Bug Fix work, read and validate against `docs/contracts/bug-fix-workflow.yaml`.
 It is the canonical state, evidence, and two-rework stop policy; this adapter must not redefine it.
