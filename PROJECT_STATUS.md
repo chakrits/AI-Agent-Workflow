@@ -4,17 +4,17 @@
 - ID: GitHub Issue #19
 - Title: Add lifecycle stages and automated PR readiness gate
 - Owner: Developer Agent / Human Maintainer
-- Status: Readiness-refresh bootstrap in progress — trusted workflow must merge before PR #20 can automatically re-check changed Issue state
+- Status: Direct readiness-check remediation in progress — the PR-edit refresh experiment passed token access but failed to create a new readiness run
 
 ## Current Stage
 - Developer Remediation
 
 ## Change Classification
 - Change Type: Bug Fix — stale readiness result after linked-Issue label change
-- Risk Level: Medium — dedicated GitHub App pull-request write
-- Code Change Required: Yes — trusted refresh workflow and regression coverage
-- Architecture Change Required: No
-- Security Review Required: Yes — GitHub App token and private-key secret
+- Risk Level: High — dedicated GitHub App Check Run write
+- Code Change Required: Yes — trusted direct evaluator and regression coverage
+- Architecture Change Required: Yes — branch protection will consume an App-owned Check Run instead of an event-chained PR workflow
+- Security Review Required: Yes — GitHub App token, private-key secret, and Check Run write
 
 ## Completed
 - All 11 agent roles have their current canonical rules, adapters, and regression coverage on `main`.
@@ -31,21 +31,22 @@
 - GitHub Issue #16, canonical agent personas, merged through PR #17 as commit `8e4a3e0`; all seven QA acceptance criteria passed, the default-branch audit run `29510562131` passed, and no `documentation-sync` exception Issue was created.
 
 ## In Progress
-- Issue #19 refresh bootstrap: edit an invisible PR refresh marker after lifecycle-label changes, then let the existing read-only readiness workflow re-check current state.
+- Issue #19 direct evaluator: after each lifecycle-label or base-PR event, serialize current-state evaluation of all open `main` PRs and publish an App-owned success/failure Check Run on every PR head SHA.
 
 ## Blockers / Open Questions
 - R-002: `.gitlab-ci.yml` has not yet been validated on a live GitLab runner; this is an external verification follow-up, not an active implementation task.
 - Deferred and unscheduled: a Prototype/Spike workflow route and a shared cross-role template pattern.
 
 ## Required Artifacts
-- Trusted refresh workflow, regression coverage, security/code review, hosted re-check evidence, and readiness-workflow concurrency.
+- Trusted direct evaluator, regression coverage, security/code review, hosted Check Run evidence, and branch-protection requirement update.
 
 ## Next Quality Gate
-- Security/code review of the refresh bootstrap, human merge into `main`, then rebase PR #20 and QA verifies automatic re-check after a label change.
+- Security/code review of the direct evaluator, human App-permission update and merge into `main`, then QA verifies a fresh Check Run after a label change and branch protection consumes it.
 
 ## Recommended Next Agent
-- Security Reviewer, then Human Maintainer for bootstrap merge; QA Agent after PR #20 is rebased.
+- Security Reviewer, then Human Maintainer for App-permission/branch-protection configuration; QA Agent after hosted Check Run evidence is available.
 
 ## Notes
-- The refresh workflow uses a short-lived GitHub App token with only Pull requests: read & write. Its Client ID is a repository variable; its private key is an environment secret in protected `work-item-refresh`, never a repository secret or committed value. It never checks out or executes pull-request content.
+- Live evidence: refresh runs `29635734227` and `29635753891` successfully used the App token to edit PR #20, but no `pull_request.edited` readiness run was created. The direct evaluator removes that unsupported event dependency.
+- The direct evaluator uses a short-lived GitHub App token with only Pull requests: read, Issues: read, and Checks: read & write. Its Client ID is a repository variable; its private key is an environment secret in protected `work-item-refresh`, never a repository secret or committed value. The environment's `main` branch restriction does not itself protect a `pull_request_target` run from fork context; safety comes from checking out only trusted `main` and never executing PR-head content. Main branch protection must pin `work-item-readiness-freshness` to the AI Agent Workflow App source, never Any source.
 - R-002 remains the separate live-GitLab-runner follow-up. GitLab uses the manual closeout label/comment equivalent until API automation is separately approved.
