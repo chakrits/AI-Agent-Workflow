@@ -1,13 +1,13 @@
 # PROJECT_STATUS.md
 
 ## Current Work Item
-- ID: GitHub Issue #26
-- Title: Add platform definition-of-ready and QA acceptance traceability
-- Owner: SA Agent
-- Status: Specification approved; Portable Contract implementation planning is complete
+- ID: GitHub Issue #29
+- Title: Harden hosted readiness activation controls
+- Owner: SA Agent / Security Reviewer
+- Status: Preflight and security design preparation in progress; implementation is not authorized yet
 
 ## Current Stage
-- Planning
+- Design / Security Preflight
 
 ## Change Classification
 - Change Type: Workflow/process improvement with hosted-platform activation controls
@@ -31,9 +31,11 @@
 - GitHub Issue #16, canonical agent personas, merged through PR #17 as commit `8e4a3e0`; all seven QA acceptance criteria passed, the default-branch audit run `29510562131` passed, and no `documentation-sync` exception Issue was created.
 - PR #23 merged as `1eb0465`. Its trusted direct readiness evaluator passed independent code and security review. Hosted tests proved both lifecycle-label and `pull_request_target` edited events create an App-owned `work-item-readiness-freshness` Check Run on PR #20; `main` now requires that check from **AI Agent Workflow**.
 - GitHub Issue #19 merged through PR #20 as `fef37cc`; its closeout PR #25 merged as `3f5e4c9`, closed Issue #19, removed the source closeout signal, and passed default-branch validation/audit without a `documentation-sync` exception.
+- GitHub Issue #28 Portable Contract merged through PR #27 as `70a9303`; QA evidence covered PC-01 through PC-05, and default-branch validation/audit runs `29642349695` and `29642349720` passed without a `documentation-sync` exception.
 
 ## In Progress
-- Issue #26: Portable Contract implementation plan is ready for Developer. `SEC-26-01` requires immutable Action pins or an approved exception before Hosted Activation merge.
+- Issue #26 remains the parent coordination item. Its Portable Contract child, Issue #28, is merged and awaiting this closeout PR to close.
+- Issue #29 is the separate Hosted Activation child. SA/Security preflight may proceed, but no privileged workflow, GitHub App, token, or ruleset change is authorized before the required security/human gates. `SEC-26-01` requires immutable Action pins or an approved exception before Hosted Activation merge.
 
 ## Blockers / Open Questions
 - R-002: `.gitlab-ci.yml` has not yet been validated on a live GitLab runner; this is an external verification follow-up, not an active implementation task.
@@ -44,12 +46,13 @@
 - `docs/records/SDD-PLATFORM-READINESS-TRACEABILITY-2026-07-18.md`
 - `docs/records/SECURITY-REVIEW-PLATFORM-READINESS-TRACEABILITY-2026-07-18.md`
 - `docs/records/IMPLEMENTATION-PLAN-PLATFORM-READINESS-TRACEABILITY-2026-07-18.md`
+- Issue #29 Platform Activation & Security Readiness Record (pending SA/Security preflight)
 
 ## Next Quality Gate
-- Developer implements PR-A Portable Contract with regression coverage; no privileged workflow/App/ruleset scope is permitted in PR-A.
+- SA/Security complete Issue #29 preflight and identify any required human approval before Hosted Activation implementation. Issue #28 closes when this closeout PR merges.
 
 ## Recommended Next Agent
-- Developer Agent
+- SA Agent / Security Reviewer
 
 ## Notes
 - RCA evidence: refresh runs `29635734227` and `29635753891` successfully used the App token to edit PR #20, but no `pull_request.edited` readiness run was created. The direct evaluator removes that unsupported event dependency.
