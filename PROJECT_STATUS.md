@@ -4,10 +4,10 @@
 - ID: GitHub Issue #33
 - Title: Enforce Orchestrator dispatch and Boss visibility
 - Owner: BA Agent / SA Agent
-- Status: Requirements direction approved; draft requirement and SDD are ready for Human specification acceptance
+- Status: Requirements and SDD accepted; executable implementation plan is ready for Developer Agent
 
 ## Current Stage
-- Design
+- Planning
 
 ## Change Classification
 - Change Type: Workflow/process improvement
@@ -36,7 +36,7 @@
 - GitHub Issues #26 and #29 were closed by documentation closeout PR #32; child #28 was already closed by PR #30, and PR #31's `post-merge-closeout` signal was removed.
 
 ## In Progress
-- Issue #33 P0/P1 design defines a portable terminal-handoff, dispatch-receipt, and Boss-event contract; P3 autonomous dispatch remains explicitly deferred.
+- Issue #33 P0/P1 plan delivers a portable terminal-handoff, dispatch-receipt, and Boss-event contract; P3 autonomous dispatch remains explicitly deferred.
 
 ## Blockers / Open Questions
 - R-002: `.gitlab-ci.yml` has not yet been validated on a live GitLab runner; this is an external verification follow-up, not an active implementation task.
@@ -45,12 +45,13 @@
 ## Required Artifacts
 - `docs/records/REQUIREMENTS-ORCHESTRATOR-DISPATCH-VISIBILITY-2026-07-18.md` — draft
 - `docs/records/SDD-ORCHESTRATOR-DISPATCH-VISIBILITY-2026-07-18.md` — draft
+- `docs/records/IMPLEMENTATION-PLAN-ORCHESTRATOR-DISPATCH-VISIBILITY-2026-07-18.md` — ready for Developer Agent
 
 ## Next Quality Gate
-- Human specification acceptance of Issue #33 requirements/SDD; then apply `status:spec-ready` and create the implementation plan. No implementation starts before this gate.
+- Developer Agent executes IMP-33-01 through IMP-33-04 with TDD, then routes the Draft PR and exact commit to QA.
 
 ## Recommended Next Agent
-- Human Maintainer
+- Developer Agent
 
 ## Notes
 - RCA evidence: refresh runs `29635734227` and `29635753891` successfully used the App token to edit PR #20, but no `pull_request.edited` readiness run was created. The direct evaluator removes that unsupported event dependency.
