@@ -91,6 +91,12 @@ test('GitHub post-merge closeout script compiles and preserves its completion in
 test('GitHub re-evaluates readiness after linked Issue lifecycle-label changes', async () => {
   const workflow = await readFile('.github/workflows/work-item-readiness-refresh.yml', 'utf8');
 
+  const privilegedActionPins = {
+    'actions/checkout': '34e114876b0b11c390a56381ad16ebd13914f8d5',
+    'actions/create-github-app-token': 'bcd2ba49218906704ab6c1aa796996da409d3eb1',
+    'actions/github-script': 'f28e40c7f34bde8b3046d885e986cb6290c5673b'
+  };
+
   await assert.rejects(
     readFile('.github/workflows/work-item-readiness.yml', 'utf8'),
     { code: 'ENOENT' }
@@ -104,17 +110,17 @@ test('GitHub re-evaluates readiness after linked Issue lifecycle-label changes',
   assert.match(workflow, /branches:\s*\[main\]/);
   assert.match(workflow, /group:\s*work-item-readiness-\$\{\{ github\.repository \}\}/);
   assert.match(workflow, /cancel-in-progress:\s*true/);
-  assert.match(workflow, /actions\/create-github-app-token@v3/);
+  for (const [action, sha] of Object.entries(privilegedActionPins)) {
+    assert.match(workflow, new RegExp(`${action}@${sha}`));
+  }
   assert.match(workflow, /vars\.WORK_ITEM_REFRESH_APP_CLIENT_ID/);
   assert.match(workflow, /secrets\.WORK_ITEM_REFRESH_APP_PRIVATE_KEY/);
   assert.match(workflow, /environment:\s*work-item-refresh/);
   assert.match(workflow, /contents:\s*read/);
   assert.match(workflow, /github-token:\s*\$\{\{ steps\.readiness-token\.outputs\.token \}\}/);
-  assert.match(workflow, /actions\/github-script@v7/);
   assert.match(workflow, /permission-checks:\s*write/);
   assert.match(workflow, /permission-pull-requests:\s*read/);
   assert.match(workflow, /permission-issues:\s*read/);
-  assert.match(workflow, /actions\/checkout@v4/);
   assert.match(workflow, /ref:\s*\$\{\{ github\.event\.repository\.default_branch \}\}/);
   assert.match(workflow, /persist-credentials:\s*false/);
   assert.match(workflow, /checks\.create/);
