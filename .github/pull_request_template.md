@@ -25,9 +25,14 @@
 
 > Ownership: Developer supplies the Work Item URL; QA verifies the linked Issue Acceptance Criteria and evidence. Developer must not self-certify this gate.
 
+> QA verifies the Work Item's canonical Acceptance Traceability Matrix at the verified commit SHA; this Change Request does not duplicate that matrix.
+
 - [ ] Developer: Work Item (Issue) URL:
 - [ ] QA: reviewed every Issue Acceptance Criteria item and recorded its result in the Issue.
 - [ ] QA: evidence comment or review URL:
+- [ ] QA: verified commit SHA:
+- [ ] QA: applicable AC IDs from the Work Item matrix:
+- [ ] QA: N/A rows and evidence-backed rationale:
 - [ ] QA: complete pass advances the Work Item to `phase:human-review` and applies `status:verification-done`.
 - [ ] Documentation-only closeout: N/A — no Work Item acceptance criteria; Documentation Agent review applies.
 

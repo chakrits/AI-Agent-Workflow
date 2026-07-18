@@ -374,6 +374,9 @@ Every agent handoff must include:
 - Verification Performed
 - Evidence References
 - Acceptance Criteria Verification Status
+- Acceptance Traceability Matrix URL
+- Verified Commit SHA
+- Platform Activation Record URL / Status
 - QA Evidence URL
 - Stop Reason
 - Known Limitations

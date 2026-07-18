@@ -1,20 +1,20 @@
 # PROJECT_STATUS.md
 
 ## Current Work Item
-- ID: None — GitHub Issue #19 completed
-- Title: No active work item
-- Owner: Human Maintainer
-- Status: Idle after Issue #19 post-merge closeout
+- ID: GitHub Issue #26
+- Title: Add platform definition-of-ready and QA acceptance traceability
+- Owner: SA Agent
+- Status: Specification approved; Portable Contract implementation planning is complete
 
 ## Current Stage
-- Idle
+- Planning
 
 ## Change Classification
-- Change Type: Workflow/process enhancement with readiness-gate remediation
-- Risk Level: High — dedicated GitHub App Check Run write
-- Code Change Required: Yes — trusted direct evaluator and regression coverage
-- Architecture Change Required: Yes — branch protection will consume an App-owned Check Run instead of an event-chained PR workflow
-- Security Review Required: Yes — GitHub App token, private-key secret, and Check Run write
+- Change Type: Workflow/process improvement with hosted-platform activation controls
+- Risk Level: Medium — templates/policy are portable; a separate hosted increment may touch privileged GitHub App and required-check controls
+- Code Change Required: Yes — templates, contract regression coverage, and any approved hosted hardening
+- Architecture Change Required: Yes — acceptance-evidence and platform-activation control planes are separated
+- Security Review Required: Yes — mandatory before any GitHub App, token, ruleset, or privileged workflow change
 
 ## Completed
 - All 11 agent roles have their current canonical rules, adapters, and regression coverage on `main`.
@@ -30,23 +30,26 @@
 - PR #14's default-branch audit passed in run `29440627931`, created one `post-merge-closeout` signal, and its successful rerun confirmed the handoff is idempotent without creating a `documentation-sync` exception.
 - GitHub Issue #16, canonical agent personas, merged through PR #17 as commit `8e4a3e0`; all seven QA acceptance criteria passed, the default-branch audit run `29510562131` passed, and no `documentation-sync` exception Issue was created.
 - PR #23 merged as `1eb0465`. Its trusted direct readiness evaluator passed independent code and security review. Hosted tests proved both lifecycle-label and `pull_request_target` edited events create an App-owned `work-item-readiness-freshness` Check Run on PR #20; `main` now requires that check from **AI Agent Workflow**.
-- GitHub Issue #19 merged through PR #20 as `fef37cc`. The default-branch validation run `29638910942` and documentation audit run `29638910948` passed; the normal `post-merge-closeout` signal is being closed by this documentation PR.
+- GitHub Issue #19 merged through PR #20 as `fef37cc`; its closeout PR #25 merged as `3f5e4c9`, closed Issue #19, removed the source closeout signal, and passed default-branch validation/audit without a `documentation-sync` exception.
 
 ## In Progress
-- None.
+- Issue #26: Portable Contract implementation plan is ready for Developer. `SEC-26-01` requires immutable Action pins or an approved exception before Hosted Activation merge.
 
 ## Blockers / Open Questions
 - R-002: `.gitlab-ci.yml` has not yet been validated on a live GitLab runner; this is an external verification follow-up, not an active implementation task.
 - Deferred and unscheduled: a Prototype/Spike workflow route and a shared cross-role template pattern.
 
 ## Required Artifacts
-- None.
+- `docs/records/REQUIREMENTS-PLATFORM-READINESS-TRACEABILITY-2026-07-18.md`
+- `docs/records/SDD-PLATFORM-READINESS-TRACEABILITY-2026-07-18.md`
+- `docs/records/SECURITY-REVIEW-PLATFORM-READINESS-TRACEABILITY-2026-07-18.md`
+- `docs/records/IMPLEMENTATION-PLAN-PLATFORM-READINESS-TRACEABILITY-2026-07-18.md`
 
 ## Next Quality Gate
-- None — start the next approved work item.
+- Developer implements PR-A Portable Contract with regression coverage; no privileged workflow/App/ruleset scope is permitted in PR-A.
 
 ## Recommended Next Agent
-- Human Maintainer / Orchestrator for the next work item.
+- Developer Agent
 
 ## Notes
 - RCA evidence: refresh runs `29635734227` and `29635753891` successfully used the App token to edit PR #20, but no `pull_request.edited` readiness run was created. The direct evaluator removes that unsupported event dependency.

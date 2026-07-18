@@ -65,6 +65,12 @@ Evidence and approval reference:
 
 ## Acceptance Criteria Verification Status
 
+## Acceptance Traceability Matrix URL
+
+## Verified Commit SHA
+
+## Platform Activation Record URL / Status
+
 
 ## QA Evidence URL
 
