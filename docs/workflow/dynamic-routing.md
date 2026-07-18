@@ -25,15 +25,15 @@ A terminal handoff must end with exactly one `Next Action`: `Dispatch`, `Human r
 
 The Orchestrator must record the outcome in the same active Orchestrator turn that accepts the terminal handoff. A `Dispatch` outcome needs a receipt with source/target, Work Item/Change Request references, supplied evidence, and the dispatch result. A prose-only instruction such as “send to QA” is not a routed handoff.
 
-Use the portable dispatch-state vocabulary `pending`, `dispatched`, `acknowledged`, `completed`, and `blocked`. `dispatched` records an attempt; it must not be represented as `acknowledged` without receiving-agent or runtime evidence. Where callbacks are unavailable, report `acknowledgement pending` rather than claiming receipt or completion.
+Use the portable dispatch-state vocabulary `pending`, `dispatched`, `acknowledged`, `awaiting_terminal`, `completed`, `cancelled`, `timed_out`, and `blocked`. `dispatched` records an attempt; it must not be represented as `acknowledged` without receiving-agent or runtime evidence. Where callbacks are unavailable, report `acknowledgement pending` rather than claiming receipt or completion.
 
 Every terminal outcome must produce a Boss-visible event with completed work and gate result, next action/owner, dispatch state/evidence, and a blocker or decision need where applicable. `Human review` stops autonomous routing: record `Dispatch State: blocked` and `Stop Reason: human_review_required`. These dispatch-control states are not lifecycle labels and do not replace phase/status evidence.
 
-### Asynchronous Completion Supervision
+### Event-driven Child Completion
 
-Every terminal handoff has a stable `Handoff Event ID`. For an asynchronous dispatch, after a target invocation succeeds and before the Root yields, register one bounded temporary monitor and record `Monitor ID`, owner, target, and state. A target completion must wake the Root continuation with the monitor/result identities; a terminal result is complete only when Root consumes the key `(Handoff Event ID, Terminal Result ID)` exactly once, emits the Boss event without a new Boss message, and cancels the monitor with evidence.
+Every terminal handoff has a stable `Handoff Event ID`, `Parent Orchestrator ID`, and `Child Task ID`. For an asynchronous dispatch, after target invocation succeeds and before the parent ends or yields, the parent registers its native child-terminal await/callback receipt as `Completion Event Evidence`. A target completion resumes that parent with immutable completion-event and terminal-result identities; a terminal result is complete only when the parent consumes `(Handoff Event ID, Terminal Result ID)` exactly once, emits one Boss event, then routes a permitted successor or stops with `Consumption Evidence`.
 
-The monitor only observes and wakes Root. It cannot judge QA, merge, approve, alter a repository, or bypass a human gate. If the host cannot register and wake the monitor, record `blocked` with `monitor_unavailable`; an expired monitor records `monitor_expired`, and an unconsumable wake records `monitor_failed`. These are explicit Boss-visible outcomes, not a fallback to prose routing.
+The native completion primitive only delivers the child receipt. It cannot judge QA, merge, approve, alter a repository, or bypass a human gate. If the host cannot retain and resume the parent, record `blocked` with `host_completion_unavailable`; a deadline expiry records `timed_out`, and an explicit cancellation records `cancelled`. These are explicit Boss-visible outcomes, not a fallback to prose routing or polling. A heartbeat/schedule may be used only as an operator-invoked diagnostic after a block; it cannot route work or establish acceptance evidence.
 
 ## Lifecycle Labels for Feature and Enhancement Work
 

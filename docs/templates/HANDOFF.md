@@ -108,7 +108,7 @@ Yes — every terminal outcome
 
 ## Dispatch State
 
-`pending` / `dispatched` / `acknowledged` / `completed` / `blocked`
+`pending` / `dispatched` / `acknowledged` / `awaiting_terminal` / `completed` / `cancelled` / `timed_out` / `blocked`
 
 ## Source Agent
 
@@ -130,30 +130,26 @@ Concise user-visible result: completed work and gate result; next action/owner; 
 
 Stable ID for this terminal handoff. Required for every terminal handoff.
 
-## Monitor ID
+## Parent Orchestrator ID
 
-For asynchronous `Dispatch`: one receipt-scoped temporary monitor ID. Otherwise `N/A — synchronous or blocked route`.
+Identity of the Orchestrator that owns this child receipt. Required for asynchronous `Dispatch`; otherwise `N/A — synchronous or blocked route`.
 
-## Monitor Owner
+## Child Task ID
 
-`Orchestrator` for a registered monitor; otherwise `N/A`.
-
-## Monitor Target
-
-The dispatched agent/task identity observed by the monitor; otherwise `N/A`.
-
-## Monitor State
-
-`registered` / `waiting` / `wake-pending` / `consumed` / `cancelled` / `expired` / `failed` / `N/A`.
+Identity of the dispatched child/task. Required for asynchronous `Dispatch`; otherwise `N/A — synchronous or blocked route`.
 
 ## Terminal Result ID
 
-Immutable target terminal-result identity once observed; otherwise `pending` or `N/A`.
+Immutable child terminal-result identity once delivered; otherwise `pending` or `N/A`.
 
-## Terminal Consumption Evidence
+## Completion Event Evidence
 
-Continuation-turn evidence binding the Handoff Event ID, Monitor ID, Terminal Result ID, one Boss event, and the outcome. Required before claiming `completed`.
+Native await/callback receipt binding parent, child, handoff event, and terminal result. Required before the parent ends or yields for asynchronous `Dispatch`; otherwise `N/A — synchronous or blocked route`.
 
-## Expiry / Cancellation Reason
+## Consumption Evidence
 
-Required for `cancelled`, `expired`, `failed`, or blocked `monitor_*` outcomes; otherwise `N/A`.
+Parent-continuation evidence: validation decision, one Boss event ID, one route/stop outcome, and closed receipt. Required before claiming `completed`.
+
+## Timeout / Cancellation Reason
+
+Required for `cancelled`, `timed_out`, or blocked `host_completion_unavailable` outcomes; otherwise `N/A`.

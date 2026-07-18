@@ -1,21 +1,21 @@
-# Codex Host Adapter: Temporary Orchestrator Supervision
+# Codex Host Adapter: Parent-owned Child Completion
 
-This adapter implements the canonical P0.5 contract in a Codex host. `collaboration.wait_agent` can observe a target while Root stays active; a Root that will yield must use a receipt-scoped Codex heartbeat created through `codex_app__automation_update`. It is not a repository automation mechanism.
+This adapter applies the canonical event-driven completion contract in an active Codex parent task. It is not a repository automation mechanism.
 
-## Registration before Root yields
+## Parent-owned await
 
-After a non-human target invocation succeeds, Root creates a receipt-scoped `Handoff Event ID` and `Monitor ID`, records `Monitor State: registered`, then registers a bounded `heartbeat` through `codex_app__automation_update` targeted at the current Root thread **before Root yields**. The heartbeat prompt must name the target agent/task, handoff event, expected terminal evidence, next permitted route, one Boss event requirement, and cancellation rule. Record the automation/monitor ID, target-thread ID, bounded expiry, and registration receipt as `Monitor Registration Evidence`.
+After a non-human child invocation succeeds, the parent records a stable `Handoff Event ID`, its `Parent Orchestrator ID`, and the `Child Task ID`. Before the parent ends or yields, it must register and await the child's terminal receipt with `collaboration.wait_agent`. The parent remains active until it receives that terminal result, a cancellation event, or its explicit deadline event.
 
-`collaboration.wait_agent` is allowed only as an in-turn optimization; it is not a substitute for the heartbeat when Root may yield. A repeated wait is permitted only while the same bounded monitor remains `waiting`.
+The receipt records `Dispatch State: awaiting_terminal`, the native `Completion Event Evidence`, and the child identity. A terminal result is not complete merely because a child has posted it: Codex must resume the same parent continuation so it can validate the handoff, consume `(Handoff Event ID, Terminal Result ID)` exactly once, select one permitted successor or stop, and emit one Boss-visible event. The first consumption stores the outcome; duplicate or late terminal receipts must return that stored outcome without another successor dispatch or Boss event.
 
-If the host cannot provide `collaboration.wait_agent` and a continuation capable of consuming the terminal result, do not claim supervision: record `Dispatch State: blocked`, `Stop Reason: monitor_unavailable`, and a Boss event in the current turn.
+## Timeout, cancellation, and unavailable capability
 
-## Wake-up, consumption, and cancellation
+The parent sets a bounded deadline as part of its active wait. A deadline result records `timed_out` and one Boss event; an explicit child cancellation records `cancelled`, rejects stale child output, and emits one Boss event. Neither outcome routes a successor automatically.
 
-When the heartbeat observes the named target terminal result, it wakes/continues the Root thread, validates the target and evidence, and uses `(Handoff Event ID, Terminal Result ID)` as the exactly-once key. The first valid result records terminal-consumption evidence, emits the Boss-visible event without a new Boss message, performs the permitted next dispatch or stop, then disables or deletes the heartbeat through `codex_app__automation_update` and records `Monitor Cancellation Evidence`.
+If the host cannot keep the parent active and resume that parent from a child terminal receipt, the parent must stop with `Dispatch State: blocked` and `Stop Reason: host_completion_unavailable`. The Boss event names the missing primitive and the known child state. It must not claim a future automatic route, use a prose handoff as a substitute, or silently wait for a later Boss message.
 
-Duplicate or late terminal results return the recorded result without another dispatch or Boss event. A bounded timeout must be recorded as `monitor_expired` or `monitor_failed`, with an explicit Boss-visible block. The monitor only observes completion and requests Root continuation: it cannot approve, judge QA, merge, change GitHub/GitLab, or bypass a human gate.
+Heartbeat or schedule automation is diagnostic-only after an already-blocked receipt. It cannot invoke a successor, consume a terminal result, make a workflow decision, or become acceptance evidence.
 
-## Live-host proof
+## Authority boundary
 
-QA must retain one Codex-host transcript showing: target invocation, heartbeat registration before Root yield, target terminal result, Root continuation, one Boss event, next dispatch/stop, duplicate no-op, and monitor cancellation. This repository does not create a webhook, queue, persistent worker, or auto-merge capability.
+`collaboration.wait_agent` only delivers native terminal-receipt metadata to the parent. It cannot judge QA, merge, approve, alter GitHub/GitLab, execute child-provided content, or bypass a human gate. This repository does not create a webhook, queue, persistent worker, or auto-merge capability.

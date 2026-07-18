@@ -43,13 +43,12 @@ Every handoff must be structured. Do not pass work with vague statements such as
 - Acknowledgement Evidence
 - Boss Event
 - Handoff Event ID
-- Monitor ID
-- Monitor Owner
-- Monitor Target
-- Monitor State
+- Parent Orchestrator ID
+- Child Task ID
 - Terminal Result ID
-- Terminal Consumption Evidence
-- Expiry / Cancellation Reason
+- Completion Event Evidence
+- Consumption Evidence
+- Timeout / Cancellation Reason
 
 Use `docs/templates/HANDOFF.md`.
 
@@ -66,7 +65,7 @@ Use `docs/templates/HANDOFF.md`.
 9. In the same active Orchestrator turn that consumes a terminal handoff, `Dispatch` requires a dispatch receipt with a target, evidence, and dispatch result. Naming a non-human next agent in prose without this outcome is invalid.
 10. `dispatched` means a dispatch attempt was recorded; it is not `acknowledged`. Use `acknowledged` only with target-agent or runtime evidence, and report `acknowledgement pending` honestly when that evidence is unavailable.
 11. Every terminal outcome requires a Boss-visible event that states completed work/quality-gate result, next action and owner, receipt state/evidence, and any blocker or decision needed.
-12. Dispatch-control states (`pending`, `dispatched`, `acknowledged`, `completed`, `blocked`) are not lifecycle labels and do not replace existing phase/status evidence. A Human review action records `Dispatch State: blocked` with `Stop Reason: human_review_required`; it must not bypass the human gate.
-13. Each terminal handoff has a stable `Handoff Event ID`. For an asynchronous `Dispatch`, after target invocation succeeds and before the Root yields, the Orchestrator registers one bounded temporary monitor with its `Monitor ID`, owner, target, and `registered`/`waiting` state.
-14. A monitor event identifies one `Terminal Result ID`. Root consumes `(Handoff Event ID, Terminal Result ID)` exactly once, records `Terminal Consumption Evidence`, emits the Boss event without a new Boss message, then cancels the monitor with evidence. Duplicate or late events retain the first result and do not re-dispatch or emit another Boss event.
-15. A host that lacks both monitor registration and Root wake-up records `Dispatch State: blocked`, `Stop Reason: monitor_unavailable`, and a Boss event; it must not claim supervised completion. Bounded monitor expiry or continuation failure records `monitor_expired` or `monitor_failed` with `Expiry / Cancellation Reason`.
+12. Dispatch-control states (`pending`, `dispatched`, `acknowledged`, `awaiting_terminal`, `completed`, `cancelled`, `timed_out`, `blocked`) are not lifecycle labels and do not replace existing phase/status evidence. A Human review action records `Dispatch State: blocked` with `Stop Reason: human_review_required`; it must not bypass the human gate.
+13. Each terminal handoff has a stable `Handoff Event ID`, `Parent Orchestrator ID`, and `Child Task ID`. For an asynchronous `Dispatch`, after target invocation succeeds and before the parent ends or yields, the parent registers a native child-terminal receipt/await callback and records its `Completion Event Evidence`.
+14. A native completion event identifies one immutable `Terminal Result ID`. The resumed parent consumes `(Handoff Event ID, Terminal Result ID)` exactly once, records `Consumption Evidence`, emits the Boss event, routes one permitted successor or stops, then closes the receipt. Duplicate or late events retain the first result and do not re-dispatch or emit another Boss event.
+15. A host that cannot retain and resume the parent records `Dispatch State: blocked`, `Stop Reason: host_completion_unavailable`, and a Boss event; it must not claim automatic continuation. Deadline expiry and explicit cancellation are terminal outcomes: record `timed_out` or `cancelled` with `Timeout / Cancellation Reason`, reject stale child output, and do not use schedule/heartbeat polling as a substitute.

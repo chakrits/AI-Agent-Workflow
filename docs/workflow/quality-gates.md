@@ -53,8 +53,8 @@
 - For a non-human `Dispatch`, the active Orchestrator turn records a dispatch receipt/result; prose-only routing is incomplete.
 - The receipt distinguishes `dispatched` from `acknowledged`; missing callback evidence is reported as `acknowledgement pending`.
 - A Boss-visible event records the completed work/gate result, next action/owner, receipt evidence, and any blocker or decision need.
-- For an asynchronous dispatch, before the Root yields, one bounded monitor registration records `Handoff Event ID`, `Monitor ID`, target, and monitor state.
-- Root consumes a terminal result exactly once, emits the Boss event without a new Boss message, and records cancellation evidence; `monitor_unavailable`, `monitor_expired`, and `monitor_failed` block rather than silently stall.
+- For an asynchronous dispatch, before the parent ends or yields, native parent-owned await/callback evidence records `Handoff Event ID`, `Parent Orchestrator ID`, `Child Task ID`, and `Completion Event Evidence`.
+- The resumed parent consumes a terminal result exactly once, emits one Boss event, and records `Consumption Evidence`; `host_completion_unavailable`, `timed_out`, and `cancelled` are explicit terminal outcomes rather than a silent stall.
 
 ## Orchestrator Dispatch Gate
 
@@ -63,7 +63,7 @@
 - The Orchestrator records the receipt in the same active Orchestrator turn that consumes the handoff.
 - `Human review` records `Dispatch State: blocked` and `Stop Reason: human_review_required`; it does not continue through an autonomous route.
 - Dispatch-control states are not lifecycle labels and do not replace phase/status evidence.
-- Monitor state is separate from dispatch/lifecycle state. Duplicate or late wake-ups are idempotent no-ops after the first terminal consumption.
+- Parent-owned receipt state is separate from dispatch/lifecycle state. Duplicate or late completion events are idempotent no-ops after the first terminal consumption.
 
 ## QA Acceptance Criteria Gate
 

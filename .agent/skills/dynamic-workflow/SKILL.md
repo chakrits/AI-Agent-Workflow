@@ -20,7 +20,7 @@ After selecting a role, read its matching canonical persona to calibrate collabo
 
 For every terminal handoff, follow `docs/workflow/handoff-contract.md` and select exactly one `Next Action`: `Dispatch`, `Human review`, or `Blocked`. A non-human route needs a dispatch receipt/result from the active Orchestrator turn, not prose alone. Keep `dispatched` separate from `acknowledged`; when callback evidence cannot be supplied, report `acknowledgement pending`. Emit a Boss-visible event with the outcome, evidence, owner, receipt state, and any decision needed.
 
-For an asynchronous dispatch, register the receipt-scoped bounded monitor before Root yields. Root consumes a terminal result exactly once, emits the Boss event without a new Boss message, then cancels the monitor; a host without monitor-and-wake support records `monitor_unavailable` instead of claiming supervision.
+For an asynchronous dispatch, the parent records native child-terminal await/callback evidence before it ends or yields. Only a host that retains and resumes the same parent may claim event-driven completion; otherwise record `host_completion_unavailable`. The resumed parent consumes each terminal result exactly once, emits one Boss event, and routes a permitted successor or stops. `timed_out` and `cancelled` are terminal outcomes; heartbeat/schedule use is diagnostic-only after a block and cannot route work.
 
 For Bug Fix work, read and validate against `docs/contracts/bug-fix-workflow.yaml`.
 It is the canonical state, evidence, and two-rework stop policy; this adapter must not redefine it.

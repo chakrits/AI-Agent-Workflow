@@ -394,13 +394,12 @@ Every agent handoff must include:
 - Acknowledgement Evidence
 - Boss Event
 - Handoff Event ID
-- Monitor ID
-- Monitor Owner
-- Monitor Target
-- Monitor State
+- Parent Orchestrator ID
+- Child Task ID
 - Terminal Result ID
-- Terminal Consumption Evidence
-- Expiry / Cancellation Reason
+- Completion Event Evidence
+- Consumption Evidence
+- Timeout / Cancellation Reason
 
 Use `docs/templates/HANDOFF.md`.
 

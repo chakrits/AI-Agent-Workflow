@@ -154,13 +154,12 @@ test('handoff vocabulary stays in parity across AGENTS, contract, and template',
     'Acknowledgement Evidence',
     'Boss Event',
     'Handoff Event ID',
-    'Monitor ID',
-    'Monitor Owner',
-    'Monitor Target',
-    'Monitor State',
+    'Parent Orchestrator ID',
+    'Child Task ID',
     'Terminal Result ID',
-    'Terminal Consumption Evidence',
-    'Expiry / Cancellation Reason'
+    'Completion Event Evidence',
+    'Consumption Evidence',
+    'Timeout / Cancellation Reason'
   ];
   const listFields = (content, heading) => content
     .match(new RegExp(`## ${heading}\\n\\n([\\s\\S]*?)(?=\\n## |$)`))[1]
@@ -195,13 +194,12 @@ test('terminal handoffs require a receipt, an explicit routing outcome, and a Bo
     'Acknowledgement Evidence',
     'Boss Event',
     'Handoff Event ID',
-    'Monitor ID',
-    'Monitor Owner',
-    'Monitor Target',
-    'Monitor State',
+    'Parent Orchestrator ID',
+    'Child Task ID',
     'Terminal Result ID',
-    'Terminal Consumption Evidence',
-    'Expiry / Cancellation Reason'
+    'Completion Event Evidence',
+    'Consumption Evidence',
+    'Timeout / Cancellation Reason'
   ];
   const listFields = (content, heading) => content
     .match(new RegExp(`## ${heading}\\n\\n([\\s\\S]*?)(?=\\n## |$)`))[1]
@@ -238,7 +236,7 @@ test('dynamic-workflow adapters require receipt evidence instead of prose-only n
   }
 });
 
-test('asynchronous Codex handoffs require bounded monitor supervision and exactly-once consumption', async () => {
+test('event-driven child completion requires parent ownership, native evidence, and truthful unsupported-host blocking', async () => {
   const [contract, routing, gates, roles, codexAdapter] = await Promise.all([
     readFile('docs/workflow/handoff-contract.md', 'utf8'),
     readFile('docs/workflow/dynamic-routing.md', 'utf8'),
@@ -249,17 +247,22 @@ test('asynchronous Codex handoffs require bounded monitor supervision and exactl
 
   for (const content of [contract, routing, gates, roles]) {
     assert.match(content, /Handoff Event ID/);
-    assert.match(content, /Monitor ID/);
-    assert.match(content, /before (the )?(Root|Orchestrator) yields/i);
-    assert.match(content, /monitor_unavailable/);
-    assert.match(content, /monitor_expired/);
+    assert.match(content, /Parent Orchestrator ID/);
+    assert.match(content, /Child Task ID/);
+    assert.match(content, /Completion Event Evidence/);
+    assert.match(content, /Consumption Evidence/);
+    assert.match(content, /before (the )?(parent|Root|Orchestrator).*(end|yield)|before.*(end|yield).*parent/i);
+    assert.match(content, /host_completion_unavailable/);
+    assert.match(content, /timed_out/);
+    assert.match(content, /cancelled/);
     assert.match(content, /exactly.once|idempoten/i);
   }
-  assert.match(codexAdapter, /codex_app__automation_update/);
-  assert.match(codexAdapter, /heartbeat/);
-  assert.match(codexAdapter, /not a substitute for the heartbeat/i);
-  assert.match(codexAdapter, /without a new Boss message/i);
-  assert.match(codexAdapter, /cancel/i);
+  assert.match(codexAdapter, /collaboration\.wait_agent/);
+  assert.match(codexAdapter, /parent.*await|await.*parent/i);
+  assert.match(codexAdapter, /native.*terminal.*receipt|terminal.*receipt.*native/i);
+  assert.match(codexAdapter, /host_completion_unavailable/);
+  assert.match(codexAdapter, /diagnostic-only/i);
+  assert.doesNotMatch(codexAdapter, /heartbeat.*before.*yield|yield.*heartbeat/i);
   assert.match(codexAdapter, /does not create a webhook, queue, persistent worker, or auto-merge/i);
 });
 
