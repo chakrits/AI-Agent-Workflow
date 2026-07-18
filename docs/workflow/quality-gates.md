@@ -49,6 +49,18 @@
 - Changed files are listed
 - Known limitations are documented
 - Test data and environment notes are provided
+- Terminal handoff has exactly one `Next Action` and a valid `Next Owner`.
+- For a non-human `Dispatch`, the active Orchestrator turn records a dispatch receipt/result; prose-only routing is incomplete.
+- The receipt distinguishes `dispatched` from `acknowledged`; missing callback evidence is reported as `acknowledgement pending`.
+- A Boss-visible event records the completed work/gate result, next action/owner, receipt evidence, and any blocker or decision need.
+
+## Orchestrator Dispatch Gate
+
+- Every terminal handoff chooses exactly one action: `Dispatch`, `Human review`, or `Blocked`.
+- A dispatch receipt includes `Dispatch State`, `Source Agent`, `Target Agent`, `Dispatch Result`, and `Acknowledgement Evidence`.
+- The Orchestrator records the receipt in the same active Orchestrator turn that consumes the handoff.
+- `Human review` records `Dispatch State: blocked` and `Stop Reason: human_review_required`; it does not continue through an autonomous route.
+- Dispatch-control states are not lifecycle labels and do not replace phase/status evidence.
 
 ## QA Acceptance Criteria Gate
 

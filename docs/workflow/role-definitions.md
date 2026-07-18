@@ -33,6 +33,14 @@ When two roles' outputs conflict on the same work item — SA Agent's architectu
 
 The Bug Fix workflow's two-rework retry budget (`docs/contracts/bug-fix-workflow.yaml`) is one instance of a general rule: if the same two roles route a work item back and forth between each other more than twice without resolution, in any workflow, stop the loop and escalate to Human with the routing history rather than allowing it to continue indefinitely. This does not replace the Bug Fix contract's own retry budget where it already applies — it covers every other flow that has no contract-defined limit of its own.
 
+### Terminal Dispatch and Boss Visibility
+
+When an agent produces a terminal handoff, the Orchestrator must record exactly one outcome in the same active Orchestrator turn: `Dispatch`, `Human review`, or `Blocked`. `Dispatch` requires a named non-human target plus a receipt containing the source/target, supplied evidence, and dispatch result. The Orchestrator must not treat a prose-only next-agent recommendation as a completed route.
+
+The dispatch receipt uses `pending`, `dispatched`, `acknowledged`, `completed`, or `blocked`. `dispatched` only proves a recorded attempt; an `acknowledged` state requires target-agent or runtime evidence. If the platform cannot provide callback evidence, report `acknowledgement pending` honestly.
+
+Every terminal outcome creates a Boss-visible event with the completed work and quality-gate result, next action/owner, receipt state/evidence, and any blocker or decision need. `Human review` is a stop: record `Dispatch State: blocked` with `Stop Reason: human_review_required`, prepare context for Boss, and do not bypass the human gate. Dispatch-control states are not lifecycle labels and do not replace phase/status evidence.
+
 ## PM Agent
 
 Clarifies business goal, priority, scope, success metric, stakeholder impact, roadmap fit, and release intent. The canonical PM Agent business-framing rule is defined here; platform-specific agent files are adapters.

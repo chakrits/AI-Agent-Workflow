@@ -142,7 +142,17 @@ test('handoff vocabulary stays in parity across AGENTS, contract, and template',
     'Known Limitations',
     'Open Questions',
     'QA / Review Focus',
-    'Recommended Next Step'
+    'Recommended Next Step',
+    'Next Action',
+    'Next Owner',
+    'Orchestration Turn ID',
+    'Boss Event Required',
+    'Dispatch State',
+    'Source Agent',
+    'Target Agent',
+    'Dispatch Result',
+    'Acknowledgement Evidence',
+    'Boss Event'
   ];
   const listFields = (content, heading) => content
     .match(new RegExp(`## ${heading}\\n\\n([\\s\\S]*?)(?=\\n## |$)`))[1]
@@ -153,6 +163,63 @@ test('handoff vocabulary stays in parity across AGENTS, contract, and template',
   assert.deepEqual(listFields(agents, 'Required Handoff'), requiredFields);
   assert.deepEqual(listFields(contract, 'Required Fields'), requiredFields);
   assert.deepEqual(templateFields, requiredFields);
+});
+
+test('terminal handoffs require a receipt, an explicit routing outcome, and a Boss-visible event', async () => {
+  const [agents, contract, template, routing, qualityGates, roles] = await Promise.all([
+    readFile('AGENTS.md', 'utf8'),
+    readFile('docs/workflow/handoff-contract.md', 'utf8'),
+    readFile('docs/templates/HANDOFF.md', 'utf8'),
+    readFile('docs/workflow/dynamic-routing.md', 'utf8'),
+    readFile('docs/workflow/quality-gates.md', 'utf8'),
+    readFile('docs/workflow/role-definitions.md', 'utf8')
+  ]);
+
+  const requiredFields = [
+    'Next Action',
+    'Next Owner',
+    'Orchestration Turn ID',
+    'Boss Event Required',
+    'Dispatch State',
+    'Source Agent',
+    'Target Agent',
+    'Dispatch Result',
+    'Acknowledgement Evidence',
+    'Boss Event'
+  ];
+  const listFields = (content, heading) => content
+    .match(new RegExp(`## ${heading}\\n\\n([\\s\\S]*?)(?=\\n## |$)`))[1]
+    .match(/^- (.+)$/gm)
+    .map((field) => field.slice(2));
+  const handoffFields = listFields(contract, 'Required Fields');
+  const templateFields = [...template.matchAll(/^## (.+)$/gm)].map(([, field]) => field);
+
+  for (const field of requiredFields) {
+    assert.ok(handoffFields.includes(field), `handoff contract is missing ${field}`);
+    assert.ok(templateFields.includes(field), `handoff template is missing ${field}`);
+    assert.match(agents, new RegExp(`- ${field.replace(/[\\/]/g, '\\$&')}`));
+  }
+  for (const content of [contract, routing, qualityGates, roles]) {
+    assert.match(content, /exactly one.*Dispatch.*Human review.*Blocked|Dispatch.*Human review.*Blocked/i);
+    assert.match(content, /same active (Orchestrator )?turn/i);
+    assert.match(content, /acknowledg/i);
+    assert.match(content, /Boss-visible|Boss event/i);
+  }
+  assert.match(contract, /non-human.*Dispatch|Dispatch.*non-human/i);
+  assert.match(contract, /human_review_required/);
+  assert.match(contract, /not.*lifecycle label/i);
+});
+
+test('dynamic-workflow adapters require receipt evidence instead of prose-only non-human routing', async () => {
+  const contents = await Promise.all(adapterPaths.map((path) => readFile(path, 'utf8')));
+
+  for (const content of contents) {
+    assert.match(content, /docs\/workflow\/handoff-contract\.md/);
+    assert.match(content, /Dispatch.*Human review.*Blocked/i);
+    assert.match(content, /dispatch receipt|receipt.*dispatch/i);
+    assert.match(content, /acknowledgement pending/i);
+    assert.doesNotMatch(content, /GitHub-only|GitHub specific/i);
+  }
 });
 
 test('lifecycle stages make specification readiness a portable pre-development gate', async () => {

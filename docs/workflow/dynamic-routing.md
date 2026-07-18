@@ -19,6 +19,16 @@ Route work by change type, risk, and required artifacts instead of forcing a lin
 10. Update PROJECT_STATUS.md and TASK_LOG.md
 ```
 
+## Terminal Routing and Dispatch Receipt
+
+A terminal handoff must end with exactly one `Next Action`: `Dispatch`, `Human review`, or `Blocked`. `Next Owner` is mandatory: a named non-human agent for `Dispatch`, the human gate owner for `Human review`, or the resolution owner for `Blocked`.
+
+The Orchestrator must record the outcome in the same active Orchestrator turn that accepts the terminal handoff. A `Dispatch` outcome needs a receipt with source/target, Work Item/Change Request references, supplied evidence, and the dispatch result. A prose-only instruction such as “send to QA” is not a routed handoff.
+
+Use the portable dispatch-state vocabulary `pending`, `dispatched`, `acknowledged`, `completed`, and `blocked`. `dispatched` records an attempt; it must not be represented as `acknowledged` without receiving-agent or runtime evidence. Where callbacks are unavailable, report `acknowledgement pending` rather than claiming receipt or completion.
+
+Every terminal outcome must produce a Boss-visible event with completed work and gate result, next action/owner, dispatch state/evidence, and a blocker or decision need where applicable. `Human review` stops autonomous routing: record `Dispatch State: blocked` and `Stop Reason: human_review_required`. These dispatch-control states are not lifecycle labels and do not replace phase/status evidence.
+
 ## Lifecycle Labels for Feature and Enhancement Work
 
 Keep the current lifecycle stage separate from evidence milestones.

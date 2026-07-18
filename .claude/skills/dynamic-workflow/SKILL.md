@@ -15,5 +15,7 @@ Follow the canonical files. Do not treat this adapter as the source of truth.
 
 For Feature and Enhancement work, require `status:spec-ready` before Developer implementation and keep exactly one current `phase:` label. Follow `docs/workflow/dynamic-routing.md` for the portable lifecycle contract and exceptions.
 
+For every terminal handoff, follow `docs/workflow/handoff-contract.md` and select exactly one `Next Action`: `Dispatch`, `Human review`, or `Blocked`. A non-human route needs a dispatch receipt/result from the active Orchestrator turn, not prose alone. Keep `dispatched` separate from `acknowledged`; when callback evidence cannot be supplied, report `acknowledgement pending`. Emit a Boss-visible event with the outcome, evidence, owner, receipt state, and any decision needed.
+
 For Bug Fix work, read and validate against `docs/contracts/bug-fix-workflow.yaml`.
 It is the canonical state, evidence, and two-rework stop policy; this adapter must not redefine it.
