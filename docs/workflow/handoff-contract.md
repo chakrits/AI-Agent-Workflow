@@ -11,6 +11,8 @@ Every handoff must be structured. Do not pass work with vague statements such as
 - Change Request URL
 - Change Type
 - Risk Level
+- Lifecycle Phase
+- Specification Readiness
 - Current Stage
 - Task State
 - Contract Version

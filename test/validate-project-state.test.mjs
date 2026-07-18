@@ -91,6 +91,11 @@ test('GitHub post-merge closeout script compiles and preserves its completion in
 test('GitHub re-evaluates readiness after linked Issue lifecycle-label changes', async () => {
   const workflow = await readFile('.github/workflows/work-item-readiness-refresh.yml', 'utf8');
 
+  await assert.rejects(
+    readFile('.github/workflows/work-item-readiness.yml', 'utf8'),
+    { code: 'ENOENT' }
+  );
+
   assert.match(workflow, /issues:/);
   assert.match(workflow, /labeled/);
   assert.match(workflow, /unlabeled/);

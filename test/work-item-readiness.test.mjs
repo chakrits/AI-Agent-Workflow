@@ -19,6 +19,34 @@ test('requires specification readiness for drafts', () => {
   );
 });
 
+test('rejects more than one current phase label', () => {
+  assert.deepEqual(
+    validateReadiness({
+      draft: true,
+      workItem: {
+        labels: ['phase:development', 'phase:verification', 'status:spec-ready', 'status:development-done'],
+        isPullRequest: false,
+        isSameRepository: true
+      }
+    }),
+    ['exactly one current phase']
+  );
+});
+
+test('requires development evidence before a draft QA handoff', () => {
+  assert.deepEqual(
+    validateReadiness({
+      draft: true,
+      workItem: {
+        labels: ['phase:verification', 'status:spec-ready'],
+        isPullRequest: false,
+        isSameRepository: true
+      }
+    }),
+    ['status:development-done']
+  );
+});
+
 test('rejects a pull request or external item as a work item', () => {
   assert.deepEqual(
     validateReadiness({ draft: true, workItem: { labels, isPullRequest: true, isSameRepository: true } }),

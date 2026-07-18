@@ -223,6 +223,17 @@ Use `git-workflow-and-versioning` for every commit: atomic commits, the type-pre
 
 ## Dynamic Routing Rules
 
+## Lifecycle Label Contract
+
+For Feature and Enhancement work items, use labels in two separate categories:
+
+- **Current phase** — exactly one `phase:` label identifies the active work stage: `phase:requirements`, `phase:design`, `phase:planning`, `phase:development`, `phase:verification`, `phase:human-review`, or `phase:blocked`.
+- **Evidence milestone** — `status:spec-ready`, `status:development-done`, and `status:verification-done` are additive evidence labels. They do not replace the current phase, their named owner, QA judgment, or human merge approval.
+
+`status:spec-ready` is required before a Developer begins implementation. The selected route decides whether the specification is a lightweight approved Issue record or an approved SDD/design; when an SDD/design is required, Draft or Review status is not sufficient. Documentation-only work follows its Documentation Agent route, and Bug Fix work continues to use `docs/contracts/bug-fix-workflow.yaml` rather than this lifecycle label contract.
+
+On backward routing, replace the current `phase:` label with the receiving stage and record the reason in the handoff. Do not leave multiple active phase labels on an open work item.
+
 ### New Feature
 
 Recommended flow:
@@ -351,6 +362,8 @@ Every agent handoff must include:
 - Change Request URL
 - Change Type
 - Risk Level
+- Lifecycle Phase
+- Specification Readiness
 - Current Stage
 - Task State
 - Contract Version

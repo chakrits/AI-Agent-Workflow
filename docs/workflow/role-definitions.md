@@ -164,10 +164,12 @@ QA work is bidirectional:
 
 Apply this gate to every **Work Item** and its Draft **Change Request**. Platform adapters and request templates supply the hosting-platform labels; this shared rule deliberately uses only the portable terms below.
 
-1. Developer Agent supplies the Work Item URL, opens a Draft Change Request after committing/pushing, and records implementation/test evidence. Developer Agent must not self-certify the Work Item Acceptance Criteria.
+For Feature and Enhancement work, the Work Item has exactly one current `phase:` label. Developer must not begin implementation until the Work Item has `status:spec-ready`; the selected route determines whether that evidence is an approved lightweight specification or an approved SDD/design. Documentation-only work and Bug Fix work retain their existing routes.
+
+1. Developer Agent supplies the Work Item URL, opens a Draft Change Request after committing/pushing, records implementation/test evidence, adds `status:development-done`, and moves the Work Item to `phase:verification`. Developer Agent must not self-certify the Work Item Acceptance Criteria.
 2. QA Agent reviews the exact Draft Change Request against every Work Item Acceptance Criteria item, associated checks, and declared limitations. Tick only criteria supported by evidence; leave failed or unverified criteria unchecked and route the gap back to Developer, BA, SA, or Security Reviewer as appropriate.
 3. QA Agent records the Change Request URL, Acceptance Criteria Verification Status, and QA Evidence URL in the handoff and adds the same evidence as a Work Item comment or Change Request review on the hosting platform.
-4. Only after QA records a complete pass may the Change Request move from Draft to ready for human review. QA evidence does not replace the human merge approval gate.
+4. Only after QA records a complete pass may the Change Request move from Draft to ready for human review. QA adds `status:verification-done` and moves the Work Item to `phase:human-review`; QA evidence does not replace the human merge approval gate.
 
 Use native checklist/comment surfaces where available. Do not automate checklist ticks from CI: checks demonstrate execution, while QA owns the judgment that the Acceptance Criteria are satisfied.
 

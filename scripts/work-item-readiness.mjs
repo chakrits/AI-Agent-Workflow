@@ -30,8 +30,11 @@ export function validateReadiness({
   const phases = labels.filter((label) => label.startsWith('phase:'));
   if (phases.length !== 1) errors.push('exactly one current phase');
   if (!labels.includes('status:spec-ready')) errors.push('status:spec-ready');
-  if (!draft) {
+  const qaHandoff = phases[0] === 'phase:verification';
+  if (!draft || qaHandoff) {
     if (!labels.includes('status:development-done')) errors.push('status:development-done');
+  }
+  if (!draft) {
     if (!labels.includes('status:verification-done')) errors.push('status:verification-done');
     if (!qaEvidence.test(body)) errors.push('QA evidence URL');
   }

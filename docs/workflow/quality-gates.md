@@ -33,6 +33,14 @@
 - Security constraints are documented
 - Testability is considered
 
+## Specification Readiness Gate
+
+- Feature and Enhancement work has exactly one current `phase:` label.
+- `status:spec-ready` exists before Developer implementation begins.
+- The Work Item identifies whether a lightweight specification or an approved SDD/design is required and links the applicable artifact.
+- A route that requires SDD/design cannot advance while that artifact is Draft or Review.
+- Documentation-only work and Bug Fix work use their established routes; this gate does not invent a specification or replace `docs/contracts/bug-fix-workflow.yaml`.
+
 ## Dev -> QA Gate
 
 - Build passes or failure is documented
@@ -44,11 +52,14 @@
 
 ## QA Acceptance Criteria Gate
 
+- Developer supplies `status:spec-ready`, implementation evidence, and `status:development-done` before QA handoff.
 - Work Item URL and Draft Change Request URL are recorded
 - QA verifies every Issue Acceptance Criteria item against the exact PR/MR and evidence
 - QA, not Developer Agent, records the Acceptance Criteria Verification Status and QA Evidence URL
 - Unverified or failed criteria route backward; only a complete QA pass can move the Draft PR/MR to human review
 - QA evidence does not replace human merge approval
+- On complete QA evidence, QA adds `status:verification-done` and moves the Work Item to `phase:human-review`; failures route the current phase backward to the responsible owner.
+- Platform operations, including GitHub's App-owned linked-Issue re-evaluation and GitLab's manual/API boundary, are defined in `docs/workflow/platform-readiness.md`. Do not claim a native pull-request label event observes a linked Issue label change.
 
 ## Post-Merge Closeout Gate
 
