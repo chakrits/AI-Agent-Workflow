@@ -1,20 +1,20 @@
 # PROJECT_STATUS.md
 
 ## Current Work Item
-- ID: GitHub Issue #29
-- Title: Harden hosted readiness activation controls
-- Owner: SA Agent / Security Reviewer
-- Status: Preflight and security design preparation in progress; implementation is not authorized yet
+- ID: None
+- Title: No active delivery work item
+- Owner: Human Maintainer
+- Status: Issue #28 is closed; this closeout PR will close Issue #29 and its parent coordination Issue #26 together
 
 ## Current Stage
-- Design / Security Preflight
+- Human Review — Documentation Closeout
 
 ## Change Classification
-- Change Type: Workflow/process improvement with hosted-platform activation controls
-- Risk Level: Medium — templates/policy are portable; a separate hosted increment may touch privileged GitHub App and required-check controls
-- Code Change Required: Yes — templates, contract regression coverage, and any approved hosted hardening
-- Architecture Change Required: Yes — acceptance-evidence and platform-activation control planes are separated
-- Security Review Required: Yes — mandatory before any GitHub App, token, ruleset, or privileged workflow change
+- Change Type: Documentation-only closeout for a completed security-sensitive workflow change
+- Risk Level: Medium — the source change affected a privileged GitHub Actions workflow; this closeout changes project-state records only
+- Code Change Required: No
+- Architecture Change Required: No
+- Security Review Required: Completed for source PR #31; no security-sensitive configuration changes in this closeout
 
 ## Completed
 - All 11 agent roles have their current canonical rules, adapters, and regression coverage on `main`.
@@ -32,27 +32,29 @@
 - PR #23 merged as `1eb0465`. Its trusted direct readiness evaluator passed independent code and security review. Hosted tests proved both lifecycle-label and `pull_request_target` edited events create an App-owned `work-item-readiness-freshness` Check Run on PR #20; `main` now requires that check from **AI Agent Workflow**.
 - GitHub Issue #19 merged through PR #20 as `fef37cc`; its closeout PR #25 merged as `3f5e4c9`, closed Issue #19, removed the source closeout signal, and passed default-branch validation/audit without a `documentation-sync` exception.
 - GitHub Issue #28 Portable Contract merged through PR #27 as `70a9303`; QA evidence covered PC-01 through PC-05, and default-branch validation/audit runs `29642349695` and `29642349720` passed without a `documentation-sync` exception.
+- GitHub Issue #29 Hosted Activation merged through PR #31 as `196aeb0`; Security review `SEC-02` and QA's full seven-row Acceptance Criteria matrix passed at `f839d1a`. Default-branch contract validation and documentation audit both passed, and GitHub emitted one normal `post-merge-closeout` signal with no `documentation-sync` exception.
 
 ## In Progress
-- Issue #26 remains the parent coordination item. Its Portable Contract child, Issue #28, is merged and awaiting this closeout PR to close.
-- Issue #29 is the separate Hosted Activation child. SA/Security preflight may proceed, but no privileged workflow, GitHub App, token, or ruleset change is authorized before the required security/human gates. `SEC-26-01` requires immutable Action pins or an approved exception before Hosted Activation merge.
+- This marked documentation closeout PR closes Issue #29 and parent coordination Issue #26, then removes PR #31's temporary `post-merge-closeout` signal when merged.
+- No implementation work remains for the #26 parent / #28 Portable Contract / #29 Hosted Activation delivery set.
 
 ## Blockers / Open Questions
 - R-002: `.gitlab-ci.yml` has not yet been validated on a live GitLab runner; this is an external verification follow-up, not an active implementation task.
 - Deferred and unscheduled: a Prototype/Spike workflow route and a shared cross-role template pattern.
 
 ## Required Artifacts
-- `docs/records/REQUIREMENTS-PLATFORM-READINESS-TRACEABILITY-2026-07-18.md`
-- `docs/records/SDD-PLATFORM-READINESS-TRACEABILITY-2026-07-18.md`
-- `docs/records/SECURITY-REVIEW-PLATFORM-READINESS-TRACEABILITY-2026-07-18.md`
-- `docs/records/IMPLEMENTATION-PLAN-PLATFORM-READINESS-TRACEABILITY-2026-07-18.md`
-- Issue #29 Platform Activation & Security Readiness Record (pending SA/Security preflight)
+- `docs/records/REQUIREMENTS-PLATFORM-READINESS-TRACEABILITY-2026-07-18.md` — completed
+- `docs/records/SDD-PLATFORM-READINESS-TRACEABILITY-2026-07-18.md` — completed
+- `docs/records/SECURITY-REVIEW-PLATFORM-READINESS-TRACEABILITY-2026-07-18.md` — completed
+- `docs/records/IMPLEMENTATION-PLAN-PLATFORM-READINESS-TRACEABILITY-2026-07-18.md` — completed
+- Issue #29 Security review: https://github.com/chakrits/AI-Agent-Workflow/issues/29#issuecomment-5011569777
+- Issue #29 QA evidence: https://github.com/chakrits/AI-Agent-Workflow/issues/29#issuecomment-5011585179
 
 ## Next Quality Gate
-- SA/Security complete Issue #29 preflight and identify any required human approval before Hosted Activation implementation. Issue #28 closes when this closeout PR merges.
+- Human review and merge of this marked documentation closeout PR; then verify the PR #31 closeout signal is removed and Issues #29 and #26 are closed.
 
 ## Recommended Next Agent
-- SA Agent / Security Reviewer
+- Human Maintainer
 
 ## Notes
 - RCA evidence: refresh runs `29635734227` and `29635753891` successfully used the App token to edit PR #20, but no `pull_request.edited` readiness run was created. The direct evaluator removes that unsupported event dependency.
@@ -60,4 +62,4 @@
 - Hosted evidence: Issue-label runs `29636953171` (expected failure while `phase:development` was absent) and `29636978535` (success after restoration) published App Check Runs on PR #20. The `pull_request_target` edited-event run `29637202523` also passed and published App Check Run `88061518191`; its restoration run `29637225455` passed.
 - QA recheck: all 6 contract implementation Acceptance Criteria passed at `de4db2b`; the evidence comment is `5010706703`. Issue labels are `phase:human-review`, `status:spec-ready`, `status:development-done`, and `status:verification-done`.
 - R-002 remains the separate live-GitLab-runner follow-up. GitLab uses the manual closeout label/comment equivalent until API automation is separately approved.
-- Issue #19 must preserve the existing Bug Fix contract and exception-driven post-merge closeout behavior; it does not alter either state machine.
+- PR #31's immutable Action pins resolve the `SEC-26-01` supply-chain concern without altering GitHub App permissions, secrets, environment, ruleset, check source/name, or privileged workflow logic.

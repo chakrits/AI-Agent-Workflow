@@ -40,6 +40,7 @@
 - PM Agent instruction branch merged into `main` after final whole-branch review approval.
 
 ### Fixed
+- Hardened the privileged GitHub readiness evaluator by pinning its three third-party Actions to immutable upstream commit SHAs. Security review and regression coverage confirmed no GitHub App permission, secret, environment, ruleset, check-source, or workflow-logic expansion.
 - Post-merge closeout handoff: corrected the GitHub Script's nested-template syntax and granted the closeout job the required pull-request write permission; added compile and job-scoped permission regression coverage. The live PR #14 audit and a rerun both passed without duplicate handoff output.
 - R-001 (Phase 1 hosted-CI confirmation) closed: Human Reviewer confirmed hosted CI is merged and running on `main`. See `RISKS.md`.
 - `docs/operating-model/SKILL_CATALOG.md` reconciled with the real `.agents/skills/` directory: corrected a stale path, added three missing skill entries, and removed four Planned Skills rows already superseded by implemented skills. Added a regression test guarding against this drift recurring.
