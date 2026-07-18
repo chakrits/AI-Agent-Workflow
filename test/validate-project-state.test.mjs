@@ -87,3 +87,36 @@ test('GitHub post-merge closeout script compiles and preserves its completion in
   assert.doesNotThrow(() => new AsyncFunction(script));
   assert.match(script, /post-merge-closeout: complete; source-pr-/);
 });
+
+test('GitHub refreshes readiness after linked Issue lifecycle-label changes', async () => {
+  const workflow = await readFile('.github/workflows/work-item-readiness-refresh.yml', 'utf8');
+
+  assert.match(workflow, /issues:/);
+  assert.match(workflow, /labeled/);
+  assert.match(workflow, /unlabeled/);
+  assert.match(workflow, /actions\/create-github-app-token@v3/);
+  assert.match(workflow, /vars\.WORK_ITEM_REFRESH_APP_CLIENT_ID/);
+  assert.match(workflow, /secrets\.WORK_ITEM_REFRESH_APP_PRIVATE_KEY/);
+  assert.match(workflow, /environment:\s*work-item-refresh/);
+  assert.match(workflow, /github-token:\s*\$\{\{ steps\.refresh-token\.outputs\.token \}\}/);
+  assert.match(workflow, /actions\/github-script@v7/);
+  assert.match(workflow, /work-item-readiness-refresh/);
+  assert.match(workflow, /pulls\.update/);
+  assert.match(workflow, /pulls\.list/);
+  assert.match(workflow, /phase:|status:/);
+  assert.doesNotMatch(workflow, /pull_request_target/);
+  assert.doesNotMatch(workflow, /workflow_run/);
+  assert.doesNotMatch(workflow, /actions\/checkout/);
+  assert.doesNotMatch(workflow, /statuses:\s*write/);
+  assert.doesNotMatch(workflow, /\$\{context\.payload\.label\.name\}/);
+});
+
+test('GitHub readiness refresh workflow script compiles without executing pull request content', async () => {
+  const workflow = await readFile('.github/workflows/work-item-readiness-refresh.yml', 'utf8');
+  const AsyncFunction = Object.getPrototypeOf(async () => {}).constructor;
+  const scripts = [...workflow.matchAll(/          script: \|\n((?:            .*\n?)*)/g)]
+    .map(([, script]) => script.replace(/^            /gm, ''));
+
+  assert.equal(scripts.length, 1);
+  for (const script of scripts) assert.doesNotThrow(() => new AsyncFunction(script));
+});

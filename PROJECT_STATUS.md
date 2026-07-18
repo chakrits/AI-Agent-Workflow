@@ -4,17 +4,17 @@
 - ID: GitHub Issue #19
 - Title: Add lifecycle stages and automated PR readiness gate
 - Owner: Developer Agent / Human Maintainer
-- Status: Bootstrap remediation in progress — trusted decision module must land on `main` before the activation workflow can import it
+- Status: Readiness-refresh bootstrap in progress — trusted workflow must merge before PR #20 can automatically re-check changed Issue state
 
 ## Current Stage
 - Developer Remediation
 
 ## Change Classification
-- Change Type: Bug Fix — GitHub Actions bootstrap ordering
-- Risk Level: Medium — a readiness gate must not execute untrusted pull-request code
-- Code Change Required: Yes — trusted pure decision module and unit coverage
+- Change Type: Bug Fix — stale readiness result after linked-Issue label change
+- Risk Level: Medium — dedicated GitHub App pull-request write
+- Code Change Required: Yes — trusted refresh workflow and regression coverage
 - Architecture Change Required: No
-- Security Review Required: Yes — trusted evaluator boundary
+- Security Review Required: Yes — GitHub App token and private-key secret
 
 ## Completed
 - All 11 agent roles have their current canonical rules, adapters, and regression coverage on `main`.
@@ -31,21 +31,21 @@
 - GitHub Issue #16, canonical agent personas, merged through PR #17 as commit `8e4a3e0`; all seven QA acceptance criteria passed, the default-branch audit run `29510562131` passed, and no `documentation-sync` exception Issue was created.
 
 ## In Progress
-- Issue #19 bootstrap increment: add the pure, testable readiness decision module to `main`; activation remains in Draft PR #20 until this increment merges.
+- Issue #19 refresh bootstrap: edit an invisible PR refresh marker after lifecycle-label changes, then let the existing read-only readiness workflow re-check current state.
 
 ## Blockers / Open Questions
 - R-002: `.gitlab-ci.yml` has not yet been validated on a live GitLab runner; this is an external verification follow-up, not an active implementation task.
 - Deferred and unscheduled: a Prototype/Spike workflow route and a shared cross-role template pattern.
 
 ## Required Artifacts
-- Bootstrap module and unit tests; independent security and code review; hosted activation-check evidence after PR #20 is rebased.
+- Trusted refresh workflow, regression coverage, security/code review, hosted re-check evidence, and readiness-workflow concurrency.
 
 ## Next Quality Gate
-- Security/code review of the bootstrap PR, human merge into `main`, then QA re-check of the rebased PR #20 hosted readiness workflow.
+- Security/code review of the refresh bootstrap, human merge into `main`, then rebase PR #20 and QA verifies automatic re-check after a label change.
 
 ## Recommended Next Agent
-- Security Reviewer, then Human Maintainer for bootstrap-PR merge; QA Agent after activation PR #20 is rebased.
+- Security Reviewer, then Human Maintainer for bootstrap merge; QA Agent after PR #20 is rebased.
 
 ## Notes
-- Root cause: PR #20's adapter checks out trusted `main`, but `scripts/work-item-readiness.mjs` existed only on the PR branch. Do not use a PR-head import fallback; that would weaken the trusted evaluation boundary.
+- The refresh workflow uses a short-lived GitHub App token with only Pull requests: read & write. Its Client ID is a repository variable; its private key is an environment secret in protected `work-item-refresh`, never a repository secret or committed value. It never checks out or executes pull-request content.
 - R-002 remains the separate live-GitLab-runner follow-up. GitLab uses the manual closeout label/comment equivalent until API automation is separately approved.
