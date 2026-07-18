@@ -247,6 +247,8 @@ test('platform readiness and AC traceability remain portable and evidence-owned'
   for (const template of content.slice(4)) {
     assert.match(template, /verified commit SHA/i);
     assert.match(template, /must not self-certify/i);
+    assert.match(template, /applicable AC IDs/i);
+    assert.match(template, /N\/A rows.*rationale/i);
   }
 });
 

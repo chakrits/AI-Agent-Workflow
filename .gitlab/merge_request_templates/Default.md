@@ -27,6 +27,8 @@
 - [ ] QA: reviewed every Issue Acceptance Criteria item and recorded its result in the Issue.
 - [ ] QA: evidence comment or review URL:
 - [ ] QA: verified commit SHA:
+- [ ] QA: applicable AC IDs from the Work Item matrix:
+- [ ] QA: N/A rows and evidence-backed rationale:
 - [ ] QA: complete pass advances the Work Item to `phase:human-review` and applies `status:verification-done`.
 - [ ] Documentation-only closeout: N/A — no Work Item acceptance criteria; Documentation Agent review applies.
 
