@@ -3,18 +3,18 @@
 ## Current Work Item
 - ID: GitHub Issue #33
 - Title: Enforce Orchestrator dispatch and Boss visibility
-- Owner: Security Reviewer
-- Status: Developer implemented the approved event-driven parent-owned child-completion contract; Draft PR #34 must not merge before Security review and QA's live native-parent-resumption evidence pass
+- Owner: Human Maintainer / SA Agent
+- Status: PR #34 merged as a human merge exception; Issue #33 remains open because QA blocked the required live-host proof. No complete QA pass or acceptance closure is recorded.
 
 ## Current Stage
-- Security review
+- Blocked — host capability / human architecture decision
 
 ## Change Classification
 - Change Type: Workflow/process architecture correction
 - Risk Level: Medium — changes parent/child routing, host-resumption, and delivery-observability contracts without adding a repository execution runtime
 - Code Change Required: Yes — canonical workflow, templates/adapters, and regression coverage
 - Architecture Change Required: Yes — terminal handoff, dispatch receipt, and Boss event boundary
-- Security Review Required: Not for approved P0/P1 scope; mandatory if P3 dispatcher, credentials, permissions, or execution endpoints are proposed
+- Security Review Required: P3 durable dispatcher design/implementation requires Security review before human approval
 
 ## Completed
 - All 11 agent roles have their current canonical rules, adapters, and regression coverage on `main`.
@@ -36,7 +36,9 @@
 - GitHub Issues #26 and #29 were closed by documentation closeout PR #32; child #28 was already closed by PR #30, and PR #31's `post-merge-closeout` signal was removed.
 
 ## In Progress
-- Issue #33 P0/P1 contract is implemented in Draft PR #34. The approved correction replaces the earlier heartbeat-based P0.5 design with native event-driven parent retention/resumption, exactly-once consumption, cancellation/timeout outcomes, and truthful unsupported-host blocking. Heartbeat is diagnostic-only; P3 durable cross-session dispatch remains deferred. Developer local evidence is ready for Security review; live host proof remains a QA gate.
+- PR #34 merged as `fa706800f5f1fabb5b64cde6ebffb5e932d63e66`; its successful default-branch audit emitted the normal `post-merge-closeout` signal. That signal requires this documentation synchronization only and is not QA or acceptance evidence.
+- Issue #33 remains open. QA blocked the live-host proof at [Issue comment 5012113857](https://github.com/chakrits/AI-Agent-Workflow/issues/33#issuecomment-5012113857): `ORCH-02`, `ORCH-04`, and `ORCH-06` were not proven. The current GitHub labels `phase:human-review` and `status:verification-done` conflict with that evidence and must not be treated as authoritative.
+- GitHub Issue #35 is the existing P3 durable event-driven dispatcher design proposal. It is deferred work only: no implementation is authorized until SA design, Security review, and human approval are complete.
 
 ## Blockers / Open Questions
 - R-002: `.gitlab-ci.yml` has not yet been validated on a live GitLab runner; this is an external verification follow-up, not an active implementation task.
@@ -48,15 +50,16 @@
 - `docs/records/IMPLEMENTATION-PLAN-ORCHESTRATOR-DISPATCH-VISIBILITY-2026-07-18.md` — ready for Developer Agent
 
 ## Next Quality Gate
-- Security Reviewer checks the exact Draft PR #34 diff for host/control-plane boundary regressions; then QA performs the mandatory live parent-resumption proof without a new Boss message.
+- Human Maintainer decides how to reconcile the incomplete Issue #33 lifecycle state and whether to sponsor Issue #35 design. If sponsored: SA design → Security review → human approval precede any P3 implementation.
 
 ## Recommended Next Agent
-- Security Reviewer, then QA Agent if Security passes
+- Human Maintainer, then SA Agent for Issue #35 only if the P3 design is authorized
 
 ## Notes
 - RCA evidence: refresh runs `29635734227` and `29635753891` successfully used the App token to edit PR #20, but no `pull_request.edited` readiness run was created. The direct evaluator removes that unsupported event dependency.
 - The direct evaluator uses a short-lived GitHub App token with only Pull requests: read, Issues: read, and Checks: read & write. Its Client ID is a repository variable; its private key is an environment secret in protected `work-item-refresh`, never a repository secret or committed value. The environment's `main` branch restriction does not itself protect a `pull_request_target` run from fork context; safety comes from checking out only trusted `main` and never executing PR-head content. Main branch protection must pin `work-item-readiness-freshness` to the AI Agent Workflow App source, never Any source.
 - Hosted evidence: Issue-label runs `29636953171` (expected failure while `phase:development` was absent) and `29636978535` (success after restoration) published App Check Runs on PR #20. The `pull_request_target` edited-event run `29637202523` also passed and published App Check Run `88061518191`; its restoration run `29637225455` passed.
-- QA recheck: all 6 contract implementation Acceptance Criteria passed at `de4db2b`; the evidence comment is `5010706703`. Issue labels are `phase:human-review`, `status:spec-ready`, `status:development-done`, and `status:verification-done`.
+- QA recheck: all 6 contract implementation Acceptance Criteria passed at `de4db2b`; the evidence comment is `5010706703`. This earlier readiness-gate evidence does not supersede Issue #33's later live-host QA block.
+- PR #34 merge is a human decision, not evidence that Issue #33 acceptance criteria passed. Do not close Issue #33, mark QA passed, or use `status:verification-done` / `phase:human-review` as proof until independently corrected with valid QA evidence.
 - R-002 remains the separate live-GitLab-runner follow-up. GitLab uses the manual closeout label/comment equivalent until API automation is separately approved.
 - PR #31's immutable Action pins resolve the `SEC-26-01` supply-chain concern without altering GitHub App permissions, secrets, environment, ruleset, check source/name, or privileged workflow logic.
