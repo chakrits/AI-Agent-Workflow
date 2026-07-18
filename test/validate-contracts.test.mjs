@@ -152,7 +152,15 @@ test('handoff vocabulary stays in parity across AGENTS, contract, and template',
     'Target Agent',
     'Dispatch Result',
     'Acknowledgement Evidence',
-    'Boss Event'
+    'Boss Event',
+    'Handoff Event ID',
+    'Monitor ID',
+    'Monitor Owner',
+    'Monitor Target',
+    'Monitor State',
+    'Terminal Result ID',
+    'Terminal Consumption Evidence',
+    'Expiry / Cancellation Reason'
   ];
   const listFields = (content, heading) => content
     .match(new RegExp(`## ${heading}\\n\\n([\\s\\S]*?)(?=\\n## |$)`))[1]
@@ -185,7 +193,15 @@ test('terminal handoffs require a receipt, an explicit routing outcome, and a Bo
     'Target Agent',
     'Dispatch Result',
     'Acknowledgement Evidence',
-    'Boss Event'
+    'Boss Event',
+    'Handoff Event ID',
+    'Monitor ID',
+    'Monitor Owner',
+    'Monitor Target',
+    'Monitor State',
+    'Terminal Result ID',
+    'Terminal Consumption Evidence',
+    'Expiry / Cancellation Reason'
   ];
   const listFields = (content, heading) => content
     .match(new RegExp(`## ${heading}\\n\\n([\\s\\S]*?)(?=\\n## |$)`))[1]
@@ -220,6 +236,29 @@ test('dynamic-workflow adapters require receipt evidence instead of prose-only n
     assert.match(content, /acknowledgement pending/i);
     assert.doesNotMatch(content, /GitHub-only|GitHub specific/i);
   }
+});
+
+test('asynchronous Codex handoffs require bounded monitor supervision and exactly-once consumption', async () => {
+  const [contract, routing, gates, roles, codexAdapter] = await Promise.all([
+    readFile('docs/workflow/handoff-contract.md', 'utf8'),
+    readFile('docs/workflow/dynamic-routing.md', 'utf8'),
+    readFile('docs/workflow/quality-gates.md', 'utf8'),
+    readFile('docs/workflow/role-definitions.md', 'utf8'),
+    readFile('.codex/orchestrator-supervision.md', 'utf8')
+  ]);
+
+  for (const content of [contract, routing, gates, roles]) {
+    assert.match(content, /Handoff Event ID/);
+    assert.match(content, /Monitor ID/);
+    assert.match(content, /before (the )?(Root|Orchestrator) yields/i);
+    assert.match(content, /monitor_unavailable/);
+    assert.match(content, /monitor_expired/);
+    assert.match(content, /exactly.once|idempoten/i);
+  }
+  assert.match(codexAdapter, /collaboration\.wait_agent/);
+  assert.match(codexAdapter, /without a new Boss message/i);
+  assert.match(codexAdapter, /cancel/i);
+  assert.match(codexAdapter, /does not create a webhook, queue, persistent worker, or auto-merge/i);
 });
 
 test('lifecycle stages make specification readiness a portable pre-development gate', async () => {

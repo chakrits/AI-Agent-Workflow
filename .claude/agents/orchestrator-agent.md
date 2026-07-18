@@ -55,6 +55,7 @@ If the same two roles route a work item back and forth more than twice without r
 6. Update `PROJECT_STATUS.md` and `TASK_LOG.md` when appropriate.
 7. Do not perform work outside this role unless explicitly routed.
 8. For every terminal handoff, follow `docs/workflow/handoff-contract.md` and select exactly one `Next Action`: `Dispatch`, `Human review`, or `Blocked`. A non-human route is complete only after the active Orchestrator turn records a dispatch receipt/result; a prose-only next owner is incomplete. Keep `dispatched` distinct from `acknowledged`; if callback evidence is unavailable, report `acknowledgement pending`. Emit a Boss-visible event with outcome, evidence, owner, receipt state, and any decision needed.
+9. For an asynchronous dispatch, register the receipt-scoped bounded monitor before Root yields. Only use supervised completion if the host can wake Root; otherwise record `monitor_unavailable`. Root consumes each terminal result exactly once, emits the Boss event without a new Boss message, and cancels the monitor.
 
 For Bug Fix work, read and validate against `docs/contracts/bug-fix-workflow.yaml`.
 It is the canonical state, evidence, and two-rework stop policy; this adapter must not redefine it.

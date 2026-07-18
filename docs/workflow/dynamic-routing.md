@@ -29,6 +29,12 @@ Use the portable dispatch-state vocabulary `pending`, `dispatched`, `acknowledge
 
 Every terminal outcome must produce a Boss-visible event with completed work and gate result, next action/owner, dispatch state/evidence, and a blocker or decision need where applicable. `Human review` stops autonomous routing: record `Dispatch State: blocked` and `Stop Reason: human_review_required`. These dispatch-control states are not lifecycle labels and do not replace phase/status evidence.
 
+### Asynchronous Completion Supervision
+
+Every terminal handoff has a stable `Handoff Event ID`. For an asynchronous dispatch, after a target invocation succeeds and before the Root yields, register one bounded temporary monitor and record `Monitor ID`, owner, target, and state. A target completion must wake the Root continuation with the monitor/result identities; a terminal result is complete only when Root consumes the key `(Handoff Event ID, Terminal Result ID)` exactly once, emits the Boss event without a new Boss message, and cancels the monitor with evidence.
+
+The monitor only observes and wakes Root. It cannot judge QA, merge, approve, alter a repository, or bypass a human gate. If the host cannot register and wake the monitor, record `blocked` with `monitor_unavailable`; an expired monitor records `monitor_expired`, and an unconsumable wake records `monitor_failed`. These are explicit Boss-visible outcomes, not a fallback to prose routing.
+
 ## Lifecycle Labels for Feature and Enhancement Work
 
 Keep the current lifecycle stage separate from evidence milestones.

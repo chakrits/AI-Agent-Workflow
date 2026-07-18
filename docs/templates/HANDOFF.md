@@ -125,3 +125,35 @@ Target-agent/runtime receipt. If unavailable while dispatched, state `acknowledg
 ## Boss Event
 
 Concise user-visible result: completed work and gate result; next action/owner; receipt state/evidence; blocker or decision needed.
+
+## Handoff Event ID
+
+Stable ID for this terminal handoff. Required for every terminal handoff.
+
+## Monitor ID
+
+For asynchronous `Dispatch`: one receipt-scoped temporary monitor ID. Otherwise `N/A — synchronous or blocked route`.
+
+## Monitor Owner
+
+`Orchestrator` for a registered monitor; otherwise `N/A`.
+
+## Monitor Target
+
+The dispatched agent/task identity observed by the monitor; otherwise `N/A`.
+
+## Monitor State
+
+`registered` / `waiting` / `wake-pending` / `consumed` / `cancelled` / `expired` / `failed` / `N/A`.
+
+## Terminal Result ID
+
+Immutable target terminal-result identity once observed; otherwise `pending` or `N/A`.
+
+## Terminal Consumption Evidence
+
+Continuation-turn evidence binding the Handoff Event ID, Monitor ID, Terminal Result ID, one Boss event, and the outcome. Required before claiming `completed`.
+
+## Expiry / Cancellation Reason
+
+Required for `cancelled`, `expired`, `failed`, or blocked `monitor_*` outcomes; otherwise `N/A`.

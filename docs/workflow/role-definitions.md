@@ -41,6 +41,8 @@ The dispatch receipt uses `pending`, `dispatched`, `acknowledged`, `completed`, 
 
 Every terminal outcome creates a Boss-visible event with the completed work and quality-gate result, next action/owner, receipt state/evidence, and any blocker or decision need. `Human review` is a stop: record `Dispatch State: blocked` with `Stop Reason: human_review_required`, prepare context for Boss, and do not bypass the human gate. Dispatch-control states are not lifecycle labels and do not replace phase/status evidence.
 
+For asynchronous dispatches, the Orchestrator registers one bounded temporary monitor after successful invocation and before the Root yields. The receipt records `Handoff Event ID`, `Monitor ID`, target, and monitor lifecycle. When the host wakes Root with a `Terminal Result ID`, Root consumes `(Handoff Event ID, Terminal Result ID)` exactly once, emits the Boss event without a new Boss message, and cancels the monitor with evidence. The monitor has no authority to make a workflow decision. If monitor registration/wake-up is unavailable, expires, or fails, record `monitor_unavailable`, `monitor_expired`, or `monitor_failed` as an evidence-backed blocked result.
+
 ## PM Agent
 
 Clarifies business goal, priority, scope, success metric, stakeholder impact, roadmap fit, and release intent. The canonical PM Agent business-framing rule is defined here; platform-specific agent files are adapters.

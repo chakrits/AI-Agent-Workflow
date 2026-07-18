@@ -20,6 +20,8 @@ Use this workflow for all software engineering tasks unless a more specific work
 
 For every terminal handoff, use `docs/workflow/handoff-contract.md` and choose exactly one `Next Action`: `Dispatch`, `Human review`, or `Blocked`. A non-human route is complete only when the active Orchestrator turn records a dispatch receipt and dispatch result; a prose-only next owner is not a dispatch. Keep `dispatched` distinct from `acknowledged`; where callback evidence is unavailable, report `acknowledgement pending` rather than claiming receipt or completion. Every terminal result needs a Boss-visible event with the outcome, evidence, owner, receipt state, and any decision needed.
 
+For an asynchronous dispatch, register the bounded monitor recorded by the canonical handoff contract before Root yields. Only a host with monitor-and-wake support may claim supervised completion; otherwise record `monitor_unavailable` as blocked. Root consumes each terminal result exactly once, emits the Boss event without a new Boss message, and cancels the monitor.
+
 `status:spec-ready` is the portable specification readiness gate before Developer implementation. It is separate from `status:development-done` and `status:verification-done`; see `docs/workflow/dynamic-routing.md` for the canonical labels, exceptions, and backward routing.
 
 For Bug Fix work, read and validate against `docs/contracts/bug-fix-workflow.yaml`.

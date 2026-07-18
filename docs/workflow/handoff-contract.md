@@ -42,6 +42,14 @@ Every handoff must be structured. Do not pass work with vague statements such as
 - Dispatch Result
 - Acknowledgement Evidence
 - Boss Event
+- Handoff Event ID
+- Monitor ID
+- Monitor Owner
+- Monitor Target
+- Monitor State
+- Terminal Result ID
+- Terminal Consumption Evidence
+- Expiry / Cancellation Reason
 
 Use `docs/templates/HANDOFF.md`.
 
@@ -59,3 +67,6 @@ Use `docs/templates/HANDOFF.md`.
 10. `dispatched` means a dispatch attempt was recorded; it is not `acknowledged`. Use `acknowledged` only with target-agent or runtime evidence, and report `acknowledgement pending` honestly when that evidence is unavailable.
 11. Every terminal outcome requires a Boss-visible event that states completed work/quality-gate result, next action and owner, receipt state/evidence, and any blocker or decision needed.
 12. Dispatch-control states (`pending`, `dispatched`, `acknowledged`, `completed`, `blocked`) are not lifecycle labels and do not replace existing phase/status evidence. A Human review action records `Dispatch State: blocked` with `Stop Reason: human_review_required`; it must not bypass the human gate.
+13. Each terminal handoff has a stable `Handoff Event ID`. For an asynchronous `Dispatch`, after target invocation succeeds and before the Root yields, the Orchestrator registers one bounded temporary monitor with its `Monitor ID`, owner, target, and `registered`/`waiting` state.
+14. A monitor event identifies one `Terminal Result ID`. Root consumes `(Handoff Event ID, Terminal Result ID)` exactly once, records `Terminal Consumption Evidence`, emits the Boss event without a new Boss message, then cancels the monitor with evidence. Duplicate or late events retain the first result and do not re-dispatch or emit another Boss event.
+15. A host that lacks both monitor registration and Root wake-up records `Dispatch State: blocked`, `Stop Reason: monitor_unavailable`, and a Boss event; it must not claim supervised completion. Bounded monitor expiry or continuation failure records `monitor_expired` or `monitor_failed` with `Expiry / Cancellation Reason`.

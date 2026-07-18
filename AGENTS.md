@@ -393,6 +393,14 @@ Every agent handoff must include:
 - Dispatch Result
 - Acknowledgement Evidence
 - Boss Event
+- Handoff Event ID
+- Monitor ID
+- Monitor Owner
+- Monitor Target
+- Monitor State
+- Terminal Result ID
+- Terminal Consumption Evidence
+- Expiry / Cancellation Reason
 
 Use `docs/templates/HANDOFF.md`.
 
