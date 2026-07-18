@@ -88,25 +88,43 @@ test('GitHub post-merge closeout script compiles and preserves its completion in
   assert.match(script, /post-merge-closeout: complete; source-pr-/);
 });
 
-test('GitHub refreshes readiness after linked Issue lifecycle-label changes', async () => {
+test('GitHub re-evaluates readiness after linked Issue lifecycle-label changes', async () => {
   const workflow = await readFile('.github/workflows/work-item-readiness-refresh.yml', 'utf8');
 
   assert.match(workflow, /issues:/);
   assert.match(workflow, /labeled/);
   assert.match(workflow, /unlabeled/);
+  assert.match(workflow, /pull_request_target:/);
+  assert.match(workflow, /opened, synchronize, reopened, ready_for_review, edited/);
+  assert.match(workflow, /branches:\s*\[main\]/);
+  assert.match(workflow, /group:\s*work-item-readiness-\$\{\{ github\.repository \}\}/);
+  assert.match(workflow, /cancel-in-progress:\s*true/);
   assert.match(workflow, /actions\/create-github-app-token@v3/);
   assert.match(workflow, /vars\.WORK_ITEM_REFRESH_APP_CLIENT_ID/);
   assert.match(workflow, /secrets\.WORK_ITEM_REFRESH_APP_PRIVATE_KEY/);
   assert.match(workflow, /environment:\s*work-item-refresh/);
-  assert.match(workflow, /github-token:\s*\$\{\{ steps\.refresh-token\.outputs\.token \}\}/);
+  assert.match(workflow, /contents:\s*read/);
+  assert.match(workflow, /github-token:\s*\$\{\{ steps\.readiness-token\.outputs\.token \}\}/);
   assert.match(workflow, /actions\/github-script@v7/);
-  assert.match(workflow, /work-item-readiness-refresh/);
-  assert.match(workflow, /pulls\.update/);
+  assert.match(workflow, /permission-checks:\s*write/);
+  assert.match(workflow, /permission-pull-requests:\s*read/);
+  assert.match(workflow, /permission-issues:\s*read/);
+  assert.match(workflow, /actions\/checkout@v4/);
+  assert.match(workflow, /ref:\s*\$\{\{ github\.event\.repository\.default_branch \}\}/);
+  assert.match(workflow, /persist-credentials:\s*false/);
+  assert.match(workflow, /checks\.create/);
+  assert.match(workflow, /issues\.get/);
+  assert.match(workflow, /work-item-readiness-check\.mjs/);
   assert.match(workflow, /pulls\.list/);
+  assert.match(workflow, /for \(const pull of pulls\)/);
+  assert.match(workflow, /catch \(error\)/);
+  assert.match(workflow, /resolutionError/);
   assert.match(workflow, /phase:|status:/);
-  assert.doesNotMatch(workflow, /pull_request_target/);
+  assert.doesNotMatch(workflow, /github\.event\.pull_request\.head\.sha/);
+  assert.doesNotMatch(workflow, /context\.payload\.pull_request\s*\?/);
   assert.doesNotMatch(workflow, /workflow_run/);
-  assert.doesNotMatch(workflow, /actions\/checkout/);
+  assert.doesNotMatch(workflow, /pulls\.update/);
+  assert.doesNotMatch(workflow, /^\s*-?\s*run:/m);
   assert.doesNotMatch(workflow, /statuses:\s*write/);
   assert.doesNotMatch(workflow, /\$\{context\.payload\.label\.name\}/);
 });
