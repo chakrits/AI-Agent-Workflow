@@ -7,8 +7,8 @@ Resolve the QA blockers for Issue #19 / PR #20 without expanding GitHub token pe
 ## Changed Areas
 
 - `scripts/work-item-readiness.mjs` — pure lifecycle/closeout decision.
-- `.github/workflows/work-item-readiness.yml` — read-only API adapter importing the trusted decision module.
-- `docs/workflow/platform-readiness.md` — GitHub/GitLab setup, manual boundary, and linked-Issue event limitation.
+- Historical `.github/workflows/work-item-readiness.yml` adapter — superseded by the App-owned evaluator in PRs #23 and #24.
+- `docs/workflow/platform-readiness.md` — GitHub/GitLab setup, App-owned lifecycle evaluation, and GitLab manual boundary.
 - Regression tests and project handoff records.
 
 ## Review Focus
@@ -17,8 +17,8 @@ Resolve the QA blockers for Issue #19 / PR #20 without expanding GitHub token pe
 2. Confirm a closeout exemption needs both the source PR signal and authorized files.
 3. Confirm no permission exceeds read-only `contents`, `pull-requests`, and `issues`.
 4. Confirm GitLab guidance does not imply API readiness enforcement without approved credentials.
-5. Confirm the QA rerun requirement accurately reflects GitHub event behavior.
+5. Confirm the canonical evaluator, rather than the historical manual rerun, reflects current GitHub event behavior.
 
 ## Findings
 
-No new dependency, secret, write API call, or dead code was introduced. The remaining limitation is intentional and documented: linked Issue label changes need a QA-triggered PR check rerun.
+No new dependency, secret, write API call, or dead code was introduced by the historical remediation. PRs #23 and #24 later replaced its manual-rerun limitation with the approved App-owned evaluator.

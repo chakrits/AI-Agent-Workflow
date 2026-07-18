@@ -56,28 +56,6 @@ test('GitHub requires a completed documentation-impact assessment before a PR ca
   assert.match(template, /No documentation impact/);
 });
 
-test('GitHub validates lifecycle readiness without automating QA acceptance decisions', async () => {
-  const workflow = await readFile('.github/workflows/work-item-readiness.yml', 'utf8');
-
-  assert.match(workflow, /pull_request:/);
-  assert.match(workflow, /ready_for_review/);
-  assert.match(workflow, /labeled/);
-  assert.match(workflow, /unlabeled/);
-  assert.match(workflow, /pull-requests:\s*read/);
-  assert.match(workflow, /issues:\s*read/);
-  assert.match(workflow, /actions\/github-script@v7/);
-  assert.match(workflow, /actions\/checkout@v4/);
-  assert.match(workflow, /github\.event\.repository\.default_branch/);
-  assert.match(workflow, /scripts\/work-item-readiness\.mjs/);
-  assert.match(workflow, /validateReadiness/);
-  assert.match(workflow, /post-merge-closeout: complete; source-pr-/);
-  assert.match(workflow, /sameRepository/);
-  assert.match(workflow, /sourcePullRequest/);
-  assert.match(workflow, /listFiles/);
-  assert.doesNotMatch(workflow, /issues\.update/);
-  assert.doesNotMatch(workflow, /updateIssue/);
-});
-
 test('GitHub separates normal post-merge closeout from documentation-sync exceptions', async () => {
   const workflow = await readFile('.github/workflows/documentation-sync.yml', 'utf8');
 
@@ -112,6 +90,11 @@ test('GitHub post-merge closeout script compiles and preserves its completion in
 
 test('GitHub re-evaluates readiness after linked Issue lifecycle-label changes', async () => {
   const workflow = await readFile('.github/workflows/work-item-readiness-refresh.yml', 'utf8');
+
+  await assert.rejects(
+    readFile('.github/workflows/work-item-readiness.yml', 'utf8'),
+    { code: 'ENOENT' }
+  );
 
   assert.match(workflow, /issues:/);
   assert.match(workflow, /labeled/);

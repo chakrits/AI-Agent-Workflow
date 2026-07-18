@@ -14,11 +14,11 @@ Create the following labels in each hosting platform. An open Feature or Enhance
 
 ## GitHub Pull Request Readiness
 
-`.github/workflows/work-item-readiness.yml` reads the linked Work Item and evaluates the trusted default-branch `scripts/work-item-readiness.mjs` decision module. It has read-only `contents`, `pull-requests`, and `issues` permissions. It checks structural evidence only; it does not tick Issue Acceptance Criteria or replace QA judgment.
+`.github/workflows/work-item-readiness-refresh.yml` is the canonical GitHub evaluator. It runs trusted default-branch code on base-`main` `pull_request_target` events and `phase:`/`status:` Issue-label changes, reads the current Issue state with a least-privilege GitHub App token, and publishes the App-owned `work-item-readiness-freshness` Check Run on every open `main` PR. It checks structural evidence only; it does not tick Issue Acceptance Criteria or replace QA judgment.
 
-The check runs when the pull request is opened, edited, synchronized, reopened, changed from Draft, or its **pull request** labels change. A linked Issue label event does not trigger a `pull_request` workflow. Therefore, when QA adds, removes, or corrects a linked Work Item label, QA must rerun the readiness check from the pull request's **Checks** tab before moving it to `phase:human-review` or asking for merge. The rerun reads the current Issue labels and fails if the required evidence is absent.
+The check therefore re-evaluates automatically when QA adds, removes, or corrects a linked Work Item lifecycle label. Main branch protection requires this check only when its source is **AI Agent Workflow**, never “Any source”. The evaluator checks out only trusted default-branch content and never executes PR-head code.
 
-This is a deliberate least-privilege boundary: automatically finding affected pull requests and rerunning their checks would require a separate write-capable GitHub automation design and approval. Do not claim that `pull_request` `labeled` or `unlabeled` events observe Issue label changes.
+A linked Issue label does not trigger a native `pull_request` workflow; the trusted App evaluator exists specifically to close that event gap. Historical PR #20 records describing a manual QA rerun are superseded by PRs #23 and #24.
 
 ## GitLab Issue and Merge Request Readiness
 

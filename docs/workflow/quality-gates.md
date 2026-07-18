@@ -59,7 +59,7 @@
 - Unverified or failed criteria route backward; only a complete QA pass can move the Draft PR/MR to human review
 - QA evidence does not replace human merge approval
 - On complete QA evidence, QA adds `status:verification-done` and moves the Work Item to `phase:human-review`; failures route the current phase backward to the responsible owner.
-- Platform operations, including GitHub's linked-Issue-label rerun requirement and GitLab's manual/API boundary, are defined in `docs/workflow/platform-readiness.md`. Do not claim a pull-request label event observes a linked Issue label change.
+- Platform operations, including GitHub's App-owned linked-Issue re-evaluation and GitLab's manual/API boundary, are defined in `docs/workflow/platform-readiness.md`. Do not claim a native pull-request label event observes a linked Issue label change.
 
 ## Post-Merge Closeout Gate
 

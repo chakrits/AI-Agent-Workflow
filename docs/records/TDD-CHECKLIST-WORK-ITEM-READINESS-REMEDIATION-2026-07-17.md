@@ -15,7 +15,7 @@
 
 - Added `sourcePullRequest` and `isSameRepository` to the pure decision input.
 - Required a source Pull Request with `post-merge-closeout` for closeout exemption.
-- Made `.github/workflows/work-item-readiness.yml` check out the trusted default branch and import the module instead of duplicating lifecycle decisions inline.
+- Historical: made the former `.github/workflows/work-item-readiness.yml` import the trusted module instead of duplicating decisions inline. PRs #23 and #24 superseded that adapter with the App-owned direct evaluator.
 - Added a portable GitLab operations guide and its regression coverage.
 
 ## Verification
@@ -27,4 +27,4 @@
 
 ## Scope Limitation
 
-GitHub does not emit a `pull_request` event when a linked Issue label changes. The documented safe process is a QA-triggered check rerun; automatic write-capable reruns need separately approved design and permissions.
+GitHub does not emit a native `pull_request` event when a linked Issue label changes. PRs #23 and #24 supply the approved GitHub App design that closes that gap; GitLab remains manual until separately approved API credentials exist.

@@ -14,7 +14,7 @@
 | Current Stage | Developer remediation complete; independent QA re-verification pending. |
 | Task State | Rework 1 from QA blocker report. |
 | Contract Version | Lifecycle contract, Issue #19 approved design. |
-| Completed Work | Added a tested decision module; connected it to the GitHub adapter; documented GitLab manual readiness and GitHub linked-Issue rerun behavior; synchronized records. |
+| Completed Work | Added a tested decision module; documented GitLab manual readiness; historical GitHub adapter records are superseded by the App-owned evaluator merged through PRs #23 and #24. |
 | Artifacts Produced | Debug ledger, TDD checklist, code-review request, completion check, platform operations guide. |
 | Files Changed | See remediation commit and PR #20 Files changed. |
 | Verification Performed | `npm test` (56 tests after Bootstrap PR #21), `npm run validate:contracts`, `npm run validate:project-state`, `git diff --check`, and a GitHub readiness workflow parse/compile check all passed. |
@@ -22,7 +22,7 @@
 | Acceptance Criteria Verification Status | Not self-certified by Developer; QA must re-check all Issue #19 AC. |
 | QA Evidence URL | Pending QA re-verification. |
 | Stop Reason | None. |
-| Known Limitations | Linked Issue labels do not trigger a GitHub `pull_request` event; QA reruns the PR check after changing them. GitLab API enforcement needs separately approved credentials/design. |
+| Known Limitations | Native GitHub `pull_request` events do not observe linked Issue labels, but the App-owned evaluator now re-evaluates them. GitLab API enforcement still needs separately approved credentials/design. |
 | Open Questions | Whether maintainers later want a write-capable GitHub/GitLab automation is out of scope. |
 | QA / Review Focus | Exercise valid/missing/external/closeout readiness cases; confirm workflow remains read-only and the GitLab guide is accurate. |
 | Recommended Next Step | QA inspects the pushed PR #20 commit and re-runs local/hosted checks; only QA may apply verification evidence. |
