@@ -1,6 +1,15 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { parseWorktreeList, classifyWorktrees } from '../scripts/housekeeping-worktrees.mjs';
+import { execFileSync } from 'node:child_process';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
+import {
+  parseWorktreeList,
+  classifyWorktrees,
+  pruneWorktrees,
+  isWorktreeDirty
+} from '../scripts/housekeeping-worktrees.mjs';
 
 const samplePorcelain = [
   'worktree /repo',
@@ -50,7 +59,20 @@ test('classifyWorktrees marks a worktree prunable when its branch is gone from o
   const { worktrees } = classifyWorktrees(entries, ['main', 'feature/active'], []);
   const deleted = worktrees.find((w) => w.path.endsWith('deleted-upstream'));
   assert.equal(deleted.status, 'prunable');
-  assert.match(deleted.reason, /no longer exists on origin/);
+  assert.match(deleted.reason, /does not exist on origin/);
+});
+
+test('classifyWorktrees reason for a branch absent from origin does not overclaim it was previously pushed and deleted', () => {
+  // QA-3 Part B regression: the code only ever queries current origin refs
+  // (`git for-each-ref refs/remotes/origin`); it has no data confirming the
+  // branch ever existed there. The old wording "no longer exists on origin
+  // (deleted)" asserted a history the code never checked. The reason must
+  // cover both "never pushed" and "already deleted" without asserting either.
+  const entries = parseWorktreeList(samplePorcelain);
+  const { worktrees } = classifyWorktrees(entries, ['main', 'feature/active'], []);
+  const deleted = worktrees.find((w) => w.path.endsWith('deleted-upstream'));
+  assert.match(deleted.reason, /never pushed or already deleted/);
+  assert.doesNotMatch(deleted.reason, /\(deleted\)$/);
 });
 
 test('classifyWorktrees marks a worktree prunable when its branch still exists on origin but is already merged into main', () => {
@@ -80,4 +102,59 @@ test('classifyWorktrees treats a detached-HEAD worktree as active, not prunable'
   const detached = worktrees.find((w) => w.path.endsWith('detached-one'));
   assert.equal(detached.status, 'active');
   assert.match(detached.reason, /detached HEAD/);
+});
+
+// --- pruneWorktrees / isWorktreeDirty (QA-3 Part A regression) ---------
+//
+// These use a disposable temp git repo with real worktrees — never this
+// repo's own `.worktrees/` — so `git worktree remove --force` is exercised
+// for real without any risk to the actual working tree.
+
+function makeTempRepoWithWorktrees() {
+  const root = mkdtempSync(path.join(tmpdir(), 'housekeeping-worktrees-test-'));
+  const git = (args, cwd = root) => execFileSync('git', args, { cwd, stdio: ['ignore', 'pipe', 'ignore'] });
+
+  git(['init', '-q', '-b', 'main']);
+  git(['config', 'user.email', 'test@example.com']);
+  git(['config', 'user.name', 'Test']);
+  git(['commit', '-q', '--allow-empty', '-m', 'init']);
+
+  const dirtyPath = path.join(root, 'wt-dirty');
+  const cleanPath = path.join(root, 'wt-clean');
+  git(['worktree', 'add', '-q', '-b', 'feature/dirty', dirtyPath]);
+  git(['worktree', 'add', '-q', '-b', 'feature/clean', cleanPath]);
+  writeFileSync(path.join(dirtyPath, 'untracked.txt'), 'uncommitted work, must not be destroyed\n');
+
+  return { root, dirtyPath, cleanPath };
+}
+
+test('isWorktreeDirty is true for a worktree with untracked files, false for a clean one', () => {
+  const { root, dirtyPath, cleanPath } = makeTempRepoWithWorktrees();
+  try {
+    assert.equal(isWorktreeDirty(dirtyPath, root), true);
+    assert.equal(isWorktreeDirty(cleanPath, root), false);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('pruneWorktrees never force-removes a dirty worktree and reports it as skipped-dirty', () => {
+  const { root, dirtyPath, cleanPath } = makeTempRepoWithWorktrees();
+  try {
+    const prunable = [{ path: dirtyPath }, { path: cleanPath }];
+    const { removed, skippedDirty } = pruneWorktrees(prunable, root);
+
+    // The dirty worktree must survive on disk with its uncommitted content intact.
+    assert.ok(skippedDirty.includes(dirtyPath));
+    assert.ok(!removed.includes(dirtyPath));
+    const survivingList = execFileSync('git', ['worktree', 'list', '--porcelain'], { cwd: root }).toString();
+    assert.match(survivingList, /wt-dirty/);
+
+    // The clean worktree is still removed as before (no regression).
+    assert.ok(removed.includes(cleanPath));
+    assert.ok(!skippedDirty.includes(cleanPath));
+    assert.doesNotMatch(survivingList, /wt-clean/);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
 });

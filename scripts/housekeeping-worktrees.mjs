@@ -42,7 +42,11 @@ export function classifyWorktrees(entries, remoteBranches, mergedBranches) {
         return { ...entry, status: 'active', reason: 'detached HEAD (not branch-tracked, skipped)' };
       }
       if (!remoteSet.has(entry.branch)) {
-        return { ...entry, status: 'prunable', reason: `branch '${entry.branch}' no longer exists on origin (deleted)` };
+        return {
+          ...entry,
+          status: 'prunable',
+          reason: `branch '${entry.branch}' does not exist on origin (never pushed or already deleted)`
+        };
       }
       if (mergedSet.has(entry.branch)) {
         return { ...entry, status: 'prunable', reason: `branch '${entry.branch}' is already merged into origin/main` };
@@ -102,14 +106,30 @@ export function listClassifiedWorktrees(cwd = process.cwd()) {
   return classifyWorktrees(entries, allBranches, mergedBranches);
 }
 
-export function pruneWorktrees(prunableEntries, cwd = process.cwd()) {
+/**
+ * True when the worktree at `path` has uncommitted changes or untracked
+ * files present. `git worktree remove --force` bypasses git's own
+ * "worktree has modifications" safety check, so callers must gate
+ * force-removal on this check to avoid silently destroying local work.
+ */
+export function isWorktreeDirty(path, cwd = process.cwd()) {
+  const output = git(['status', '--porcelain'], path ?? cwd);
+  return output.trim().length > 0;
+}
+
+export function pruneWorktrees(prunableEntries, cwd = process.cwd(), isDirty = isWorktreeDirty) {
   const removed = [];
+  const skippedDirty = [];
   for (const entry of prunableEntries) {
+    if (isDirty(entry.path, cwd)) {
+      skippedDirty.push(entry.path);
+      continue;
+    }
     git(['worktree', 'remove', '--force', entry.path], cwd);
     removed.push(entry.path);
   }
   git(['worktree', 'prune'], cwd);
-  return removed;
+  return { removed, skippedDirty };
 }
 
 async function main() {
@@ -133,7 +153,7 @@ async function main() {
     return;
   }
 
-  console.log(`\n${prunable.length} worktree(s) prunable (branch deleted on origin):`);
+  console.log(`\n${prunable.length} worktree(s) prunable:`);
   for (const entry of prunable) console.log(`  - ${entry.path}  (${entry.reason})`);
 
   if (!shouldPrune) {
@@ -141,9 +161,16 @@ async function main() {
     return;
   }
 
-  const removed = pruneWorktrees(prunable, process.cwd());
+  const { removed, skippedDirty } = pruneWorktrees(prunable, process.cwd());
   console.log(`\nRemoved ${removed.length} worktree(s):`);
   for (const path of removed) console.log(`  - ${path}`);
+
+  if (skippedDirty.length) {
+    console.log(
+      `\n${skippedDirty.length} worktree(s) skipped: uncommitted/untracked changes present, remove manually if intentional:`
+    );
+    for (const path of skippedDirty) console.log(`  - ${path}`);
+  }
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1]).href) {
