@@ -1,20 +1,19 @@
 # PROJECT_STATUS.md
 
 ## Current Work Item
-- ID: QA-TESTING-DISCIPLINE-2026-07-19
-- Title: QA Agent testing-discipline enrichment — Test Effectiveness rule, four new skills, Antigravity CLI full parity
-- Owner: Developer / Implementation Agent
-- Status: Ready for Review
-- Tracked as GitHub Issue #44; SA Agent design review returned "Approve with minor notes" (both findings fixed in the spec before implementation)
+- ID: None
+- Title: None
+- Owner: None
+- Status: Idle
 
 ## Current Stage
-- QA Testing-Discipline Enrichment / Reviewer Gate
+- Idle — awaiting next work item
 
 ## Change Classification
-- Change Type: Documentation and process-governance change with regression coverage
-- Risk Level: Medium
-- Code Change Required: Yes — scoped Node regression coverage
-- Architecture Change Required: No — extends the existing QA/SA rule cross-references already landed this session
+- Change Type: None (idle)
+- Risk Level: None
+- Code Change Required: No
+- Architecture Change Required: No
 - Security Review Required: No
 
 ## Completed
@@ -40,10 +39,10 @@
 - GitHub Issue #35 Phase B v1 (GitHub-native notify + assign workflow, no session invocation) merged through PR #39 as commit `3fa4b03`. Review chain: SA reconciliation of the Phase B v1 design against Phase A's merged schema/paths (no divergence found, added SDD §3a implementation detail), Developer implementation (`.github/workflows/dispatch-receipt-notify.yml`, `scripts/dispatch-receipt-notify.mjs`), Security Reviewer PASS (6-item re-check, 3 non-blocking findings: stale-but-uncompromised Action SHA pins, no `escalated`-receipt comment distinction, and `required_approving_review_count: 0`), QA PASS (independent AC matrix and scope-discipline confirmation). Boss recorded a decision on Issue #35 accepting the 0-approval-gate finding as residual risk given solo-maintainer operation (GitHub disallows self-approval of one's own PR).
 - GitHub Issue #35 is **CLOSED** (`COMPLETED`) by Human Maintainer decision. Phase A (PR #38) and Phase B v1 (PR #39) shipped: an in-repo dispatch-receipt ledger with CI enforcement, and a GitHub-native notify + assign workflow (comment/label only, no session invocation — no host capability exists yet to invoke an agent session from GitHub Actions). The original goal ("a terminal handoff actually causes the next agent to run") is not fully achieved and Phase C (GitLab parity) never started, but both gaps are unscheduled/blocked on a host capability that doesn't exist today, so the Human Maintainer closed the Issue rather than leave it open with no actionable next step. A fresh Issue should be opened when a host invocation capability becomes available or GitLab parity is prioritized; Phase A's receipt ledger and its SDD (`docs/records/sdd/2026-07-19-durable-dispatcher-phase-a-b.md`) remain the reusable foundation.
 - GitHub Issue #41 (repo housekeeping and knowledge-base setup) merged through PR #42 as commit `1448b63`, then closed. Delivered: `docs/records/` reorganized into type subfolders with `YYYY-MM-DD-slug.md` naming (and `scripts/validate-dispatch-receipts.mjs` updated to match); `scripts/housekeeping-worktrees.mjs` (list/prune `.worktrees/`, using `gh pr list --state merged` as the primary signal for this repo's squash-merge convention, with a `git branch --merged` fallback) plus an optional `.githooks/post-merge` warn-only hook; `scripts/reset-to-template.mjs` (dry-run by default, `--apply` to reset project-state files and clear `docs/records/*/`); README updated to document both scripts and previously-undocumented systems (lifecycle/readiness gate, dispatch-receipt ledger); `.obsidian/` tracked as a shared vault with `docs/vault/00-Index.md` hand-linking every role/skill adapter. A same-PR follow-up commit `da1e3e5` fixed QA-3 (`--prune` could force-remove a worktree with uncommitted/untracked changes) and was independently re-verified RESOLVED by QA. Four non-blocking findings from the same review — QA-1 (handoff-folder scan no longer filename-filtered), QA-2 (stale docstring path), QA-4 (`clearDirectory` silent no-op on a missing declared directory), QA-5 (`isWorktreeDirty` has no error handling for a worktree deleted outside git's knowledge) — are Boss-approved, tracked, unscheduled follow-up, not open work on this Issue.
-- GitHub Issue #44 (QA testing-discipline enrichment) design spec produced via `superpowers:brainstorming`, expanded through two Boss-directed scope rounds (full `.agent/skills/` parity backfill, `SKILL_CATALOG.md` linkage), reviewed by SA Agent (Approve with minor notes — two citation-precision findings, both fixed before implementation planning). Implementation added: canonical `Test Effectiveness` rule and four new Skill Routing rows; four new skills (`api-contract-testing`, `performance-testing`, `mutation-testing`, `test-quality-discipline`); an Accessibility Testing section in `qa-playwright-testing`; `Root Cause Analysis` in `TEST_REPORT.md` and two new checkboxes in `TEST_PLAN.md`; four `SKILL_CATALOG.md` entries; full `.agent/skills/`↔`.agents/skills/` parity (20 identical skills); regression coverage including a directory-and-content parity test.
+- GitHub Issue #44 (QA testing-discipline enrichment) merged through PR #45 as commit `90623e2`. Design spec produced via `superpowers:brainstorming`, expanded through two Boss-directed scope rounds (full `.agent/skills/` parity backfill, `SKILL_CATALOG.md` linkage), reviewed by SA Agent (Approve with minor notes — two citation-precision findings, both fixed before implementation planning). Delivered: a canonical `Test Effectiveness` QA Agent rule and four new Skill Routing rows in `docs/workflow/role-definitions.md`, mirrored to `.claude/agents/qa-agent.md`; four new skills (`api-contract-testing`, `performance-testing`, `mutation-testing`, `test-quality-discipline`) under `.agents/skills/`; an Accessibility Testing section added to `qa-playwright-testing/SKILL.md`; a `Root Cause Analysis` section in `TEST_REPORT.md` and two new checkboxes in `TEST_PLAN.md`; four new `SKILL_CATALOG.md` entries plus an updated row and clarifying note; full `.agent/skills/`↔`.agents/skills/` directory-name parity (20/20), with byte-identical content for the 9 skills this work touched — 3 pre-existing skills (`dynamic-workflow`, `frontend-ui-engineering`, `functional-test-design`) were deliberately left untouched as a legitimate, pre-existing thin pointer-adapter pattern unrelated to this work; and regression coverage in `test/validate-contracts.test.mjs` (119 total tests, up from 116). Review chain: SA Agent design review (two findings, both fixed), Orchestrator Agent routing recommendation, Developer Agent implementation — during which one genuine mid-implementation blocker was correctly escalated and resolved (the initial `.agent/skills/` parity approach needed a scope correction, since simply copying files would have overwritten the 3 legitimate thin-pointer-adapter skills; the corrected approach special-cased those 3 and mirrored the other 17 byte-identical) — and QA Agent's independent 10/10 Acceptance Criteria PASS verdict. The default-branch audit passed and GitHub applied the normal `post-merge-closeout` label to PR #45 with no `documentation-sync` exception issue created. This closeout (`docs/issue-44-closeout-pr45`) records final project state and reconciles the source PR reference; Issue #44 closes with this closeout PR's merge.
 
 ## In Progress
-- Independent review of the QA testing-discipline rule, four new skills, template/catalog changes, and Antigravity parity (uncommitted until this item's reviewer handoff lands).
+- None — project is idle.
 
 ## Blockers / Open Questions
 - R-002: `.gitlab-ci.yml` has not yet been validated on a live GitLab runner; this is an external verification follow-up, not an active implementation task.
@@ -53,24 +52,16 @@
 - `api-contract-testing`, `performance-testing`, and `mutation-testing` document tooling (`schemathesis`, `drf-spectacular`, Locust/k6, `mutmut`) that is not installed anywhere in this repo — intentional per the design spec, since this repo has no Django/Python target application yet. Wiring is deferred to whenever a real work item first needs to execute one of these skills.
 
 ## Required Artifacts
-- `docs/superpowers/specs/2026-07-19-qa-testing-discipline-design.md`
-- `docs/superpowers/plans/2026-07-19-qa-testing-discipline.md`
-- `docs/workflow/role-definitions.md` (QA Agent → Test Effectiveness)
-- `.claude/agents/qa-agent.md`
-- `.agents/skills/api-contract-testing/SKILL.md`, `.agents/skills/performance-testing/SKILL.md`, `.agents/skills/mutation-testing/SKILL.md`, `.agents/skills/test-quality-discipline/SKILL.md`
-- `.agents/skills/qa-playwright-testing/SKILL.md`
-- `.agent/skills/` (full parity mirror)
-- `docs/templates/TEST_REPORT.md`, `docs/templates/TEST_PLAN.md`
-- `docs/operating-model/SKILL_CATALOG.md`
-- `test/validate-contracts.test.mjs`
+- None outstanding — the previous item's artifacts (`docs/superpowers/specs/2026-07-19-qa-testing-discipline-design.md`, `docs/superpowers/plans/2026-07-19-qa-testing-discipline.md`, `docs/workflow/role-definitions.md`, `.claude/agents/qa-agent.md`, the four new `.agents/skills/` entries, `.agent/skills/` parity mirror, `docs/templates/TEST_REPORT.md`/`TEST_PLAN.md`, `docs/operating-model/SKILL_CATALOG.md`, `test/validate-contracts.test.mjs`) are on `main` via PR #45.
 
 ## Next Quality Gate
-- Reviewer confirms the canonical rule, Claude adapter, and four new skills agree; that the `.agent/skills/` parity test is meaningful (verified non-tautological in Task 6); and that no fixed Quality Gate Metrics number was introduced anywhere.
+- None pending — awaiting the next work item.
 
 ## Recommended Next Agent
-- Reviewer, then QA Agent for the Cross-Platform Acceptance Criteria Gate on GitHub Issue #44
+- Human Maintainer merges this closeout PR; no agent action is pending afterward.
 
 ## Notes
+- GitHub Issue #44's design spec went through two Boss-directed scope expansions after initial brainstorming: first, mirroring the four new QA skills into `.agent/skills/` (Antigravity CLI) rather than leaving it out of scope by analogy to `qa-playwright-testing` not living there; second, backfilling the four pre-existing `.agent/skills/` gaps unrelated to QA (`ba-requirement-analysis`, `data-config-change`, `sa-architecture-design`, `security-review`) in the same pass rather than deferring them. During implementation, the first `.agent/skills/` parity pass would have naively overwritten `dynamic-workflow`, `frontend-ui-engineering`, and `functional-test-design` — three pre-existing skills that intentionally use a thin pointer-adapter pattern unrelated to this work — and Developer Agent correctly escalated this as a mid-implementation blocker rather than silently overwriting them; the resolved approach special-cased those 3 (left untouched) and mirrored the other 17 byte-identical, which QA Agent's parity test independently confirmed.
 - RCA evidence: refresh runs `29635734227` and `29635753891` successfully used the App token to edit PR #20, but no `pull_request.edited` readiness run was created. The direct evaluator removes that unsupported event dependency.
 - The direct evaluator uses a short-lived GitHub App token with only Pull requests: read, Issues: read, and Checks: read & write. Its Client ID is a repository variable; its private key is an environment secret in protected `work-item-refresh`, never a repository secret or committed value. The environment's `main` branch restriction does not itself protect a `pull_request_target` run from fork context; safety comes from checking out only trusted `main` and never executing PR-head content. Main branch protection must pin `work-item-readiness-freshness` to the AI Agent Workflow App source, never Any source.
 - Hosted evidence: Issue-label runs `29636953171` (expected failure while `phase:development` was absent) and `29636978535` (success after restoration) published App Check Runs on PR #20. The `pull_request_target` edited-event run `29637202523` also passed and published App Check Run `88061518191`; its restoration run `29637225455` passed.
@@ -81,3 +72,4 @@
 - This combined closeout covers two source PRs (#38 and #39), both carrying a `post-merge-closeout` signal. The readiness-check marker regex (`scripts/work-item-readiness.mjs`) only supports one `source-pr-N` reference, so this closeout PR's marker cites `source-pr-39` (the terminal PR for this Issue's current scope); PR #38's stale `post-merge-closeout` label was removed manually via `gh` rather than by the automated marker mechanism.
 - This closeout (`docs/issue-41-closeout-pr42`) covers PR #42 (Issue #41). `gh pr list --state all --label post-merge-closeout` confirmed only PR #42 carried the signal at the time this closeout started, so its marker cites `source-pr-42` with no other label to clear manually. Separately, GitHub Issue #35 was closed today (`COMPLETED`) by Human Maintainer decision; that closure is unrelated to Issue #41/PR #42 but is reconciled in this same closeout since project state had not yet reflected it.
 - GitHub Issue #44's design spec went through two Boss-directed scope expansions after initial brainstorming: first, mirroring the four new QA skills into `.agent/skills/` (Antigravity CLI) rather than leaving it out of scope by analogy to `qa-playwright-testing` not living there; second, backfilling the four pre-existing `.agent/skills/` gaps unrelated to QA (`ba-requirement-analysis`, `data-config-change`, `sa-architecture-design`, `security-review`) in the same pass rather than deferring them. SA Agent's design review (in-turn dispatch, same session) returned two non-blocking citation-precision findings — both about which existing rule a new skill's `Canonical References` cited, not about policy correctness — fixed in the spec before this plan was written.
+- This closeout (`docs/issue-44-closeout-pr45`) covers PR #45 (Issue #44), merged as `90623e2`. The default-branch audit passed and GitHub applied the normal `post-merge-closeout` label to PR #45; no `documentation-sync` exception issue was created, so this closeout is a normal documentation-only closeout, not a project-state audit exception.
