@@ -13,6 +13,9 @@ The shared process is not tied to one tool. Codex, Claude Code, Antigravity, and
 - Reusable templates for briefs, requirements, designs, test plans, handoffs, completion checks, security/release reviews, and post-merge documentation reviews.
 - Portable skills and platform adapters that refer back to the same canonical policy.
 - Hosted CI on both GitHub Actions and GitLab CI, running the same test/contract-validation suite.
+- Lifecycle labels (`phase:*`, `status:*`) and an automated PR/Issue readiness gate that blocks merge until the Work Item lifecycle is consistent.
+- An in-repo, merge-gated dispatch-receipt ledger for cross-turn agent handoffs, with CI-enforced matching and a loop-safety circuit breaker — see [role-definitions.md](./docs/workflow/role-definitions.md) and the records under `docs/records/sdd/`.
+- Local housekeeping tooling: worktree cleanup and a one-command reset back to a blank template baseline for a new team's own clone.
 
 ## Project Structure
 
@@ -32,13 +35,20 @@ AI-Agent-Workflow/
 │   ├── workflows/            # Playbooks for features, bugs, CI, config, and data
 │   ├── contracts/            # Bug Fix policy, schema, examples, and fixtures
 │   ├── templates/            # Reusable artifacts for each workflow stage
-│   ├── records/              # Durable completion and review records
-│   └── superpowers/          # Approved designs and implementation plans
+│   ├── records/              # Durable completion/review records, typed and dated:
+│   │                         #   sdd/, requirements/, security-review/, implementation-plan/,
+│   │                         #   handoff/, qa/, postmortem/, misc/ — each file named YYYY-MM-DD-slug.md
+│   ├── superpowers/          # Approved designs and implementation plans
+│   └── vault/                # Obsidian knowledge-base index (see "Knowledge Base" below)
 ├── .agents/                  # Portable skills and workflow adapters
 ├── .claude/                  # Claude Code agent and skill adapters
 ├── .agent/                   # Antigravity CLI skill adapters
+├── .codex/                   # Codex host adapters (e.g. in-turn dispatch supervision)
+├── .githooks/                # Optional local git hooks (see Housekeeping below)
+├── .obsidian/                 # Obsidian vault config (the whole repo is the vault root)
+├── .worktrees/                # Local git worktrees for parallel branch work — gitignored, not shipped
 ├── test/                     # Regression checks for workflow rules and docs
-├── scripts/                  # Contract validation command
+├── scripts/                  # Contract validation, dispatch-receipt validation, housekeeping, reset
 ├── .github/workflows/        # GitHub Actions validation
 └── .gitlab-ci.yml            # GitLab CI validation (same checks, different platform)
 ```
@@ -141,6 +151,42 @@ npm run validate:contracts
 Every meaningful stage should produce a structured artifact and handoff. Use the [handoff template](./docs/templates/HANDOFF.md) and the [quality gates](./docs/workflow/quality-gates.md) instead of informal “done” messages.
 
 Before a pull request or merge request targets `main`, complete its Documentation Impact assessment and include affected documentation updates in the same change. GitHub validates the completed PR-template marker; GitLab provides the equivalent MR template. After merge, the project-state audit creates a `documentation-sync` issue only when it detects stale state. Use the [post-merge documentation review template](./docs/templates/POST_MERGE_DOCUMENTATION_REVIEW.md) only for that exception, then close the issue when its correction PR merges.
+
+## Housekeeping
+
+This repo accumulates local git worktrees (under `.worktrees/`, gitignored) as agents branch off to work on parallel Issues. Two scripts keep that manageable:
+
+```bash
+# List worktrees whose branch no longer exists on origin (merged/deleted) — dry run, safe to run anytime
+npm run housekeeping:worktrees
+
+# Actually remove the ones flagged as prunable
+npm run housekeeping:worktrees -- --prune
+```
+
+Optionally enable a local git hook that warns about prunable worktrees after every merge/pull on `main` (informational only — it never deletes anything on its own):
+
+```bash
+git config core.hooksPath .githooks
+```
+
+### Resetting to a blank template
+
+If you're starting a new project from a clone of this repo, `PROJECT_STATUS.md`, `TASK_LOG.md`, `CHANGELOG.md`, `RISKS.md`, and every file under `docs/records/*/` and `docs/superpowers/{specs,plans}/` still carry this repo's own history. Reset them to a blank baseline before your first commit:
+
+```bash
+# Preview what would change — nothing is modified
+npm run reset:template
+
+# Actually apply the reset
+npm run reset:template -- --apply
+```
+
+This never touches the canonical workflow itself (`AGENTS.md`, `docs/workflow/`, `docs/templates/`, `.claude/`, `.agents/`, `.agent/`, `.codex/`, skills, or CI config) — only this repo's own accumulated project data.
+
+## Knowledge Base (Obsidian)
+
+The whole repo is a valid [Obsidian](https://obsidian.md/) vault (`.obsidian/` sits at the root). Open the repo root as a vault to get backlinks and a graph view across `docs/workflow/`, `docs/records/`, and every role/skill adapter. Start at [docs/vault/00-Index.md](./docs/vault/00-Index.md) — Obsidian hides dotfolders (`.claude/`, `.agents/`, `.agent/`, `.codex/`) from its file browser by default, so the index note is the reliable entry point into adapter files that live there.
 
 ## Where to Go Next
 

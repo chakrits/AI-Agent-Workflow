@@ -6,3 +6,7 @@ node_modules/
 
 # Isolated local Git worktrees.
 .worktrees/
+
+# Obsidian personal window/tab layout (per-machine UI state, not vault config).
+.obsidian/workspace.json
+.obsidian/workspace-mobile.json

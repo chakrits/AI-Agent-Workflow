@@ -60,7 +60,7 @@ export function resolveChangedHandoffPaths(rootDir, env = process.env) {
     if (!mergeBase) return undefined;
     const diffOutput = execFileSync(
       'git',
-      ['diff', '--name-only', '--diff-filter=ACMR', `${mergeBase}...HEAD`, '--', 'docs/records/HANDOFF-*.md'],
+      ['diff', '--name-only', '--diff-filter=ACMR', `${mergeBase}...HEAD`, '--', 'docs/records/handoff/*.md'],
       { cwd: rootDir, stdio: ['ignore', 'pipe', 'ignore'] }
     ).toString();
     return diffOutput
@@ -73,12 +73,10 @@ export function resolveChangedHandoffPaths(rootDir, env = process.env) {
 }
 
 async function readHandoffFiles(rootDir, changedHandoffPaths) {
-  const files = await listFiles(path.join(rootDir, 'docs/records'), '.md');
+  const files = await listFiles(path.join(rootDir, 'docs/records/handoff'), '.md');
   const scoped = changedHandoffPaths ? new Set(changedHandoffPaths) : undefined;
   const handoffs = [];
   for (const filePath of files) {
-    const name = path.basename(filePath);
-    if (!name.startsWith('HANDOFF-')) continue;
     const relativePath = path.relative(rootDir, filePath);
     if (scoped && !scoped.has(relativePath)) continue;
     const content = await readFile(filePath, 'utf8');
