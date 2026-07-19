@@ -13,7 +13,7 @@
 - No fixed Quality Gate Metrics numbers (coverage %, MTTR, defect leakage rate, flaky rate, mutation-score pass/fail threshold) anywhere in any new content — explicit Boss decision to keep these case-by-case per work item.
 - Do not install or wire up `schemathesis`, `drf-spectacular`, `mutmut`, Locust, or k6 as actual dependencies in this repo. These are documented as *methodology* in the new skill files only — this repo has no Django/Python target application yet, only Node `.mjs` governance tooling.
 - `API Contract Validation` and `NFR Validation` rule text in `docs/workflow/role-definitions.md` must stay byte-for-byte unchanged — their policy was already correct; only a Skill Routing row is added for each.
-- `.agent/skills/` and `.agents/skills/` must end this work carrying the identical 20 skill directories with byte-identical `SKILL.md` content per shared name.
+- `.agent/skills/` and `.agents/skills/` must end this work carrying the identical 20 skill directories by name. Byte-identical `SKILL.md` content is required only for the 9 skills this plan touches (the 4 new skills, `qa-playwright-testing`, and the 4 backfilled skills — `ba-requirement-analysis`, `data-config-change`, `sa-architecture-design`, `security-review`). Three pre-existing skills (`dynamic-workflow`, `frontend-ui-engineering`, `functional-test-design`) intentionally use a thin pointer-adapter pattern in `.agent/skills/` instead of a full copy — this predates and is unrelated to this work; do not alter them.
 - Do not change `AGENTS.md` Dynamic Routing Rules or `docs/contracts/bug-fix-workflow.yaml`.
 - Do not modify `docs/templates/TEST_REPORT.md`'s or `docs/templates/TEST_PLAN.md`'s existing sections — only add new ones.
 
@@ -717,16 +717,16 @@
   cp .agents/skills/security-review/SKILL.md .agent/skills/security-review/SKILL.md
   ```
 
-- [ ] **Step 3: Verify full parity by directory name and content.**
+- [ ] **Step 3: Verify directory-name parity across all 20 skills, and content parity for the 9 this plan touches.**
 
   ```bash
   diff <(ls .agents/skills | sort) <(ls .agent/skills | sort)
-  for name in $(ls .agents/skills); do
+  for name in api-contract-testing performance-testing mutation-testing test-quality-discipline qa-playwright-testing ba-requirement-analysis data-config-change sa-architecture-design security-review; do
     diff ".agents/skills/$name/SKILL.md" ".agent/skills/$name/SKILL.md" && echo "OK: $name"
   done
   ```
 
-  Expected: the first `diff` prints nothing (both directories list the same 20 names); every `diff` in the loop prints nothing and every line prints `OK: <name>`.
+  Expected: the first `diff` prints nothing (both directories list the same 20 names). The content loop is intentionally scoped to only the 9 skills this plan touches — `dynamic-workflow`, `frontend-ui-engineering`, and `functional-test-design` are deliberately excluded because they predate this work and use a thin pointer-adapter pattern in `.agent/skills/` rather than a full copy; do not "fix" them into matching, that would be an unrelated change. Every `diff` in the loop prints nothing and every line prints `OK: <name>`.
 
 - [ ] **Step 4: Commit.**
 
@@ -950,7 +950,7 @@
     assert.match(skill, /npx bddgen && npx playwright test/);
   });
 
-  test('.agent/skills/ and .agents/skills/ carry identical skill directories with byte-identical SKILL.md content', async () => {
+  test('.agent/skills/ and .agents/skills/ carry identical skill directory names, with byte-identical content for the skills this work touches', async () => {
     const [portableEntries, antigravityEntries] = await Promise.all([
       readdir('.agents/skills', { withFileTypes: true }),
       readdir('.agent/skills', { withFileTypes: true })
@@ -965,7 +965,21 @@
       '.agent/skills/ and .agents/skills/ must contain the same skill directories'
     );
 
-    for (const name of portableNames) {
+    // Scoped to the 9 skills this work touches. dynamic-workflow, frontend-ui-engineering,
+    // and functional-test-design predate this work and intentionally use a thin
+    // pointer-adapter pattern in .agent/skills/ rather than a full copy — not a gap to close here.
+    const contentParitySkills = [
+      'api-contract-testing',
+      'performance-testing',
+      'mutation-testing',
+      'test-quality-discipline',
+      'qa-playwright-testing',
+      'ba-requirement-analysis',
+      'data-config-change',
+      'sa-architecture-design',
+      'security-review'
+    ];
+    for (const name of contentParitySkills) {
       const [portable, antigravity] = await Promise.all([
         readFile(`.agents/skills/${name}/SKILL.md`, 'utf8'),
         readFile(`.agent/skills/${name}/SKILL.md`, 'utf8')
@@ -989,7 +1003,7 @@
   npm test -- --test-name-pattern="QA Agent canonical rule carries its policy and the new evidence, contract, and NFR rules"
   npm test -- --test-name-pattern="the four new QA testing-discipline skills carry their required content"
   npm test -- --test-name-pattern="SKILL_CATALOG.md carries all four new QA skill entries"
-  npm test -- --test-name-pattern="\.agent/skills/ and \.agents/skills/ carry identical skill directories"
+  npm test -- --test-name-pattern="\.agent/skills/ and \.agents/skills/ carry identical skill directory names"
   ```
 
   Expected: all four PASS.
@@ -999,9 +1013,9 @@
   ```bash
   cp .agent/skills/mutation-testing/SKILL.md /tmp/mutation-testing-skill-backup.md
   echo "" >> .agent/skills/mutation-testing/SKILL.md
-  npm test -- --test-name-pattern="\.agent/skills/ and \.agents/skills/ carry identical skill directories"
+  npm test -- --test-name-pattern="\.agent/skills/ and \.agents/skills/ carry identical skill directory names"
   cp /tmp/mutation-testing-skill-backup.md .agent/skills/mutation-testing/SKILL.md
-  npm test -- --test-name-pattern="\.agent/skills/ and \.agents/skills/ carry identical skill directories"
+  npm test -- --test-name-pattern="\.agent/skills/ and \.agents/skills/ carry identical skill directory names"
   ```
 
   Expected: first run FAILS (content mismatch on `mutation-testing`), second run (after restore) PASSES.
@@ -1201,7 +1215,7 @@
 
 - Confirm the canonical `Test Effectiveness` rule and its Claude adapter mirror agree, and that `API Contract Validation`/`NFR Validation` rule text is byte-for-byte unchanged (`git diff` on `role-definitions.md` should show only additions, no deletions inside those two sections).
 - Confirm each of the four new skill files has correct frontmatter (`name`, `description`) and matches the content specified in the design spec exactly.
-- Confirm `.agent/skills/` and `.agents/skills/` carry the identical 20-skill set with byte-identical content (Task 5, Step 3's `diff` output and Task 6's regression test).
+- Confirm `.agent/skills/` and `.agents/skills/` carry the identical 20-skill set by name, with byte-identical content for the 9 skills this plan touches (Task 5, Step 3's `diff` output and Task 6's regression test) — and confirm `dynamic-workflow`, `frontend-ui-engineering`, and `functional-test-design` were left untouched, since their thin pointer-adapter pattern in `.agent/skills/` predates and is unrelated to this work.
 - Confirm the parity regression test is meaningful: it fails when a mirrored file is edited on only one side (verified in Task 6, Step 5) and passes when restored.
 - Confirm `TEST_REPORT.md` and `TEST_PLAN.md` retain all pre-existing sections unchanged in intent — only additive sections/checkboxes were introduced.
 - Confirm no new content anywhere states a fixed Quality Gate Metrics number (coverage %, MTTR, defect leakage rate, flaky rate, or a mutation-score/performance pass/fail threshold).
