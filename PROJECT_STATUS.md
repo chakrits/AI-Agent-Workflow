@@ -1,7 +1,7 @@
 # PROJECT_STATUS.md
 
 ## Current Work Item
-- None — no active in-progress item. Issue #35 Phase A and Phase B v1 are both merged to `main`; Issue #35 stays open pending a human decision on any further phase.
+- None — no active in-progress item. GitHub Issue #41 (repo housekeeping) is complete and closed. GitHub Issue #35 is closed (`COMPLETED`) by Human Maintainer decision; Phase A and Phase B v1 are both merged to `main` and no further phase is authorized.
 
 ## Current Stage
 - Idle — awaiting next intake
@@ -30,7 +30,8 @@
 - GitHub Issue #33 was closed by Human Maintainer as `not_planned` after PR #34's documented human-merge exception; its incomplete live-host acceptance proof is deferred to Issue #35 rather than recorded as a QA pass.
 - GitHub Issue #35 Phase A (in-repo dispatch-receipt ledger + CI enforcement validator) merged through PR #38 as commit `fa004e4`. Review chain: SA design (2 passes, incorporating the Boss-approved cross-turn `dispatch_depth`/`escalated` circuit-breaker extension), Security Reviewer threat model — CONDITIONAL, then PASS after Boss enabled `strict_required_status_checks_policy` on the `main` ruleset, Developer implementation, QA FAIL (unscoped repo-wide handoff scan) then PASS after Developer's git-diff-scoped fix.
 - GitHub Issue #35 Phase B v1 (GitHub-native notify + assign workflow, no session invocation) merged through PR #39 as commit `3fa4b03`. Review chain: SA reconciliation of the Phase B v1 design against Phase A's merged schema/paths (no divergence found, added SDD §3a implementation detail), Developer implementation (`.github/workflows/dispatch-receipt-notify.yml`, `scripts/dispatch-receipt-notify.mjs`), Security Reviewer PASS (6-item re-check, 3 non-blocking findings: stale-but-uncompromised Action SHA pins, no `escalated`-receipt comment distinction, and `required_approving_review_count: 0`), QA PASS (independent AC matrix and scope-discipline confirmation). Boss recorded a decision on Issue #35 accepting the 0-approval-gate finding as residual risk given solo-maintainer operation (GitHub disallows self-approval of one's own PR).
-- Issue #35 stays OPEN: this repo's convention is that Issues close only by explicit human decision, not automatically on merge. No Phase C or further phase is authorized; the next step requires a Human Maintainer decision to sponsor additional scope.
+- GitHub Issue #35 is **CLOSED** (`COMPLETED`) by Human Maintainer decision. Phase A (PR #38) and Phase B v1 (PR #39) shipped: an in-repo dispatch-receipt ledger with CI enforcement, and a GitHub-native notify + assign workflow (comment/label only, no session invocation — no host capability exists yet to invoke an agent session from GitHub Actions). The original goal ("a terminal handoff actually causes the next agent to run") is not fully achieved and Phase C (GitLab parity) never started, but both gaps are unscheduled/blocked on a host capability that doesn't exist today, so the Human Maintainer closed the Issue rather than leave it open with no actionable next step. A fresh Issue should be opened when a host invocation capability becomes available or GitLab parity is prioritized; Phase A's receipt ledger and its SDD (`docs/records/sdd/2026-07-19-durable-dispatcher-phase-a-b.md`) remain the reusable foundation.
+- GitHub Issue #41 (repo housekeeping and knowledge-base setup) merged through PR #42 as commit `1448b63`, then closed. Delivered: `docs/records/` reorganized into type subfolders with `YYYY-MM-DD-slug.md` naming (and `scripts/validate-dispatch-receipts.mjs` updated to match); `scripts/housekeeping-worktrees.mjs` (list/prune `.worktrees/`, using `gh pr list --state merged` as the primary signal for this repo's squash-merge convention, with a `git branch --merged` fallback) plus an optional `.githooks/post-merge` warn-only hook; `scripts/reset-to-template.mjs` (dry-run by default, `--apply` to reset project-state files and clear `docs/records/*/`); README updated to document both scripts and previously-undocumented systems (lifecycle/readiness gate, dispatch-receipt ledger); `.obsidian/` tracked as a shared vault with `docs/vault/00-Index.md` hand-linking every role/skill adapter. A same-PR follow-up commit `da1e3e5` fixed QA-3 (`--prune` could force-remove a worktree with uncommitted/untracked changes) and was independently re-verified RESOLVED by QA. Four non-blocking findings from the same review — QA-1 (handoff-folder scan no longer filename-filtered), QA-2 (stale docstring path), QA-4 (`clearDirectory` silent no-op on a missing declared directory), QA-5 (`isWorktreeDirty` has no error handling for a worktree deleted outside git's knowledge) — are Boss-approved, tracked, unscheduled follow-up, not open work on this Issue.
 
 ## In Progress
 - None. No active work item is in progress.
@@ -38,15 +39,17 @@
 ## Blockers / Open Questions
 - R-002: `.gitlab-ci.yml` has not yet been validated on a live GitLab runner; this is an external verification follow-up, not an active implementation task.
 - Deferred and unscheduled: a Prototype/Spike workflow route and a shared cross-role template pattern.
+- Deferred and unscheduled housekeeping follow-up (Issue #41, Boss-approved, non-blocking): QA-1, QA-2, QA-4, QA-5 — see the Completed section entry for detail. No Issue is open for this yet; track it when the follow-up is scheduled.
+- Any Issue #35 durable-dispatcher continuation (host-invocation capability or GitLab Phase C) requires opening a fresh Issue and a new Human Maintainer sponsorship decision; Issue #35 itself is closed.
 
 ## Required Artifacts
-- None pending — Phase A and Phase B v1 artifacts (SDD, threat model, implementation, QA evidence) are complete and merged. Any further Issue #35 phase requires a new Human Maintainer sponsorship decision before SA design work begins.
+- None pending.
 
 ## Next Quality Gate
-- None active. A future Phase C (or other further phase) would require Human Maintainer sponsorship, then SA design → Security review → human approval before implementation planning.
+- None active. A future durable-dispatcher continuation (new Issue) would require Human Maintainer sponsorship, then SA design → Security review → human approval before implementation planning.
 
 ## Recommended Next Agent
-- None — idle. Human Maintainer decides whether to sponsor further Issue #35 phases or close the Issue.
+- None — idle. Human Maintainer decides intake for the next work item.
 
 ## Notes
 - RCA evidence: refresh runs `29635734227` and `29635753891` successfully used the App token to edit PR #20, but no `pull_request.edited` readiness run was created. The direct evaluator removes that unsupported event dependency.
@@ -57,3 +60,4 @@
 - R-002 remains the separate live-GitLab-runner follow-up. GitLab uses the manual closeout label/comment equivalent until API automation is separately approved.
 - PR #31's immutable Action pins resolve the `SEC-26-01` supply-chain concern without altering GitHub App permissions, secrets, environment, ruleset, check source/name, or privileged workflow logic.
 - This combined closeout covers two source PRs (#38 and #39), both carrying a `post-merge-closeout` signal. The readiness-check marker regex (`scripts/work-item-readiness.mjs`) only supports one `source-pr-N` reference, so this closeout PR's marker cites `source-pr-39` (the terminal PR for this Issue's current scope); PR #38's stale `post-merge-closeout` label was removed manually via `gh` rather than by the automated marker mechanism.
+- This closeout (`docs/issue-41-closeout-pr42`) covers PR #42 (Issue #41). `gh pr list --state all --label post-merge-closeout` confirmed only PR #42 carried the signal at the time this closeout started, so its marker cites `source-pr-42` with no other label to clear manually. Separately, GitHub Issue #35 was closed today (`COMPLETED`) by Human Maintainer decision; that closure is unrelated to Issue #41/PR #42 but is reconciled in this same closeout since project state had not yet reflected it.
