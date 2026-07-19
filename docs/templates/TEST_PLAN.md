@@ -15,6 +15,8 @@
 - [ ] E2E
 - [ ] Regression
 - [ ] Performance / NFR
+- [ ] Mutation Testing
+- [ ] Contract Validation
 
 ## Environment
 

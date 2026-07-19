@@ -26,6 +26,20 @@
 |---|---|---|---|---|---|
 |  |  |  |  |  |  |
 
+## Root Cause Analysis
+
+For each Defect ID in the table above with a non-trivial root cause, add a block:
+
+### Defect <ID>
+
+1. Why did it fail? —
+2. Why did that happen? —
+3. Why did that happen? —
+4. Why did that happen? —
+5. Why did that happen (root cause)? —
+
+**Fix Recommendation:**
+
 ## Coverage
 
 - Acceptance criteria covered:
