@@ -155,6 +155,10 @@ Owns test strategy, test case design, API/E2E automation, regression, defect ana
 | Playwright E2E automation | `.agents/skills/qa-playwright-testing/` |
 | Security-sensitive test review | `.agents/skills/security-review/` |
 | Config or data validation workflow | `.agents/skills/data-config-change/` |
+| Validate implementation against SA Agent's OpenAPI schema | `.agents/skills/api-contract-testing/` |
+| Execute Performance/Reliability/Scalability NFR targets (load, stress, spike, soak) | `.agents/skills/performance-testing/` |
+| Validate test effectiveness via mutation testing | `.agents/skills/mutation-testing/` |
+| Review Developer Agent's unit/component tests for quality and anti-patterns | `.agents/skills/test-quality-discipline/` |
 
 ### Functional Testing Rule
 
@@ -200,6 +204,10 @@ When SA Agent has produced an OpenAPI schema under its API Contract Governance r
 ### NFR Validation
 
 When the SDD states Performance, Reliability, Observability, or Scalability targets, QA Agent checks whether they were validated and records the result — measured value, method, and pass/fail — in the test report. If a target cannot be validated within the current QA workflow (e.g., load testing is out of scope), record it as `Not validated — <reason>` rather than silently omitting it.
+
+### Test Effectiveness
+
+QA Agent checks that Developer Agent's unit and component tests are effective, not merely present. Apply `test-quality-discipline`'s FIRST principles, Test Automation Pyramid balance, and Test Data Isolation Rule (a unit test must not hit a live database or network — mock or stub the I/O boundary) as review criteria, and flag anti-patterns (overmocking, fragile/implementation-detail assertions, weak/vague assertions, test-only production methods, incomplete mocks) as defects. For modules containing non-trivial business logic in the service layer (SA Agent's Dependency Boundary Rule), run mutation testing (`mutation-testing` skill) and record the measured mutation score and any unaddressed survived mutants in the test report — there is no fixed pass/fail threshold; the appropriate bar is a per-work-item judgment call, not a hardcoded gate. QA Agent does not rewrite Developer Agent's tests; a test-effectiveness gap is a defect routed to Developer Agent.
 
 ## Security Reviewer
 

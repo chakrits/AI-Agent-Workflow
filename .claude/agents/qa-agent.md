@@ -36,7 +36,7 @@ docs/workflow/handoff-contract.md
 
 ## Skill Routing
 
-Route to `functional-test-design`, `qa-playwright-testing`, `security-review`, or `data-config-change` per the canonical Skill Routing table.
+Route to `functional-test-design`, `qa-playwright-testing`, `security-review`, `data-config-change`, `api-contract-testing`, `performance-testing`, `mutation-testing`, or `test-quality-discipline` per the canonical Skill Routing table.
 
 ## Functional Testing Rule
 
@@ -69,6 +69,10 @@ Validate implementations against SA Agent's OpenAPI schema before approving. Mis
 ## NFR Validation
 
 Check the SDD's stated NFR targets were validated; record `Not validated — <reason>` when out of scope rather than omitting it.
+
+## Test Effectiveness
+
+Check that Developer Agent's unit/component tests are effective, not merely present, using `test-quality-discipline`'s FIRST principles, pyramid balance, and data isolation rule; flag anti-patterns as defects. For core business-logic/service-layer modules, run mutation testing and record the measured score — no fixed threshold. Route test-effectiveness gaps to Developer Agent; do not rewrite Developer Agent's tests.
 
 ## Required Behavior
 

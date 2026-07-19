@@ -654,32 +654,93 @@ test('BA Agent requires the illustrative-draft boundary and production-UI escala
 });
 
 test('QA Agent canonical rule carries its policy and the new evidence, contract, and NFR rules', async () => {
-  const [roleDefinition, adapter, testPlan, playwrightSkill] = await Promise.all([
+  const [roleDefinition, adapter, testPlan, testReport, playwrightSkill] = await Promise.all([
     readFile('docs/workflow/role-definitions.md', 'utf8'),
     readFile('.claude/agents/qa-agent.md', 'utf8'),
     readFile('docs/templates/TEST_PLAN.md', 'utf8'),
+    readFile('docs/templates/TEST_REPORT.md', 'utf8'),
     readFile('.agents/skills/qa-playwright-testing/SKILL.md', 'utf8')
   ]);
 
   assert.match(roleDefinition, /### Skill Routing/);
   assert.match(roleDefinition, /### Dynamic Routing/);
   assert.match(roleDefinition, /### Output Expectations/);
+  assert.match(roleDefinition, /### Test Effectiveness/);
+  assert.match(roleDefinition, /api-contract-testing/);
+  assert.match(roleDefinition, /performance-testing/);
+  assert.match(roleDefinition, /mutation-testing/);
+  assert.match(roleDefinition, /test-quality-discipline/);
 
   for (const content of [roleDefinition, adapter]) {
     assert.match(content, /Evidence-Based Reporting/);
     assert.match(content, /must reference the actual command output|attached evidence/i);
     assert.match(content, /API Contract Validation/);
     assert.match(content, /NFR Validation/);
+    assert.match(content, /Test Effectiveness/);
   }
   assert.doesNotMatch(roleDefinition, /minimum of \d+[-–]\d+ issues/i);
 
   assert.match(testPlan, /Test Types In Scope/);
   assert.match(testPlan, /NFR Targets Under Test/);
+  assert.match(testPlan, /Mutation Testing/);
+  assert.match(testPlan, /Contract Validation/);
+
+  assert.match(testReport, /Root Cause Analysis/);
+  assert.match(testReport, /Why did it fail\?/);
 
   assert.match(playwrightSkill, /Automation Discipline/);
   assert.match(playwrightSkill, /No hard waits/);
   assert.match(playwrightSkill, /role-based selectors/i);
   assert.match(playwrightSkill, /24 hours/);
+  assert.match(playwrightSkill, /Accessibility Testing/);
+  assert.match(playwrightSkill, /WCAG 2\.1 AA/);
+  assert.match(playwrightSkill, /axe-core\/playwright/);
+});
+
+test('the four new QA testing-discipline skills carry their required content', async () => {
+  const [apiContract, performance, mutation, testQuality] = await Promise.all([
+    readFile('.agents/skills/api-contract-testing/SKILL.md', 'utf8'),
+    readFile('.agents/skills/performance-testing/SKILL.md', 'utf8'),
+    readFile('.agents/skills/mutation-testing/SKILL.md', 'utf8'),
+    readFile('.agents/skills/test-quality-discipline/SKILL.md', 'utf8')
+  ]);
+
+  assert.match(apiContract, /schemathesis/);
+  assert.match(apiContract, /drf-spectacular/);
+  assert.match(apiContract, /## Defect Routing/);
+
+  assert.match(performance, /Load Testing/);
+  assert.match(performance, /Stress Testing/);
+  assert.match(performance, /Spike Testing/);
+  assert.match(performance, /Soak Testing/);
+  assert.match(performance, /Locust/);
+  assert.match(performance, /## Recording Results/);
+
+  assert.match(mutation, /## Core Concept/);
+  assert.match(mutation, /mutmut/);
+  assert.match(mutation, /## Scoring/);
+  assert.doesNotMatch(mutation, /pass\/fail threshold of \d+%/i);
+
+  assert.match(testQuality, /## FIRST Principles/);
+  assert.match(testQuality, /Test Automation Pyramid/);
+  assert.match(testQuality, /Test Data Isolation Rule/);
+  assert.match(testQuality, /Overmocking/);
+  assert.match(testQuality, /Test-Only Production Methods/);
+  assert.match(testQuality, /Incomplete Mocks/);
+});
+
+test('SKILL_CATALOG.md carries all four new QA skill entries and the Planned Skills clarifying note', async () => {
+  const catalog = await readFile('docs/operating-model/SKILL_CATALOG.md', 'utf8');
+
+  assert.match(catalog, /^## api-contract-testing$/m);
+  assert.match(catalog, /^## performance-testing$/m);
+  assert.match(catalog, /^## mutation-testing$/m);
+  assert.match(catalog, /^## test-quality-discipline$/m);
+
+  assert.match(catalog, /WCAG 2\.1 AA accessibility checks/);
+
+  assert.match(catalog, /API Test Design.*still unbuilt/);
+  assert.match(catalog, /Defect Analysis.*broader test-failure/);
 });
 
 test('Developer Agent requires architecture compliance, definition-of-done restatement, incremental verification, and escalation discipline', async () => {
@@ -904,6 +965,48 @@ test('qa-playwright-testing carries a technical reference, a debugging workflow,
   assert.match(skill, /before any implementation plan/i);
   assert.match(skill, /### Scoped Step Definitions/);
   assert.match(skill, /npx bddgen && npx playwright test/);
+});
+
+test('.agent/skills/ and .agents/skills/ carry identical skill directory names, with byte-identical content for the skills this work touches', async () => {
+  const [portableEntries, antigravityEntries] = await Promise.all([
+    readdir('.agents/skills', { withFileTypes: true }),
+    readdir('.agent/skills', { withFileTypes: true })
+  ]);
+  const portableNames = portableEntries.filter((entry) => entry.isDirectory()).map((entry) => entry.name).sort();
+  const antigravityNames = antigravityEntries.filter((entry) => entry.isDirectory()).map((entry) => entry.name).sort();
+
+  assert.ok(portableNames.length > 0);
+  assert.deepEqual(
+    antigravityNames,
+    portableNames,
+    '.agent/skills/ and .agents/skills/ must contain the same skill directories'
+  );
+
+  // Scoped to the 9 skills this work touches. dynamic-workflow, frontend-ui-engineering,
+  // and functional-test-design predate this work and intentionally use a thin
+  // pointer-adapter pattern in .agent/skills/ rather than a full copy — not a gap to close here.
+  const contentParitySkills = [
+    'api-contract-testing',
+    'performance-testing',
+    'mutation-testing',
+    'test-quality-discipline',
+    'qa-playwright-testing',
+    'ba-requirement-analysis',
+    'data-config-change',
+    'sa-architecture-design',
+    'security-review'
+  ];
+  for (const name of contentParitySkills) {
+    const [portable, antigravity] = await Promise.all([
+      readFile(`.agents/skills/${name}/SKILL.md`, 'utf8'),
+      readFile(`.agent/skills/${name}/SKILL.md`, 'utf8')
+    ]);
+    assert.equal(
+      antigravity,
+      portable,
+      `.agent/skills/${name}/SKILL.md does not match .agents/skills/${name}/SKILL.md`
+    );
+  }
 });
 
 test('accepts the three canonical Bug Fix examples', async () => {

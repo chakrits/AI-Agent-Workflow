@@ -1,13 +1,21 @@
 # PROJECT_STATUS.md
 
 ## Current Work Item
-- None — no active in-progress item. GitHub Issue #41 (repo housekeeping) is complete and closed. GitHub Issue #35 is closed (`COMPLETED`) by Human Maintainer decision; Phase A and Phase B v1 are both merged to `main` and no further phase is authorized.
+- ID: QA-TESTING-DISCIPLINE-2026-07-19
+- Title: QA Agent testing-discipline enrichment — Test Effectiveness rule, four new skills, Antigravity CLI full parity
+- Owner: Developer / Implementation Agent
+- Status: Ready for Review
+- Tracked as GitHub Issue #44; SA Agent design review returned "Approve with minor notes" (both findings fixed in the spec before implementation)
 
 ## Current Stage
-- Idle — awaiting next intake
+- QA Testing-Discipline Enrichment / Reviewer Gate
 
 ## Change Classification
-- Not applicable — no active work item
+- Change Type: Documentation and process-governance change with regression coverage
+- Risk Level: Medium
+- Code Change Required: Yes — scoped Node regression coverage
+- Architecture Change Required: No — extends the existing QA/SA rule cross-references already landed this session
+- Security Review Required: No
 
 ## Completed
 - All 11 agent roles have their current canonical rules, adapters, and regression coverage on `main`.
@@ -32,24 +40,35 @@
 - GitHub Issue #35 Phase B v1 (GitHub-native notify + assign workflow, no session invocation) merged through PR #39 as commit `3fa4b03`. Review chain: SA reconciliation of the Phase B v1 design against Phase A's merged schema/paths (no divergence found, added SDD §3a implementation detail), Developer implementation (`.github/workflows/dispatch-receipt-notify.yml`, `scripts/dispatch-receipt-notify.mjs`), Security Reviewer PASS (6-item re-check, 3 non-blocking findings: stale-but-uncompromised Action SHA pins, no `escalated`-receipt comment distinction, and `required_approving_review_count: 0`), QA PASS (independent AC matrix and scope-discipline confirmation). Boss recorded a decision on Issue #35 accepting the 0-approval-gate finding as residual risk given solo-maintainer operation (GitHub disallows self-approval of one's own PR).
 - GitHub Issue #35 is **CLOSED** (`COMPLETED`) by Human Maintainer decision. Phase A (PR #38) and Phase B v1 (PR #39) shipped: an in-repo dispatch-receipt ledger with CI enforcement, and a GitHub-native notify + assign workflow (comment/label only, no session invocation — no host capability exists yet to invoke an agent session from GitHub Actions). The original goal ("a terminal handoff actually causes the next agent to run") is not fully achieved and Phase C (GitLab parity) never started, but both gaps are unscheduled/blocked on a host capability that doesn't exist today, so the Human Maintainer closed the Issue rather than leave it open with no actionable next step. A fresh Issue should be opened when a host invocation capability becomes available or GitLab parity is prioritized; Phase A's receipt ledger and its SDD (`docs/records/sdd/2026-07-19-durable-dispatcher-phase-a-b.md`) remain the reusable foundation.
 - GitHub Issue #41 (repo housekeeping and knowledge-base setup) merged through PR #42 as commit `1448b63`, then closed. Delivered: `docs/records/` reorganized into type subfolders with `YYYY-MM-DD-slug.md` naming (and `scripts/validate-dispatch-receipts.mjs` updated to match); `scripts/housekeeping-worktrees.mjs` (list/prune `.worktrees/`, using `gh pr list --state merged` as the primary signal for this repo's squash-merge convention, with a `git branch --merged` fallback) plus an optional `.githooks/post-merge` warn-only hook; `scripts/reset-to-template.mjs` (dry-run by default, `--apply` to reset project-state files and clear `docs/records/*/`); README updated to document both scripts and previously-undocumented systems (lifecycle/readiness gate, dispatch-receipt ledger); `.obsidian/` tracked as a shared vault with `docs/vault/00-Index.md` hand-linking every role/skill adapter. A same-PR follow-up commit `da1e3e5` fixed QA-3 (`--prune` could force-remove a worktree with uncommitted/untracked changes) and was independently re-verified RESOLVED by QA. Four non-blocking findings from the same review — QA-1 (handoff-folder scan no longer filename-filtered), QA-2 (stale docstring path), QA-4 (`clearDirectory` silent no-op on a missing declared directory), QA-5 (`isWorktreeDirty` has no error handling for a worktree deleted outside git's knowledge) — are Boss-approved, tracked, unscheduled follow-up, not open work on this Issue.
+- GitHub Issue #44 (QA testing-discipline enrichment) design spec produced via `superpowers:brainstorming`, expanded through two Boss-directed scope rounds (full `.agent/skills/` parity backfill, `SKILL_CATALOG.md` linkage), reviewed by SA Agent (Approve with minor notes — two citation-precision findings, both fixed before implementation planning). Implementation added: canonical `Test Effectiveness` rule and four new Skill Routing rows; four new skills (`api-contract-testing`, `performance-testing`, `mutation-testing`, `test-quality-discipline`); an Accessibility Testing section in `qa-playwright-testing`; `Root Cause Analysis` in `TEST_REPORT.md` and two new checkboxes in `TEST_PLAN.md`; four `SKILL_CATALOG.md` entries; full `.agent/skills/`↔`.agents/skills/` parity (20 identical skills); regression coverage including a directory-and-content parity test.
 
 ## In Progress
-- None. No active work item is in progress.
+- Independent review of the QA testing-discipline rule, four new skills, template/catalog changes, and Antigravity parity (uncommitted until this item's reviewer handoff lands).
 
 ## Blockers / Open Questions
 - R-002: `.gitlab-ci.yml` has not yet been validated on a live GitLab runner; this is an external verification follow-up, not an active implementation task.
 - Deferred and unscheduled: a Prototype/Spike workflow route and a shared cross-role template pattern.
 - Deferred and unscheduled housekeeping follow-up (Issue #41, Boss-approved, non-blocking): QA-1, QA-2, QA-4, QA-5 — see the Completed section entry for detail. No Issue is open for this yet; track it when the follow-up is scheduled.
 - Any Issue #35 durable-dispatcher continuation (host-invocation capability or GitLab Phase C) requires opening a fresh Issue and a new Human Maintainer sponsorship decision; Issue #35 itself is closed.
+- `api-contract-testing`, `performance-testing`, and `mutation-testing` document tooling (`schemathesis`, `drf-spectacular`, Locust/k6, `mutmut`) that is not installed anywhere in this repo — intentional per the design spec, since this repo has no Django/Python target application yet. Wiring is deferred to whenever a real work item first needs to execute one of these skills.
 
 ## Required Artifacts
-- None pending.
+- `docs/superpowers/specs/2026-07-19-qa-testing-discipline-design.md`
+- `docs/superpowers/plans/2026-07-19-qa-testing-discipline.md`
+- `docs/workflow/role-definitions.md` (QA Agent → Test Effectiveness)
+- `.claude/agents/qa-agent.md`
+- `.agents/skills/api-contract-testing/SKILL.md`, `.agents/skills/performance-testing/SKILL.md`, `.agents/skills/mutation-testing/SKILL.md`, `.agents/skills/test-quality-discipline/SKILL.md`
+- `.agents/skills/qa-playwright-testing/SKILL.md`
+- `.agent/skills/` (full parity mirror)
+- `docs/templates/TEST_REPORT.md`, `docs/templates/TEST_PLAN.md`
+- `docs/operating-model/SKILL_CATALOG.md`
+- `test/validate-contracts.test.mjs`
 
 ## Next Quality Gate
-- None active. A future durable-dispatcher continuation (new Issue) would require Human Maintainer sponsorship, then SA design → Security review → human approval before implementation planning.
+- Reviewer confirms the canonical rule, Claude adapter, and four new skills agree; that the `.agent/skills/` parity test is meaningful (verified non-tautological in Task 6); and that no fixed Quality Gate Metrics number was introduced anywhere.
 
 ## Recommended Next Agent
-- None — idle. Human Maintainer decides intake for the next work item.
+- Reviewer, then QA Agent for the Cross-Platform Acceptance Criteria Gate on GitHub Issue #44
 
 ## Notes
 - RCA evidence: refresh runs `29635734227` and `29635753891` successfully used the App token to edit PR #20, but no `pull_request.edited` readiness run was created. The direct evaluator removes that unsupported event dependency.
@@ -61,3 +80,4 @@
 - PR #31's immutable Action pins resolve the `SEC-26-01` supply-chain concern without altering GitHub App permissions, secrets, environment, ruleset, check source/name, or privileged workflow logic.
 - This combined closeout covers two source PRs (#38 and #39), both carrying a `post-merge-closeout` signal. The readiness-check marker regex (`scripts/work-item-readiness.mjs`) only supports one `source-pr-N` reference, so this closeout PR's marker cites `source-pr-39` (the terminal PR for this Issue's current scope); PR #38's stale `post-merge-closeout` label was removed manually via `gh` rather than by the automated marker mechanism.
 - This closeout (`docs/issue-41-closeout-pr42`) covers PR #42 (Issue #41). `gh pr list --state all --label post-merge-closeout` confirmed only PR #42 carried the signal at the time this closeout started, so its marker cites `source-pr-42` with no other label to clear manually. Separately, GitHub Issue #35 was closed today (`COMPLETED`) by Human Maintainer decision; that closure is unrelated to Issue #41/PR #42 but is reconciled in this same closeout since project state had not yet reflected it.
+- GitHub Issue #44's design spec went through two Boss-directed scope expansions after initial brainstorming: first, mirroring the four new QA skills into `.agent/skills/` (Antigravity CLI) rather than leaving it out of scope by analogy to `qa-playwright-testing` not living there; second, backfilling the four pre-existing `.agent/skills/` gaps unrelated to QA (`ba-requirement-analysis`, `data-config-change`, `sa-architecture-design`, `security-review`) in the same pass rather than deferring them. SA Agent's design review (in-turn dispatch, same session) returned two non-blocking citation-precision findings — both about which existing rule a new skill's `Canonical References` cited, not about policy correctness — fixed in the spec before this plan was written.
