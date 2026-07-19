@@ -20,6 +20,7 @@ In scope:
 - `docs/templates/TEST_PLAN.md`: two new checkboxes ("Mutation Testing", "Contract Validation") in "Test Types In Scope".
 - `.claude/agents/qa-agent.md` adapter updates mirroring the canonical changes, matching how it already mirrors Evidence-Based Reporting / API Contract Validation / NFR Validation in full.
 - Mirror the four new skills, plus the updated `qa-playwright-testing` (with its new Accessibility Testing section), into `.agent/skills/` — the documented "Antigravity CLI skills" adapter (`AGENTS.md:135`). This work touches `qa-playwright-testing` directly and is adding QA-specific skills, so keeping Antigravity's QA capability in step with `.agents/skills/` is directly in scope here, not a tangential fix.
+- `docs/operating-model/SKILL_CATALOG.md`: four new skill entries, an updated `qa-playwright-testing` row, and a clarifying note distinguishing the new skills from the adjacent still-unbuilt "API Test Design" and "Defect Analysis" Planned Skills. This catalog is the file agents are explicitly told to consult before selecting a skill (its own line 7) — without an entry here, the new skills exist but may never get selected.
 - Regression coverage in `test/validate-contracts.test.mjs` for all of the above.
 
 Out of scope:
@@ -343,6 +344,70 @@ Add two checkboxes to the existing "Test Types In Scope" list:
 
 All other existing sections are unchanged.
 
+## Skill Catalog Changes — `docs/operating-model/SKILL_CATALOG.md`
+
+This catalog states "Agents must consult this catalog before selecting a skill" (line 7) — it is a second, richer routing surface alongside `role-definitions.md`'s Skill Routing table, not a duplicate of it. Newer skills (e.g. `sa-architecture-design`, `data-config-change`, `tdd-implementation`) each get an individual `## <skill-name>` section with a Field/Detail table; follow that format, not the older top-of-file "Current Skills" table.
+
+Add four new sections, in this style:
+
+```markdown
+## api-contract-testing
+
+| Field | Detail |
+|---|---|
+| Trigger | SA Agent has published or updated an OpenAPI schema and Developer Agent's implementation needs contract verification before QA sign-off |
+| Primary Agent | QA Agent |
+| Input | OpenAPI schema (`drf-spectacular`), implemented endpoint, target environment |
+| Output | Contract validation evidence (schemathesis run output, checks) recorded in `TEST_REPORT.md` |
+| Do Not Use When | No OpenAPI schema exists yet — route to SA Agent's API Contract Governance rule first; or the task is designing API test *cases* rather than validating an existing implementation against a schema (that remains the still-unbuilt "API Test Design" Planned Skill) |
+| Next Skill / Agent | Developer Agent (implementation mismatch), SA Agent (schema mismatch) |
+
+## performance-testing
+
+| Field | Detail |
+|---|---|
+| Trigger | SDD states a Performance/Reliability/Scalability NFR target that needs load/stress/spike/soak validation |
+| Primary Agent | QA Agent |
+| Input | SDD's stated NFR target, target environment, chosen tool (Locust/k6/other per SDD) |
+| Output | Measured value, method, pass/fail recorded in `TEST_PLAN.md`'s NFR Targets table and `TEST_REPORT.md` |
+| Do Not Use When | No NFR target is stated in the SDD — record `Not validated — <reason>` per the canonical NFR Validation rule instead of running this skill speculatively |
+| Next Skill / Agent | SA Agent (target itself questioned), Developer Agent (performance defect) |
+
+## mutation-testing
+
+| Field | Detail |
+|---|---|
+| Trigger | QA Agent's Test Effectiveness rule applies to a core business-logic/service-layer module and coverage percentage alone isn't sufficient evidence |
+| Primary Agent | QA Agent |
+| Input | Existing unit/component test suite, target module (service layer) |
+| Output | Mutation score and survived-mutant list recorded in `TEST_REPORT.md` |
+| Do Not Use When | The module is a thin view/serializer/migration with no business logic; or coverage itself is still low (fix coverage gaps first) |
+| Next Skill / Agent | Developer Agent (weak test / survived mutant fix) |
+
+## test-quality-discipline
+
+| Field | Detail |
+|---|---|
+| Trigger | QA Agent reviewing Developer Agent's unit/component tests for effectiveness — overmocking, fragile assertions, test-only hooks, weak assertions |
+| Primary Agent | QA Agent |
+| Input | Developer Agent's test files for the change under review |
+| Output | Anti-pattern findings recorded in `TEST_REPORT.md`, routed as defects |
+| Do Not Use When | Reviewing E2E/Playwright tests (use `qa-playwright-testing`'s own automation discipline instead) or designing new test cases (use `functional-test-design`) |
+| Next Skill / Agent | Developer Agent (test rewrite) |
+```
+
+Update the existing `Playwright QA` row in the top "Current Skills" table to reflect the new accessibility capability:
+
+```markdown
+| Playwright QA | `.agents/skills/qa-playwright-testing/` | Need browser E2E automation, UI flow testing, screenshots/traces, or WCAG 2.1 AA accessibility checks | Test scenarios, target URL/app, credentials/test data, selectors/locators | Playwright specs, test run notes, screenshots/traces, accessibility violation reports | Need only functional test design without automation | QA Agent, Defect Analysis |
+```
+
+Add a one-line clarifying note directly under the "Planned Skills" table (after the existing "Superseded" footnote) so a future implementer doesn't treat either Planned Skill as already closed:
+
+```markdown
+Note: `api-contract-testing` (implemented this pass) validates an existing implementation against a published schema; the Planned "API Test Design" skill (still unbuilt) is for designing API test *cases* from a contract — related but distinct, not superseded. Similarly, `test-quality-discipline`'s anti-pattern review and `TEST_REPORT.md`'s new Root Cause Analysis section do not close the Planned "Defect Analysis" skill, which covers broader test-failure/log/screenshot analysis.
+```
+
 ## Acceptance Criteria
 
 1. `docs/workflow/role-definitions.md`'s QA Agent Skill Routing table has all eight rows; a new `Test Effectiveness` rule exists after `NFR Validation`; `API Contract Validation` and `NFR Validation` rule text is byte-for-byte unchanged.
@@ -352,8 +417,9 @@ All other existing sections are unchanged.
 5. `docs/templates/TEST_REPORT.md` has the new "Root Cause Analysis" section; existing sections are unchanged.
 6. `docs/templates/TEST_PLAN.md` has the two new checkboxes; existing sections are unchanged.
 7. `.agent/skills/qa-playwright-testing/SKILL.md` and the four new skill files exist under `.agent/skills/` with content matching their `.agents/skills/` counterparts (including the Accessibility Testing section).
-8. `test/validate-contracts.test.mjs` has regression coverage: the new Skill Routing rows, the `Test Effectiveness` rule, each new skill file's presence and key content under both `.agents/skills/` and `.agent/skills/`, the `qa-playwright-testing` accessibility section in both locations, and both template changes each fail the test if removed.
-9. `npm test`, `npm run validate:contracts`, and `git diff --check` all pass.
+8. `docs/operating-model/SKILL_CATALOG.md` has four new skill sections, the updated `Playwright QA` row, and the clarifying note under Planned Skills.
+9. `test/validate-contracts.test.mjs` has regression coverage: the new Skill Routing rows, the `Test Effectiveness` rule, each new skill file's presence and key content under both `.agents/skills/` and `.agent/skills/`, the `qa-playwright-testing` accessibility section in both locations, the four new `SKILL_CATALOG.md` entries, and both template changes each fail the test if removed.
+10. `npm test`, `npm run validate:contracts`, and `git diff --check` all pass.
 
 ## Risks and Constraints
 
