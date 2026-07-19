@@ -19,6 +19,7 @@ In scope:
 - `docs/templates/TEST_REPORT.md`: new "Root Cause Analysis" (5 Whys) section.
 - `docs/templates/TEST_PLAN.md`: two new checkboxes ("Mutation Testing", "Contract Validation") in "Test Types In Scope".
 - `.claude/agents/qa-agent.md` adapter updates mirroring the canonical changes, matching how it already mirrors Evidence-Based Reporting / API Contract Validation / NFR Validation in full.
+- Mirror the four new skills, plus the updated `qa-playwright-testing` (with its new Accessibility Testing section), into `.agent/skills/` — the documented "Antigravity CLI skills" adapter (`AGENTS.md:135`). This work touches `qa-playwright-testing` directly and is adding QA-specific skills, so keeping Antigravity's QA capability in step with `.agents/skills/` is directly in scope here, not a tangential fix.
 - Regression coverage in `test/validate-contracts.test.mjs` for all of the above.
 
 Out of scope:
@@ -29,7 +30,8 @@ Out of scope:
 - TDD Iron Laws / Red-Green-Refactor, Definition-of-Ready / Three Amigos / Gherkin, and the OWASP security checklist from the reviewed `test-master` reference — these belong to Developer Agent (`tdd-implementation` skill), BA Agent (existing Illustrative Draft Rule / `qa-playwright-testing`'s BDD workflow), and Security Reviewer (existing Django/DRF-specific Scan Checklist) respectively. Re-homing them under QA Agent would duplicate or override another role's already-established authority.
 - The `vitest-testing` reference skill — Vitest/Bun is not this project's stack (Django/Python/PostgreSQL/REST); nothing from it is adopted.
 - "Reject PRs lacking tests" language from `test-master` — QA Agent has no unilateral merge-block authority under the existing Cross-Platform Acceptance Criteria Gate; only Human/CI hold that gate.
-- Mirroring the four new skills into `.agent/skills/` or `.codex/` — `qa-playwright-testing` itself only exists under `.agents/skills/` today, so the new skills follow the same precedent rather than backfilling parity gaps that predate this work.
+- Mirroring the four new skills into `.codex/` — unlike `.agent/skills/`, `.codex/` does not mirror any skill today (it holds a single `orchestrator-supervision.md`, a different adapter shape entirely), so there is no existing parity pattern to extend there.
+- Backfilling `.agent/skills/`'s pre-existing parity gap for the four role-specific skills unrelated to QA — `ba-requirement-analysis`, `data-config-change`, `sa-architecture-design`, `security-review` exist in `.agents/skills/` but not `.agent/skills/`. This predates and is unrelated to QA testing-discipline work; flagged in Recommended Next Step as a separate follow-up rather than folded into this spec.
 
 ## Research Input
 
@@ -77,6 +79,15 @@ The current adapter already restates `Evidence-Based Reporting`, `API Contract V
 
 1. Update the `## Skill Routing` sentence to list all eight skills: `functional-test-design`, `qa-playwright-testing`, `security-review`, `data-config-change`, `api-contract-testing`, `performance-testing`, `mutation-testing`, `test-quality-discipline`.
 2. Add a new `## Test Effectiveness` section mirroring the canonical rule text above, placed after the existing `## NFR Validation` section — same restatement style already used for the other three rules in this file.
+
+## Adapter Changes — `.agent/skills/` (Antigravity CLI)
+
+`.agent/skills/` mirrors a subset of `.agents/skills/` for the Antigravity CLI host (`AGENTS.md:135`), but had never been updated when `qa-playwright-testing` (or the other four role-specific skills) were added to `.agents/skills/` — it currently only carries the 11 generic/cross-role skills. Since this spec is itself adding QA-specific skills and directly editing `qa-playwright-testing`, keep Antigravity's QA capability in step with the portable skill set:
+
+1. Copy `.agents/skills/qa-playwright-testing/SKILL.md` (including the new Accessibility Testing section from this spec) into `.agent/skills/qa-playwright-testing/SKILL.md`.
+2. Copy the four new skill files — `api-contract-testing`, `performance-testing`, `mutation-testing`, `test-quality-discipline` — into `.agent/skills/` unchanged (same content as `.agents/skills/`, no Antigravity-specific adaptation needed since these are plain Markdown skill files with no Claude-Code-specific frontmatter).
+
+This does not attempt to close `.agent/skills/`'s pre-existing gap for `ba-requirement-analysis`, `data-config-change`, `sa-architecture-design`, or `security-review` — those are unrelated to QA and out of scope here (see Recommended Next Step).
 
 ## New Skill Files
 
@@ -340,12 +351,14 @@ All other existing sections are unchanged.
 4. `.agents/skills/qa-playwright-testing/SKILL.md` has the new `## Accessibility Testing` section.
 5. `docs/templates/TEST_REPORT.md` has the new "Root Cause Analysis" section; existing sections are unchanged.
 6. `docs/templates/TEST_PLAN.md` has the two new checkboxes; existing sections are unchanged.
-7. `test/validate-contracts.test.mjs` has regression coverage: the new Skill Routing rows, the `Test Effectiveness` rule, each new skill file's presence and key content, the `qa-playwright-testing` accessibility section, and both template changes each fail the test if removed.
-8. `npm test`, `npm run validate:contracts`, and `git diff --check` all pass.
+7. `.agent/skills/qa-playwright-testing/SKILL.md` and the four new skill files exist under `.agent/skills/` with content matching their `.agents/skills/` counterparts (including the Accessibility Testing section).
+8. `test/validate-contracts.test.mjs` has regression coverage: the new Skill Routing rows, the `Test Effectiveness` rule, each new skill file's presence and key content under both `.agents/skills/` and `.agent/skills/`, the `qa-playwright-testing` accessibility section in both locations, and both template changes each fail the test if removed.
+9. `npm test`, `npm run validate:contracts`, and `git diff --check` all pass.
 
 ## Risks and Constraints
 
-- This is a larger single work item than a typical single-role pass (one new canonical rule + four new skill files + one skill extension + two template files + adapter mirror). Consistent with the precedent already accepted for the original QA Agent instruction work — kept as one spec/plan rather than split further, since all four new skills exist only to serve the one new `Test Effectiveness` rule plus the two already-shipped rules.
+- This is a larger single work item than a typical single-role pass (one new canonical rule + four new skill files mirrored across two adapters + one skill extension + two template files + Claude Code adapter mirror). Consistent with the precedent already accepted for the original QA Agent instruction work — kept as one spec/plan rather than split further, since all four new skills exist only to serve the one new `Test Effectiveness` rule plus the two already-shipped rules.
+- Mirroring into `.agent/skills/` introduces a second copy of each new skill file's content. This repo already accepts this cost for `code-review-gate`, `debugging-discipline`, and the other nine skills mirrored across both directories — no new duplication *pattern*, just two more files following the existing one. A future skill-sync tool (out of scope here) could remove this by generation instead of copy, but is not needed to ship this work.
 - `api-contract-testing` and `performance-testing` reference tools (`schemathesis`, `drf-spectacular`, Locust/k6) that are not yet installed anywhere in this repo. This spec documents the *methodology*; actual tool installation/CI wiring is deferred to when a real work item first needs to execute one of these skills; do not add these as new dependencies in this pass.
 - `Test Effectiveness` depends on SA Agent's Dependency Boundary Rule (service-layer scoping, already landed) and Developer Agent's Escalation Discipline (already landed) to state the QA/Developer ownership boundary correctly. If either of those SA/Developer rules changes shape later, this rule's cross-references should be revisited.
 - No fixed mutation-score or performance-target pass/fail threshold is set anywhere in this spec, per explicit Boss direction. This is intentional, not an oversight — do not add one during implementation without checking back.
@@ -353,3 +366,5 @@ All other existing sections are unchanged.
 ## Recommended Next Step
 
 Human reviewer confirms this spec. Then invoke the writing-plans skill to create the execution plan before any canonical/adapter/skill/template changes begin.
+
+Separately, `.agent/skills/` (Antigravity CLI) is still missing `ba-requirement-analysis`, `data-config-change`, and `sa-architecture-design`, and `security-review` relative to `.agents/skills/` — a pre-existing parity gap unrelated to QA, out of scope for this spec (see Scope). Worth a follow-up work item once this work merges.
