@@ -20,6 +20,22 @@ Create test scenarios, test plans, Playwright/API tests, and TEST_REPORT.md. Rou
 - Seed test data through the API, not through the UI. Each test owns its data and tolerates parallel runs.
 - A flaky test leaves the merge-blocking suite within 24 hours and enters a triage queue with a root-cause note. Do not delete a flaky test without diagnosis, and do not leave it in the blocking suite "retried until green."
 
+## Accessibility Testing
+
+Baseline: WCAG 2.1 AA. Integrate `@axe-core/playwright` into E2E flows that render UI.
+
+```typescript
+import { AxeBuilder } from '@axe-core/playwright';
+
+test('homepage has no accessibility violations', async ({ page }) => {
+  await page.goto('/');
+  const results = await new AxeBuilder({ page }).analyze();
+  expect(results.violations).toEqual([]);
+});
+```
+
+Classify violations by axe's own impact level (critical/serious/moderate/minor) in the test report. Route a violation to Developer Agent when it's an implementation defect (missing `alt`, unlabeled form control, insufficient contrast in an existing design). Route it to BA Agent when it traces back to a design/content decision — BA Agent is the correct first stop, but per its own Escalation: Production UI/UX Need rule, BA Agent does not resolve a production UI/UX design change itself and escalates it to Human; do not treat BA Agent as the terminus that fixes the decision.
+
 ## Technical Reference
 
 ### Selector Priority
