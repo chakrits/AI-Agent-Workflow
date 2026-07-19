@@ -10,3 +10,4 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: npm run validate:contracts
+      - run: npm run validate:dispatch-receipts

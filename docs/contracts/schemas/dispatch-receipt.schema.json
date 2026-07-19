@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": [
+    "handoff_event_id",
+    "work_item_url",
+    "source_agent",
+    "target_agent",
+    "state",
+    "registered_at",
+    "registered_by",
+    "dispatch_depth"
+  ],
+  "properties": {
+    "handoff_event_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]{3,63}$"
+    },
+    "terminal_result_id": { "type": "string", "minLength": 1 },
+    "work_item_url": { "type": "string", "minLength": 1, "pattern": "^https://" },
+    "source_agent": { "type": "string", "minLength": 1 },
+    "target_agent": { "type": "string", "minLength": 1 },
+    "state": { "enum": ["registered", "consumed", "expired", "cancelled"] },
+    "registered_at": { "type": "string", "minLength": 1 },
+    "registered_by": { "type": "string", "minLength": 1 },
+    "state_changed_at": { "type": "string", "minLength": 1 },
+    "state_changed_by": { "type": "string", "minLength": 1 },
+    "dispatch_depth": { "type": "integer", "minimum": 1 },
+    "escalated": { "type": "boolean" },
+    "notes": { "type": "string" }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "state": { "const": "consumed" } } },
+      "then": { "required": ["terminal_result_id"] }
+    },
+    {
+      "if": { "not": { "properties": { "state": { "const": "registered" } } } },
+      "then": { "required": ["state_changed_at", "state_changed_by"] }
+    }
+  ]
+}

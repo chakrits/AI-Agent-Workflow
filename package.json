@@ -6,7 +6,8 @@
   "scripts": {
     "test": "node --test",
     "validate:contracts": "node scripts/validate-contracts.mjs",
-    "validate:project-state": "node scripts/validate-project-state.mjs"
+    "validate:project-state": "node scripts/validate-project-state.mjs",
+    "validate:dispatch-receipts": "node scripts/validate-dispatch-receipts.mjs"
   },
   "devDependencies": {
     "ajv": "^8.17.1",
