@@ -1,0 +1,18 @@
+#!/bin/sh
+# Warn about prunable .worktrees/ entries after a local merge/pull on main.
+# Enable with: git config core.hooksPath .githooks
+# This hook only lists (dry-run); it never deletes anything automatically.
+
+branch=$(git rev-parse --abbrev-ref HEAD)
+if [ "$branch" != "main" ]; then
+  exit 0
+fi
+
+if [ ! -f package.json ] || ! grep -q '"housekeeping:worktrees"' package.json 2>/dev/null; then
+  exit 0
+fi
+
+echo ""
+echo "[post-merge] Checking for prunable worktrees..."
+npm run --silent housekeeping:worktrees 2>/dev/null | grep -A 100 "prunable" || true
+echo "[post-merge] Run 'npm run housekeeping:worktrees -- --prune' to clean up. (informational only)"

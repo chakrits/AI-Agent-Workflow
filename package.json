@@ -7,7 +7,9 @@
     "test": "node --test",
     "validate:contracts": "node scripts/validate-contracts.mjs",
     "validate:project-state": "node scripts/validate-project-state.mjs",
-    "validate:dispatch-receipts": "node scripts/validate-dispatch-receipts.mjs"
+    "validate:dispatch-receipts": "node scripts/validate-dispatch-receipts.mjs",
+    "housekeeping:worktrees": "node scripts/housekeeping-worktrees.mjs",
+    "reset:template": "node scripts/reset-to-template.mjs"
   },
   "devDependencies": {
     "ajv": "^8.17.1",

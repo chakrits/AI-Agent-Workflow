@@ -20,6 +20,7 @@ function handoffMarkdown({ handoffEventId, nextOwner, nextAction = 'Dispatch' })
 async function makeRepo({ receipts = [], handoffs = [] }) {
   const rootDir = await mkdtemp(path.join(os.tmpdir(), 'dispatch-receipts-'));
   await mkdir(path.join(rootDir, 'docs/records/dispatch-receipts'), { recursive: true });
+  await mkdir(path.join(rootDir, 'docs/records/handoff'), { recursive: true });
   await mkdir(path.join(rootDir, 'docs/contracts/schemas'), { recursive: true });
   await cp(
     path.join(process.cwd(), 'docs/contracts/schemas/dispatch-receipt.schema.json'),
@@ -33,7 +34,7 @@ async function makeRepo({ receipts = [], handoffs = [] }) {
     );
   }
   for (const { filename, ...rest } of handoffs) {
-    await writeFile(path.join(rootDir, 'docs/records', filename), handoffMarkdown(rest), 'utf8');
+    await writeFile(path.join(rootDir, 'docs/records/handoff', filename), handoffMarkdown(rest), 'utf8');
   }
   return rootDir;
 }
@@ -281,7 +282,7 @@ test('PR-scoped check does not fail on a historical unrelated HANDOFF file with 
     receipts: [{ filename: 'evt-0011.yaml', fields: { handoff_event_id: 'evt-0011', ...registeredBase, dispatch_depth: 1 } }]
   });
   const errors = await validateDispatchReceipts(rootDir, {
-    changedHandoffPaths: ['docs/records/HANDOFF-THIS-PR.md']
+    changedHandoffPaths: ['docs/records/handoff/HANDOFF-THIS-PR.md']
   });
   assert.deepEqual(errors, []);
   await rm(rootDir, { recursive: true, force: true });
@@ -295,7 +296,7 @@ test('PR-scoped check still fails when the current PR itself declares Dispatch w
     ]
   });
   const errors = await validateDispatchReceipts(rootDir, {
-    changedHandoffPaths: ['docs/records/HANDOFF-THIS-PR.md']
+    changedHandoffPaths: ['docs/records/handoff/HANDOFF-THIS-PR.md']
   });
   assert.ok(
     errors.some((message) => message.includes('no matching receipt file')),
