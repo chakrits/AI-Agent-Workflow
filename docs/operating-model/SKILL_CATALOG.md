@@ -23,7 +23,7 @@ Agents must consult this catalog before selecting a skill. The goal is to preven
 | Dynamic Workflow | `.agents/skills/dynamic-workflow/` | Need to classify change type, select workflow, route agents, enforce gates, or perform contract-first Bug Fix validation | User request, PROJECT_STATUS.md, workflow docs, and `task-state` for Bug Fix work | Selected workflow, required agents, gates, next step, and Bug Fix contract-validation status | The user already selected a specific role/task and no routing or contract validation is needed | Orchestrator, PM/BA/SA/Dev/QA/etc. |
 | Frontend UI Engineering | `.agents/skills/frontend-ui-engineering/` | Build or change user-facing UI, components, responsive layouts, visual/UX behavior, or accessibility | Target UI context, existing design system, acceptance criteria, supported breakpoints | Accessible, responsive, maintainable UI guidance and a QA handoff when browser automation is needed | Backend-only changes, requirement discovery without UI work, or generic test design | Developer Agent, then QA Agent / `qa-playwright-testing` |
 | Functional Test Design | `.agents/skills/functional-test-design/` | Need functional test cases from requirements, FS, business rules, IPO matrix, BVA/EP, risk-based testing, traceability | URS/BRD, FS/TSD, user stories, AC, API/field rules | Function Test Report or Focused Functional Test Pack | Need automation script implementation only | Playwright/E2E skill, API test skill, regression planning, QA Agent |
-| Playwright QA | `.agents/skills/qa-playwright-testing/` | Need browser E2E automation, UI flow testing, screenshots/traces | Test scenarios, target URL/app, credentials/test data, selectors/locators | Playwright specs, test run notes, screenshots/traces | Need only functional test design without automation | QA Agent, Defect Analysis |
+| Playwright QA | `.agents/skills/qa-playwright-testing/` | Need browser E2E automation, UI flow testing, screenshots/traces, or WCAG 2.1 AA accessibility checks | Test scenarios, target URL/app, credentials/test data, selectors/locators | Playwright specs, test run notes, screenshots/traces, accessibility violation reports | Need only functional test design without automation | QA Agent, Defect Analysis |
 | Security Review | `.agents/skills/security-review/` | Auth, authorization, secrets, sensitive data, input validation, dependency/security review | Code diff, architecture, API, data flow, threat context | Security review notes, findings, severity, recommended fixes | Pure functional happy path test design | Security Reviewer, SA, Developer |
 
 
@@ -55,6 +55,8 @@ These are intentionally not implemented yet but reserved for Phase 2+.
 | Project Spec Bootstrap | One compact spec (Objective, Commands, Structure, Code Style, Testing, Boundaries) for a *new target application repo* — not this meta-repo. Deferred until a real target app exists; PM/BA/SA's existing artifacts already cover this repo's own needs. | `.agents/skills/project-spec-bootstrap/` |
 
 Superseded (removed from this table because a real skill already covers the purpose): Data Change Validation and Config Change Validation → `data-config-change`; Code Review → `code-review-gate`; System Design Review → `sa-architecture-design`.
+
+Note: `api-contract-testing` (implemented this pass) validates an existing implementation against a published schema; the Planned "API Test Design" skill (still unbuilt) is for designing API test *cases* from a contract — related but distinct, not superseded. Similarly, `test-quality-discipline`'s anti-pattern review and `TEST_REPORT.md`'s new Root Cause Analysis section do not close the Planned "Defect Analysis" skill, which covers broader test-failure/log/screenshot analysis.
 
 
 ## ba-requirement-analysis
@@ -155,6 +157,50 @@ Superseded (removed from this table because a real skill already covers the purp
 | Output | An atomic, type-prefixed commit; a change summary when handing off |
 | Do Not Use When | Nothing has been changed yet; choosing a release version or writing a changelog entry (Release Agent's job) |
 | Next Skill / Agent | code-review-gate, QA Agent |
+
+## api-contract-testing
+
+| Field | Detail |
+|---|---|
+| Trigger | SA Agent has published or updated an OpenAPI schema and Developer Agent's implementation needs contract verification before QA sign-off |
+| Primary Agent | QA Agent |
+| Input | OpenAPI schema (`drf-spectacular`), implemented endpoint, target environment |
+| Output | Contract validation evidence (schemathesis run output, checks) recorded in `TEST_REPORT.md` |
+| Do Not Use When | No OpenAPI schema exists yet — route to SA Agent's API Contract Governance rule first; or the task is designing API test *cases* rather than validating an existing implementation against a schema (that remains the still-unbuilt "API Test Design" Planned Skill) |
+| Next Skill / Agent | Developer Agent (implementation mismatch), SA Agent (schema mismatch) |
+
+## performance-testing
+
+| Field | Detail |
+|---|---|
+| Trigger | SDD states a Performance/Reliability/Scalability NFR target that needs load/stress/spike/soak validation |
+| Primary Agent | QA Agent |
+| Input | SDD's stated NFR target, target environment, chosen tool (Locust/k6/other per SDD) |
+| Output | Measured value, method, pass/fail recorded in `TEST_PLAN.md`'s NFR Targets table and `TEST_REPORT.md` |
+| Do Not Use When | No NFR target is stated in the SDD — record `Not validated — <reason>` per the canonical NFR Validation rule instead of running this skill speculatively |
+| Next Skill / Agent | SA Agent (target itself questioned), Developer Agent (performance defect) |
+
+## mutation-testing
+
+| Field | Detail |
+|---|---|
+| Trigger | QA Agent's Test Effectiveness rule applies to a core business-logic/service-layer module and coverage percentage alone isn't sufficient evidence |
+| Primary Agent | QA Agent |
+| Input | Existing unit/component test suite, target module (service layer) |
+| Output | Mutation score and survived-mutant list recorded in `TEST_REPORT.md` |
+| Do Not Use When | The module is a thin view/serializer/migration with no business logic; or coverage itself is still low (fix coverage gaps first) |
+| Next Skill / Agent | Developer Agent (weak test / survived mutant fix) |
+
+## test-quality-discipline
+
+| Field | Detail |
+|---|---|
+| Trigger | QA Agent reviewing Developer Agent's unit/component tests for effectiveness — overmocking, fragile assertions, test-only hooks, weak assertions |
+| Primary Agent | QA Agent |
+| Input | Developer Agent's test files for the change under review |
+| Output | Anti-pattern findings recorded in `TEST_REPORT.md`, routed as defects |
+| Do Not Use When | Reviewing E2E/Playwright tests (use `qa-playwright-testing`'s own automation discipline instead) or designing new test cases (use `functional-test-design`) |
+| Next Skill / Agent | Developer Agent (test rewrite) |
 
 
 
