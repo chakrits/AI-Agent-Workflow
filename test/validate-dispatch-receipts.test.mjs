@@ -267,3 +267,39 @@ test('matching receipt in expired state does not satisfy a still-live Dispatch',
   );
   await rm(rootDir, { recursive: true, force: true });
 });
+
+test('PR-scoped check does not fail on a historical unrelated HANDOFF file with no receipt', async () => {
+  // Simulates a repo where an older, already-merged HANDOFF file declares a
+  // bare "Next Action: Dispatch" with no matching receipt (a pre-existing
+  // repo-wide landmine, not something the current PR touched or introduced).
+  // A PR that never changed that file must not be failed by it.
+  const rootDir = await makeRepo({
+    handoffs: [
+      { filename: 'HANDOFF-HISTORICAL-UNRELATED.md', handoffEventId: 'evt-historical', nextOwner: 'QA Agent' },
+      { filename: 'HANDOFF-THIS-PR.md', handoffEventId: 'evt-0011', nextOwner: 'Security Reviewer' }
+    ],
+    receipts: [{ filename: 'evt-0011.yaml', fields: { handoff_event_id: 'evt-0011', ...registeredBase, dispatch_depth: 1 } }]
+  });
+  const errors = await validateDispatchReceipts(rootDir, {
+    changedHandoffPaths: ['docs/records/HANDOFF-THIS-PR.md']
+  });
+  assert.deepEqual(errors, []);
+  await rm(rootDir, { recursive: true, force: true });
+});
+
+test('PR-scoped check still fails when the current PR itself declares Dispatch with no receipt', async () => {
+  const rootDir = await makeRepo({
+    handoffs: [
+      { filename: 'HANDOFF-HISTORICAL-UNRELATED.md', handoffEventId: 'evt-historical', nextOwner: 'QA Agent' },
+      { filename: 'HANDOFF-THIS-PR.md', handoffEventId: 'evt-0012', nextOwner: 'Security Reviewer' }
+    ]
+  });
+  const errors = await validateDispatchReceipts(rootDir, {
+    changedHandoffPaths: ['docs/records/HANDOFF-THIS-PR.md']
+  });
+  assert.ok(
+    errors.some((message) => message.includes('no matching receipt file')),
+    `expected a missing-receipt error scoped to this PR's own handoff, got: ${JSON.stringify(errors)}`
+  );
+  await rm(rootDir, { recursive: true, force: true });
+});

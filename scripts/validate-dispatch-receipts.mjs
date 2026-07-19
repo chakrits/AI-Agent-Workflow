@@ -1,4 +1,5 @@
 import { readFile, readdir } from 'node:fs/promises';
+import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import Ajv2020 from 'ajv/dist/2020.js';
@@ -30,13 +31,56 @@ async function readReceiptFiles(rootDir) {
   return receipts;
 }
 
-async function readHandoffFiles(rootDir) {
+/**
+ * Determine which docs/records/HANDOFF-*.md files are part of the current
+ * pull request's diff against its base branch merge-base.
+ *
+ * Only pull_request-triggered CI runs are scoped this way: a PR's own
+ * Dispatch declaration is always authored in the same PR/commit as its
+ * receipt (SDD "Receipt-authorship duty"), so it is sufficient (and
+ * required, to avoid the full-repo blast-radius failure mode) to check
+ * only the handoff files this PR itself adds or modifies.
+ *
+ * Returns `undefined` (meaning "no scoping, fall back to a full scan")
+ * when not running as a pull_request check, or when git-based scoping is
+ * unavailable (e.g. shallow clone, no origin remote, local ad-hoc run) --
+ * a full scan is the correct behavior for a push/post-merge run, since by
+ * that point the repo should already be internally consistent.
+ */
+export function resolveChangedHandoffPaths(rootDir, env = process.env) {
+  if (env.GITHUB_EVENT_NAME && env.GITHUB_EVENT_NAME !== 'pull_request') return undefined;
+  const baseRef = env.GITHUB_BASE_REF || 'main';
+  try {
+    const mergeBase = execFileSync('git', ['merge-base', `origin/${baseRef}`, 'HEAD'], {
+      cwd: rootDir,
+      stdio: ['ignore', 'pipe', 'ignore']
+    })
+      .toString()
+      .trim();
+    if (!mergeBase) return undefined;
+    const diffOutput = execFileSync(
+      'git',
+      ['diff', '--name-only', '--diff-filter=ACMR', `${mergeBase}...HEAD`, '--', 'docs/records/HANDOFF-*.md'],
+      { cwd: rootDir, stdio: ['ignore', 'pipe', 'ignore'] }
+    ).toString();
+    return diffOutput
+      .split('\n')
+      .map((line) => line.trim())
+      .filter(Boolean);
+  } catch {
+    return undefined;
+  }
+}
+
+async function readHandoffFiles(rootDir, changedHandoffPaths) {
   const files = await listFiles(path.join(rootDir, 'docs/records'), '.md');
+  const scoped = changedHandoffPaths ? new Set(changedHandoffPaths) : undefined;
   const handoffs = [];
   for (const filePath of files) {
     const name = path.basename(filePath);
     if (!name.startsWith('HANDOFF-')) continue;
     const relativePath = path.relative(rootDir, filePath);
+    if (scoped && !scoped.has(relativePath)) continue;
     const content = await readFile(filePath, 'utf8');
     handoffs.push({ relativePath, content });
   }
@@ -172,10 +216,12 @@ export function validateMatching(declarations, receipts) {
   return errors;
 }
 
-export async function validateDispatchReceipts(rootDir) {
+export async function validateDispatchReceipts(rootDir, options = {}) {
+  const changedHandoffPaths =
+    'changedHandoffPaths' in options ? options.changedHandoffPaths : resolveChangedHandoffPaths(rootDir);
   const [receipts, handoffFiles] = await Promise.all([
     readReceiptFiles(rootDir),
-    readHandoffFiles(rootDir)
+    readHandoffFiles(rootDir, changedHandoffPaths)
   ]);
   const validateSchema = await getSchemaValidator(rootDir);
   const errors = [];
