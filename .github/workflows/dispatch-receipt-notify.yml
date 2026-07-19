@@ -1,0 +1,121 @@
+name: Notify dispatch receipt assignment
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docs/records/dispatch-receipts/**'
+
+concurrency:
+  group: dispatch-receipt-notify-${{ github.repository }}
+  cancel-in-progress: false
+
+jobs:
+  notify-registered-receipts:
+    runs-on: ubuntu-latest
+    environment: dispatch-receipt-notify
+    permissions:
+      contents: read
+    steps:
+      - name: Check out the trusted default-branch ledger
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Create the dispatch-receipt-notify GitHub App token
+        id: notify-token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3
+        with:
+          client-id: ${{ vars.DISPATCH_RECEIPT_NOTIFY_APP_CLIENT_ID }}
+          private-key: ${{ secrets.DISPATCH_RECEIPT_NOTIFY_APP_PRIVATE_KEY }}
+          permission-issues: write
+
+      - name: Notify newly registered dispatch receipts
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
+        env:
+          GITHUB_EVENT_BEFORE: ${{ github.event.before }}
+          GITHUB_EVENT_AFTER: ${{ github.event.after }}
+        with:
+          github-token: ${{ steps.notify-token.outputs.token }}
+          script: |
+            const {
+              resolveChangedReceiptPaths,
+              resolveNotifyActions,
+              loadReceiptFromDisk,
+              buildLabelName,
+              buildCommentBody,
+              hasExistingNotification
+            } = await import(`${process.env.GITHUB_WORKSPACE}/scripts/dispatch-receipt-notify.mjs`);
+
+            const rootDir = process.env.GITHUB_WORKSPACE;
+            const repository = { owner: context.repo.owner, repo: context.repo.repo };
+            const commitSha = context.sha;
+
+            const changedPaths = resolveChangedReceiptPaths(rootDir);
+            const actions = await resolveNotifyActions(changedPaths, (relativePath) =>
+              loadReceiptFromDisk(rootDir, relativePath)
+            );
+
+            for (const action of actions) {
+              const { relativePath, receipt, target } = action;
+              const handoffEventId = receipt.handoff_event_id;
+              if (!target) {
+                core.setFailed(
+                  `Cannot resolve work_item_url "${receipt.work_item_url}" for receipt ${relativePath}.`
+                );
+                continue;
+              }
+
+              const comments = await github.paginate(github.rest.issues.listComments, {
+                owner: target.owner,
+                repo: target.repo,
+                issue_number: target.issueNumber,
+                per_page: 100
+              });
+              if (hasExistingNotification(comments, handoffEventId)) {
+                core.info(`Dispatch receipt notify already posted for ${handoffEventId}; skipping.`);
+                continue;
+              }
+
+              const labelName = buildLabelName(receipt.target_agent);
+              try {
+                await github.rest.issues.getLabel({
+                  owner: target.owner,
+                  repo: target.repo,
+                  name: labelName
+                });
+              } catch (error) {
+                if (error.status !== 404) throw error;
+                await github.rest.issues.createLabel({
+                  owner: target.owner,
+                  repo: target.repo,
+                  name: labelName,
+                  color: '5319e7',
+                  description: `Dispatch receipt notify: assigned to ${receipt.target_agent}`
+                });
+              }
+              await github.rest.issues.addLabels({
+                owner: target.owner,
+                repo: target.repo,
+                issue_number: target.issueNumber,
+                labels: [labelName]
+              });
+
+              const body = buildCommentBody({
+                handoffEventId,
+                targetAgent: receipt.target_agent,
+                workItemUrl: receipt.work_item_url,
+                receiptRepoPath: relativePath,
+                commitSha,
+                repository
+              });
+              await github.rest.issues.createComment({
+                owner: target.owner,
+                repo: target.repo,
+                issue_number: target.issueNumber,
+                body
+              });
+              core.info(`Posted dispatch receipt notify for ${handoffEventId} on ${receipt.work_item_url}.`);
+            }
