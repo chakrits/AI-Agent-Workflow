@@ -239,7 +239,7 @@ description: Review Developer Agent's unit/component tests for effectiveness and
 
 ## Purpose
 
-A test suite that passes isn't automatically a good test suite. This skill gives QA Agent a concrete checklist for judging whether Developer Agent's unit/component tests are effective — a review discipline, not an authoring discipline; Developer Agent owns writing and fixing the tests themselves per its Escalation Discipline.
+A test suite that passes isn't automatically a good test suite. This skill gives QA Agent a concrete checklist for judging whether Developer Agent's unit/component tests are effective — a review discipline, not an authoring discipline; Developer Agent owns writing and fixing the tests themselves, per its role definition's opening ownership statement ("Owns implementation, refactoring, unit tests, migrations, and code-level fixes").
 
 ## FIRST Principles
 
@@ -276,7 +276,7 @@ Record findings in `docs/templates/TEST_REPORT.md`. A test-quality finding is a 
 
 ## Canonical References
 
-- `docs/workflow/role-definitions.md` (QA Agent → Test Effectiveness; Developer Agent → Escalation Discipline)
+- `docs/workflow/role-definitions.md` (QA Agent → Test Effectiveness and Dynamic Routing; Developer Agent → ownership of implementation, refactoring, unit tests, migrations, and code-level fixes)
 - `docs/templates/TEST_REPORT.md`
 ```
 
@@ -299,7 +299,7 @@ test('homepage has no accessibility violations', async ({ page }) => {
 });
 ```
 
-Classify violations by axe's own impact level (critical/serious/moderate/minor) in the test report. Route a violation to Developer Agent when it's an implementation defect (missing `alt`, unlabeled form control, insufficient contrast in an existing design) and to BA Agent when it traces back to a design/content decision that needs to change (per BA Agent's Escalation: Production UI/UX Need rule).
+Classify violations by axe's own impact level (critical/serious/moderate/minor) in the test report. Route a violation to Developer Agent when it's an implementation defect (missing `alt`, unlabeled form control, insufficient contrast in an existing design). Route it to BA Agent when it traces back to a design/content decision — BA Agent is the correct first stop, but per its own Escalation: Production UI/UX Need rule, BA Agent does not resolve a production UI/UX design change itself and escalates it to Human; do not treat BA Agent as the terminus that fixes the decision.
 ```
 
 ## Template Changes
@@ -426,7 +426,7 @@ Note: `api-contract-testing` (implemented this pass) validates an existing imple
 - This is a larger single work item than a typical single-role pass (one new canonical rule + four new skill files mirrored across two adapters + one skill extension + two template files + Claude Code adapter mirror + a four-skill backfill unrelated to QA content-wise). Accepted per explicit Boss direction to close the full `.agent/skills/` parity gap now rather than deferring it, on top of the precedent already accepted for the original QA Agent instruction work of keeping a larger item as one spec/plan.
 - Mirroring into `.agent/skills/` introduces a second copy of each skill file's content — nine files now, not two (four new QA skills + `qa-playwright-testing` + four backfilled skills). This repo already accepts this duplication cost for the eleven generic skills mirrored across both directories; this spec just brings the role-specific skills to the same standard. There is still no tooling that keeps the two directories in sync automatically — the new regression test (Acceptance Criteria 9) only catches drift after the fact, it does not prevent a future single-directory edit. A skill-sync tool remains out of scope here.
 - `api-contract-testing` and `performance-testing` reference tools (`schemathesis`, `drf-spectacular`, Locust/k6) that are not yet installed anywhere in this repo. This spec documents the *methodology*; actual tool installation/CI wiring is deferred to when a real work item first needs to execute one of these skills; do not add these as new dependencies in this pass.
-- `Test Effectiveness` depends on SA Agent's Dependency Boundary Rule (service-layer scoping, already landed) and Developer Agent's Escalation Discipline (already landed) to state the QA/Developer ownership boundary correctly. If either of those SA/Developer rules changes shape later, this rule's cross-references should be revisited.
+- `Test Effectiveness` depends on SA Agent's Dependency Boundary Rule (service-layer scoping, already landed) and Developer Agent's role-definition ownership statement plus QA Agent's own Dynamic Routing rule (both already landed) to state the QA/Developer ownership boundary correctly. If any of those rules changes shape later, this rule's cross-references should be revisited.
 - No fixed mutation-score or performance-target pass/fail threshold is set anywhere in this spec, per explicit Boss direction. This is intentional, not an oversight — do not add one during implementation without checking back.
 
 ## Recommended Next Step
