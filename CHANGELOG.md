@@ -3,6 +3,8 @@
 ## Unreleased
 
 ### Added
+- Durable dispatcher Phase A (Issue #35, PR #38): an in-repo dispatch-receipt ledger (JSON Schema + `scripts/validate-dispatch-receipts.mjs`) and CI enforcement, with a git-diff-scoped receipt-matching fix so validation checks only the receipts touched by the current change rather than scanning the whole repo, plus a cross-turn `dispatch_depth`/`escalated` circuit-breaker extension.
+- Durable dispatcher Phase B v1 (Issue #35, PR #39): a GitHub-native notify + assign workflow (`.github/workflows/dispatch-receipt-notify.yml`, `scripts/dispatch-receipt-notify.mjs`) scoped to notify-and-assign only — no agent-session invocation — reusing this repo's existing HTML-comment-marker idempotency convention.
 - Portable readiness traceability contract: canonical Acceptance Traceability Matrix and Platform Activation Record templates, portable GitHub/GitLab Work Item and Change Request fields, plus validation that requires evidence or a reasoned `N/A` before QA-pass evidence is accepted.
 - GitHub Issue #19 lifecycle contract: phase/status label taxonomy, specification gate, explicit Developer-to-QA handoff, GitHub/GitLab Work Item and Change Request templates, and regression coverage. GitHub `work-item-readiness-freshness` is an App-owned, source-pinned required check that re-evaluates lifecycle label changes; GitLab retains its documented CI/template/manual boundary.
 - Work Item readiness has a tested pure decision module and platform-readiness operations for the App-owned GitHub lifecycle evaluator plus GitLab's manual/no-credential API boundary. The former read-only GitHub adapter/manual-rerun approach is superseded by PRs #23 and #24.

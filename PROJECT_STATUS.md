@@ -1,20 +1,13 @@
 # PROJECT_STATUS.md
 
 ## Current Work Item
-- ID: GitHub Issue #35
-- Title: Durable event-driven agent dispatcher — design proposal
-- Owner: Human Maintainer / SA Agent
-- Status: Waiting Intake — P3 design proposal; no implementation is authorized.
+- None — no active in-progress item. Issue #35 Phase A and Phase B v1 are both merged to `main`; Issue #35 stays open pending a human decision on any further phase.
 
 ## Current Stage
-- Waiting Intake — P3 design proposal
+- Idle — awaiting next intake
 
 ## Change Classification
-- Change Type: New Feature — durable orchestration control plane (design only)
-- Risk Level: High — future dispatcher may invoke agents and handle event, token, and trust-boundary concerns
-- Code Change Required: Not yet — design proposal only
-- Architecture Change Required: Yes — event model, receipt store, trigger design, and failure boundaries
-- Security Review Required: Yes — required before any implementation approval
+- Not applicable — no active work item
 
 ## Completed
 - All 11 agent roles have their current canonical rules, adapters, and regression coverage on `main`.
@@ -35,25 +28,25 @@
 - GitHub Issue #29 Hosted Activation merged through PR #31 as `196aeb0`; Security review `SEC-02` and QA's full seven-row Acceptance Criteria matrix passed at `f839d1a`. Default-branch contract validation and documentation audit both passed, and GitHub emitted one normal `post-merge-closeout` signal with no `documentation-sync` exception.
 - GitHub Issues #26 and #29 were closed by documentation closeout PR #32; child #28 was already closed by PR #30, and PR #31's `post-merge-closeout` signal was removed.
 - GitHub Issue #33 was closed by Human Maintainer as `not_planned` after PR #34's documented human-merge exception; its incomplete live-host acceptance proof is deferred to Issue #35 rather than recorded as a QA pass.
+- GitHub Issue #35 Phase A (in-repo dispatch-receipt ledger + CI enforcement validator) merged through PR #38 as commit `fa004e4`. Review chain: SA design (2 passes, incorporating the Boss-approved cross-turn `dispatch_depth`/`escalated` circuit-breaker extension), Security Reviewer threat model — CONDITIONAL, then PASS after Boss enabled `strict_required_status_checks_policy` on the `main` ruleset, Developer implementation, QA FAIL (unscoped repo-wide handoff scan) then PASS after Developer's git-diff-scoped fix.
+- GitHub Issue #35 Phase B v1 (GitHub-native notify + assign workflow, no session invocation) merged through PR #39 as commit `3fa4b03`. Review chain: SA reconciliation of the Phase B v1 design against Phase A's merged schema/paths (no divergence found, added SDD §3a implementation detail), Developer implementation (`.github/workflows/dispatch-receipt-notify.yml`, `scripts/dispatch-receipt-notify.mjs`), Security Reviewer PASS (6-item re-check, 3 non-blocking findings: stale-but-uncompromised Action SHA pins, no `escalated`-receipt comment distinction, and `required_approving_review_count: 0`), QA PASS (independent AC matrix and scope-discipline confirmation). Boss recorded a decision on Issue #35 accepting the 0-approval-gate finding as residual risk given solo-maintainer operation (GitHub disallows self-approval of one's own PR).
+- Issue #35 stays OPEN: this repo's convention is that Issues close only by explicit human decision, not automatically on merge. No Phase C or further phase is authorized; the next step requires a Human Maintainer decision to sponsor additional scope.
 
 ## In Progress
-- GitHub Issue #35 is ready for intake as the P3 durable event-driven dispatcher design proposal. No implementation is authorized until SA design, Security review, and human approval are complete.
+- None. No active work item is in progress.
 
 ## Blockers / Open Questions
 - R-002: `.gitlab-ci.yml` has not yet been validated on a live GitLab runner; this is an external verification follow-up, not an active implementation task.
 - Deferred and unscheduled: a Prototype/Spike workflow route and a shared cross-role template pattern.
 
 ## Required Artifacts
-- GitHub Issue #35 proposal — current intake source
-- SA SDD for Phase A and Phase B — pending sponsorship
-- Security threat model — pending SDD
-- Human scope approval — required before implementation planning
+- None pending — Phase A and Phase B v1 artifacts (SDD, threat model, implementation, QA evidence) are complete and merged. Any further Issue #35 phase requires a new Human Maintainer sponsorship decision before SA design work begins.
 
 ## Next Quality Gate
-- Human Maintainer sponsors Issue #35 design intake. Then SA design → Security review → human approval precede any P3 implementation.
+- None active. A future Phase C (or other further phase) would require Human Maintainer sponsorship, then SA design → Security review → human approval before implementation planning.
 
 ## Recommended Next Agent
-- Human Maintainer, then SA Agent for Issue #35 after design intake is authorized
+- None — idle. Human Maintainer decides whether to sponsor further Issue #35 phases or close the Issue.
 
 ## Notes
 - RCA evidence: refresh runs `29635734227` and `29635753891` successfully used the App token to edit PR #20, but no `pull_request.edited` readiness run was created. The direct evaluator removes that unsupported event dependency.
@@ -63,3 +56,4 @@
 - PR #34 merge was a human decision, not evidence that Issue #33 acceptance criteria passed. Issue #33 is closed as `not_planned`; its blocked live-host proof is deferred to Issue #35 and must not be restated as a QA pass.
 - R-002 remains the separate live-GitLab-runner follow-up. GitLab uses the manual closeout label/comment equivalent until API automation is separately approved.
 - PR #31's immutable Action pins resolve the `SEC-26-01` supply-chain concern without altering GitHub App permissions, secrets, environment, ruleset, check source/name, or privileged workflow logic.
+- This combined closeout covers two source PRs (#38 and #39), both carrying a `post-merge-closeout` signal. The readiness-check marker regex (`scripts/work-item-readiness.mjs`) only supports one `source-pr-N` reference, so this closeout PR's marker cites `source-pr-39` (the terminal PR for this Issue's current scope); PR #38's stale `post-merge-closeout` label was removed manually via `gh` rather than by the automated marker mechanism.
