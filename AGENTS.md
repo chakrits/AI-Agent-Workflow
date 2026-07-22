@@ -72,6 +72,7 @@ A task is complete only when:
 - Assumptions and open questions are documented.
 - Handoff or next action is clear.
 - Human approval gate is triggered when needed.
+- Decisions that exclude/defer/reject an option create an ADR before marking complete.
 
 ### Stop Conditions
 
