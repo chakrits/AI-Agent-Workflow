@@ -1,0 +1,86 @@
+task_id: NF-REWORK
+workflow_id: new-feature
+contract_version: 1
+change_type: new-feature
+risk_level: medium
+state: release
+rework_count: 1
+max_rework_attempts: 1
+history:
+  - from: intake
+    to: discovery
+    at: 2026-07-13T00:00:00Z
+    actor: pm-agent
+    evidence_refs: [change_type, risk_level, initial_scope]
+  - from: discovery
+    to: designing
+    at: 2026-07-13T00:01:00Z
+    actor: ba-agent
+    evidence_refs: [user_stories, acceptance_criteria, business_rules, pm_ba_gate_result]
+  - from: designing
+    to: planning
+    at: 2026-07-13T00:02:00Z
+    actor: sa-agent
+    evidence_refs: [sdd_reference, api_contract, data_impact, ba_sa_gate_result]
+  - from: planning
+    to: implementing
+    at: 2026-07-13T00:03:00Z
+    actor: developer-agent
+    evidence_refs: [spec_readiness_checklist, implementation_plan, sa_dev_gate_result]
+  - from: implementing
+    to: verifying
+    at: 2026-07-13T00:04:00Z
+    actor: developer-agent
+    evidence_refs: [changed_files, test_evidence, dev_qa_gate_result]
+  - from: verifying
+    to: rework
+    at: 2026-07-13T00:05:00Z
+    actor: qa-agent
+    evidence_refs: [verification_failed, rework_route]
+  - from: rework
+    to: implementing
+    at: 2026-07-13T00:06:00Z
+    actor: developer-agent
+    evidence_refs: [rework_route]
+  - from: implementing
+    to: verifying
+    at: 2026-07-13T00:07:00Z
+    actor: developer-agent
+    evidence_refs: [changed_files, test_evidence, dev_qa_gate_result]
+  - from: verifying
+    to: human-review
+    at: 2026-07-13T00:08:00Z
+    actor: qa-agent
+    evidence_refs: [verification_result, acceptance_traceability, qa_release_gate_result]
+  - from: human-review
+    to: release
+    at: 2026-07-13T00:09:00Z
+    actor: human-reviewer
+    evidence_refs: [approval_evidence, release_plan]
+evidence:
+  change_type: new-feature
+  risk_level: medium
+  initial_scope: user authentication module
+  user_stories: as a user I want to log in
+  acceptance_criteria: login flow works
+  business_rules: password policy enforced
+  pm_ba_gate_result: approved
+  sdd_reference: docs/specs/auth-sdd.md
+  api_contract: openapi.yaml
+  data_impact: user table
+  ba_sa_gate_result: approved
+  spec_readiness_checklist: complete
+  implementation_plan: task list
+  sa_dev_gate_result: approved
+  changed_files: auth.py
+  test_evidence: test results
+  dev_qa_gate_result: approved
+  verification_failed: test failure details
+  rework_route: developer-agent
+  verification_result: all tests passed
+  acceptance_traceability: ac-trace.md
+  qa_release_gate_result: approved
+  approval_evidence: sign-off
+  release_plan: v1.0 deploy
+next_route: release-agent
+stop_reason: null

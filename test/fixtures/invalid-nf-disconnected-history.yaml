@@ -1,0 +1,28 @@
+task_id: NF-DISCONNECTED-HISTORY
+workflow_id: new-feature
+contract_version: 1
+change_type: new-feature
+risk_level: medium
+state: verifying
+rework_count: 0
+max_rework_attempts: 1
+history:
+  - from: intake
+    to: discovery
+    at: 2026-07-14T00:00:00Z
+    actor: pm-agent
+    evidence_refs: [change_type, risk_level, initial_scope]
+  - from: planning
+    to: implementing
+    at: 2026-07-14T00:01:00Z
+    actor: developer-agent
+    evidence_refs: [spec_readiness_checklist, implementation_plan, sa_dev_gate_result]
+evidence:
+  change_type: new-feature
+  risk_level: medium
+  initial_scope: auth module
+  spec_readiness_checklist: complete
+  implementation_plan: task list
+  sa_dev_gate_result: approved
+next_route: qa-agent
+stop_reason: null

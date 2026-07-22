@@ -15,6 +15,37 @@ async function examplePaths(rootDir) {
     .map((name) => path.join('docs/contracts/examples', name));
 }
 
+async function loadPolicies(rootDir) {
+  const contractDir = path.join(rootDir, 'docs/contracts');
+  const policyFiles = (await readdir(contractDir))
+    .filter((name) => name.endsWith('-workflow.yaml'))
+    .map((name) => path.join(contractDir, name));
+  const policies = {};
+  for (const file of policyFiles) {
+    const policy = await readYaml(file);
+    policies[policy.workflow_id] = policy;
+  }
+  return policies;
+}
+
+async function loadSchemas(rootDir) {
+  const schemaDir = path.join(rootDir, 'docs/contracts/schemas');
+  const schemaFiles = (await readdir(schemaDir))
+    .filter((name) => name.endsWith('-state.schema.json'))
+    .map((name) => path.join(schemaDir, name));
+  const schemas = {};
+  for (const file of schemaFiles) {
+    const schema = JSON.parse(await readFile(file, 'utf8'));
+    // Map schema filename to workflow_id:
+    //   task-state.schema.json  -> bug-fix
+    //   new-feature-state.schema.json -> new-feature
+    const basename = path.basename(file, '-state.schema.json');
+    const workflowId = basename === 'task' ? 'bug-fix' : basename;
+    schemas[workflowId] = schema;
+  }
+  return schemas;
+}
+
 function eventKey(event) {
   return `${event.from} -> ${event.to}`;
 }
@@ -131,25 +162,37 @@ function validateHistory(policy, state, displayPath) {
 }
 
 export async function validateContracts(rootDir, statePaths = []) {
-  const contractDir = path.join(rootDir, 'docs/contracts');
-  const policy = await readYaml(path.join(contractDir, 'bug-fix-workflow.yaml'));
-  const schema = JSON.parse(
-    await readFile(path.join(contractDir, 'schemas/task-state.schema.json'), 'utf8')
-  );
-  const validateSchema = new Ajv2020({ allErrors: true, strict: false }).compile(schema);
+  const policies = await loadPolicies(rootDir);
+  const schemas = await loadSchemas(rootDir);
+  const validateSchema = {};
+  for (const [workflowId, schema] of Object.entries(schemas)) {
+    validateSchema[workflowId] = new Ajv2020({ allErrors: true, strict: false }).compile(schema);
+  }
   const paths = statePaths.length ? statePaths : await examplePaths(rootDir);
   const errors = [];
 
   for (const relativePath of paths) {
     const state = await readYaml(path.join(rootDir, relativePath));
-    if (!validateSchema(state)) {
+    const workflowId = state.workflow_id;
+    const policy = policies[workflowId];
+    const validator = validateSchema[workflowId];
+
+    if (!policy) {
+      errors.push(`${relativePath}: unknown workflow_id ${workflowId}`);
+      continue;
+    }
+    if (!validator) {
+      errors.push(`${relativePath}: no schema for workflow_id ${workflowId}`);
+      continue;
+    }
+    if (!validator(state)) {
       errors.push(
-        `${relativePath}: ${validateSchema.errors.map((error) => error.message).join(', ')}`
+        `${relativePath}: ${validator.errors.map((error) => error.message).join(', ')}`
       );
       continue;
     }
-    if (state.workflow_id !== policy.workflow_id || state.contract_version !== policy.contract_version) {
-      errors.push(`${relativePath}: workflow_id or contract_version does not match policy`);
+    if (state.contract_version !== policy.contract_version) {
+      errors.push(`${relativePath}: contract_version does not match policy`);
       continue;
     }
     errors.push(...validateHistory(policy, state, relativePath));
