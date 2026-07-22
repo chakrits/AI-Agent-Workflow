@@ -25,6 +25,10 @@ Read AGENTS.md, PROJECT_STATUS.md, and docs/workflow/*.md. Classify the request,
 - `docs/templates/`
 - `docs/operating-model/AGENT_PERSONAS.md`
 
+## Lifecycle Labels
+
+For Feature and Enhancement work, require `status:spec-ready` before Developer implementation and keep exactly one current `phase:` label. Follow `docs/workflow/dynamic-routing.md` for the portable lifecycle contract and exceptions.
+
 ## Output Rules
 
 - Use the relevant template in `docs/templates/`.
