@@ -9,6 +9,7 @@
     "validate:project-state": "node scripts/validate-project-state.mjs",
     "validate:dispatch-receipts": "node scripts/validate-dispatch-receipts.mjs",
     "housekeeping:worktrees": "node scripts/housekeeping-worktrees.mjs",
+    "validate:skill-parity": "node scripts/validate-skill-parity.mjs",
     "reset:template": "node scripts/reset-to-template.mjs"
   },
   "devDependencies": {

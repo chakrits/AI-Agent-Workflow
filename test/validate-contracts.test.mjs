@@ -36,20 +36,22 @@ test('Frontend UI Engineering stays discoverable and routes UI work safely', asy
     readFile('docs/operating-model/SKILL_CATALOG.md', 'utf8')
   ]);
 
-  for (const content of [claudeAdapter, antigravityAdapter]) {
-    assert.match(content, /\.agents\/skills\/frontend-ui-engineering\/SKILL\.md/);
-  }
-  for (const requirement of [
-    /semantic HTML/i,
-    /WCAG 2\.1 AA/i,
-    /keyboard/i,
-    /focus/i,
-    /loading, error, and empty states/i,
-    /320px, 768px, 1024px, and 1440px/i,
-    /qa-playwright-testing/i,
-    /design system/i
-  ]) {
-    assert.match(canonical, requirement);
+  // Under skill parity (Issue #50), all three copies are byte-identical to the
+  // canonical .agents/ version. Every requirement that used to be checked only
+  // against the canonical must now hold across all three platforms.
+  for (const content of [canonical, claudeAdapter, antigravityAdapter]) {
+    for (const requirement of [
+      /semantic HTML/i,
+      /WCAG 2\.1 AA/i,
+      /keyboard/i,
+      /focus/i,
+      /loading, error, and empty states/i,
+      /320px, 768px, 1024px, and 1440px/i,
+      /qa-playwright-testing/i,
+      /design system/i
+    ]) {
+      assert.match(content, requirement);
+    }
   }
   assert.match(catalog, /frontend-ui-engineering/);
 });

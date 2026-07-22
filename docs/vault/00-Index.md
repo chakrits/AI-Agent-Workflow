@@ -37,18 +37,22 @@ This is the entry point for browsing this repo as an Obsidian vault. The vault r
 
 ## Skills — three portable copies (`.agents/`, `.claude/`, `.agent/`)
 
-Nine skills are mirrored across all three platforms (Claude Code, portable, Antigravity); five are role-specific and live only in `.agents/skills/`.
+Thirteen skills are mirrored across all three platforms (Claude Code, portable, Antigravity); five are role-specific and live only in `.agents/skills/`.
 
 **Mirrored (all three platforms):**
 
+- api-contract-testing — [[../../.agents/skills/api-contract-testing/SKILL.md|portable]] · [[../../.claude/skills/api-contract-testing/SKILL.md|claude]] · [[../../.agent/skills/api-contract-testing/SKILL.md|antigravity]]
 - code-review-gate — [[../../.agents/skills/code-review-gate/SKILL.md|portable]] · [[../../.claude/skills/code-review-gate/SKILL.md|claude]] · [[../../.agent/skills/code-review-gate/SKILL.md|antigravity]]
 - debugging-discipline — [[../../.agents/skills/debugging-discipline/SKILL.md|portable]] · [[../../.claude/skills/debugging-discipline/SKILL.md|claude]] · [[../../.agent/skills/debugging-discipline/SKILL.md|antigravity]]
 - dynamic-workflow — [[../../.agents/skills/dynamic-workflow/SKILL.md|portable]] · [[../../.claude/skills/dynamic-workflow/SKILL.md|claude]] · [[../../.agent/skills/dynamic-workflow/SKILL.md|antigravity]]
 - engineering-postmortem — [[../../.agents/skills/engineering-postmortem/SKILL.md|portable]] · [[../../.claude/skills/engineering-postmortem/SKILL.md|claude]] · [[../../.agent/skills/engineering-postmortem/SKILL.md|antigravity]]
 - functional-test-design — [[../../.agents/skills/functional-test-design/SKILL.md|portable]] · [[../../.claude/skills/functional-test-design/SKILL.md|claude]] · [[../../.agent/skills/functional-test-design/SKILL.md|antigravity]]
 - implementation-planning — [[../../.agents/skills/implementation-planning/SKILL.md|portable]] · [[../../.claude/skills/implementation-planning/SKILL.md|claude]] · [[../../.agent/skills/implementation-planning/SKILL.md|antigravity]]
+- mutation-testing — [[../../.agents/skills/mutation-testing/SKILL.md|portable]] · [[../../.claude/skills/mutation-testing/SKILL.md|claude]] · [[../../.agent/skills/mutation-testing/SKILL.md|antigravity]]
+- performance-testing — [[../../.agents/skills/performance-testing/SKILL.md|portable]] · [[../../.claude/skills/performance-testing/SKILL.md|claude]] · [[../../.agent/skills/performance-testing/SKILL.md|antigravity]]
 - requirement-brainstorming — [[../../.agents/skills/requirement-brainstorming/SKILL.md|portable]] · [[../../.claude/skills/requirement-brainstorming/SKILL.md|claude]] · [[../../.agent/skills/requirement-brainstorming/SKILL.md|antigravity]]
 - tdd-implementation — [[../../.agents/skills/tdd-implementation/SKILL.md|portable]] · [[../../.claude/skills/tdd-implementation/SKILL.md|claude]] · [[../../.agent/skills/tdd-implementation/SKILL.md|antigravity]]
+- test-quality-discipline — [[../../.agents/skills/test-quality-discipline/SKILL.md|portable]] · [[../../.claude/skills/test-quality-discipline/SKILL.md|claude]] · [[../../.agent/skills/test-quality-discipline/SKILL.md|antigravity]]
 - verification-before-completion — [[../../.agents/skills/verification-before-completion/SKILL.md|portable]] · [[../../.claude/skills/verification-before-completion/SKILL.md|claude]] · [[../../.agent/skills/verification-before-completion/SKILL.md|antigravity]]
 - git-workflow-and-versioning — [[../../.agents/skills/git-workflow-and-versioning/SKILL.md|portable]] · [[../../.claude/skills/git-workflow-and-versioning/SKILL.md|claude]] · [[../../.agent/skills/git-workflow-and-versioning/SKILL.md|antigravity]]
 
