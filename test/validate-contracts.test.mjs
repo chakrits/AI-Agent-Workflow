@@ -1095,3 +1095,40 @@ test('rejects empty or false evidence on a permitted rework transition', async (
   assert.match(errors.join('\n'), /evidence verification_failed must have a meaningful value/);
   assert.match(errors.join('\n'), /evidence rework_route must have a meaningful value/);
 });
+
+test('accepts the three New Feature examples', async () => {
+  const errors = await validateContracts(process.cwd(), [
+    'docs/contracts/examples/new-feature-pass.yaml',
+    'docs/contracts/examples/new-feature-rework.yaml',
+    'docs/contracts/examples/new-feature-blocked.yaml'
+  ]);
+  assert.deepEqual(errors, []);
+});
+
+test('rejects a transition not declared by the New Feature policy', async () => {
+  const errors = await validateContracts(process.cwd(), [
+    'test/fixtures/invalid-nf-illegal-transition.yaml'
+  ]);
+  assert.match(errors.join('\n'), /illegal transition: intake -> verifying/);
+});
+
+test('rejects a second New Feature rework transition (budget = 1)', async () => {
+  const errors = await validateContracts(process.cwd(), [
+    'test/fixtures/invalid-nf-second-rework.yaml'
+  ]);
+  assert.match(errors.join('\n'), /rework_count must not exceed 1/);
+});
+
+test('rejects disconnected New Feature history', async () => {
+  const errors = await validateContracts(process.cwd(), [
+    'test/fixtures/invalid-nf-disconnected-history.yaml'
+  ]);
+  assert.match(errors.join('\n'), /history must be continuous/);
+});
+
+test('rejects New Feature max_rework_attempts that differs from policy', async () => {
+  const errors = await validateContracts(process.cwd(), [
+    'test/fixtures/invalid-nf-mismatched-retry-limit.yaml'
+  ]);
+  assert.match(errors.join('\n'), /must be equal to constant/);
+});

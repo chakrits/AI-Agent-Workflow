@@ -1,0 +1,37 @@
+task_id: NF-SECOND-REWORK
+workflow_id: new-feature
+contract_version: 1
+change_type: new-feature
+risk_level: medium
+state: rework
+rework_count: 2
+max_rework_attempts: 1
+history:
+  - from: verifying
+    to: rework
+    at: 2026-07-13T00:00:00Z
+    actor: qa-agent
+    evidence_refs: [verification_failed, rework_route]
+  - from: rework
+    to: implementing
+    at: 2026-07-13T00:01:00Z
+    actor: developer-agent
+    evidence_refs: [rework_route]
+  - from: implementing
+    to: verifying
+    at: 2026-07-13T00:02:00Z
+    actor: developer-agent
+    evidence_refs: [changed_files, test_evidence, dev_qa_gate_result]
+  - from: verifying
+    to: rework
+    at: 2026-07-13T00:03:00Z
+    actor: qa-agent
+    evidence_refs: [verification_failed, rework_route]
+evidence:
+  verification_failed: test failure
+  rework_route: developer-agent
+  changed_files: auth.py
+  test_evidence: test results
+  dev_qa_gate_result: approved
+next_route: developer-agent
+stop_reason: null

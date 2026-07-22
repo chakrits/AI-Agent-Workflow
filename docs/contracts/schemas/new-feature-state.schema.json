@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": [
+    "task_id",
+    "workflow_id",
+    "contract_version",
+    "change_type",
+    "risk_level",
+    "state",
+    "rework_count",
+    "max_rework_attempts",
+    "history",
+    "evidence",
+    "next_route",
+    "stop_reason"
+  ],
+  "properties": {
+    "task_id": { "type": "string", "minLength": 1 },
+    "workflow_id": { "enum": ["new-feature"] },
+    "contract_version": { "type": "integer", "minimum": 1 },
+    "change_type": { "enum": ["new-feature"] },
+    "risk_level": { "enum": ["low", "medium", "high", "critical"] },
+    "state": { "enum": ["intake", "discovery", "designing", "planning", "implementing", "verifying", "rework", "human-review", "blocked", "release"] },
+    "rework_count": { "type": "integer", "minimum": 0 },
+    "max_rework_attempts": { "const": 1 },
+    "phase_label": {
+      "type": "string",
+      "enum": ["phase:requirements", "phase:design", "phase:planning", "phase:development", "phase:verification", "phase:human-review", "phase:blocked", "phase:release"]
+    },
+    "milestone_labels": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": ["milestone:intake-complete", "milestone:discovery-complete", "milestone:design-complete", "milestone:planning-complete", "milestone:implementation-complete", "milestone:verification-complete", "milestone:human-review-complete", "milestone:release-complete"]
+      }
+    },
+    "history": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["from", "to", "at", "actor", "evidence_refs"],
+        "properties": {
+          "from": { "enum": ["intake", "discovery", "designing", "planning", "implementing", "verifying", "rework", "human-review", "blocked", "release"] },
+          "to": { "enum": ["intake", "discovery", "designing", "planning", "implementing", "verifying", "rework", "human-review", "blocked", "release"] },
+          "at": { "type": "string", "minLength": 1 },
+          "actor": { "type": "string", "minLength": 1 },
+          "evidence_refs": {
+            "type": "array",
+            "items": { "type": "string", "minLength": 1 }
+          }
+        }
+      }
+    },
+    "evidence": { "type": "object" },
+    "next_route": { "type": "string", "minLength": 1 },
+    "stop_reason": { "type": ["string", "null"] }
+  }
+}
