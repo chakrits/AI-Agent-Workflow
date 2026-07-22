@@ -136,6 +136,27 @@ Use these layers depending on platform support:
 
 The canonical process is in `docs/workflow/`. Platform-specific files are adapters, not the source of truth.
 
+## Worktree Lifecycle
+
+Git worktrees enable parallel branch work without stashing or cloning. They must be managed to avoid accumulation.
+
+### Create
+
+- Create a worktree when a branch needs isolated work: `git worktree add .worktrees/<name> <branch>`.
+- Name the directory after the issue or branch: `.worktrees/issue-NN-description` or `.worktrees/<branch-slug>`.
+
+### Remove
+
+- Remove a worktree within 24 hours of its PR being merged.
+- Use the audit script first (dry run): `npm run housekeeping:worktrees`.
+- Remove with: `npm run housekeeping:worktrees -- --prune`.
+- The script skips worktrees with uncommitted changes (`isWorktreeDirty` check). Review and remove those manually after confirming the work is disposable.
+
+### Audit
+
+- `npm run housekeeping:worktrees` is a CI check. It exits 0 when no ghost worktrees exist, and exits 1 when prunable worktrees are detected.
+- The audit is squash-merge aware: it uses `gh pr list --state merged` to detect branches whose PRs landed via squash merge (where `git branch --merged` is insufficient).
+- When `gh` is unavailable (e.g., GitLab-only fork), the audit degrades gracefully to the git-only signal.
 
 ## Engineering Discipline Rules
 

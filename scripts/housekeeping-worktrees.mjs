@@ -158,6 +158,7 @@ async function main() {
 
   if (!shouldPrune) {
     console.log('\nDry run only. Re-run with --prune to remove these worktrees.');
+    process.exitCode = 1;
     return;
   }
 
@@ -170,6 +171,7 @@ async function main() {
       `\n${skippedDirty.length} worktree(s) skipped: uncommitted/untracked changes present, remove manually if intentional:`
     );
     for (const path of skippedDirty) console.log(`  - ${path}`);
+    process.exitCode = 1;
   }
 }
 
