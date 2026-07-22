@@ -10,6 +10,7 @@
     "validate:dispatch-receipts": "node scripts/validate-dispatch-receipts.mjs",
     "housekeeping:worktrees": "node scripts/housekeeping-worktrees.mjs",
     "validate:skill-parity": "node scripts/validate-skill-parity.mjs",
+    "adr:audit": "node scripts/adr-audit.mjs",
     "reset:template": "node scripts/reset-to-template.mjs"
   },
   "devDependencies": {
