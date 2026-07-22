@@ -1,24 +1,25 @@
 # PROJECT_STATUS.md
 
 ## Current Work Item
-- ID: GitHub Issue #50
-- Title: Sync 9 missing skills to .claude/ and add CI-enforced skill parity check
-- Owner: Developer Agent / QA Agent
-- Status: Implementation in progress
+- ID: None
+- Title: None
+- Owner: None
+- Status: Idle
 
 ## Current Stage
-- Development — subagent dispatched, awaiting completion
+- Idle — P0 complete, awaiting next work item
 
 ## Change Classification
-- Change Type: Config Change (tooling + skill sync, no runtime code)
-- Risk Level: Low
-- Code Change Required: No (skill copy + CI config)
+- Change Type: None (idle)
+- Risk Level: None
+- Code Change Required: No
 - Architecture Change Required: No
 - Security Review Required: No
 
 ## Completed
 - All 11 agent roles have their current canonical rules, adapters, and regression coverage on `main`.
 - GitHub Issue #49 (prune ghost worktrees + worktree lifecycle CI audit) merged through PR #51 as commit `fdd4bbd`. Delivered: pruned 23 ghost worktrees; added Worktree Lifecycle section to AGENTS.md; added `housekeeping:worktrees` to GitHub Actions CI and GitLab CI; fixed audit script to exit 1 when prunable worktrees detected (AC-2 fix in commit `6b54d71`); 2 regression tests for exit-code behavior. QA verified all 6 acceptance criteria PASS (121/121 tests).
+- GitHub Issue #50 (sync 9 missing skills + skill parity CI check) merged through PR #52 as commit `ba2ad3e`. Delivered: copied 9 missing skills from `.agents/skills/` to `.claude/skills/` (11→20); synced 3 drifted skills; added Lifecycle Labels section to canonical `dynamic-workflow` skill; created `scripts/validate-skill-parity.mjs` (md5 compare across 3 platforms); added `validate:skill-parity` to `package.json` + CI (GitHub Actions + GitLab CI); 5 regression tests; updated vault index with 4 missing entries. QA verified all 7 acceptance criteria PASS (126/126 tests).
 - Release, Config, Data, Security, Developer, Orchestrator, PM, BA, SA, QA, and Documentation role-enrichment work is committed.
 - `7386ce2` committed and pushed the combined Skill Catalog sync, GitLab CI, README onboarding, Playwright technical guidance, and BDD Scenario Workflow work items.
 - R-001 (Phase 1 hosted GitHub Actions confirmation) is closed.
@@ -43,7 +44,7 @@
 - GitHub Issue #44 (QA testing-discipline enrichment) merged through PR #45 as commit `90623e2`. Design spec produced via `superpowers:brainstorming`, expanded through two Boss-directed scope rounds (full `.agent/skills/` parity backfill, `SKILL_CATALOG.md` linkage), reviewed by SA Agent (Approve with minor notes — two citation-precision findings, both fixed before implementation planning). Delivered: a canonical `Test Effectiveness` QA Agent rule and four new Skill Routing rows in `docs/workflow/role-definitions.md`, mirrored to `.claude/agents/qa-agent.md`; four new skills (`api-contract-testing`, `performance-testing`, `mutation-testing`, `test-quality-discipline`) under `.agents/skills/`; an Accessibility Testing section added to `qa-playwright-testing/SKILL.md`; a `Root Cause Analysis` section in `TEST_REPORT.md` and two new checkboxes in `TEST_PLAN.md`; four new `SKILL_CATALOG.md` entries plus an updated row and clarifying note; full `.agent/skills/`↔`.agents/skills/` directory-name parity (20/20), with byte-identical content for the 9 skills this work touched — 3 pre-existing skills (`dynamic-workflow`, `frontend-ui-engineering`, `functional-test-design`) were deliberately left untouched as a legitimate, pre-existing thin pointer-adapter pattern unrelated to this work; and regression coverage in `test/validate-contracts.test.mjs` (119 total tests, up from 116). Review chain: SA Agent design review (two findings, both fixed), Orchestrator Agent routing recommendation, Developer Agent implementation — during which one genuine mid-implementation blocker was correctly escalated and resolved (the initial `.agent/skills/` parity approach needed a scope correction, since simply copying files would have overwritten the 3 legitimate thin-pointer-adapter skills; the corrected approach special-cased those 3 and mirrored the other 17 byte-identical) — and QA Agent's independent 10/10 Acceptance Criteria PASS verdict. The default-branch audit passed and GitHub applied the normal `post-merge-closeout` label to PR #45 with no `documentation-sync` exception issue created. This closeout (`docs/issue-44-closeout-pr45`) records final project state and reconciles the source PR reference; Issue #44 closes with this closeout PR's merge.
 
 ## In Progress
-- GitHub Issue #50: Sync 9 missing skills to `.claude/skills/`, fix 3 drifted skills, create `validate-skill-parity.mjs` CI check, update vault index. Subagent dispatched on branch `chore/skill-parity-and-sync`.
+- None — P0 complete, project is idle.
 
 ## Blockers / Open Questions
 - R-002: `.gitlab-ci.yml` has not yet been validated on a live GitLab runner; this is an external verification follow-up, not an active implementation task.
@@ -56,10 +57,10 @@
 - None outstanding — the previous item's artifacts (`docs/superpowers/specs/2026-07-19-qa-testing-discipline-design.md`, `docs/superpowers/plans/2026-07-19-qa-testing-discipline.md`, `docs/workflow/role-definitions.md`, `.claude/agents/qa-agent.md`, the four new `.agents/skills/` entries, `.agent/skills/` parity mirror, `docs/templates/TEST_REPORT.md`/`TEST_PLAN.md`, `docs/operating-model/SKILL_CATALOG.md`, `test/validate-contracts.test.mjs`) are on `main` via PR #45.
 
 ## Next Quality Gate
-- QA verifies Issue #50 acceptance criteria after Developer completes skill sync + parity script.
+- None pending — P0 complete, awaiting next work item.
 
 ## Recommended Next Agent
-- QA Agent, after Developer completes Issue #50 implementation.
+- Human Maintainer for P1 planning (ADR sweep + risk expansion), or next work item.
 
 ## Notes
 - GitHub Issue #44's design spec went through two Boss-directed scope expansions after initial brainstorming: first, mirroring the four new QA skills into `.agent/skills/` (Antigravity CLI) rather than leaving it out of scope by analogy to `qa-playwright-testing` not living there; second, backfilling the four pre-existing `.agent/skills/` gaps unrelated to QA (`ba-requirement-analysis`, `data-config-change`, `sa-architecture-design`, `security-review`) in the same pass rather than deferring them. During implementation, the first `.agent/skills/` parity pass would have naively overwritten `dynamic-workflow`, `frontend-ui-engineering`, and `functional-test-design` — three pre-existing skills that intentionally use a thin pointer-adapter pattern unrelated to this work — and Developer Agent correctly escalated this as a mid-implementation blocker rather than silently overwriting them; the resolved approach special-cased those 3 (left untouched) and mirrored the other 17 byte-identical, which QA Agent's parity test independently confirmed.
