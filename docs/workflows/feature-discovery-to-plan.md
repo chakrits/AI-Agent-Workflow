@@ -23,8 +23,8 @@ Developer Agent
 ## Required artifacts
 
 - `REQUIREMENT_DISCOVERY.md`
-- `REQUIREMENTS.md` or user stories / acceptance criteria
-- `SDD.md` / `TDD.md` when architecture or technical design is required
+- user stories / acceptance criteria in the canonical `REQUIREMENT_DISCOVERY.md`
+- `SDD.md` / `TECHNICAL_DESIGN.md` when architecture or technical design is required
 - `IMPLEMENTATION_PLAN.md`
 
 ## Gate

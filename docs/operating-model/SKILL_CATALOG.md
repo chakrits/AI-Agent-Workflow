@@ -65,8 +65,8 @@ Note: `api-contract-testing` (implemented this pass) validates an existing imple
 |---|---|
 | Trigger | Requirements, user stories, acceptance criteria, business rules, process flows, or ambiguity analysis needed |
 | Primary Agent | BA Agent |
-| Input | PM brief, stakeholder notes, existing `REQUIREMENTS.md` |
-| Output | `docs/templates/REQUIREMENTS.md` |
+| Input | PM brief, stakeholder notes, existing `REQUIREMENT_DISCOVERY.md` |
+| Output | `docs/templates/REQUIREMENT_DISCOVERY.md` |
 | Do Not Use When | Business scope itself is unresolved — route to PM Agent first |
 | Next Skill / Agent | implementation-planning, functional-test-design, SA Agent |
 

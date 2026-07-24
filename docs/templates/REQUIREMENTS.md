@@ -1,33 +1,11 @@
-# REQUIREMENTS.md
+# REQUIREMENTS.md — Deprecated Compatibility Redirect
 
-## Metadata
+Do not create new BA requirements records from this template. Use the canonical [REQUIREMENT_DISCOVERY.md](./REQUIREMENT_DISCOVERY.md) template instead; it records request context, scope, user stories, acceptance criteria, business rules, risks, and next routing in one traceable artifact.
 
-- Work Item ID:
-- Title:
-- Owner:
-- Date:
-- Status: Draft / Review / Approved
+Existing historical `REQUIREMENTS.md` records remain valid evidence and do not need migration solely because this redirect exists.
 
-## Summary
+## Related Artifacts / Links
 
-
-## Details
-
-
-## Assumptions
-
-- 
-
-## Open Questions
-
-- 
-
-## Risks
-
-- 
-
-## Approval / Review
-
-- Reviewer:
-- Decision:
-- Notes:
+| Artifact | Purpose | URL / Repository Path |
+|---|---|---|
+| Canonical BA requirements artifact | New requirements discovery and acceptance-criteria record | [REQUIREMENT_DISCOVERY.md](./REQUIREMENT_DISCOVERY.md) |

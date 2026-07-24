@@ -106,6 +106,8 @@ A hypothesis is not accepted if it contradicts prior breadcrumbs.
 
 ## Output artifacts
 
+Use the embedded **Hypothesis Matrix** section in `DEBUG_LEDGER.md` for a normal, single-investigation record. Create a standalone `HYPOTHESIS_MATRIX.md` only when hypotheses need independent review, sharing, or reuse across multiple experiments or work items; link it from the ledger rather than duplicating rows.
+
 Prefer updating or producing:
 
 - `docs/templates/DEBUG_LEDGER.md` or task-specific debug ledger

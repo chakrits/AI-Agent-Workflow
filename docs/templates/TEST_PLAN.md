@@ -58,3 +58,9 @@
 - Reviewer:
 - Decision:
 - Notes:
+
+## Related Artifacts / Links
+
+| Artifact | Purpose | URL / Repository Path |
+|---|---|---|
+|  |  |  |

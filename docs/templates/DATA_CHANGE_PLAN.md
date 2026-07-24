@@ -56,3 +56,17 @@ Expected row-count delta:
 - Constraint impact:
 - Production data impact:
 - Rollback risk:
+
+## Completion Evidence
+
+Record actual execution commands, outcomes, and evidence once in [COMPLETION_CHECK.md](./COMPLETION_CHECK.md).
+
+| Completion Check URL / Repository Path | Status |
+|---|---|
+|  | Pending / Passed / Failed / N/A |
+
+## Related Artifacts / Links
+
+| Artifact | Purpose | URL / Repository Path |
+|---|---|---|
+|  |  |  |
