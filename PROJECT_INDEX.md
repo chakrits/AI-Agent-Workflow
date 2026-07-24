@@ -56,9 +56,9 @@ Use these files as artifact starters when a workflow requires structured output.
 
 - [docs/templates/PROJECT_BRIEF.md](./docs/templates/PROJECT_BRIEF.md) - Project brief template.
 - [docs/templates/REQUIREMENT_DISCOVERY.md](./docs/templates/REQUIREMENT_DISCOVERY.md) - Requirement discovery template.
-- [docs/templates/REQUIREMENTS.md](./docs/templates/REQUIREMENTS.md) - Requirements template.
+- [docs/templates/REQUIREMENTS.md](./docs/templates/REQUIREMENTS.md) - Deprecated compatibility redirect to the canonical requirement discovery template.
 - [docs/templates/SDD.md](./docs/templates/SDD.md) - Software design document template.
-- [docs/templates/TDD.md](./docs/templates/TDD.md) - Technical design document template.
+- [docs/templates/TECHNICAL_DESIGN.md](./docs/templates/TECHNICAL_DESIGN.md) - Technical design document template.
 - [docs/templates/IMPLEMENTATION_PLAN.md](./docs/templates/IMPLEMENTATION_PLAN.md) - Implementation plan template.
 - [docs/templates/TDD_CHECKLIST.md](./docs/templates/TDD_CHECKLIST.md) - TDD checklist template.
 - [docs/templates/TEST_PLAN.md](./docs/templates/TEST_PLAN.md) - Test plan template.

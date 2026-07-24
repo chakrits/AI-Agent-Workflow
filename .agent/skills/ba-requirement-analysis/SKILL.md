@@ -11,7 +11,7 @@ Use for requirements, user stories, acceptance criteria, business rules, process
 
 ## Instructions
 
-Create or update requirements artifacts using docs/templates/REQUIREMENTS.md. Route backward if business scope is unclear.
+Create or update requirements artifacts using `docs/templates/REQUIREMENT_DISCOVERY.md`, the canonical BA requirements artifact. `docs/templates/REQUIREMENTS.md` is a deprecated compatibility redirect only. Route backward if business scope is unclear.
 
 ## Canonical References
 

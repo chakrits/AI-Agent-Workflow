@@ -14,9 +14,9 @@
 
 | Artifact | Status | Notes |
 |---|---|---|
-| REQUIREMENTS.md | Available / Missing / N/A |  |
+| REQUIREMENT_DISCOVERY.md | Available / Missing / N/A |  |
 | SDD.md | Available / Missing / N/A |  |
-| TDD.md | Available / Missing / N/A |  |
+| TECHNICAL_DESIGN.md | Available / Missing / N/A |  |
 | API_CONTRACT.md | Available / Missing / N/A |  |
 | TEST_PLAN.md | Available / Missing / N/A |  |
 

@@ -655,6 +655,66 @@ test('BA Agent requires the illustrative-draft boundary and production-UI escala
   assert.match(template, /Illustrative — not a UI spec/);
 });
 
+test('documentation templates preserve evidence discipline and canonical BA artifact routing', async () => {
+  const [
+    securityReview,
+    codeReviewFindings,
+    platformActivation,
+    requirementDiscovery,
+    legacyRequirements,
+    technicalDesign,
+    sdd,
+    configPlan,
+    dataPlan,
+    testPlan,
+    releasePlan,
+    projectBrief,
+    roleDefinition,
+    baAdapter,
+    debuggingSkill
+  ] = await Promise.all([
+    readFile('docs/templates/SECURITY_REVIEW.md', 'utf8'),
+    readFile('docs/templates/CODE_REVIEW_FINDINGS.md', 'utf8'),
+    readFile('docs/templates/PLATFORM_ACTIVATION.md', 'utf8'),
+    readFile('docs/templates/REQUIREMENT_DISCOVERY.md', 'utf8'),
+    readFile('docs/templates/REQUIREMENTS.md', 'utf8'),
+    readFile('docs/templates/TECHNICAL_DESIGN.md', 'utf8'),
+    readFile('docs/templates/SDD.md', 'utf8'),
+    readFile('docs/templates/CONFIG_CHANGE_PLAN.md', 'utf8'),
+    readFile('docs/templates/DATA_CHANGE_PLAN.md', 'utf8'),
+    readFile('docs/templates/TEST_PLAN.md', 'utf8'),
+    readFile('docs/templates/RELEASE_PLAN.md', 'utf8'),
+    readFile('docs/templates/PROJECT_BRIEF.md', 'utf8'),
+    readFile('docs/workflow/role-definitions.md', 'utf8'),
+    readFile('.claude/agents/ba-agent.md', 'utf8'),
+    readFile('.agents/skills/debugging-discipline/SKILL.md', 'utf8')
+  ]);
+
+  for (const content of [securityReview, codeReviewFindings]) {
+    assert.match(content, /\|[^\n]*Evidence[^\n]*\|/);
+  }
+  assert.match(platformActivation, /\| Record Item \| Status \/ Value \| Evidence URL \|/);
+
+  for (const content of [sdd, technicalDesign, legacyRequirements, configPlan, dataPlan, testPlan]) {
+    assert.match(content, /## Related Artifacts \/ Links/);
+    assert.match(content, /\| Artifact \| Purpose \| URL \/ Repository Path \|/);
+  }
+  for (const content of [configPlan, dataPlan, releasePlan, projectBrief]) {
+    assert.match(content, /COMPLETION_CHECK\.md/);
+    assert.doesNotMatch(content, /## (Execution Record|Actual Outcome)/);
+  }
+
+  assert.match(requirementDiscovery, /## 7\. Acceptance Criteria/);
+  assert.match(legacyRequirements, /Deprecated Compatibility Redirect/);
+  assert.match(legacyRequirements, /Do not create new BA requirements records/);
+  for (const content of [roleDefinition, baAdapter]) {
+    assert.match(content, /REQUIREMENT_DISCOVERY\.md/);
+    assert.match(content, /deprecated compatibility redirect/i);
+  }
+  assert.match(debuggingSkill, /embedded \*\*Hypothesis Matrix\*\*/);
+  assert.match(debuggingSkill, /standalone `HYPOTHESIS_MATRIX\.md` only/);
+});
+
 test('QA Agent canonical rule carries its policy and the new evidence, contract, and NFR rules', async () => {
   const [roleDefinition, adapter, testPlan, testReport, playwrightSkill] = await Promise.all([
     readFile('docs/workflow/role-definitions.md', 'utf8'),

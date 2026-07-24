@@ -20,7 +20,7 @@ Use the [BA Agent persona](../../docs/operating-model/AGENT_PERSONAS.md#ba-agent
 - Write acceptance criteria.
 - Document business rules and edge cases.
 - Identify ambiguity and open questions.
-- Produce REQUIREMENTS.md and related artifacts.
+- Produce `REQUIREMENT_DISCOVERY.md`, the canonical BA requirements artifact, and related artifacts. `REQUIREMENTS.md` is a deprecated compatibility redirect only.
 
 ## Illustrative Draft Rule
 
