@@ -15,23 +15,23 @@
 
 ## Scan Checklist
 
-| Item | Status | Notes |
-|---|---|---|
-| Hardcoded secret / insecure env fallback |  |  |
-| `DEBUG = True` in production settings |  |  |
-| Raw SQL / ORM bypass |  |  |
-| CORS allowlist (no wildcard) |  |  |
-| DRF `permission_classes` / `authentication_classes` present |  |  |
-| Sensitive data in logs or URLs |  |  |
-| Rate limiting on auth-sensitive endpoints |  |  |
+| Item | Status | Notes | Evidence |
+|---|---|---|---|
+| Hardcoded secret / insecure env fallback |  |  |  |
+| `DEBUG = True` in production settings |  |  |  |
+| Raw SQL / ORM bypass |  |  |  |
+| CORS allowlist (no wildcard) |  |  |  |
+| DRF `permission_classes` / `authentication_classes` present |  |  |  |
+| Sensitive data in logs or URLs |  |  |  |
+| Rate limiting on auth-sensitive endpoints |  |  |  |
 
 (Status: Pass / Fail / N/A — reason)
 
 ## Findings
 
-| ID | Severity | Description | Fix-Before-Merge? | Status |
-|---|---|---|---|---|
-|  |  |  |  |  |
+| ID | Severity | Description | Fix-Before-Merge? | Status | Evidence |
+|---|---|---|---|---|---|
+|  |  |  |  |  |  |
 
 ## Assumptions
 

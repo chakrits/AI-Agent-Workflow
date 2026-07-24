@@ -32,3 +32,9 @@
 
 ## Risks
 
+
+## Related Artifacts / Links
+
+| Artifact | Purpose | URL / Repository Path |
+|---|---|---|
+|  |  |  |

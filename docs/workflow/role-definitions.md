@@ -82,6 +82,8 @@ Route requirement ambiguity beyond goal-level framing to the BA Agent. Route unk
 
 Owns requirements, user stories, acceptance criteria, business rules, process flows, edge cases, and requirement ambiguity.
 
+Use `docs/templates/REQUIREMENT_DISCOVERY.md` as the canonical BA requirements artifact. `docs/templates/REQUIREMENTS.md` is a deprecated compatibility redirect and must not be selected for new work.
+
 ### Illustrative Draft Rule
 
 When a requirement includes user-facing interaction, BA Agent may draft a low-fidelity, non-binding sketch to help the user, SA Agent, and Developer Agent share understanding before design work starts. Use the plain ` ```text ` fenced-diagram convention already used across `docs/workflow/` and `docs/workflows/` — not Mermaid, not a component library, not CSS. A sketch is one of:

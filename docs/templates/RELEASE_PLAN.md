@@ -50,6 +50,14 @@
 
 - 
 
+## Completion Evidence
+
+Record actual release execution, outcomes, and evidence once in [COMPLETION_CHECK.md](./COMPLETION_CHECK.md).
+
+| Completion Check URL / Repository Path | Status |
+|---|---|
+|  | Pending / Passed / Failed / N/A |
+
 ## Approval / Review
 
 - Reviewer:
