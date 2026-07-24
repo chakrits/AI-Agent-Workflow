@@ -1,17 +1,17 @@
 # PROJECT_STATUS.md
 
 ## Current Work Item
-- ID: None
-- Title: None
-- Owner: None
-- Status: Idle
+- ID: GitHub Issue #68
+- Title: Test-tooling readiness — config templates for Playwright/Supertest/Bruno/Jest/Vitest/pytest/Stryker
+- Owner: Documentation Agent (pending dispatch)
+- Status: Spec written, awaiting Boss `status:spec-ready` approval
 
 ## Current Stage
-- Idle — P0 complete, awaiting next work item
+- `phase:requirements` — lightweight specification written (`docs/superpowers/specs/2026-07-24-test-tooling-readiness-design.md` on branch `docs/test-tooling-readiness-spec`), Issue #68 opened; awaiting Boss review to mark `status:spec-ready` before Documentation Agent dispatch.
 
 ## Change Classification
-- Change Type: None (idle)
-- Risk Level: None
+- Change Type: Documentation / skill catalog (config templates and reference docs only)
+- Risk Level: Low — no dependency, runtime, or parser/contract-touching change
 - Code Change Required: No
 - Architecture Change Required: No
 - Security Review Required: No
@@ -49,7 +49,7 @@
 |- GitHub Issue #59 Phase A (New Feature workflow contract — 10-state machine, 22 transitions, 1-rework budget) merged through PR #61 as commit `ea718cd`. Delivered: `docs/contracts/new-feature-workflow.yaml` (10-state contract with YAML validation spec), `docs/contracts/examples/new-feature-pass.yaml` (uncontested path), `new-feature-blocked.yaml` (blocked-at-verification path), and `new-feature-rework.yaml` (exhausted-retry path); `docs/contracts/schemas/new-feature-state.schema.json` (JSON Schema for valid state transitions, evidence requirements, retry budget enforcement); `scripts/validate-contracts.mjs` extended with New Feature contract validation; 4 new fixtures for disconnected-history, illegal-transition, mismatched-retry-limit, and second-rework edge cases; 37 new regression tests in `test/validate-contracts.test.mjs` (187 total tests). Review chain: SA Agent design (SDD at `docs/superpowers/specs/2026-07-22-new-feature-contract-design.md`), Developer Agent implementation, QA Agent independent verification. The default-branch audit passed and GitHub applied the normal `post-merge-closeout` label to PR #61; no `documentation-sync` exception issue was created.
 
 ## In Progress
-- None — P0 complete, project is idle.
+- GitHub Issue #68: test-tooling readiness spec written and posted; branch `docs/test-tooling-readiness-spec` pushed with the design doc committed. Awaiting Boss specification approval before Documentation Agent dispatch.
 
 ## Blockers / Open Questions
 - R-002: `.gitlab-ci.yml` has not yet been validated on a live GitLab runner; this is an external verification follow-up, not an active implementation task.
@@ -59,13 +59,13 @@
 - `api-contract-testing`, `performance-testing`, and `mutation-testing` document tooling (`schemathesis`, `drf-spectacular`, Locust/k6, `mutmut`) that is not installed anywhere in this repo — intentional per the design spec, since this repo has no Django/Python target application yet. Wiring is deferred to whenever a real work item first needs to execute one of these skills.
 
 ## Required Artifacts
-- None outstanding — the previous item's artifacts (`docs/superpowers/specs/2026-07-19-qa-testing-discipline-design.md`, `docs/superpowers/plans/2026-07-19-qa-testing-discipline.md`, `docs/workflow/role-definitions.md`, `.claude/agents/qa-agent.md`, the four new `.agents/skills/` entries, `.agent/skills/` parity mirror, `docs/templates/TEST_REPORT.md`/`TEST_PLAN.md`, `docs/operating-model/SKILL_CATALOG.md`, `test/validate-contracts.test.mjs`) are on `main` via PR #45.
+- Outstanding for Issue #68: implementation plan (via `writing-plans` once spec is approved), then the actual skill/template files listed in the spec's Design section — none merged yet.
 
 ## Next Quality Gate
-- None pending — P0 complete, awaiting next work item.
+- Boss specification approval (`status:spec-ready`) on Issue #68, then Documentation Agent implementation, then QA independent verification of AC-01 through AC-10.
 
 ## Recommended Next Agent
-- Human Maintainer for next work item, or project is idle.
+- Human Maintainer: review `docs/superpowers/specs/2026-07-24-test-tooling-readiness-design.md` and Issue #68; apply `status:spec-ready` if approved. Documentation Agent is next in line once that label is applied.
 
 ## Notes
 - GitHub Issue #44's design spec went through two Boss-directed scope expansions after initial brainstorming: first, mirroring the four new QA skills into `.agent/skills/` (Antigravity CLI) rather than leaving it out of scope by analogy to `qa-playwright-testing` not living there; second, backfilling the four pre-existing `.agent/skills/` gaps unrelated to QA (`ba-requirement-analysis`, `data-config-change`, `sa-architecture-design`, `security-review`) in the same pass rather than deferring them. During implementation, the first `.agent/skills/` parity pass would have naively overwritten `dynamic-workflow`, `frontend-ui-engineering`, and `functional-test-design` — three pre-existing skills that intentionally use a thin pointer-adapter pattern unrelated to this work — and Developer Agent correctly escalated this as a mid-implementation blocker rather than silently overwriting them; the resolved approach special-cased those 3 (left untouched) and mirrored the other 17 byte-identical, which QA Agent's parity test independently confirmed.
