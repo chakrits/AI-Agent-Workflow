@@ -56,15 +56,18 @@ Thirteen skills are mirrored across all three platforms (Claude Code, portable, 
 - test-quality-discipline — [[../../.agents/skills/test-quality-discipline/SKILL.md|portable]] · [[../../.claude/skills/test-quality-discipline/SKILL.md|claude]] · [[../../.agent/skills/test-quality-discipline/SKILL.md|antigravity]]
 - verification-before-completion — [[../../.agents/skills/verification-before-completion/SKILL.md|portable]] · [[../../.claude/skills/verification-before-completion/SKILL.md|claude]] · [[../../.agent/skills/verification-before-completion/SKILL.md|antigravity]]
 - git-workflow-and-versioning — [[../../.agents/skills/git-workflow-and-versioning/SKILL.md|portable]] · [[../../.claude/skills/git-workflow-and-versioning/SKILL.md|claude]] · [[../../.agent/skills/git-workflow-and-versioning/SKILL.md|antigravity]]
+- ba-requirement-analysis — [[../../.agents/skills/ba-requirement-analysis/SKILL.md|portable]] · [[../../.claude/skills/ba-requirement-analysis/SKILL.md|claude]] · [[../../.agent/skills/ba-requirement-analysis/SKILL.md|antigravity]]
+- sa-architecture-design — [[../../.agents/skills/sa-architecture-design/SKILL.md|portable]] · [[../../.claude/skills/sa-architecture-design/SKILL.md|claude]] · [[../../.agent/skills/sa-architecture-design/SKILL.md|antigravity]]
+- data-config-change — [[../../.agents/skills/data-config-change/SKILL.md|portable]] · [[../../.claude/skills/data-config-change/SKILL.md|claude]] · [[../../.agent/skills/data-config-change/SKILL.md|antigravity]]
+- qa-playwright-testing — [[../../.agents/skills/qa-playwright-testing/SKILL.md|portable]] · [[../../.claude/skills/qa-playwright-testing/SKILL.md|claude]] · [[../../.agent/skills/qa-playwright-testing/SKILL.md|antigravity]]
+- security-review — [[../../.agents/skills/security-review/SKILL.md|portable]] · [[../../.claude/skills/security-review/SKILL.md|claude]] · [[../../.agent/skills/security-review/SKILL.md|antigravity]]
+- api-testing-tooling — [[../../.agents/skills/api-testing-tooling/SKILL.md|portable]] · [[../../.claude/skills/api-testing-tooling/SKILL.md|claude]] · [[../../.agent/skills/api-testing-tooling/SKILL.md|antigravity]]
+- js-unit-testing — [[../../.agents/skills/js-unit-testing/SKILL.md|portable]] · [[../../.claude/skills/js-unit-testing/SKILL.md|claude]] · [[../../.agent/skills/js-unit-testing/SKILL.md|antigravity]]
+- python-unit-testing — [[../../.agents/skills/python-unit-testing/SKILL.md|portable]] · [[../../.claude/skills/python-unit-testing/SKILL.md|claude]] · [[../../.agent/skills/python-unit-testing/SKILL.md|antigravity]]
 
 **Role-specific (portable only, `.agents/skills/`):**
 
-- [[../../.agents/skills/ba-requirement-analysis/SKILL.md|ba-requirement-analysis]]
-- [[../../.agents/skills/sa-architecture-design/SKILL.md|sa-architecture-design]]
-- [[../../.agents/skills/data-config-change/SKILL.md|data-config-change]]
-- [[../../.agents/skills/qa-playwright-testing/SKILL.md|qa-playwright-testing]]
-- [[../../.agents/skills/security-review/SKILL.md|security-review]]
-- [[../../.agents/skills/frontend-ui-engineering/SKILL.md|frontend-ui-engineering]] (mirrored — see table above; listed here too since it's also role-relevant to BA/Developer)
+- None currently — the five entries previously listed here (`ba-requirement-analysis`, `sa-architecture-design`, `data-config-change`, `qa-playwright-testing`, `security-review`) are verified mirrored across all three platforms and moved to the "Mirrored" list above. `frontend-ui-engineering` is also mirrored and listed in the table above.
 
 ## Codex Host Adapters (`.codex/`)
 
