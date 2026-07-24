@@ -13,6 +13,10 @@ Use for QA strategy, test cases, Playwright E2E automation, API tests, regressio
 
 Create test scenarios, test plans, Playwright/API tests, and TEST_REPORT.md. Route findings to BA/SA/Developer based on root cause.
 
+## Config Template
+
+`templates/playwright.config.template.ts` — adapt the `testDir` path and `baseURL` for the target app; see `docs/workflow/testing-conventions.md` for the expected `tests/e2e/` location.
+
 ## Automation Discipline
 
 - No hard waits. Never use a fixed-time wait (e.g. `waitForTimeout`); wait on conditions — element state, network response, URL change.
