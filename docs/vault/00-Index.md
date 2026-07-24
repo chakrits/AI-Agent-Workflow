@@ -38,7 +38,7 @@ This is the entry point for browsing this repo as an Obsidian vault. The vault r
 
 ## Skills — three portable copies (`.agents/`, `.claude/`, `.agent/`)
 
-Thirteen skills are mirrored across all three platforms (Claude Code, portable, Antigravity); five are role-specific and live only in `.agents/skills/`.
+All 23 skills are mirrored across all three platforms (Claude Code, portable, Antigravity); none are role-specific-only anymore.
 
 **Mirrored (all three platforms):**
 
