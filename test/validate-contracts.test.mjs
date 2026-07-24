@@ -1071,6 +1071,107 @@ test('.agent/skills/ and .agents/skills/ carry identical skill directory names, 
   }
 });
 
+test('the three new test-tooling skills carry their required content', async () => {
+  const [apiTesting, jsUnit, pythonUnit, mutation] = await Promise.all([
+    readFile('.agents/skills/api-testing-tooling/SKILL.md', 'utf8'),
+    readFile('.agents/skills/js-unit-testing/SKILL.md', 'utf8'),
+    readFile('.agents/skills/python-unit-testing/SKILL.md', 'utf8'),
+    readFile('.agents/skills/mutation-testing/SKILL.md', 'utf8')
+  ]);
+
+  assert.match(apiTesting, /Supertest/);
+  assert.match(apiTesting, /Bruno/);
+  assert.match(apiTesting, /distinct from `api-contract-testing`/);
+
+  assert.match(jsUnit, /## Choosing Between Jest and Vitest/);
+  assert.match(jsUnit, /npx jest/);
+  assert.match(jsUnit, /npx vitest/);
+
+  assert.match(pythonUnit, /uv run pytest/);
+  assert.match(pythonUnit, /tdd-implementation/);
+
+  assert.match(mutation, /## JS\/TS \(Stryker\)/);
+  assert.match(mutation, /npx stryker run/);
+  assert.match(mutation, /## Python \(mutmut\)/);
+});
+
+test('SKILL_CATALOG.md carries the three new test-tooling skill entries', async () => {
+  const catalog = await readFile('docs/operating-model/SKILL_CATALOG.md', 'utf8');
+
+  assert.match(catalog, /^## api-testing-tooling$/m);
+  assert.match(catalog, /^## js-unit-testing$/m);
+  assert.match(catalog, /^## python-unit-testing$/m);
+  assert.match(catalog, /api-testing-tooling.*implemented this pass/s);
+});
+
+test('QA Agent Skill Routing includes the three new test-tooling skills in role-definitions and the Claude adapter', async () => {
+  const [roleDefinition, adapter] = await Promise.all([
+    readFile('docs/workflow/role-definitions.md', 'utf8'),
+    readFile('.claude/agents/qa-agent.md', 'utf8')
+  ]);
+
+  assert.match(roleDefinition, /`\.agents\/skills\/api-testing-tooling\/`/);
+  assert.match(roleDefinition, /`\.agents\/skills\/js-unit-testing\/`/);
+  assert.match(roleDefinition, /`\.agents\/skills\/python-unit-testing\/`/);
+
+  assert.match(adapter, /`api-testing-tooling`/);
+  assert.match(adapter, /`js-unit-testing`/);
+  assert.match(adapter, /`python-unit-testing`/);
+});
+
+const newTestingSkillTemplatePaths = [
+  ['qa-playwright-testing', 'playwright.config.template.ts'],
+  ['mutation-testing', 'stryker.conf.template.json'],
+  ['api-testing-tooling', 'supertest.example.spec.ts'],
+  ['api-testing-tooling', 'bruno-collection/bruno.json'],
+  ['api-testing-tooling', 'bruno-collection/health-check.bru'],
+  ['api-testing-tooling', 'bruno-collection/environments/local.bru'],
+  ['js-unit-testing', 'jest.config.template.js'],
+  ['js-unit-testing', 'vitest.config.template.ts'],
+  ['python-unit-testing', 'pytest.ini.template']
+];
+
+test('test-tooling skill template files are byte-identical across all three platforms', async () => {
+  for (const [skill, templateFile] of newTestingSkillTemplatePaths) {
+    const [portable, claude, antigravity] = await Promise.all([
+      readFile(`.agents/skills/${skill}/templates/${templateFile}`, 'utf8'),
+      readFile(`.claude/skills/${skill}/templates/${templateFile}`, 'utf8'),
+      readFile(`.agent/skills/${skill}/templates/${templateFile}`, 'utf8')
+    ]);
+    assert.equal(claude, portable, `.claude/skills/${skill}/templates/${templateFile} does not match .agents/`);
+    assert.equal(antigravity, portable, `.agent/skills/${skill}/templates/${templateFile} does not match .agents/`);
+  }
+});
+
+test('the three new test-tooling skills are byte-identical SKILL.md across all three platforms', async () => {
+  const newSkillNames = ['api-testing-tooling', 'js-unit-testing', 'python-unit-testing'];
+  for (const name of newSkillNames) {
+    const [portable, claude, antigravity] = await Promise.all([
+      readFile(`.agents/skills/${name}/SKILL.md`, 'utf8'),
+      readFile(`.claude/skills/${name}/SKILL.md`, 'utf8'),
+      readFile(`.agent/skills/${name}/SKILL.md`, 'utf8')
+    ]);
+    assert.equal(claude, portable, `.claude/skills/${name}/SKILL.md does not match .agents/`);
+    assert.equal(antigravity, portable, `.agent/skills/${name}/SKILL.md does not match .agents/`);
+  }
+});
+
+test('testing-conventions.md exists and is linked from PROJECT_INDEX.md and the vault index', async () => {
+  const [conventions, projectIndex, vaultIndex] = await Promise.all([
+    readFile('docs/workflow/testing-conventions.md', 'utf8'),
+    readFile('PROJECT_INDEX.md', 'utf8'),
+    readFile('docs/vault/00-Index.md', 'utf8')
+  ]);
+
+  assert.match(conventions, /tests\/e2e\//);
+  assert.match(conventions, /tests\/api\//);
+  assert.match(conventions, /tests\/unit\//);
+  assert.match(conventions, /tests\/mutation\//);
+
+  assert.match(projectIndex, /docs\/workflow\/testing-conventions\.md/);
+  assert.match(vaultIndex, /testing-conventions\.md/);
+});
+
 test('accepts the three canonical Bug Fix examples', async () => {
   const errors = await validateContracts(process.cwd());
   assert.deepEqual(errors, []);
