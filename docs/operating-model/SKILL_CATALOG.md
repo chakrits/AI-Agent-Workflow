@@ -56,7 +56,7 @@ These are intentionally not implemented yet but reserved for Phase 2+.
 
 Superseded (removed from this table because a real skill already covers the purpose): Data Change Validation and Config Change Validation → `data-config-change`; Code Review → `code-review-gate`; System Design Review → `sa-architecture-design`.
 
-Note: `api-contract-testing` (implemented this pass) validates an existing implementation against a published schema; the Planned "API Test Design" skill (still unbuilt) is for designing API test *cases* from a contract — related but distinct, not superseded. Similarly, `test-quality-discipline`'s anti-pattern review and `TEST_REPORT.md`'s new Root Cause Analysis section do not close the Planned "Defect Analysis" skill, which covers broader test-failure/log/screenshot analysis.
+Note: `api-contract-testing` (implemented this pass) validates an existing implementation against a published schema; the Planned "API Test Design" skill (still unbuilt) is for designing API test *cases* from a contract — related but distinct, not superseded. Similarly, `test-quality-discipline`'s anti-pattern review and `TEST_REPORT.md`'s new Root Cause Analysis section do not close the Planned "Defect Analysis" skill, which covers broader test-failure/log/screenshot analysis. `api-testing-tooling` (implemented this pass) provides Supertest/Bruno tooling for *executing* hand-scripted API tests; it does not close the Planned "API Test Design" skill either, since that skill is about designing what those test cases should be, not running them.
 
 
 ## ba-requirement-analysis
@@ -202,7 +202,38 @@ Note: `api-contract-testing` (implemented this pass) validates an existing imple
 | Do Not Use When | Reviewing E2E/Playwright tests (use `qa-playwright-testing`'s own automation discipline instead) or designing new test cases (use `functional-test-design`) |
 | Next Skill / Agent | Developer Agent (test rewrite) |
 
+## api-testing-tooling
 
+| Field | Detail |
+|---|---|
+| Trigger | Target app has HTTP endpoints needing hand-written functional test coverage or a versionable API request collection, distinct from schema-contract fuzzing |
+| Primary Agent | QA Agent |
+| Input | Target app's HTTP endpoints, auth requirements, target environment |
+| Output | Supertest test results or Bruno collection run output recorded in `TEST_REPORT.md` |
+| Do Not Use When | The task is schema-contract validation against a published OpenAPI schema — use `api-contract-testing` instead |
+| Next Skill / Agent | Developer Agent (implementation defect) |
+
+## js-unit-testing
+
+| Field | Detail |
+|---|---|
+| Trigger | A JS/TS code behavior change needs unit/component-level test coverage per `tdd-implementation` |
+| Primary Agent | QA Agent / Developer Agent |
+| Input | Target module, existing test suite (if any), Jest or Vitest per project convention |
+| Output | Test run results recorded in `TEST_REPORT.md` |
+| Do Not Use When | The target app is not JS/TS — use `python-unit-testing` instead |
+| Next Skill / Agent | Developer Agent (failing/missing coverage), `mutation-testing` (verify test effectiveness) |
+
+## python-unit-testing
+
+| Field | Detail |
+|---|---|
+| Trigger | A Python code behavior change needs unit/component-level test coverage per `tdd-implementation` |
+| Primary Agent | QA Agent / Developer Agent |
+| Input | Target module, existing test suite (if any), pytest |
+| Output | Test run results recorded in `TEST_REPORT.md` |
+| Do Not Use When | The target app is not Python — use `js-unit-testing` instead |
+| Next Skill / Agent | Developer Agent (failing/missing coverage), `mutation-testing` (verify test effectiveness) |
 
 
 ## Skill Activation Examples
