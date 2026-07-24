@@ -7,7 +7,7 @@ description: Write and run hand-scripted API tests with Supertest (Node/Express 
 
 ## Purpose
 
-Operationalize functional API testing for a target app's own endpoints — hand-written assertions and reusable, versionable request collections — as a distinct concern from `api-contract-testing`'s schema-fuzzing against a published OpenAPI contract.
+Operationalize functional API testing for a target app's own endpoints — hand-written assertions and reusable, versionable request collections — as a concern distinct from `api-contract-testing`'s schema-fuzzing against a published OpenAPI contract.
 
 ## When to Use
 

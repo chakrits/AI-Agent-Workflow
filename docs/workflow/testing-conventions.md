@@ -4,6 +4,8 @@ This is a convention for how a target app (once cloned via `scripts/reset-to-tem
 
 ## Folder Structure
 
+End-to-end specs live in `tests/e2e/`, API tests in `tests/api/`, unit tests in `tests/unit/`, and mutation config/output in `tests/mutation/`:
+
 ```text
 tests/
 ├── e2e/          # Playwright specs — see .agents/skills/qa-playwright-testing/
