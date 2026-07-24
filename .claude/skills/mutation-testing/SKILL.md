@@ -1,6 +1,6 @@
 ---
 name: mutation-testing
-description: Validate that Python test suites actually catch bugs, using mutmut to introduce deliberate code mutations and measure how many are killed. Use for QA Agent's Test Effectiveness rule on core business-logic/service-layer modules.
+description: Validate that Python or JS/TS test suites actually catch bugs, using mutmut (Python) or Stryker (JS/TS) to introduce deliberate code mutations and measure how many are killed. Use for QA Agent's Test Effectiveness rule on core business-logic/service-layer modules.
 ---
 
 # mutation-testing
@@ -33,6 +33,23 @@ uv run mutmut show <id>        # inspect one surviving mutant
 uv run mutmut html             # HTML report
 open html/index.html
 ```
+
+## JS/TS (Stryker)
+
+### Installation
+
+```bash
+npm install --save-dev @stryker-mutator/core @stryker-mutator/jest-runner
+```
+
+### Running
+
+```bash
+npx stryker run                        # run mutation testing
+open reports/mutation/html/index.html  # HTML report
+```
+
+See `templates/stryker.conf.template.json`.
 
 ## When to Apply
 
