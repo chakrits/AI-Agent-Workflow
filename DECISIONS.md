@@ -2,6 +2,16 @@
 
 ## Decision Log
 
+### ADR-0011: Preserve Handoff Parser Compatibility While Improving Scanability
+
+- Date: 2026-07-24
+- Status: Accepted
+- Context: Issue #64 identified that the handoff template is difficult to scan. The first SA proposal considered a v2 grouped-heading structure and parser migration, but review confirmed the current parser and existing records rely on the exact H2 field headings and their order.
+- Decision: Retain every existing H2 field heading in its existing order. Improve scanability only with non-heading `---` separators and bold group labels. Do not modify the parser, receipt schema, tests, adapters, CI, lifecycle authority, or QA semantics.
+- Alternatives Considered: Introduce grouped H2 sections and a v1/v2 parser; use frontmatter or an arbitrary Markdown structure; rewrite historical records; remove v1 support immediately.
+- Consequences: Existing parser and historical-record compatibility remain unchanged, with a small reversible template-only diff. A future structural template redesign requires its own approved parser/schema migration work item.
+- Owner: Human Product / Process Owner
+
 ### ADR-0002: Use a Contract-First Foundation for Dynamic Bug-Fix Loops
 
 - Date: 2026-07-13
