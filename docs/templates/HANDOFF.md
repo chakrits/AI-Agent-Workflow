@@ -1,5 +1,9 @@
 # Agent Handoff
 
+---
+
+**Identity and work item**
+
 ## From Agent
 
 
@@ -22,6 +26,10 @@
 
 Low / Medium / High / Critical
 
+---
+
+**Lifecycle and contract context**
+
 ## Lifecycle Phase
 
 `phase:requirements` / `phase:design` / `phase:planning` / `phase:development` / `phase:verification` / `phase:human-review` / `phase:blocked`
@@ -42,6 +50,10 @@ Evidence and approval reference:
 
 ## Rework Count
 
+
+---
+
+**Delivered work and evidence**
 
 ## Completed Work
 
@@ -72,6 +84,10 @@ Evidence and approval reference:
 ## Platform Activation Record URL / Status
 
 
+---
+
+**Quality gate and review context**
+
 ## QA Evidence URL
 
 
@@ -92,6 +108,10 @@ Evidence and approval reference:
 
 ## Recommended Next Step
 
+---
+
+**Terminal routing decision**
+
 ## Next Action
 
 Exactly one: `Dispatch` / `Human review` / `Blocked`
@@ -105,6 +125,10 @@ Named non-human agent for `Dispatch`; human gate owner for `Human review`; resol
 ## Boss Event Required
 
 Yes — every terminal outcome
+
+---
+
+**Dispatch receipt and completion tracking**
 
 ## Dispatch State
 
