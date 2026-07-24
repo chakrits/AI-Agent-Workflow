@@ -32,6 +32,7 @@ Use these files for dynamic routing, role ownership, quality gates, and handoff 
 - [docs/workflow/role-definitions.md](./docs/workflow/role-definitions.md) - Responsibilities for PM, BA, SA, Dev, QA, Security, Config, Data, Release, and Documentation agents.
 - [docs/workflow/quality-gates.md](./docs/workflow/quality-gates.md) - Stage gates and required evidence.
 - [docs/workflow/handoff-contract.md](./docs/workflow/handoff-contract.md) - Required handoff fields and rules.
+- [docs/workflow/testing-conventions.md](./docs/workflow/testing-conventions.md) - Test folder-structure convention for target apps.
 
 ## Workflow Playbooks
 

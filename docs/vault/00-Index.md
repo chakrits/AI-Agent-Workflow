@@ -11,6 +11,7 @@ This is the entry point for browsing this repo as an Obsidian vault. The vault r
 - [[../workflow/handoff-contract.md|handoff-contract.md]] — terminal handoff / dispatch-receipt contract
 - [[../workflow/quality-gates.md|quality-gates.md]] — required gates per stage
 - [[../workflow/platform-readiness.md|platform-readiness.md]] — lifecycle labels and readiness gate
+- [[../workflow/testing-conventions.md|testing-conventions.md]] — test folder-structure convention for target apps
 
 ## Operating Model
 
