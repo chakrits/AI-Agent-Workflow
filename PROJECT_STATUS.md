@@ -1,19 +1,19 @@
 # PROJECT_STATUS.md
 
 ## Current Work Item
-- ID: None (idle — awaiting next human-sponsored work item)
-- Title: N/A
-- Owner: N/A
-- Status: Idle
-- References: N/A
+- ID: GitHub Issue #95
+- Title: Workflow playbooks quality upgrade — contract ref, wiki links, expand thin playbooks
+- Owner: Documentation Agent (pending dispatch)
+- Status: `phase:development` (spec approved, BA requirement analysis complete, Orchestrator routing recommendation received)
+- References: https://github.com/chakrits/AI-Agent-Workflow/issues/95; spec `docs/superpowers/specs/2026-07-25-workflow-playbooks-quality-upgrade.md`; BA analysis `docs/records/work-items/2026-07-25-issue-95-ba-requirement-analysis.md`
 
 ## Current Stage
-- Idle — last completed work item was GitHub Issue #83 (closed 2026-07-25)
+- Development — dispatching Documentation Agent to implement Fix B → Fix C → Fix A (contract reference, expand 5 thin playbooks, outbound wiki links across all 12 `docs/workflows/*.md` files), plus a new `test/validate-workflow-playbooks.test.mjs`. Independent QA Agent verification will follow (Orchestrator recommendation: Documentation Agent → QA Agent → Human Review/Merge, since the change touches one executable `.mjs` test file).
 
 ## Change Classification
-- Change Type: N/A (idle)
-- Risk Level: N/A
-- Code Change Required: No
+- Change Type: Documentation-only
+- Risk Level: Low–Medium
+- Code Change Required: No (one additive `.mjs` test file only; no runtime/API/DB/deployment behavior change)
 - Architecture Change Required: No
 - Security Review Required: No
 
