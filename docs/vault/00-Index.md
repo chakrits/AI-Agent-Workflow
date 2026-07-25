@@ -86,6 +86,8 @@ All 24 skills are mirrored across all three platforms (Claude Code, portable, An
 - [[../records/postmortem/|postmortem/]] — RCA / postmortem records
 - [[../records/misc/|misc/]] — earlier records that predate this taxonomy
 - [[../records/dispatch-receipts/|dispatch-receipts/]] — the live cross-turn dispatch-receipt ledger (Issue #35)
+- [[../records/work-items/|work-items/]] — per-issue traceability records linking SDD, PRs, postmortems, and lessons
+- [[../records/lessons-learned/|lessons-learned/]] — session retrospective records (created in Improvement 2)
 
 ## Superpowers designs (`docs/superpowers/`)
 
