@@ -331,6 +331,14 @@ State the deployment strategy (e.g., direct deploy, rolling, blue-green) and its
 
 Updates README, architecture docs, user docs, changelog, decision logs, and operational runbooks. The canonical pre-merge documentation-impact rule is defined here; platform-specific agent files are adapters.
 
+### Management Status Update Boundary
+
+A Management Status Update is a communication draft, not a structured handoff,
+QA evidence, RCA/postmortem artifact, lifecycle signal, or approval. The
+Documentation Agent may use it to prepare an evidence-backed Thai-first draft,
+but must preserve the formal artifact and approval boundaries that own those
+decisions.
+
 ### Pre-Merge Trigger
 
 Before a pull request or merge request targets `main`, the Documentation Agent performs a documentation-impact assessment in the source change. Classify this assessment as documentation-only with Medium risk unless the change requires a higher-risk route. The assessment is required even when no documentation update is needed.

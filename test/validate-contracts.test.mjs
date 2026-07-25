@@ -1294,3 +1294,60 @@ test('rejects New Feature max_rework_attempts that differs from policy', async (
   ]);
   assert.match(errors.join('\n'), /must be equal to constant/);
 });
+
+test('Management Status Update remains Thai-first, evidence-bound, and portable', async () => {
+  const paths = [
+    '.agents/skills/management-status-update/SKILL.md',
+    '.claude/skills/management-status-update/SKILL.md',
+    '.agent/skills/management-status-update/SKILL.md'
+  ];
+  const [canonical, claude, antigravity, catalog, vaultIndex, roles] = await Promise.all([
+    ...paths.map((path) => readFile(path, 'utf8')),
+    readFile('docs/operating-model/SKILL_CATALOG.md', 'utf8'),
+    readFile('docs/vault/00-Index.md', 'utf8'),
+    readFile('docs/workflow/role-definitions.md', 'utf8')
+  ]);
+
+  assert.equal(claude, canonical);
+  assert.equal(antigravity, canonical);
+
+  for (const requirement of [
+    /Thai.*default|default.*Thai/i,
+    /Boss Update/i,
+    /Leadership Update/i,
+    /Defect Update/i,
+    /status summary|team update|bug or defect report/i,
+    /GitHub Issue\/PR|Slack|standup|email|meeting/i,
+    /explicit Boss instruction/i,
+    /approved requirement\/design\/ADR/i,
+    /QA evidence.*verification/i,
+    /state the conflict/i,
+    /never invent or infer/i,
+    /owner, root cause, impact, mitigation, risk, ETA/i,
+    /root cause/i,
+    /print-only/i,
+    /explicit.*approval/i,
+    /never post.*Slack|never post.*email/i,
+    /structured handoff/i,
+    /QA evidence/i,
+    /RCA|postmortem/i,
+    /lifecycle/i,
+    /independent adaptation/i,
+    /No substantial\s+unverified-license source text is copied/i
+  ]) {
+    assert.match(canonical, requirement);
+  }
+
+  assert.match(catalog, /management-status-update/);
+  assert.match(vaultIndex, /management-status-update/);
+  assert.match(roles, /Management Status Update.*communication draft/i);
+  for (const boundary of [
+    /not a structured handoff/i,
+    /QA evidence/i,
+    /RCA\/postmortem/i,
+    /lifecycle signal/i,
+    /or approval/i
+  ]) {
+    assert.match(roles, boundary);
+  }
+});
