@@ -26,3 +26,23 @@ QA handoff
 - Refactor only after tests pass.
 - Do not weaken tests to make the build pass.
 - State validation scope honestly.
+
+## Gate Rules
+
+Full red-green-refactor rules live in the `tdd-implementation` skill; before
+completion (see `verification-before-completion` and `code-review-gate`),
+confirm evidence for:
+
+- A failing test existed before the implementation change (RED).
+- The smallest change needed to pass was applied (GREEN), not unrelated refactoring.
+- All tests pass after the fix, including the originally failing one.
+- No test assertion was weakened or removed to make the build pass.
+
+## Handoff
+
+Include:
+
+- PR/commit/branch
+- test count before and after (failing → passing)
+- changed files
+- validation evidence (command run, output/result)
