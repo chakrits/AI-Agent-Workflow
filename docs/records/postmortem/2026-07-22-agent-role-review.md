@@ -257,3 +257,17 @@ Evidence source: `TASK_LOG.md` (93 entries), 9 merged PRs (#51–#62), CI check 
 | Config Agent | 8/10 | Skip rules applied correctly | Skill gap not documented |
 
 **Overall dynamic workflow compliance: 8/10** — separation of concerns works, quality gates enforce, backward routing functions. Main gaps are boundary enforcement (Orchestrator) and skill selection documentation.
+
+---
+
+## Part F: Revision Log
+
+### 2026-07-25 — Revised per review feedback (Issue #74 comment 5077418912)
+
+1. **Workflow classification corrected** — Fix 2 and Fix 6 reclassified from Config Change to New Feature (executable `.mjs` validators require Developer + Code Review)
+2. **Skill reference fixed** — All references to `github-workflow-lifecycle` changed to `dynamic-workflow` (existing canonical skill in repo); `github-workflow-lifecycle` was a Hermes-local skill, not in the repo
+3. **Measurements strengthened** — Fix 1 measurement changed from free-text `grep` to structured handoff fields (`Source Agent`, `Target Agent`, `Dispatch State`, `Implementation Owner`); Fix 6 validator parses structured TASK_LOG fields, not free-text
+4. **Code review validation strengthened** — Fix 2 changed from PR body marker to structured review record at `docs/records/qa/*-code-review.md`; marker-only evidence rejected
+5. **TDD exception narrowed** — ADR-0012 boundary explicitly excludes validators, parsers, transition logic, and CI scripts; only pure declarative YAML/JSON schemas are exempt
+6. **Historical cutover defined** — Fix 6 validates only entries with date >= 2026-07-25; historical entries exempt
+7. **Implementation split** — 6 fixes split into 4 sub-issues with different owners and routes: (A) Policy fixes 1/3/4, (B) Documentation skill fix 5, (C) Review-gate fix 2, (D) Skill-usage fix 6
