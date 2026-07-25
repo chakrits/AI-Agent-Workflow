@@ -343,6 +343,18 @@ Recommended flow:
 Documentation Agent -> Reviewer
 ```
 
+### Framework / Meta Change
+
+Recommended flow:
+
+```text
+Orchestrator -> Documentation Agent -> Reviewer / QA Agent -> Human Approval
+```
+
+Use when the request adds or revises operating-model rules, updates `AGENTS.md`, adds a skill catalog entry, defines a quality gate or evaluation checklist, clarifies role boundaries or routing behavior, or improves cross-platform agent structure — see `docs/workflows/stabilize-core.md` for the full flow and quality gate.
+
+For security-sensitive process changes, route through Security Reviewer before Human Approval instead.
+
 ### Security-sensitive Change
 
 Security Reviewer must be included for:

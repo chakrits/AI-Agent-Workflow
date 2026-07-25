@@ -138,6 +138,7 @@ See the complete [role definitions](./docs/workflow/role-definitions.md).
 | API contract change | BA → SA → Developer → QA → Security when relevant | [role definitions](./docs/workflow/role-definitions.md) |
 | Test-only change | QA → Reviewer | [quality gates](./docs/workflow/quality-gates.md) |
 | Documentation-only change | Documentation → Reviewer | [post-merge review template](./docs/templates/POST_MERGE_DOCUMENTATION_REVIEW.md) |
+| Framework / meta change (routing rules, skill boundaries, operating model) | Orchestrator → Documentation → Reviewer/QA → Human Approval | [stabilize-core.md](./docs/workflows/stabilize-core.md) |
 
 The complete routing matrix and skip rules are in [dynamic-routing.md](./docs/workflow/dynamic-routing.md).
 
