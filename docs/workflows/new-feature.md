@@ -10,6 +10,8 @@ PM/BA -> SA -> Developer -> QA -> Security if relevant -> Release
 - A new API endpoint or integration is being introduced.
 - The change adds behavior the system does not have today, rather than fixing
   or adjusting existing behavior.
+- If the request is still a vague idea without user stories or acceptance
+  criteria yet, start at [[feature-discovery-to-plan.md]] first.
 
 ## Canonical Contract
 

@@ -131,6 +131,7 @@ See the complete [role definitions](./docs/workflow/role-definitions.md).
 
 | Work type | Default route | Start here |
 |---|---|---|
+| Vague idea / early-stage feature request | requirement-brainstorming → BA → SA → implementation-planning | [feature-discovery-to-plan.md](./docs/workflows/feature-discovery-to-plan.md) |
 | New feature | PM/BA → SA → Developer → QA → Release | [new-feature.md](./docs/workflows/new-feature.md) |
 | Bug fix | QA/BA → Developer → QA → Reviewer | [bug-fix.md](./docs/workflows/bug-fix.md) |
 | CI failure or regression | Debugging discipline → appropriate owner | [ci-failure-debug.md](./docs/workflows/ci-failure-debug.md) |
