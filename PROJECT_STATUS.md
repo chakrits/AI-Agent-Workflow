@@ -1,19 +1,19 @@
 # PROJECT_STATUS.md
 
 ## Current Work Item
-- ID: None (idle — awaiting next human-sponsored work item)
-- Title: N/A
-- Owner: N/A
-- Status: Idle
-- References: N/A
+- ID: GitHub Issue #95
+- Title: Workflow playbooks quality upgrade — contract ref, wiki links, expand thin playbooks
+- Owner: Human Maintainer (ready for PR)
+- Status: `phase:human-review`, `status:verification-done`
+- References: https://github.com/chakrits/AI-Agent-Workflow/issues/95; spec `docs/superpowers/specs/2026-07-25-workflow-playbooks-quality-upgrade.md`; BA analysis `docs/records/work-items/2026-07-25-issue-95-ba-requirement-analysis.md`; QA evidence https://github.com/chakrits/AI-Agent-Workflow/issues/95#issuecomment-5079108683
 
 ## Current Stage
-- Idle — last completed work item was GitHub Issue #83 (closed 2026-07-25)
+- Human review — Documentation Agent implemented Fix B → Fix C → Fix A on branch `docs/workflow-playbooks-quality-upgrade-spec` (commits `5f485f8`, `4bdabbf`, `aa869a5`, `56a62a6`); QA Agent independently re-verified all 11 Acceptance Criteria PASS (`npm test` 206/206). Awaiting a human to open a PR against `main`.
 
 ## Change Classification
-- Change Type: N/A (idle)
-- Risk Level: N/A
-- Code Change Required: No
+- Change Type: Documentation-only
+- Risk Level: Low–Medium
+- Code Change Required: No (one additive `.mjs` test file only; no runtime/API/DB/deployment behavior change)
 - Architecture Change Required: No
 - Security Review Required: No
 

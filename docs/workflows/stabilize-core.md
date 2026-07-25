@@ -35,11 +35,11 @@ Orchestrator → Documentation Agent → Security Reviewer → Human Approval
 
 ## Required Artifacts
 
-- `docs/operating-model/AGENT_OPERATING_MODEL.md`
-- `docs/operating-model/SKILL_CATALOG.md`
-- `docs/operating-model/AGENT_EVALUATION_CHECKLIST.md`
-- `AGENTS.md` update or amendment
-- `TASK_LOG.md` update if applied in a project repo
+- `docs/operating-model/AGENT_OPERATING_MODEL.md` ([[../operating-model/AGENT_OPERATING_MODEL.md|AGENT_OPERATING_MODEL.md]])
+- `docs/operating-model/SKILL_CATALOG.md` ([[../operating-model/SKILL_CATALOG.md|SKILL_CATALOG.md]])
+- `docs/operating-model/AGENT_EVALUATION_CHECKLIST.md` ([[../operating-model/AGENT_EVALUATION_CHECKLIST.md|AGENT_EVALUATION_CHECKLIST.md]])
+- `AGENTS.md` ([[../../AGENTS.md|AGENTS.md]]) update or amendment
+- `TASK_LOG.md` ([[../../TASK_LOG.md|TASK_LOG.md]]) update if applied in a project repo
 
 ## Quality Gate
 
@@ -53,4 +53,4 @@ Before completion:
 
 ## Handoff
 
-Use `docs/templates/COMPLETION_CHECK.md` when reporting the update.
+Use `docs/templates/COMPLETION_CHECK.md` ([[../templates/COMPLETION_CHECK.md|COMPLETION_CHECK.md]]) when reporting the update.

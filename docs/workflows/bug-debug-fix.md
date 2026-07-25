@@ -23,21 +23,21 @@ Postmortem if learning value exists
 | Step | Agent / Skill | Output |
 |---|---|---|
 | Failure intake | Orchestrator / QA Agent | Failure classification |
-| Debug | `debugging-discipline` | Debug ledger, repro, hypothesis matrix |
+| Debug | `debugging-discipline` ([[../../.agents/skills/debugging-discipline/SKILL.md|debugging-discipline]]) | Debug ledger, repro, hypothesis matrix |
 | Product fix | Developer Agent | Code fix, unit tests |
 | Test fix | QA Agent / Automation skill | Test correction |
 | Requirement ambiguity | BA Agent | Updated acceptance criteria |
 | Architecture gap | SA Agent | Updated design/API contract |
 | Security-sensitive bug | Security Reviewer | Security review |
 | Validation | QA Agent | Test report / validation evidence |
-| Learning | `engineering-postmortem` | Bug postmortem |
+| Learning | `engineering-postmortem` ([[../../.agents/skills/engineering-postmortem/SKILL.md|engineering-postmortem]]) | Bug postmortem |
 
 ## Gate Rules
 
 - Do not propose a fix before repro and fail path evidence exist.
 - Do not change tests merely to pass CI.
 - Do not close as fixed until original repro passes.
-- Use `docs/contracts/bug-fix-workflow.yaml` as the canonical Bug Fix policy and validate the current `task-state` before each handoff.
+- Use `docs/contracts/bug-fix-workflow.yaml` ([[../contracts/bug-fix-workflow.yaml|bug-fix-workflow.yaml]]) as the canonical Bug Fix policy and validate the current `task-state` before each handoff.
 - Allow at most two verifying -> rework transitions. On the next failed verification, set state to `blocked` with `stop_reason: human_review_required` and hand off to a human.
 - Route back to BA if expected behavior is unclear.
 - Route to Security Reviewer if auth, permission, secrets, sensitive data, financial logic, or trust boundary is involved.

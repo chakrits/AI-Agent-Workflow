@@ -42,6 +42,7 @@ Regression Validation
 
 ## Rules
 
+- Apply `debugging-discipline` ([[../../.agents/skills/debugging-discipline/SKILL.md|debugging-discipline]]) before proposing a fix.
 - Reproduce locally if possible.
 - If not reproducible locally, document CI-only hypotheses and required evidence.
 - Never skip failing tests without explicit approval.

@@ -34,9 +34,15 @@ Automation Skill or Manual QA Execution
 - Data/config validation needed → Data Agent / Config Agent
 - Automation requested → Playwright / Robot / API automation skill
 
+## Output Artifacts
+
+Full Mode produces `FUNCTION_TEST_REPORT.md` ([[../templates/FUNCTION_TEST_REPORT.md|FUNCTION_TEST_REPORT.md]]);
+Focused Mode produces `FOCUSED_FUNCTIONAL_TEST_PACK.md` ([[../templates/FOCUSED_FUNCTIONAL_TEST_PACK.md|FOCUSED_FUNCTIONAL_TEST_PACK.md]]).
+
 ## Required Gate
 
-Before execution or automation handoff:
+Before execution or automation handoff (see the `functional-test-design` skill,
+[[../../.agents/skills/functional-test-design/SKILL.md|functional-test-design]]):
 
 - Test cases have measurable expected results.
 - Test cases map to source references.
