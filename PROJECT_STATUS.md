@@ -1,15 +1,15 @@
 # PROJECT_STATUS.md
 
 ## Current Work Item
-- None. GitHub Issue #68 merged through PR #70 as commit `0d65956`; project state is idle pending the next work item.
+- GitHub Issue #69 — Thai-first Management Status Update skill. Implementation is active on `codex/issue-69-management-status-update`; the approved lightweight specification is recorded in Issue comment `5076996656`.
 
 ## Current Stage
-- Idle. GitHub Issue #68 shipped through PR #70 (merged `0d65956`); the closeout PR reconciles project state and closes the Issue. No implementation or documentation work is currently open.
+- Development. The next gate is QA verification against Issue #69 acceptance criteria after a Draft PR contains implementation and local-check evidence.
 
 ## Change Classification
-- Change Type: Documentation / skill catalog (config templates and reference docs only)
-- Risk Level: Low — no dependency, runtime, or parser/contract-touching change
-- Code Change Required: No
+- Change Type: Documentation / portable skill guidance
+- Risk Level: Medium — cross-platform agent behavior changes, with no dependency, runtime, or parser/contract change
+- Code Change Required: Yes — static regression coverage only
 - Architecture Change Required: No
 - Security Review Required: No
 
@@ -47,7 +47,7 @@
 - GitHub Issue #68 (test-tooling readiness — reference-only config templates and skills for Playwright/Supertest/Bruno/Jest/Vitest/pytest/Stryker) merged through PR #70 as commit `0d65956`; Issue #68 closed. Delivered: `docs/workflow/testing-conventions.md` (test folder-structure convention) linked from `PROJECT_INDEX.md` and the vault index; a Playwright config template added to `qa-playwright-testing`; a JS/TS (Stryker) section and config template added to `mutation-testing`; three brand-new skills — `api-testing-tooling` (Supertest + Bruno), `js-unit-testing` (Jest + Vitest), `python-unit-testing` (pytest) — each mirrored byte-identically across `.agents/skills/`, `.claude/skills/`, and `.agent/skills/`; three new `SKILL_CATALOG.md` entries plus a Planned Skills clarifying note; three new QA Skill Routing rows in `docs/workflow/role-definitions.md`, mirrored in `.claude/agents/qa-agent.md`; a `docs/vault/00-Index.md` correction moving five pre-existing skills (`ba-requirement-analysis`, `sa-architecture-design`, `data-config-change`, `qa-playwright-testing`, `security-review`) from "portable only" to "Mirrored" now that all three platform copies are verified in sync, plus the two QA-flagged fixes (AC-06 `SKILL_CATALOG.md` `mutation-testing` Stryker mention; AC-09 vault index 23/23 mirrored-skill count); 6 new regression tests in `test/validate-contracts.test.mjs` (156 → 162 total tests). Zero live dependencies added: no `package.json`/`package-lock.json` change, no `pyproject.toml`/`requirements.txt` created. QA Agent independently verified all 10 Acceptance Criteria PASS at commit `017a34a` (prior AC-06/AC-09 FAILs fixed and re-verified). Default-branch audit passed on `0d65956` and GitHub applied the normal `post-merge-closeout` label to PR #70; no `documentation-sync` exception issue was created.
 
 ## In Progress
-- None. Project state is idle.
+- GitHub Issue #69: implement the Thai-first Management Status Update canonical skill, portable adapters, catalog/vault discovery, minimal Documentation Agent boundary, and focused regression coverage. External posting, lifecycle authority, dispatch, and formal-artifact behavior remain out of scope.
 
 ## Blockers / Open Questions
 - R-002: `.gitlab-ci.yml` has not yet been validated on a live GitLab runner; this is an external verification follow-up, not an active implementation task.
@@ -57,13 +57,13 @@
 - `api-contract-testing`, `performance-testing`, and `mutation-testing` document tooling (`schemathesis`, `drf-spectacular`, Locust/k6, `mutmut`) that is not installed anywhere in this repo — intentional per the design spec, since this repo has no Django/Python target application yet. Wiring is deferred to whenever a real work item first needs to execute one of these skills.
 
 ## Required Artifacts
-- None outstanding. Issue #68 is closed; this closeout PR is the only remaining artifact.
+- GitHub Issue #69 Draft PR with implementation and local-check evidence, then independent QA acceptance-criteria matrix and human review.
 
 ## Next Quality Gate
-- Standard default-branch validation/audit applies after this closeout PR merges. No other work item is open.
+- QA verifies Issue #69 acceptance criteria against the exact Draft PR and records evidence before human review.
 
 ## Recommended Next Agent
-- None. Project state is idle pending the next work item.
+- Developer / Documentation implementation owner, then QA Agent.
 
 ## Notes
 - GitHub Issue #44's design spec went through two Boss-directed scope expansions after initial brainstorming: first, mirroring the four new QA skills into `.agent/skills/` (Antigravity CLI) rather than leaving it out of scope by analogy to `qa-playwright-testing` not living there; second, backfilling the four pre-existing `.agent/skills/` gaps unrelated to QA (`ba-requirement-analysis`, `data-config-change`, `sa-architecture-design`, `security-review`) in the same pass rather than deferring them. During implementation, the first `.agent/skills/` parity pass would have naively overwritten `dynamic-workflow`, `frontend-ui-engineering`, and `functional-test-design` — three pre-existing skills that intentionally use a thin pointer-adapter pattern unrelated to this work — and Developer Agent correctly escalated this as a mid-implementation blocker rather than silently overwriting them; the resolved approach special-cased those 3 (left untouched) and mirrored the other 17 byte-identical, which QA Agent's parity test independently confirmed.

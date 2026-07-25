@@ -38,7 +38,7 @@ This is the entry point for browsing this repo as an Obsidian vault. The vault r
 
 ## Skills — three portable copies (`.agents/`, `.claude/`, `.agent/`)
 
-All 23 skills are mirrored across all three platforms (Claude Code, portable, Antigravity); none are role-specific-only anymore.
+All 24 skills are mirrored across all three platforms (Claude Code, portable, Antigravity); none are role-specific-only anymore.
 
 **Mirrored (all three platforms):**
 
@@ -48,6 +48,7 @@ All 23 skills are mirrored across all three platforms (Claude Code, portable, An
 - dynamic-workflow — [[../../.agents/skills/dynamic-workflow/SKILL.md|portable]] · [[../../.claude/skills/dynamic-workflow/SKILL.md|claude]] · [[../../.agent/skills/dynamic-workflow/SKILL.md|antigravity]]
 - engineering-postmortem — [[../../.agents/skills/engineering-postmortem/SKILL.md|portable]] · [[../../.claude/skills/engineering-postmortem/SKILL.md|claude]] · [[../../.agent/skills/engineering-postmortem/SKILL.md|antigravity]]
 - frontend-ui-engineering — [[../../.agents/skills/frontend-ui-engineering/SKILL.md|portable]] · [[../../.claude/skills/frontend-ui-engineering/SKILL.md|claude]] · [[../../.agent/skills/frontend-ui-engineering/SKILL.md|antigravity]]
+- management-status-update — [[../../.agents/skills/management-status-update/SKILL.md|portable]] · [[../../.claude/skills/management-status-update/SKILL.md|claude]] · [[../../.agent/skills/management-status-update/SKILL.md|antigravity]]
 - functional-test-design — [[../../.agents/skills/functional-test-design/SKILL.md|portable]] · [[../../.claude/skills/functional-test-design/SKILL.md|claude]] · [[../../.agent/skills/functional-test-design/SKILL.md|antigravity]]
 - implementation-planning — [[../../.agents/skills/implementation-planning/SKILL.md|portable]] · [[../../.claude/skills/implementation-planning/SKILL.md|claude]] · [[../../.agent/skills/implementation-planning/SKILL.md|antigravity]]
 - mutation-testing — [[../../.agents/skills/mutation-testing/SKILL.md|portable]] · [[../../.claude/skills/mutation-testing/SKILL.md|claude]] · [[../../.agent/skills/mutation-testing/SKILL.md|antigravity]]
