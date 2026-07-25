@@ -1,14 +1,14 @@
 # PROJECT_STATUS.md
 
 ## Current Work Item
-- ID: None (idle — awaiting next human-sponsored work item)
-- Title: N/A
-- Owner: N/A
-- Status: Idle
-- References: N/A
+- ID: GitHub Issue #99
+- Title: Workflow playbook discoverability — wire 7 orphan playbooks + regression guard
+- Owner: Human Maintainer (ready for PR)
+- Status: `phase:human-review`, `status:verification-done`
+- References: https://github.com/chakrits/AI-Agent-Workflow/issues/99; spec `docs/superpowers/specs/2026-07-26-workflow-playbook-discoverability-design.md`; QA evidence https://github.com/chakrits/AI-Agent-Workflow/issues/99#issuecomment-5079746566
 
 ## Current Stage
-- Idle — last completed work item was GitHub Issue #95 (closed 2026-07-26)
+- Human review — Documentation Agent implemented Fixes 1-5 on branch `docs/workflow-playbook-discoverability-spec` (commits `8bae4e9`, `a7dc474`, `a414b97`, `6d23269`, `a84b522`, `0611542`); QA Agent independently re-verified all 9 Acceptance Criteria PASS (`npm test` 207/207). Awaiting a human to open a PR against `main`.
 
 ## Change Classification
 - Change Type: N/A (idle)

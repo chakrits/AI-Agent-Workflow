@@ -19,6 +19,8 @@ Use this skill when:
 - user asks to close out a bug with a write-up
 - debugging session has landed and validated a real fix
 
+See also: `docs/workflows/validated-bug-postmortem.md` for this skill's place in the end-to-end workflow (who hands off to whom, and what happens before/after).
+
 ## Do not use when
 
 - Bug is not fixed.

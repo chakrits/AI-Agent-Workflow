@@ -79,6 +79,7 @@ When work routes backward, remove the superseded current `phase:` label, retain 
 | API Contract Change | BA -> SA -> Dev -> QA | PM if scope approved |
 | Test-only Change | QA -> Reviewer | PM, BA, SA, Dev |
 | Documentation-only Change | Documentation -> Reviewer | PM, BA, SA, Dev, QA |
+| Framework / Meta Change | Orchestrator -> Documentation -> Reviewer/QA -> Human Approval | PM, BA, SA, Dev (unless the change itself alters their routing rules) |
 | Security-sensitive Change | Relevant Agent -> Security -> QA -> Human Approval | Never skip Security |
 
 ## Risk Levels

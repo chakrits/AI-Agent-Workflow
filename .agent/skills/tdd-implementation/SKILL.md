@@ -15,6 +15,8 @@ Use test-driven discipline for code behavior changes.
 - API/business logic changes.
 - Validation or error-handling behavior changes.
 
+See also: `docs/workflows/tdd-implementation-flow.md` for this skill's place in the end-to-end workflow (who hands off to whom, and what happens before/after).
+
 ## Do not use when
 
 - No code behavior changes are required.
