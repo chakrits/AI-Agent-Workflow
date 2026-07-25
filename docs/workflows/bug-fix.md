@@ -18,3 +18,9 @@ set state to blocked with `stop_reason: human_review_required` and hand off to a
 - Expected behavior unclear -> BA
 - Contract/design issue -> SA
 - Auth/security issue -> Security Reviewer
+
+## Full Debugging Methodology
+
+For the complete failure-intake-to-postmortem flow (debugging-discipline skill,
+required-agents-per-step table, and full handoff structure), see
+[[bug-debug-fix.md]].
