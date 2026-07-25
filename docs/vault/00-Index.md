@@ -13,12 +13,41 @@ This is the entry point for browsing this repo as an Obsidian vault. The vault r
 - [[../workflow/platform-readiness.md|platform-readiness.md]] — lifecycle labels and readiness gate
 - [[../workflow/testing-conventions.md|testing-conventions.md]] — test folder-structure convention for target apps
 
+## Project State (root-level canonical files)
+
+- [[../../README.md|README.md]] — project overview, quick start, structure
+- [[../../PROJECT_INDEX.md|PROJECT_INDEX.md]] — linked map of the repository
+- [[../../PROJECT_STATUS.md|PROJECT_STATUS.md]] — current work item, blockers, next agent
+- [[../../TASK_LOG.md|TASK_LOG.md]] — work history and agent handoff trail
+- [[../../DECISIONS.md|DECISIONS.md]] — architecture and process decisions (ADR log)
+- [[../../RISKS.md|RISKS.md]] — known project risks and mitigations
+- [[../../CHANGELOG.md|CHANGELOG.md]] — human-facing change history
+- [[../../THIRD_PARTY_NOTICES.md|THIRD_PARTY_NOTICES.md]] — third-party attributions
+
 ## Operating Model
 
+- [[../operating-model/README.md|README.md]] — operating model overview
 - [[../operating-model/AGENT_OPERATING_MODEL.md|AGENT_OPERATING_MODEL.md]]
 - [[../operating-model/AGENT_PERSONAS.md|AGENT_PERSONAS.md]]
 - [[../operating-model/AGENT_EVALUATION_CHECKLIST.md|AGENT_EVALUATION_CHECKLIST.md]]
 - [[../operating-model/SKILL_CATALOG.md|SKILL_CATALOG.md]] — the reconciled index of every skill below
+- [[../operating-model/CONTEXT_BUDGET.md|CONTEXT_BUDGET.md]] — canonical file token budget and per-file breakdown
+- [[../operating-model/METRICS.md|METRICS.md]] — framework health metrics baseline and targets
+
+## Workflow Playbooks (`docs/workflows/`)
+
+- [[../workflows/bug-fix.md|bug-fix.md]] — Bug Fix workflow playbook
+- [[../workflows/bug-debug-fix.md|bug-debug-fix.md]] — Bug debug-and-fix workflow
+- [[../workflows/ci-failure-debug.md|ci-failure-debug.md]] — CI failure debugging workflow
+- [[../workflows/code-review-gate.md|code-review-gate.md]] — code review gate workflow
+- [[../workflows/config-change.md|config-change.md]] — config change workflow
+- [[../workflows/data-change.md|data-change.md]] — data / reference-data change workflow
+- [[../workflows/feature-discovery-to-plan.md|feature-discovery-to-plan.md]] — feature discovery to plan workflow
+- [[../workflows/functional-test-design.md|functional-test-design.md]] — functional test design workflow
+- [[../workflows/new-feature.md|new-feature.md]] — new feature workflow playbook
+- [[../workflows/stabilize-core.md|stabilize-core.md]] — stabilize core workflow
+- [[../workflows/tdd-implementation-flow.md|tdd-implementation-flow.md]] — TDD implementation flow
+- [[../workflows/validated-bug-postmortem.md|validated-bug-postmortem.md]] — validated bug postmortem workflow
 
 ## Role Adapters — Claude Code (`.claude/agents/`)
 
@@ -38,13 +67,14 @@ This is the entry point for browsing this repo as an Obsidian vault. The vault r
 
 ## Skills — three portable copies (`.agents/`, `.claude/`, `.agent/`)
 
-All 24 skills are mirrored across all three platforms (Claude Code, portable, Antigravity); none are role-specific-only anymore.
+All 25 skills are mirrored across all three platforms (Claude Code, portable, Antigravity); none are role-specific-only anymore.
 
 **Mirrored (all three platforms):**
 
 - api-contract-testing — [[../../.agents/skills/api-contract-testing/SKILL.md|portable]] · [[../../.claude/skills/api-contract-testing/SKILL.md|claude]] · [[../../.agent/skills/api-contract-testing/SKILL.md|antigravity]]
 - code-review-gate — [[../../.agents/skills/code-review-gate/SKILL.md|portable]] · [[../../.claude/skills/code-review-gate/SKILL.md|claude]] · [[../../.agent/skills/code-review-gate/SKILL.md|antigravity]]
 - debugging-discipline — [[../../.agents/skills/debugging-discipline/SKILL.md|portable]] · [[../../.claude/skills/debugging-discipline/SKILL.md|claude]] · [[../../.agent/skills/debugging-discipline/SKILL.md|antigravity]]
+- documentation-closeout — [[../../.agents/skills/documentation-closeout/SKILL.md|portable]] · [[../../.claude/skills/documentation-closeout/SKILL.md|claude]] · [[../../.agent/skills/documentation-closeout/SKILL.md|antigravity]]
 - dynamic-workflow — [[../../.agents/skills/dynamic-workflow/SKILL.md|portable]] · [[../../.claude/skills/dynamic-workflow/SKILL.md|claude]] · [[../../.agent/skills/dynamic-workflow/SKILL.md|antigravity]]
 - engineering-postmortem — [[../../.agents/skills/engineering-postmortem/SKILL.md|portable]] · [[../../.claude/skills/engineering-postmortem/SKILL.md|claude]] · [[../../.agent/skills/engineering-postmortem/SKILL.md|antigravity]]
 - frontend-ui-engineering — [[../../.agents/skills/frontend-ui-engineering/SKILL.md|portable]] · [[../../.claude/skills/frontend-ui-engineering/SKILL.md|claude]] · [[../../.agent/skills/frontend-ui-engineering/SKILL.md|antigravity]]
