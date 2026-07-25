@@ -1,27 +1,24 @@
 # PROJECT_STATUS.md
 
 ## Current Work Item
-- ID: GitHub Issue #76
-- Title: Implement 6 agent role review improvements — boundary, review-gate, skill-usage, TDD exception, doc skill
-- Owner: Config Agent (Sub-A) → Developer Agent (Sub-B/C/D) → QA Agent
-- Status: Requirements ready, awaiting spec-ready approval
-- References:
-  - Review document: [`docs/records/postmortem/2026-07-22-agent-role-review.md`](https://github.com/chakrits/AI-Agent-Workflow/blob/main/docs/records/postmortem/2026-07-22-agent-role-review.md) (Part A–F)
-  - Umbrella issue: [#74](https://github.com/chakrits/AI-Agent-Workflow/issues/74)
-  - Feedback: [#74 comment 5077418912](https://github.com/chakrits/AI-Agent-Workflow/issues/74#issuecomment-5077418912)
-  - Implementation issue: [#76](https://github.com/chakrits/AI-Agent-Workflow/issues/76)
+- ID: None (idle — awaiting next human-sponsored work item)
+- Title: N/A
+- Owner: N/A
+- Status: Idle
+- References: N/A
 
 ## Current Stage
-- Requirements — 4 sub-PRs planned (A: policy fixes 1/3/4, B: doc skill 5, C: review-gate 2, D: skill-usage 6)
+- Idle — last completed work item was GitHub Issue #76 (closed 2026-07-25)
 
 ## Change Classification
-- Change Type: Mixed — Sub-A is Config Change (docs); Sub-B/C/D are New Feature (executable scripts + new skill)
-- Risk Level: Low–Medium
-- Code Change Required: Yes (Sub-B/C/D)
+- Change Type: N/A (idle)
+- Risk Level: N/A
+- Code Change Required: No
 - Architecture Change Required: No
 - Security Review Required: No
 
 ## Completed
+- GitHub Issue #76 (6 agent role review improvements — boundary rule, review-gate, skill-usage, TDD exception, doc skill) closed through 4 sub-PRs (#78, #79, #80, #81). Delivered: (1) **Sub-A (PR #78, `e7ec5a8`)** — Orchestrator boundary rule (no direct implementation on subagent timeout, must re-dispatch or escalate), `data-config-change` meta-repo skill-selection note, and ADR-0012 (TDD exception for declarative YAML/JSON schemas, with explicit carve-out that executable `.mjs`/`.js` validators remain TDD-bound), mirrored byte-identically across all three platform adapters; (2) **Sub-B (PR #79, `1f56c4d`)** — `documentation-closeout` skill defining the closeout marker format, manual label-removal procedure for multi-source-PR closeouts, project-state update checklist, and `validate:project-state` verification gate, mirrored across all three adapters with `SKILL_CATALOG.md` entry (Primary Agent: Documentation Agent); (3) **Sub-C (PR #80, `74e5789`)** — `scripts/validate-review-gate.mjs` CI validator that enforces a structured review-record file at `docs/records/qa/*-code-review.md` whenever a PR touches `.mjs`/`.js` (closes the marker-only loophole per feedback point 4), wired into GitHub Actions and GitLab CI, with regression tests covering all three exit-code paths (0 with record, 1 without, 0 for docs-only PRs); (4) **Sub-D (PR #81, `6715378`)** — `scripts/validate-skill-usage.mjs` CI validator that parses TASK_LOG rows dated ≥ 2026-07-25 (historical cutover per feedback point 6) and requires each new row's Notes column to contain either `Skill Used:` or `No matching skill —`, wired into GitHub Actions and GitLab CI, with regression tests for pass / fail / historical-exempt paths. All 27 acceptance criteria across the four sub-PRs (AC-1 through AC-27, including cross-cutting `validate:project-state`) passed QA verification; the default-branch audit passed for each merge and GitHub applied the normal `post-merge-closeout` label to all four source PRs; no `documentation-sync` exception was created. This closeout PR carries the marker `<!-- post-merge-closeout: complete; source-pr-81 -->` citing the terminal source PR #81 (the last merged); per the multi-source-PR closeout procedure, PRs #78, #79, and #80 had their `post-merge-closeout` labels removed manually via `gh issue edit <N> --remove-label post-merge-closeout` because the automation's marker regex supports only one `source-pr-N` reference.
 - GitHub Issue #69 (Thai-first Management Status Update skill) merged through PR #72 as commit `ce5ff732f52f7d4caf12632d8339c4d1b4f7e1d9` and closed automatically. Delivered: a project-specific Thai-first `management-status-update` skill mirrored across portable, Claude, and Antigravity adapters; Boss, Leadership, and Defect update shapes; evidence precedence with unknown/conflict handling; print-only behavior with no automatic external posting; independent adaptation/source attribution; catalog and vault discovery; a minimal Documentation Agent boundary; and focused static regression. QA independently passed all 7 acceptance criteria at `ab59be3`; local evidence included 163/163 tests and 24/24 skill parity. The default-branch audit passed and emitted the normal source signal; no `documentation-sync` exception was created.
 - GitHub Issue #63 (template evidence-recording discipline) merged through PR #65 as commit `a600821`. Delivered: evidence columns in Security/Code Review templates, an explicit `Evidence URL` activation-record table, standardized Related Artifacts links, a Technical Design template rename, canonical BA use of `REQUIREMENT_DISCOVERY.md` with the legacy requirements template redirected, Completion Check references without duplicate execution records, and portable skill/template parity. QA independently passed P1–P7 at `773f243`; P8 stayed split to Issue #64. Default-branch audit passed and emitted a normal post-merge closeout signal; no `documentation-sync` exception was created.
 - GitHub Issue #64 (handoff-template scanability) merged through PR #66 as commit `24fa55e` and closed automatically. Delivered: presentation-only grouping in `HANDOFF.md` plus ADR-0011, preserving parser compatibility. QA confirmed the baseline contains **45** H2 field headings (not the earlier 44-field claim) and the merged template retains all 45 in exactly the same order; parser/schema/tests/adapters/CI/lifecycle authority and QA semantics were unchanged. Default-branch audit passed and emitted a normal post-merge closeout signal; no `documentation-sync` exception was created.
@@ -56,13 +53,7 @@
 - GitHub Issue #68 (test-tooling readiness — reference-only config templates and skills for Playwright/Supertest/Bruno/Jest/Vitest/pytest/Stryker) merged through PR #70 as commit `0d65956`; Issue #68 closed. Delivered: `docs/workflow/testing-conventions.md` (test folder-structure convention) linked from `PROJECT_INDEX.md` and the vault index; a Playwright config template added to `qa-playwright-testing`; a JS/TS (Stryker) section and config template added to `mutation-testing`; three brand-new skills — `api-testing-tooling` (Supertest + Bruno), `js-unit-testing` (Jest + Vitest), `python-unit-testing` (pytest) — each mirrored byte-identically across `.agents/skills/`, `.claude/skills/`, and `.agent/skills/`; three new `SKILL_CATALOG.md` entries plus a Planned Skills clarifying note; three new QA Skill Routing rows in `docs/workflow/role-definitions.md`, mirrored in `.claude/agents/qa-agent.md`; a `docs/vault/00-Index.md` correction moving five pre-existing skills (`ba-requirement-analysis`, `sa-architecture-design`, `data-config-change`, `qa-playwright-testing`, `security-review`) from "portable only" to "Mirrored" now that all three platform copies are verified in sync, plus the two QA-flagged fixes (AC-06 `SKILL_CATALOG.md` `mutation-testing` Stryker mention; AC-09 vault index 23/23 mirrored-skill count); 6 new regression tests in `test/validate-contracts.test.mjs` (156 → 162 total tests). Zero live dependencies added: no `package.json`/`package-lock.json` change, no `pyproject.toml`/`requirements.txt` created. QA Agent independently verified all 10 Acceptance Criteria PASS at commit `017a34a` (prior AC-06/AC-09 FAILs fixed and re-verified). Default-branch audit passed on `0d65956` and GitHub applied the normal `post-merge-closeout` label to PR #70; no `documentation-sync` exception issue was created.
 
 ## In Progress
-- GitHub Issue #76: Implement 6 agent role review improvements. 4 sub-PRs planned:
-  - Sub-A (Fix 1, 3, 4): Policy patches to `dynamic-workflow` skill + `SKILL_CATALOG.md` + `DECISIONS.md` (ADR-0012) — Config Agent route
-  - Sub-B (Fix 5): `documentation-closeout` skill + catalog entry — Developer route
-  - Sub-C (Fix 2): `validate-review-gate.mjs` CI validator — Developer route
-  - Sub-D (Fix 6): `validate-skill-usage.mjs` CI validator — Developer route
-- Review document: [`docs/records/postmortem/2026-07-22-agent-role-review.md`](https://github.com/chakrits/AI-Agent-Workflow/blob/main/docs/records/postmortem/2026-07-22-agent-role-review.md)
-- Umbrella issue: [#74](https://github.com/chakrits/AI-Agent-Workflow/issues/74)
+- None — project is idle following the closeout of Issue #76.
 
 ## Blockers / Open Questions
 - R-002: `.gitlab-ci.yml` has not yet been validated on a live GitLab runner; this is an external verification follow-up, not an active implementation task.
@@ -72,19 +63,13 @@
 - `api-contract-testing`, `performance-testing`, and `mutation-testing` document tooling (`schemathesis`, `drf-spectacular`, Locust/k6, `mutmut`) that is not installed anywhere in this repo — intentional per the design spec, since this repo has no Django/Python target application yet. Wiring is deferred to whenever a real work item first needs to execute one of these skills.
 
 ## Required Artifacts
-- Issue #76 implementation plan (this issue body + review document Part C/F)
-- `dynamic-workflow` SKILL.md patch (Fix 1)
-- `SKILL_CATALOG.md` note (Fix 3)
-- `DECISIONS.md` ADR-0012 (Fix 4)
-- `.agents/skills/documentation-closeout/SKILL.md` + mirrors (Fix 5)
-- `scripts/validate-review-gate.mjs` + test (Fix 2)
-- `scripts/validate-skill-usage.mjs` + test (Fix 6)
+- None (idle)
 
 ## Next Quality Gate
-- Boss approves `status:spec-ready` on Issue #76, then dispatch Sub-A (Config Agent) → Sub-B/C/D (Developer Agent)
+- Awaiting next human-sponsored work item.
 
 ## Recommended Next Agent
-- Config Agent (Sub-A: policy patches), then Developer Agent (Sub-B/C/D: executable validators + skill)
+- None — project is idle. The next agent is determined when a human opens a new work item.
 
 ## Notes
 - GitHub Issue #44's design spec went through two Boss-directed scope expansions after initial brainstorming: first, mirroring the four new QA skills into `.agent/skills/` (Antigravity CLI) rather than leaving it out of scope by analogy to `qa-playwright-testing` not living there; second, backfilling the four pre-existing `.agent/skills/` gaps unrelated to QA (`ba-requirement-analysis`, `data-config-change`, `sa-architecture-design`, `security-review`) in the same pass rather than deferring them. During implementation, the first `.agent/skills/` parity pass would have naively overwritten `dynamic-workflow`, `frontend-ui-engineering`, and `functional-test-design` — three pre-existing skills that intentionally use a thin pointer-adapter pattern unrelated to this work — and Developer Agent correctly escalated this as a mid-implementation blocker rather than silently overwriting them; the resolved approach special-cased those 3 (left untouched) and mirrored the other 17 byte-identical, which QA Agent's parity test independently confirmed.
@@ -104,3 +89,4 @@
 - QA Agent's 2026-07-25 independent verification of Issue #68 (branch `docs/test-tooling-readiness-spec`, commit `79213db`) found the `79213db` summary-count fix above was itself incomplete: the Mirrored skills list at `docs/vault/00-Index.md` L45-66 enumerates only 22 entries (`frontend-ui-engineering` is missing, and was already missing pre-branch on `main`), so the "All 23 skills are mirrored" line is inconsistent with the list it summarizes, and L70's note asserting `frontend-ui-engineering` "is also mirrored and listed in the table above" is false — it isn't in that table. QA also found `SKILL_CATALOG.md`'s existing `## mutation-testing` entry (L183-192) was never updated during this Issue's implementation to mention the new Stryker/JS-TS capability added to the skill itself — only the three brand-new skill catalog entries were added (commit `d093fd8`), and `test/validate-contracts.test.mjs`'s regression coverage doesn't assert on this either. AC-01 through AC-05, AC-07, AC-08, AC-10 passed independent re-verification (commands and diffs re-run directly, not taken on the implementer's self-report); AC-06 and AC-09 FAIL. QA evidence comment: https://github.com/chakrits/AI-Agent-Workflow/issues/68#issuecomment-5076741946. No lifecycle labels were changed — Issue #68 remains at `phase:requirements` + `status:spec-ready`, not `status:verification-done`/`phase:human-review`, pending Documentation Agent's fix of both gaps and a fresh QA pass.
 - QA Agent's 2026-07-25 re-verification pass (same day, commit `017a34a`) confirmed Documentation Agent's fix commits `49e9bd9` and `017a34a` resolved both gaps: `git diff f66628b..017a34a --stat` showed only the 5 expected files changed (`docs/operating-model/SKILL_CATALOG.md`, `docs/vault/00-Index.md`, `test/validate-contracts.test.mjs`, `PROJECT_STATUS.md`, `TASK_LOG.md`); AC-06's `mutation-testing` `Input` row now reads "...mutmut (Python) or Stryker (JS/TS) per project stack"; AC-09's Mirrored list independently re-diffed against `.agents/skills/` (`diff <(ls .agents/skills | sort) <(grep -oP '^\- \K[a-z-]+(?= —)' docs/vault/00-Index.md | sort)` — no output) confirms all 23 entries present and matching, and the "All 23 skills are mirrored" summary line is accurate. `npm test` (162/162), `npm run validate:contracts`, and `npm run validate:skill-parity` (23/23 in sync across `.agents/`, `.claude/`, `.agent/`) all re-run clean. AC-01 through AC-05, AC-07, AC-08, AC-10 received a fast sanity re-check (file existence, grep for key strings) since they passed a full check the prior round and were untouched by these fix commits. All 10 Acceptance Criteria now PASS. QA posted an updated evidence comment on Issue #68 and applied `status:verification-done` + `phase:human-review` labels (removing `phase:requirements` and `status:spec-ready`). Issue #68 is ready for a human to open a PR against `main`; QA evidence does not itself constitute merge approval.
 - This closeout (`docs/issue-68-closeout`) covers PR #70 (Issue #68), merged as `0d65956`. Direct `gh pr view <n> --json labels` checks (not the stale `gh pr list --label`/`search/issues` index, which both returned unfiltered/cached results) confirmed only PR #70 currently carried the `post-merge-closeout` signal, so this closeout's marker cites `source-pr-70` with no other stale label to clear manually. `PROJECT_INDEX.md` and `docs/vault/00-Index.md` required no closeout edit: both were already updated in source PR #70. This closeout touches only `PROJECT_STATUS.md`, `TASK_LOG.md`, and `CHANGELOG.md`.
+- This closeout (`docs/post-merge-closeout-pr78-pr79-pr80-pr81`) covers 4 source PRs (#78, #79, #80, #81) for Issue #76. The readiness-check marker regex (`scripts/work-item-readiness.mjs`) only matches one `source-pr-N` reference, so the closeout marker cites the terminal PR #81 (the last one merged); PRs #78, #79, and #80 had their `post-merge-closeout` labels removed manually via `gh issue edit <N> --remove-label post-merge-closeout` before merging this closeout PR. After this closeout PR merges, the automation removes PR #81's label; if the closeout PR's own label lingers (timing race condition seen previously on PRs #58 and #60), it is removed manually via `gh issue edit <CLOSEOUT-PR-NUM> --remove-label post-merge-closeout`.
