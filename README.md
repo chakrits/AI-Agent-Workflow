@@ -9,13 +9,19 @@ The shared process is not tied to one tool. Codex, Claude Code, Antigravity, and
 - Dynamic routing instead of a fixed PM → BA → SA → Developer → QA pipeline.
 - All 11 roles — Orchestrator, PM, BA, SA, Developer, QA, Security Reviewer, Config, Data, Release, and Documentation — have concrete, regression-tested canonical rules, not just a one-line description.
 - Required quality gates, structured handoffs, and explicit human approval boundaries.
-- A machine-checkable Bug Fix workflow contract: legal states, evidence requirements, retry limits, and human escalation.
-- Reusable templates for briefs, requirements, designs, test plans, handoffs, completion checks, security/release reviews, and post-merge documentation reviews.
-- Portable skills and platform adapters that refer back to the same canonical policy.
-- Hosted CI on both GitHub Actions and GitLab CI, running the same test/contract-validation suite.
+- Two machine-checkable workflow contracts (Bug Fix + New Feature): legal states, evidence requirements, retry limits, and human escalation.
+- 25 portable skills mirrored across 3 platform adapters (`.agents/`, `.claude/`, `.agent/`), with CI-enforced byte-identical parity.
+- 27 reusable templates for briefs, requirements, designs, test plans, handoffs, completion checks, security/release reviews, post-merge documentation reviews, work item records, and lessons learned.
+- Hosted CI on both GitHub Actions and GitLab CI, running 10 validation checks on every push and pull/merge request.
 - Lifecycle labels (`phase:*`, `status:*`) and an automated PR/Issue readiness gate that blocks merge until the Work Item lifecycle is consistent.
 - A [GitHub Project Kanban board](https://github.com/users/chakrits/projects/3) mapping `phase:*` labels to Todo / In Progress / Done columns for visual work tracking.
-- An in-repo, merge-gated dispatch-receipt ledger for cross-turn agent handoffs, with CI-enforced matching and a loop-safety circuit breaker — see [role-definitions.md](./docs/workflow/role-definitions.md) and the records under `docs/records/sdd/`.
+- An in-repo, merge-gated dispatch-receipt ledger for cross-turn agent handoffs, with CI-enforced matching and a loop-safety circuit breaker.
+- Work Item records (`docs/records/work-items/`) that link each GitHub Issue to its SDD, PRs, postmortem, and lessons learned — bidirectional traceability in the Obsidian vault.
+- A Lessons Learned vault (`docs/records/lessons-learned/`) with a structured template for session retrospectives.
+- A Framework Metrics dashboard (`npm run validate:metrics`) that parses TASK_LOG and reports rework rate, subagent timeout rate, test growth trend, and more.
+- A Context Budget validator (`npm run validate:context-budget`) that measures the token cost of canonical reading files — currently ~25,900 tokens across 8 files.
+- 12 Architecture Decision Records (ADRs) with a CI-enforced 10:1 ratio check against TASK_LOG decisions.
+- 7 tracked risks with a CI-enforced validation gate.
 - Local housekeeping tooling: worktree cleanup and a one-command reset back to a blank template baseline for a new team's own clone.
 
 ## Project Structure
@@ -27,29 +33,31 @@ AI-Agent-Workflow/
 ├── PROJECT_INDEX.md          # Linked map of the repository
 ├── PROJECT_STATUS.md         # Current work item, blockers, and next agent
 ├── TASK_LOG.md               # Work history and handoff trail
-├── DECISIONS.md              # Architecture and process decisions
-├── RISKS.md                  # Owned risks and follow-ups
+├── DECISIONS.md              # Architecture and process decisions (12 ADRs)
+├── RISKS.md                  # Owned risks and follow-ups (7 tracked risks)
 ├── CHANGELOG.md              # Human-facing change history
 ├── docs/
-│   ├── operating-model/      # Operating model, skill catalog, evaluation checklist
+│   ├── operating-model/      # Operating model, skill catalog, evaluation checklist,
+│   │                         #   context budget, metrics baseline
 │   ├── workflow/             # Canonical roles, routing, quality gates, handoffs
 │   ├── workflows/            # Playbooks for features, bugs, CI, config, and data
-│   ├── contracts/            # Bug Fix policy, schema, examples, and fixtures
-│   ├── templates/            # Reusable artifacts for each workflow stage
+│   ├── contracts/            # Bug Fix + New Feature contracts, schemas, examples, fixtures
+│   ├── templates/            # 27 reusable artifacts (incl. WORK_ITEM.md, LESSONS_LEARNED.md)
 │   ├── records/              # Durable completion/review records, typed and dated:
-│   │                         #   sdd/, requirements/, security-review/, implementation-plan/,
-│   │                         #   handoff/, qa/, postmortem/, misc/ — each file named YYYY-MM-DD-slug.md
-│   ├── superpowers/          # Approved designs and implementation plans
-│   └── vault/                # Obsidian knowledge-base index (see "Knowledge Base" below)
-├── .agents/                  # Portable skills and workflow adapters
+│   │                         #   work-items/, lessons-learned/, sdd/, requirements/,
+│   │                         #   security-review/, implementation-plan/, handoff/,
+│   │                         #   qa/, postmortem/, dispatch-receipts/, misc/
+│   ├── superpowers/          # Approved designs (specs/) and implementation plans (plans/)
+│   └── vault/                # Obsidian knowledge-base index
+├── .agents/                  # Portable skills (25) and workflow adapters
 ├── .claude/                  # Claude Code agent and skill adapters
 ├── .agent/                   # Antigravity CLI skill adapters
 ├── .codex/                   # Codex host adapters (e.g. in-turn dispatch supervision)
 ├── .githooks/                # Optional local git hooks (see Housekeeping below)
 ├── .obsidian/                 # Obsidian vault config (the whole repo is the vault root)
 ├── .worktrees/                # Local git worktrees for parallel branch work — gitignored, not shipped
-├── test/                     # Regression checks for workflow rules and docs
-├── scripts/                  # Contract validation, dispatch-receipt validation, housekeeping, reset
+├── test/                     # Regression checks (201 tests)
+├── scripts/                  # 14 validators + housekeeping + reset scripts
 ├── .github/workflows/        # GitHub Actions validation
 └── .gitlab-ci.yml            # GitLab CI validation (same checks, different platform)
 ```
@@ -133,23 +141,59 @@ See the complete [role definitions](./docs/workflow/role-definitions.md).
 
 The complete routing matrix and skip rules are in [dynamic-routing.md](./docs/workflow/dynamic-routing.md).
 
-## Bug Fix Contract
+## Workflow Contracts
 
-Bug Fix work uses [docs/contracts/bug-fix-workflow.yaml](./docs/contracts/bug-fix-workflow.yaml) as the canonical policy. It defines allowed task states and transitions, required evidence, and the rework limit.
+Two workflow types have machine-checkable YAML contracts with JSON Schema validation, example fixtures, and regression tests:
 
-- A task cannot enter implementation without debugging evidence.
-- A task cannot hand off as verified without verification evidence.
-- After two `verifying → rework` transitions, the next failed verification must become `blocked` with `stop_reason: human_review_required`.
+| Contract | States | Rework budget | File |
+|---|---|---|---|
+| Bug Fix | 7 (intake → investigating → implementing → verifying → rework → handoff → blocked) | 2 | [bug-fix-workflow.yaml](./docs/contracts/bug-fix-workflow.yaml) |
+| New Feature | 10 (intake → discovery → designing → planning → implementing → verifying → rework → human-review → blocked → release) | 1 | [new-feature-workflow.yaml](./docs/contracts/new-feature-workflow.yaml) |
 
-Validate the examples and task-state fixtures with:
+Validate the contracts and fixtures with:
 
 ```bash
 npm run validate:contracts
 ```
 
+## Skills
+
+25 portable skills are mirrored byte-identically across `.agents/skills/`, `.claude/skills/`, and `.agent/skills/`. CI enforces md5 parity on every push.
+
+Key skills include: `dynamic-workflow`, `tdd-implementation`, `verification-before-completion`, `code-review-gate`, `debugging-discipline`, `documentation-closeout`, `requirement-brainstorming`, `implementation-planning`, `git-workflow-and-versioning`, and more.
+
+Browse the full catalog at [SKILL_CATALOG.md](./docs/operating-model/SKILL_CATALOG.md).
+
+## CI Validation Checks
+
+Every push and pull/merge request runs 10 validation checks:
+
+| Check | Command | What it validates |
+|---|---|---|
+| Contracts | `npm run validate:contracts` | Bug Fix + New Feature contract YAML, schemas, fixtures |
+| Project state | `npm run validate:project-state` | PROJECT_STATUS.md required fields |
+| Skill parity | `npm run validate:skill-parity` | 25 skills byte-identical across 3 platforms |
+| Skill usage | `npm run validate:skill-usage` | New TASK_LOG entries (post-2026-07-25) have skill notation |
+| Review gate | `npm run validate:review-gate` | PRs with `.mjs`/`.js` changes have a code review record |
+| ADR audit | `npm run adr:audit` | ADR-to-decision ratio ≤ 10:1 |
+| Risk register | `npm run validate:risk-register` | RISKS.md is current |
+| Worktree audit | `npm run housekeeping:worktrees` | No ghost worktrees |
+| Context budget | `npm run validate:context-budget` | Canonical reading files ≤ 30,000 tokens |
+| Framework metrics | `npm run validate:metrics` | Dashboard: rework rate, timeout rate, test trend |
+
+## Work Item Traceability
+
+Every GitHub Issue gets a Work Item Record at `docs/records/work-items/YYYY-MM-DD-issue-NN.md` using the [WORK_ITEM.md](./docs/templates/WORK_ITEM.md) template. This record links the Issue to its SDD, PRs, postmortem, and lessons learned — providing bidirectional traceability in the Obsidian vault graph.
+
+**Important:** Use `Closes #NN` only in the terminal closeout PR. Intermediate PRs (sub-PRs, project status updates, docs) must NOT contain `Closes #NN` — GitHub auto-closes the issue on merge regardless of whether implementation is complete.
+
+## Lessons Learned
+
+Session retrospectives are recorded at `docs/records/lessons-learned/YYYY-MM-DD-session.md` using the [LESSONS_LEARNED.md](./docs/templates/LESSONS_LEARNED.md) template. Each entry links back to its Work Item Record and captures: lessons, metrics snapshot, and whether Hermes memory / skills were updated.
+
 ## Quality, Handoffs, and Documentation
 
-Every meaningful stage should produce a structured artifact and handoff. Use the [handoff template](./docs/templates/HANDOFF.md) and the [quality gates](./docs/workflow/quality-gates.md) instead of informal “done” messages.
+Every meaningful stage should produce a structured artifact and handoff. Use the [handoff template](./docs/templates/HANDOFF.md) and the [quality gates](./docs/workflow/quality-gates.md) instead of informal "done" messages.
 
 Before a pull request or merge request targets `main`, complete its Documentation Impact assessment and include affected documentation updates in the same change. GitHub validates the completed PR-template marker; GitLab provides the equivalent MR template. After merge, the project-state audit creates a `documentation-sync` issue only when it detects stale state. Use the [post-merge documentation review template](./docs/templates/POST_MERGE_DOCUMENTATION_REVIEW.md) only for that exception, then close the issue when its correction PR merges.
 
@@ -189,10 +233,14 @@ This never touches the canonical workflow itself (`AGENTS.md`, `docs/workflow/`,
 
 The whole repo is a valid [Obsidian](https://obsidian.md/) vault (`.obsidian/` sits at the root). Open the repo root as a vault to get backlinks and a graph view across `docs/workflow/`, `docs/records/`, and every role/skill adapter. Start at [docs/vault/00-Index.md](./docs/vault/00-Index.md) — Obsidian hides dotfolders (`.claude/`, `.agents/`, `.agent/`, `.codex/`) from its file browser by default, so the index note is the reliable entry point into adapter files that live there.
 
+The vault graph connects: GitHub Issues → Work Item Records → SDDs → PRs → Postmortems → Lessons Learned.
+
 ## Where to Go Next
 
 - [PROJECT_INDEX.md](./PROJECT_INDEX.md) — full linked map of rules, workflows, templates, and adapters.
 - [PROJECT_STATUS.md](./PROJECT_STATUS.md) — active work, blockers, next quality gate, and recommended agent.
 - [TASK_LOG.md](./TASK_LOG.md) — history of completed work and handoffs.
 - [CHANGELOG.md](./CHANGELOG.md) — human-facing change history.
+- [DECISIONS.md](./DECISIONS.md) — 12 architecture and process decisions.
+- [RISKS.md](./RISKS.md) — 7 tracked risks and mitigations.
 - [AGENTS.md](./AGENTS.md) — full cross-platform operating rules.
