@@ -238,6 +238,17 @@ Note: `api-contract-testing` (implemented this pass) validates an existing imple
 | Do Not Use When | The target app is not Python — use `js-unit-testing` instead |
 | Next Skill / Agent | Developer Agent (failing/missing coverage), `mutation-testing` (verify test effectiveness) |
 
+## documentation-closeout
+
+| Field | Detail |
+|---|---|
+| Trigger | A merged PR carries the `post-merge-closeout` label — signals a passing default-branch audit requiring closeout |
+| Primary Agent | Documentation Agent |
+| Input | Merged PR with post-merge-closeout label, project state files |
+| Output | Closeout PR with completion marker, updated PROJECT_STATUS/TASK_LOG/CHANGELOG, labels removed |
+| Do Not Use When | No post-merge-closeout label exists, or the audit failed (use documentation-sync exception instead) |
+| Next Skill / Agent | Human Maintainer (merge closeout PR) |
+
 
 ## Skill Activation Examples
 
