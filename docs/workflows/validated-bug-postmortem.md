@@ -27,6 +27,9 @@ Save / Post with approval
 Track follow-up actions
 ```
 
+This flow uses the `engineering-postmortem` skill
+([[../../.agents/skills/engineering-postmortem/SKILL.md|engineering-postmortem]]).
+
 ## Destination
 
 Default:
@@ -35,12 +38,14 @@ Default:
 docs/postmortems/<ticket-or-module>-<YYYYMMDD>.md
 ```
 
+Use `docs/templates/BUG_POSTMORTEM.md` ([[../templates/BUG_POSTMORTEM.md|BUG_POSTMORTEM.md]]) as the structure.
+
 Other destinations:
 
 - ticket comment
 - PR description
 - internal wiki
-- `TASK_LOG.md` for small issues
+- `TASK_LOG.md` ([[../../TASK_LOG.md|TASK_LOG.md]]) for small issues
 
 ## Rules
 

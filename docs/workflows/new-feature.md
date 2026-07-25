@@ -13,7 +13,7 @@ PM/BA -> SA -> Developer -> QA -> Security if relevant -> Release
 
 ## Canonical Contract
 
-Use `docs/contracts/new-feature-workflow.yaml` as the canonical New Feature policy.
+Use `docs/contracts/new-feature-workflow.yaml` ([[../contracts/new-feature-workflow.yaml|new-feature-workflow.yaml]]) as the canonical New Feature policy.
 Before each handoff, validate the work item's `task-state`; the contract defines
 the allowed states, transitions, evidence requirements, and rework budget (1 rework).
 
@@ -30,13 +30,13 @@ common routes:
 
 ## Required Outputs
 
-- PROJECT_BRIEF.md or user story
-- REQUIREMENT_DISCOVERY.md
-- SDD.md
-- TECHNICAL_DESIGN.md if needed
-- TEST_PLAN.md
-- TEST_REPORT.md
-- RELEASE_PLAN.md
+- PROJECT_BRIEF.md ([[../templates/PROJECT_BRIEF.md|PROJECT_BRIEF.md]]) or user story
+- REQUIREMENT_DISCOVERY.md ([[../templates/REQUIREMENT_DISCOVERY.md|REQUIREMENT_DISCOVERY.md]])
+- SDD.md ([[../templates/SDD.md|SDD.md]])
+- TECHNICAL_DESIGN.md ([[../templates/TECHNICAL_DESIGN.md|TECHNICAL_DESIGN.md]]) if needed
+- TEST_PLAN.md ([[../templates/TEST_PLAN.md|TEST_PLAN.md]])
+- TEST_REPORT.md ([[../templates/TEST_REPORT.md|TEST_REPORT.md]])
+- RELEASE_PLAN.md ([[../templates/RELEASE_PLAN.md|RELEASE_PLAN.md]])
 
 ## Gate Rules
 

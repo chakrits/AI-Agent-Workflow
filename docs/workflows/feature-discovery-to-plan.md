@@ -20,12 +20,15 @@ implementation-planning
 Developer Agent
 ```
 
+This flow uses the `requirement-brainstorming` ([[../../.agents/skills/requirement-brainstorming/SKILL.md|requirement-brainstorming]]) and
+`implementation-planning` ([[../../.agents/skills/implementation-planning/SKILL.md|implementation-planning]]) skills.
+
 ## Required artifacts
 
-- `REQUIREMENT_DISCOVERY.md`
+- `REQUIREMENT_DISCOVERY.md` ([[../templates/REQUIREMENT_DISCOVERY.md|REQUIREMENT_DISCOVERY.md]])
 - user stories / acceptance criteria in the canonical `REQUIREMENT_DISCOVERY.md`
-- `SDD.md` / `TECHNICAL_DESIGN.md` when architecture or technical design is required
-- `IMPLEMENTATION_PLAN.md`
+- `SDD.md` ([[../templates/SDD.md|SDD.md]]) / `TECHNICAL_DESIGN.md` ([[../templates/TECHNICAL_DESIGN.md|TECHNICAL_DESIGN.md]]) when architecture or technical design is required
+- `IMPLEMENTATION_PLAN.md` ([[../templates/IMPLEMENTATION_PLAN.md|IMPLEMENTATION_PLAN.md]])
 
 ## Gate
 

@@ -6,7 +6,7 @@ QA/BA -> Developer -> QA -> Reviewer
 
 ## Canonical Contract
 
-Use `docs/contracts/bug-fix-workflow.yaml` as the canonical Bug Fix policy.
+Use `docs/contracts/bug-fix-workflow.yaml` ([[../contracts/bug-fix-workflow.yaml|bug-fix-workflow.yaml]]) as the canonical Bug Fix policy.
 Before each handoff, validate the work item's `task-state`; the contract defines
 the allowed states, transitions, evidence requirements, and retry budget.
 

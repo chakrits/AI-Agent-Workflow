@@ -16,7 +16,7 @@ Skip SA when no architecture/integration/security impact exists.
 
 ## Gate Rules
 
-Full rules live in the `data-config-change` skill. Before completion, confirm
+Full rules live in the `data-config-change` skill ([[../../.agents/skills/data-config-change/SKILL.md|data-config-change]]). Before completion, confirm
 evidence for:
 
 - No code change was required to apply this config (if one was, stop and route
@@ -28,6 +28,8 @@ evidence for:
 - Any feature flag has a recorded owner and removal condition.
 
 ## Handoff
+
+Use `CONFIG_CHANGE_PLAN.md` ([[../templates/CONFIG_CHANGE_PLAN.md|CONFIG_CHANGE_PLAN.md]]) to record the change.
 
 Include:
 

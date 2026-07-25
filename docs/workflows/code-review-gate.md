@@ -16,9 +16,11 @@ code-review-gate
 Reviewer / Security / QA
 ```
 
+Developer Agent runs `verification-before-completion` ([[../../.agents/skills/verification-before-completion/SKILL.md|verification-before-completion]]) before requesting review.
+
 ## Gate Rules
 
-Full review dimensions and process live in the `code-review-gate` skill. This
+Full review dimensions and process live in the `code-review-gate` skill ([[../../.agents/skills/code-review-gate/SKILL.md|code-review-gate]]). This
 playbook blocks progress on:
 
 - Critical correctness issue.
@@ -28,6 +30,9 @@ playbook blocks progress on:
 - Missing rollback for risky data/config/migration change.
 
 ## Handoff
+
+Use `CODE_REVIEW_REQUEST.md` ([[../templates/CODE_REVIEW_REQUEST.md|CODE_REVIEW_REQUEST.md]]) to structure the request and
+`CODE_REVIEW_FINDINGS.md` ([[../templates/CODE_REVIEW_FINDINGS.md|CODE_REVIEW_FINDINGS.md]]) to record findings.
 
 Include:
 

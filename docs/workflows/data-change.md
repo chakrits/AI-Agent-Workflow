@@ -12,15 +12,15 @@ BA -> Data Agent -> QA -> Release
 
 ## Required Outputs
 
-- DATA_CHANGE_PLAN.md
+- DATA_CHANGE_PLAN.md ([[../templates/DATA_CHANGE_PLAN.md|DATA_CHANGE_PLAN.md]])
 - validation query
 - rollback query
-- TEST_REPORT.md
-- RELEASE_PLAN.md
+- TEST_REPORT.md ([[../templates/TEST_REPORT.md|TEST_REPORT.md]])
+- RELEASE_PLAN.md ([[../templates/RELEASE_PLAN.md|RELEASE_PLAN.md]])
 
 ## Gate Rules
 
-Full rules live in the `data-config-change` skill. Before completion, confirm
+Full rules live in the `data-config-change` skill ([[../../.agents/skills/data-config-change/SKILL.md|data-config-change]]). Before completion, confirm
 evidence for:
 
 - The rollback query has been tested, not just written.

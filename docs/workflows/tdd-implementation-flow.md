@@ -29,8 +29,11 @@ QA handoff
 
 ## Gate Rules
 
-Full red-green-refactor rules live in the `tdd-implementation` skill; before
-completion (see `verification-before-completion` and `code-review-gate`),
+Full red-green-refactor rules live in the `tdd-implementation` skill
+([[../../.agents/skills/tdd-implementation/SKILL.md|tdd-implementation]]); before
+completion (see `verification-before-completion`
+([[../../.agents/skills/verification-before-completion/SKILL.md|verification-before-completion]])
+and `code-review-gate` ([[../../.agents/skills/code-review-gate/SKILL.md|code-review-gate]])),
 confirm evidence for:
 
 - A failing test existed before the implementation change (RED).
