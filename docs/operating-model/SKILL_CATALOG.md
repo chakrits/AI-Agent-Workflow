@@ -186,7 +186,7 @@ Note: `api-contract-testing` (implemented this pass) validates an existing imple
 |---|---|
 | Trigger | QA Agent's Test Effectiveness rule applies to a core business-logic/service-layer module and coverage percentage alone isn't sufficient evidence |
 | Primary Agent | QA Agent |
-| Input | Existing unit/component test suite, target module (service layer) |
+| Input | Existing unit/component test suite, target module (service layer), mutmut (Python) or Stryker (JS/TS) per project stack |
 | Output | Mutation score and survived-mutant list recorded in `TEST_REPORT.md` |
 | Do Not Use When | The module is a thin view/serializer/migration with no business logic; or coverage itself is still low (fix coverage gaps first) |
 | Next Skill / Agent | Developer Agent (weak test / survived mutant fix) |

@@ -1102,6 +1102,7 @@ test('SKILL_CATALOG.md carries the three new test-tooling skill entries', async 
   assert.match(catalog, /^## js-unit-testing$/m);
   assert.match(catalog, /^## python-unit-testing$/m);
   assert.match(catalog, /api-testing-tooling.*implemented this pass/s);
+  assert.match(catalog, /mutation-testing[\s\S]*?Stryker/);
 });
 
 test('QA Agent Skill Routing includes the three new test-tooling skills in role-definitions and the Claude adapter', async () => {
