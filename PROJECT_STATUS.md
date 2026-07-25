@@ -3,12 +3,12 @@
 ## Current Work Item
 - ID: GitHub Issue #99
 - Title: Workflow playbook discoverability — wire 7 orphan playbooks + regression guard
-- Owner: Documentation Agent (dispatching)
-- Status: `phase:development`, `status:spec-ready`
-- References: https://github.com/chakrits/AI-Agent-Workflow/issues/99; spec `docs/superpowers/specs/2026-07-26-workflow-playbook-discoverability-design.md`
+- Owner: Human Maintainer (ready for PR)
+- Status: `phase:human-review`, `status:verification-done`
+- References: https://github.com/chakrits/AI-Agent-Workflow/issues/99; spec `docs/superpowers/specs/2026-07-26-workflow-playbook-discoverability-design.md`; QA evidence https://github.com/chakrits/AI-Agent-Workflow/issues/99#issuecomment-5079746566
 
 ## Current Stage
-- Development — spec approved by Boss (https://github.com/chakrits/AI-Agent-Workflow/issues/99#issuecomment-5079684320). Dispatching Documentation Agent to implement Fixes 1-5 on branch `docs/workflow-playbook-discoverability-spec`. Because this change adds one executable `.mjs` test file (same fact pattern as Issue #95), QA Agent will independently verify before human review, per AGENTS.md Core Operating Principle 4.
+- Human review — Documentation Agent implemented Fixes 1-5 on branch `docs/workflow-playbook-discoverability-spec` (commits `8bae4e9`, `a7dc474`, `a414b97`, `6d23269`, `a84b522`, `0611542`); QA Agent independently re-verified all 9 Acceptance Criteria PASS (`npm test` 207/207). Awaiting a human to open a PR against `main`.
 
 ## Change Classification
 - Change Type: N/A (idle)
