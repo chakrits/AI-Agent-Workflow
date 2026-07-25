@@ -1,15 +1,23 @@
 # PROJECT_STATUS.md
 
 ## Current Work Item
-- None. GitHub Issue #69 shipped through PR #72 as merge commit `ce5ff732f52f7d4caf12632d8339c4d1b4f7e1d9`; the Issue closed automatically. Post-merge documentation closeout is in progress.
+- ID: GitHub Issue #76
+- Title: Implement 6 agent role review improvements — boundary, review-gate, skill-usage, TDD exception, doc skill
+- Owner: Config Agent (Sub-A) → Developer Agent (Sub-B/C/D) → QA Agent
+- Status: Requirements ready, awaiting spec-ready approval
+- References:
+  - Review document: [`docs/records/postmortem/2026-07-22-agent-role-review.md`](https://github.com/chakrits/AI-Agent-Workflow/blob/main/docs/records/postmortem/2026-07-22-agent-role-review.md) (Part A–F)
+  - Umbrella issue: [#74](https://github.com/chakrits/AI-Agent-Workflow/issues/74)
+  - Feedback: [#74 comment 5077418912](https://github.com/chakrits/AI-Agent-Workflow/issues/74#issuecomment-5077418912)
+  - Implementation issue: [#76](https://github.com/chakrits/AI-Agent-Workflow/issues/76)
 
 ## Current Stage
-- Idle pending the next work item. Issue #69 shipped with QA acceptance evidence and a passing default-branch audit; the remaining administrative closeout is tracked in its dedicated documentation PR.
+- Requirements — 4 sub-PRs planned (A: policy fixes 1/3/4, B: doc skill 5, C: review-gate 2, D: skill-usage 6)
 
 ## Change Classification
-- Change Type: Documentation / project-state closeout
-- Risk Level: Low — history and release-record reconciliation only; no behavior, runtime, dependency, credential, or external-posting change
-- Code Change Required: No
+- Change Type: Mixed — Sub-A is Config Change (docs); Sub-B/C/D are New Feature (executable scripts + new skill)
+- Risk Level: Low–Medium
+- Code Change Required: Yes (Sub-B/C/D)
 - Architecture Change Required: No
 - Security Review Required: No
 
@@ -48,7 +56,13 @@
 - GitHub Issue #68 (test-tooling readiness — reference-only config templates and skills for Playwright/Supertest/Bruno/Jest/Vitest/pytest/Stryker) merged through PR #70 as commit `0d65956`; Issue #68 closed. Delivered: `docs/workflow/testing-conventions.md` (test folder-structure convention) linked from `PROJECT_INDEX.md` and the vault index; a Playwright config template added to `qa-playwright-testing`; a JS/TS (Stryker) section and config template added to `mutation-testing`; three brand-new skills — `api-testing-tooling` (Supertest + Bruno), `js-unit-testing` (Jest + Vitest), `python-unit-testing` (pytest) — each mirrored byte-identically across `.agents/skills/`, `.claude/skills/`, and `.agent/skills/`; three new `SKILL_CATALOG.md` entries plus a Planned Skills clarifying note; three new QA Skill Routing rows in `docs/workflow/role-definitions.md`, mirrored in `.claude/agents/qa-agent.md`; a `docs/vault/00-Index.md` correction moving five pre-existing skills (`ba-requirement-analysis`, `sa-architecture-design`, `data-config-change`, `qa-playwright-testing`, `security-review`) from "portable only" to "Mirrored" now that all three platform copies are verified in sync, plus the two QA-flagged fixes (AC-06 `SKILL_CATALOG.md` `mutation-testing` Stryker mention; AC-09 vault index 23/23 mirrored-skill count); 6 new regression tests in `test/validate-contracts.test.mjs` (156 → 162 total tests). Zero live dependencies added: no `package.json`/`package-lock.json` change, no `pyproject.toml`/`requirements.txt` created. QA Agent independently verified all 10 Acceptance Criteria PASS at commit `017a34a` (prior AC-06/AC-09 FAILs fixed and re-verified). Default-branch audit passed on `0d65956` and GitHub applied the normal `post-merge-closeout` label to PR #70; no `documentation-sync` exception issue was created.
 
 ## In Progress
-- None. Issue #69 has shipped; this closeout reconciles its post-merge records only.
+- GitHub Issue #76: Implement 6 agent role review improvements. 4 sub-PRs planned:
+  - Sub-A (Fix 1, 3, 4): Policy patches to `dynamic-workflow` skill + `SKILL_CATALOG.md` + `DECISIONS.md` (ADR-0012) — Config Agent route
+  - Sub-B (Fix 5): `documentation-closeout` skill + catalog entry — Developer route
+  - Sub-C (Fix 2): `validate-review-gate.mjs` CI validator — Developer route
+  - Sub-D (Fix 6): `validate-skill-usage.mjs` CI validator — Developer route
+- Review document: [`docs/records/postmortem/2026-07-22-agent-role-review.md`](https://github.com/chakrits/AI-Agent-Workflow/blob/main/docs/records/postmortem/2026-07-22-agent-role-review.md)
+- Umbrella issue: [#74](https://github.com/chakrits/AI-Agent-Workflow/issues/74)
 
 ## Blockers / Open Questions
 - R-002: `.gitlab-ci.yml` has not yet been validated on a live GitLab runner; this is an external verification follow-up, not an active implementation task.
@@ -58,13 +72,19 @@
 - `api-contract-testing`, `performance-testing`, and `mutation-testing` document tooling (`schemathesis`, `drf-spectacular`, Locust/k6, `mutmut`) that is not installed anywhere in this repo — intentional per the design spec, since this repo has no Django/Python target application yet. Wiring is deferred to whenever a real work item first needs to execute one of these skills.
 
 ## Required Artifacts
-- None outstanding for Issue #69 beyond this documentation-only closeout PR and its human merge approval.
+- Issue #76 implementation plan (this issue body + review document Part C/F)
+- `dynamic-workflow` SKILL.md patch (Fix 1)
+- `SKILL_CATALOG.md` note (Fix 3)
+- `DECISIONS.md` ADR-0012 (Fix 4)
+- `.agents/skills/documentation-closeout/SKILL.md` + mirrors (Fix 5)
+- `scripts/validate-review-gate.mjs` + test (Fix 2)
+- `scripts/validate-skill-usage.mjs` + test (Fix 6)
 
 ## Next Quality Gate
-- Human review and merge of the documentation-only closeout PR; the subsequent default-branch audit verifies its project-state consistency.
+- Boss approves `status:spec-ready` on Issue #76, then dispatch Sub-A (Config Agent) → Sub-B/C/D (Developer Agent)
 
 ## Recommended Next Agent
-- Human Maintainer for closeout-PR review and merge; otherwise idle pending a newly classified work item.
+- Config Agent (Sub-A: policy patches), then Developer Agent (Sub-B/C/D: executable validators + skill)
 
 ## Notes
 - GitHub Issue #44's design spec went through two Boss-directed scope expansions after initial brainstorming: first, mirroring the four new QA skills into `.agent/skills/` (Antigravity CLI) rather than leaving it out of scope by analogy to `qa-playwright-testing` not living there; second, backfilling the four pre-existing `.agent/skills/` gaps unrelated to QA (`ba-requirement-analysis`, `data-config-change`, `sa-architecture-design`, `security-review`) in the same pass rather than deferring them. During implementation, the first `.agent/skills/` parity pass would have naively overwritten `dynamic-workflow`, `frontend-ui-engineering`, and `functional-test-design` — three pre-existing skills that intentionally use a thin pointer-adapter pattern unrelated to this work — and Developer Agent correctly escalated this as a mid-implementation blocker rather than silently overwriting them; the resolved approach special-cased those 3 (left untouched) and mirrored the other 17 byte-identical, which QA Agent's parity test independently confirmed.
