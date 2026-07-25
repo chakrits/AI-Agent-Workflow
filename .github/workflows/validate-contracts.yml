@@ -17,3 +17,4 @@ jobs:
       - run: npm run validate:skill-parity
       - run: npm run adr:audit
       - run: npm run validate:risk-register
+      - run: npm run validate:review-gate
