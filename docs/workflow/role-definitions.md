@@ -161,6 +161,9 @@ Owns test strategy, test case design, API/E2E automation, regression, defect ana
 | Execute Performance/Reliability/Scalability NFR targets (load, stress, spike, soak) | `.agents/skills/performance-testing/` |
 | Validate test effectiveness via mutation testing | `.agents/skills/mutation-testing/` |
 | Review Developer Agent's unit/component tests for quality and anti-patterns | `.agents/skills/test-quality-discipline/` |
+| Hand-scripted API tests (Supertest) or versionable API collections (Bruno) | `.agents/skills/api-testing-tooling/` |
+| JS/TS unit/component testing (Jest or Vitest) | `.agents/skills/js-unit-testing/` |
+| Python unit/component testing (pytest) | `.agents/skills/python-unit-testing/` |
 
 ### Functional Testing Rule
 

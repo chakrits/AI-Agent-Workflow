@@ -11,6 +11,7 @@ This is the entry point for browsing this repo as an Obsidian vault. The vault r
 - [[../workflow/handoff-contract.md|handoff-contract.md]] — terminal handoff / dispatch-receipt contract
 - [[../workflow/quality-gates.md|quality-gates.md]] — required gates per stage
 - [[../workflow/platform-readiness.md|platform-readiness.md]] — lifecycle labels and readiness gate
+- [[../workflow/testing-conventions.md|testing-conventions.md]] — test folder-structure convention for target apps
 
 ## Operating Model
 
@@ -37,7 +38,7 @@ This is the entry point for browsing this repo as an Obsidian vault. The vault r
 
 ## Skills — three portable copies (`.agents/`, `.claude/`, `.agent/`)
 
-Thirteen skills are mirrored across all three platforms (Claude Code, portable, Antigravity); five are role-specific and live only in `.agents/skills/`.
+All 23 skills are mirrored across all three platforms (Claude Code, portable, Antigravity); none are role-specific-only anymore.
 
 **Mirrored (all three platforms):**
 
@@ -46,6 +47,7 @@ Thirteen skills are mirrored across all three platforms (Claude Code, portable, 
 - debugging-discipline — [[../../.agents/skills/debugging-discipline/SKILL.md|portable]] · [[../../.claude/skills/debugging-discipline/SKILL.md|claude]] · [[../../.agent/skills/debugging-discipline/SKILL.md|antigravity]]
 - dynamic-workflow — [[../../.agents/skills/dynamic-workflow/SKILL.md|portable]] · [[../../.claude/skills/dynamic-workflow/SKILL.md|claude]] · [[../../.agent/skills/dynamic-workflow/SKILL.md|antigravity]]
 - engineering-postmortem — [[../../.agents/skills/engineering-postmortem/SKILL.md|portable]] · [[../../.claude/skills/engineering-postmortem/SKILL.md|claude]] · [[../../.agent/skills/engineering-postmortem/SKILL.md|antigravity]]
+- frontend-ui-engineering — [[../../.agents/skills/frontend-ui-engineering/SKILL.md|portable]] · [[../../.claude/skills/frontend-ui-engineering/SKILL.md|claude]] · [[../../.agent/skills/frontend-ui-engineering/SKILL.md|antigravity]]
 - functional-test-design — [[../../.agents/skills/functional-test-design/SKILL.md|portable]] · [[../../.claude/skills/functional-test-design/SKILL.md|claude]] · [[../../.agent/skills/functional-test-design/SKILL.md|antigravity]]
 - implementation-planning — [[../../.agents/skills/implementation-planning/SKILL.md|portable]] · [[../../.claude/skills/implementation-planning/SKILL.md|claude]] · [[../../.agent/skills/implementation-planning/SKILL.md|antigravity]]
 - mutation-testing — [[../../.agents/skills/mutation-testing/SKILL.md|portable]] · [[../../.claude/skills/mutation-testing/SKILL.md|claude]] · [[../../.agent/skills/mutation-testing/SKILL.md|antigravity]]
@@ -55,15 +57,18 @@ Thirteen skills are mirrored across all three platforms (Claude Code, portable, 
 - test-quality-discipline — [[../../.agents/skills/test-quality-discipline/SKILL.md|portable]] · [[../../.claude/skills/test-quality-discipline/SKILL.md|claude]] · [[../../.agent/skills/test-quality-discipline/SKILL.md|antigravity]]
 - verification-before-completion — [[../../.agents/skills/verification-before-completion/SKILL.md|portable]] · [[../../.claude/skills/verification-before-completion/SKILL.md|claude]] · [[../../.agent/skills/verification-before-completion/SKILL.md|antigravity]]
 - git-workflow-and-versioning — [[../../.agents/skills/git-workflow-and-versioning/SKILL.md|portable]] · [[../../.claude/skills/git-workflow-and-versioning/SKILL.md|claude]] · [[../../.agent/skills/git-workflow-and-versioning/SKILL.md|antigravity]]
+- ba-requirement-analysis — [[../../.agents/skills/ba-requirement-analysis/SKILL.md|portable]] · [[../../.claude/skills/ba-requirement-analysis/SKILL.md|claude]] · [[../../.agent/skills/ba-requirement-analysis/SKILL.md|antigravity]]
+- sa-architecture-design — [[../../.agents/skills/sa-architecture-design/SKILL.md|portable]] · [[../../.claude/skills/sa-architecture-design/SKILL.md|claude]] · [[../../.agent/skills/sa-architecture-design/SKILL.md|antigravity]]
+- data-config-change — [[../../.agents/skills/data-config-change/SKILL.md|portable]] · [[../../.claude/skills/data-config-change/SKILL.md|claude]] · [[../../.agent/skills/data-config-change/SKILL.md|antigravity]]
+- qa-playwright-testing — [[../../.agents/skills/qa-playwright-testing/SKILL.md|portable]] · [[../../.claude/skills/qa-playwright-testing/SKILL.md|claude]] · [[../../.agent/skills/qa-playwright-testing/SKILL.md|antigravity]]
+- security-review — [[../../.agents/skills/security-review/SKILL.md|portable]] · [[../../.claude/skills/security-review/SKILL.md|claude]] · [[../../.agent/skills/security-review/SKILL.md|antigravity]]
+- api-testing-tooling — [[../../.agents/skills/api-testing-tooling/SKILL.md|portable]] · [[../../.claude/skills/api-testing-tooling/SKILL.md|claude]] · [[../../.agent/skills/api-testing-tooling/SKILL.md|antigravity]]
+- js-unit-testing — [[../../.agents/skills/js-unit-testing/SKILL.md|portable]] · [[../../.claude/skills/js-unit-testing/SKILL.md|claude]] · [[../../.agent/skills/js-unit-testing/SKILL.md|antigravity]]
+- python-unit-testing — [[../../.agents/skills/python-unit-testing/SKILL.md|portable]] · [[../../.claude/skills/python-unit-testing/SKILL.md|claude]] · [[../../.agent/skills/python-unit-testing/SKILL.md|antigravity]]
 
 **Role-specific (portable only, `.agents/skills/`):**
 
-- [[../../.agents/skills/ba-requirement-analysis/SKILL.md|ba-requirement-analysis]]
-- [[../../.agents/skills/sa-architecture-design/SKILL.md|sa-architecture-design]]
-- [[../../.agents/skills/data-config-change/SKILL.md|data-config-change]]
-- [[../../.agents/skills/qa-playwright-testing/SKILL.md|qa-playwright-testing]]
-- [[../../.agents/skills/security-review/SKILL.md|security-review]]
-- [[../../.agents/skills/frontend-ui-engineering/SKILL.md|frontend-ui-engineering]] (mirrored — see table above; listed here too since it's also role-relevant to BA/Developer)
+- None currently — the five entries previously listed here (`ba-requirement-analysis`, `sa-architecture-design`, `data-config-change`, `qa-playwright-testing`, `security-review`) are verified mirrored across all three platforms and moved to the "Mirrored" list above. `frontend-ui-engineering` is also mirrored and listed in the table above.
 
 ## Codex Host Adapters (`.codex/`)
 
