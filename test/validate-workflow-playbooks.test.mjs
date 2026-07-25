@@ -70,3 +70,60 @@ test('bug-fix.md keeps its plain-text contract path (regression guard for valida
   const bugFix = await readFile('docs/workflows/bug-fix.md', 'utf8');
   assert.match(bugFix, /docs\/contracts\/bug-fix-workflow\.yaml/);
 });
+
+test('every playbook in docs/workflows/ has at least one inbound reference from a routing surface', async () => {
+  const playbooks = await listPlaybooks();
+  const consumerFiles = [
+    'README.md',
+    'AGENTS.md',
+    'docs/workflow/dynamic-routing.md'
+  ];
+  const skillDirs = ['.agents/skills'];
+  const skillFiles = [];
+  for (const dir of skillDirs) {
+    const entries = await readdir(dir, { withFileTypes: true });
+    for (const entry of entries) {
+      if (entry.isDirectory()) {
+        skillFiles.push(path.join(dir, entry.name, 'SKILL.md'));
+      }
+    }
+  }
+
+  const consumerContents = await Promise.all(
+    [...consumerFiles, ...skillFiles].map(async (file) => {
+      try {
+        return await readFile(file, 'utf8');
+      } catch {
+        return '';
+      }
+    })
+  );
+  const routingHaystack = consumerContents.join('\n');
+
+  // Second tier: a playbook is also reachable if it is backlinked from another
+  // playbook that is itself directly reachable from a routing surface (e.g.
+  // bug-debug-fix.md is only linked from bug-fix.md, which README/AGENTS.md
+  // route to). This is transitive reachability, not "any playbook may cite
+  // any other playbook" — only directly-reachable playbooks extend the
+  // haystack, so two orphans citing each other still fail.
+  const playbookContents = await Promise.all(
+    playbooks.map(async (playbook) => ({
+      playbook,
+      basename: path.basename(playbook),
+      content: await readFile(playbook, 'utf8')
+    }))
+  );
+  const reachablePlaybookContents = playbookContents
+    .filter(({ basename }) => routingHaystack.includes(basename))
+    .map(({ content }) => content);
+
+  const haystack = [routingHaystack, ...reachablePlaybookContents].join('\n');
+
+  for (const playbook of playbooks) {
+    const basename = path.basename(playbook);
+    assert.ok(
+      haystack.includes(basename),
+      `${playbook} has no inbound reference from README.md, AGENTS.md, dynamic-routing.md, any skill SKILL.md, or a playbook reachable from one of those`
+    );
+  }
+});
