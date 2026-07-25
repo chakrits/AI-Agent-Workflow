@@ -3,12 +3,12 @@
 ## Current Work Item
 - ID: GitHub Issue #95
 - Title: Workflow playbooks quality upgrade — contract ref, wiki links, expand thin playbooks
-- Owner: Documentation Agent (pending dispatch)
-- Status: `phase:development` (spec approved, BA requirement analysis complete, Orchestrator routing recommendation received)
-- References: https://github.com/chakrits/AI-Agent-Workflow/issues/95; spec `docs/superpowers/specs/2026-07-25-workflow-playbooks-quality-upgrade.md`; BA analysis `docs/records/work-items/2026-07-25-issue-95-ba-requirement-analysis.md`
+- Owner: Human Maintainer (ready for PR)
+- Status: `phase:human-review`, `status:verification-done`
+- References: https://github.com/chakrits/AI-Agent-Workflow/issues/95; spec `docs/superpowers/specs/2026-07-25-workflow-playbooks-quality-upgrade.md`; BA analysis `docs/records/work-items/2026-07-25-issue-95-ba-requirement-analysis.md`; QA evidence https://github.com/chakrits/AI-Agent-Workflow/issues/95#issuecomment-5079108683
 
 ## Current Stage
-- Development — dispatching Documentation Agent to implement Fix B → Fix C → Fix A (contract reference, expand 5 thin playbooks, outbound wiki links across all 12 `docs/workflows/*.md` files), plus a new `test/validate-workflow-playbooks.test.mjs`. Independent QA Agent verification will follow (Orchestrator recommendation: Documentation Agent → QA Agent → Human Review/Merge, since the change touches one executable `.mjs` test file).
+- Human review — Documentation Agent implemented Fix B → Fix C → Fix A on branch `docs/workflow-playbooks-quality-upgrade-spec` (commits `5f485f8`, `4bdabbf`, `aa869a5`, `56a62a6`); QA Agent independently re-verified all 11 Acceptance Criteria PASS (`npm test` 206/206). Awaiting a human to open a PR against `main`.
 
 ## Change Classification
 - Change Type: Documentation-only
