@@ -35,6 +35,8 @@ Do not use this skill for:
 
 If automation is requested after functional design, hand off to the relevant automation skill, such as `qa-playwright-testing`, `robot-framework-automation`, or `api-test-automation`.
 
+See also: `docs/workflows/functional-test-design.md` for this skill's place in the end-to-end workflow (who hands off to whom, and what happens before/after).
+
 ## Required Inputs
 
 Prefer these inputs when available:

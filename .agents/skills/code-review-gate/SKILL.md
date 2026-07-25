@@ -15,6 +15,8 @@ Make code review structured, risk-aware, and useful.
 - Before security-sensitive code is considered complete.
 - When a reviewer needs focused context.
 
+See also: `docs/workflows/code-review-gate.md` for this skill's place in the end-to-end workflow (who hands off to whom, and what happens before/after).
+
 ## Do not use when
 
 - No code changed.
