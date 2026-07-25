@@ -1,19 +1,20 @@
 # PROJECT_STATUS.md
 
 ## Current Work Item
-- GitHub Issue #69 — Thai-first Management Status Update skill. Implementation is active on `codex/issue-69-management-status-update`; the approved lightweight specification is recorded in Issue comment `5076996656`.
+- None. GitHub Issue #69 shipped through PR #72 as merge commit `ce5ff732f52f7d4caf12632d8339c4d1b4f7e1d9`; the Issue closed automatically. Post-merge documentation closeout is in progress.
 
 ## Current Stage
-- Development. The next gate is QA verification against Issue #69 acceptance criteria after a Draft PR contains implementation and local-check evidence.
+- Idle pending the next work item. Issue #69 shipped with QA acceptance evidence and a passing default-branch audit; the remaining administrative closeout is tracked in its dedicated documentation PR.
 
 ## Change Classification
-- Change Type: Documentation / portable skill guidance
-- Risk Level: Medium — cross-platform agent behavior changes, with no dependency, runtime, or parser/contract change
-- Code Change Required: Yes — static regression coverage only
+- Change Type: Documentation / project-state closeout
+- Risk Level: Low — history and release-record reconciliation only; no behavior, runtime, dependency, credential, or external-posting change
+- Code Change Required: No
 - Architecture Change Required: No
 - Security Review Required: No
 
 ## Completed
+- GitHub Issue #69 (Thai-first Management Status Update skill) merged through PR #72 as commit `ce5ff732f52f7d4caf12632d8339c4d1b4f7e1d9` and closed automatically. Delivered: a project-specific Thai-first `management-status-update` skill mirrored across portable, Claude, and Antigravity adapters; Boss, Leadership, and Defect update shapes; evidence precedence with unknown/conflict handling; print-only behavior with no automatic external posting; independent adaptation/source attribution; catalog and vault discovery; a minimal Documentation Agent boundary; and focused static regression. QA independently passed all 7 acceptance criteria at `ab59be3`; local evidence included 163/163 tests and 24/24 skill parity. The default-branch audit passed and emitted the normal source signal; no `documentation-sync` exception was created.
 - GitHub Issue #63 (template evidence-recording discipline) merged through PR #65 as commit `a600821`. Delivered: evidence columns in Security/Code Review templates, an explicit `Evidence URL` activation-record table, standardized Related Artifacts links, a Technical Design template rename, canonical BA use of `REQUIREMENT_DISCOVERY.md` with the legacy requirements template redirected, Completion Check references without duplicate execution records, and portable skill/template parity. QA independently passed P1–P7 at `773f243`; P8 stayed split to Issue #64. Default-branch audit passed and emitted a normal post-merge closeout signal; no `documentation-sync` exception was created.
 - GitHub Issue #64 (handoff-template scanability) merged through PR #66 as commit `24fa55e` and closed automatically. Delivered: presentation-only grouping in `HANDOFF.md` plus ADR-0011, preserving parser compatibility. QA confirmed the baseline contains **45** H2 field headings (not the earlier 44-field claim) and the merged template retains all 45 in exactly the same order; parser/schema/tests/adapters/CI/lifecycle authority and QA semantics were unchanged. Default-branch audit passed and emitted a normal post-merge closeout signal; no `documentation-sync` exception was created.
 - All 11 agent roles have their current canonical rules, adapters, and regression coverage on `main`.
@@ -47,7 +48,7 @@
 - GitHub Issue #68 (test-tooling readiness — reference-only config templates and skills for Playwright/Supertest/Bruno/Jest/Vitest/pytest/Stryker) merged through PR #70 as commit `0d65956`; Issue #68 closed. Delivered: `docs/workflow/testing-conventions.md` (test folder-structure convention) linked from `PROJECT_INDEX.md` and the vault index; a Playwright config template added to `qa-playwright-testing`; a JS/TS (Stryker) section and config template added to `mutation-testing`; three brand-new skills — `api-testing-tooling` (Supertest + Bruno), `js-unit-testing` (Jest + Vitest), `python-unit-testing` (pytest) — each mirrored byte-identically across `.agents/skills/`, `.claude/skills/`, and `.agent/skills/`; three new `SKILL_CATALOG.md` entries plus a Planned Skills clarifying note; three new QA Skill Routing rows in `docs/workflow/role-definitions.md`, mirrored in `.claude/agents/qa-agent.md`; a `docs/vault/00-Index.md` correction moving five pre-existing skills (`ba-requirement-analysis`, `sa-architecture-design`, `data-config-change`, `qa-playwright-testing`, `security-review`) from "portable only" to "Mirrored" now that all three platform copies are verified in sync, plus the two QA-flagged fixes (AC-06 `SKILL_CATALOG.md` `mutation-testing` Stryker mention; AC-09 vault index 23/23 mirrored-skill count); 6 new regression tests in `test/validate-contracts.test.mjs` (156 → 162 total tests). Zero live dependencies added: no `package.json`/`package-lock.json` change, no `pyproject.toml`/`requirements.txt` created. QA Agent independently verified all 10 Acceptance Criteria PASS at commit `017a34a` (prior AC-06/AC-09 FAILs fixed and re-verified). Default-branch audit passed on `0d65956` and GitHub applied the normal `post-merge-closeout` label to PR #70; no `documentation-sync` exception issue was created.
 
 ## In Progress
-- GitHub Issue #69: implement the Thai-first Management Status Update canonical skill, portable adapters, catalog/vault discovery, minimal Documentation Agent boundary, and focused regression coverage. External posting, lifecycle authority, dispatch, and formal-artifact behavior remain out of scope.
+- None. Issue #69 has shipped; this closeout reconciles its post-merge records only.
 
 ## Blockers / Open Questions
 - R-002: `.gitlab-ci.yml` has not yet been validated on a live GitLab runner; this is an external verification follow-up, not an active implementation task.
@@ -57,13 +58,13 @@
 - `api-contract-testing`, `performance-testing`, and `mutation-testing` document tooling (`schemathesis`, `drf-spectacular`, Locust/k6, `mutmut`) that is not installed anywhere in this repo — intentional per the design spec, since this repo has no Django/Python target application yet. Wiring is deferred to whenever a real work item first needs to execute one of these skills.
 
 ## Required Artifacts
-- GitHub Issue #69 Draft PR with implementation and local-check evidence, then independent QA acceptance-criteria matrix and human review.
+- None outstanding for Issue #69 beyond this documentation-only closeout PR and its human merge approval.
 
 ## Next Quality Gate
-- QA verifies Issue #69 acceptance criteria against the exact Draft PR and records evidence before human review.
+- Human review and merge of the documentation-only closeout PR; the subsequent default-branch audit verifies its project-state consistency.
 
 ## Recommended Next Agent
-- Developer / Documentation implementation owner, then QA Agent.
+- Human Maintainer for closeout-PR review and merge; otherwise idle pending a newly classified work item.
 
 ## Notes
 - GitHub Issue #44's design spec went through two Boss-directed scope expansions after initial brainstorming: first, mirroring the four new QA skills into `.agent/skills/` (Antigravity CLI) rather than leaving it out of scope by analogy to `qa-playwright-testing` not living there; second, backfilling the four pre-existing `.agent/skills/` gaps unrelated to QA (`ba-requirement-analysis`, `data-config-change`, `sa-architecture-design`, `security-review`) in the same pass rather than deferring them. During implementation, the first `.agent/skills/` parity pass would have naively overwritten `dynamic-workflow`, `frontend-ui-engineering`, and `functional-test-design` — three pre-existing skills that intentionally use a thin pointer-adapter pattern unrelated to this work — and Developer Agent correctly escalated this as a mid-implementation blocker rather than silently overwriting them; the resolved approach special-cased those 3 (left untouched) and mirrored the other 17 byte-identical, which QA Agent's parity test independently confirmed.
