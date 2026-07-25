@@ -101,3 +101,13 @@
 - Alternatives Considered: Import all concepts with documentation-only placeholders; defer all enrichment until infrastructure exists.
 - Consequences: Infrastructure-dependent concepts are not imported. The Orchestrator retains only Role-appropriate concepts that can be verified without a live runtime. Importing documentation-only patterns without infrastructure is avoided as process theater.
 - Owner: Human Product / Process Owner
+
+### ADR-0012: Schema-First Implementation Exception for TDD Rule
+
+- Date: 2026-07-25
+- Status: Accepted
+- Context: The TDD Rule requires a failing test before implementation. Contract YAML and JSON Schema files are declarative artifacts, not executable behavior — writing a "failing test" before creating a schema is not meaningful.
+- Decision: Pure declarative YAML/JSON contract schemas and state-machine definitions (e.g., `docs/contracts/*.yaml`, `docs/contracts/schemas/*.schema.json`) are exempt from the TDD Rule. However, validators, parsers, transition logic, error handling, and CI scripts (all executable `.mjs` code) remain subject to TDD. Contract fixtures or validation cases must still be present as executable evidence (test files that validate the schema itself).
+- Alternatives Considered: (1) Apply TDD to schemas — rejected because schemas are declarations, not behavior. (2) Exempt all contract-related code — rejected because validators and parsers have executable behavior that TDD should cover.
+- Consequences: Schema-first implementation is valid for contract YAML/JSON; executable validation code must still follow TDD (failing test first). Reviewers should distinguish declarative artifacts from executable code when auditing TDD compliance.
+- Owner: Human Product / Process Owner

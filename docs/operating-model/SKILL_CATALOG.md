@@ -93,6 +93,8 @@ Note: `api-contract-testing` (implemented this pass) validates an existing imple
 | Do Not Use When | The change needs code beyond the config/data value itself — the skill's Escalation Guard routes this to Orchestrator/SA Agent instead |
 | Next Skill / Agent | QA Agent, Release Agent |
 
+**Meta-repo note:** For CI YAML / package.json config changes in a meta-repo context (no Django/PostgreSQL target application), use base Config Agent role and document the gap in TASK_LOG: `No matching skill — meta-repo CI config, used base Config Agent role`
+
 ## requirement-brainstorming
 
 | Field | Detail |
