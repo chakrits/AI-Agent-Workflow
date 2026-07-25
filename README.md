@@ -14,6 +14,7 @@ The shared process is not tied to one tool. Codex, Claude Code, Antigravity, and
 - Portable skills and platform adapters that refer back to the same canonical policy.
 - Hosted CI on both GitHub Actions and GitLab CI, running the same test/contract-validation suite.
 - Lifecycle labels (`phase:*`, `status:*`) and an automated PR/Issue readiness gate that blocks merge until the Work Item lifecycle is consistent.
+- A [GitHub Project Kanban board](https://github.com/users/chakrits/projects/3) mapping `phase:*` labels to Todo / In Progress / Done columns for visual work tracking.
 - An in-repo, merge-gated dispatch-receipt ledger for cross-turn agent handoffs, with CI-enforced matching and a loop-safety circuit breaker — see [role-definitions.md](./docs/workflow/role-definitions.md) and the records under `docs/records/sdd/`.
 - Local housekeeping tooling: worktree cleanup and a one-command reset back to a blank template baseline for a new team's own clone.
 
