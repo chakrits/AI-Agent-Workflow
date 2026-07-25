@@ -14,7 +14,8 @@
     "reset:template": "node scripts/reset-to-template.mjs",
     "validate:risk-register": "node scripts/validate-risk-register.mjs",
     "validate:review-gate": "node scripts/validate-review-gate.mjs",
-    "validate:skill-usage": "node scripts/validate-skill-usage.mjs"
+    "validate:skill-usage": "node scripts/validate-skill-usage.mjs",
+    "validate:metrics": "node scripts/validate-metrics.mjs"
   },
   "devDependencies": {
     "ajv": "^8.17.1",
