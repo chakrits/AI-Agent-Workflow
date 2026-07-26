@@ -1,5 +1,4 @@
 import { execFileSync } from 'node:child_process';
-import { readdirSync, existsSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 import path from 'node:path';
 
@@ -21,27 +20,26 @@ export function hasScriptChanges(changedFiles) {
 }
 
 /**
- * Returns true when at least one structured code-review record exists
- * in `reviewDir`. Files must match the glob `*-code-review.md`.
- *
- * `reviewDir` may be either absolute or relative to the cwd; callers
- * that need reproducible behaviour across test working directories
- * should pass an absolute path (e.g. `path.resolve(root, REVIEW_RECORD_DIR)`).
+ * Returns true when the current diff adds a structured code-review record.
+ * Files must be added under `docs/records/qa/` and match
+ * `*-code-review.md`. Historical records do not satisfy the gate.
  */
-export function hasReviewRecord(reviewDir) {
-  if (!reviewDir || !existsSync(reviewDir)) return false;
-  let entries;
-  try {
-    entries = readdirSync(reviewDir);
-  } catch {
-    return false;
-  }
-  return entries.some((name) => name.endsWith('-code-review.md'));
+export function hasReviewRecord(addedFiles) {
+  if (!Array.isArray(addedFiles)) return false;
+  return addedFiles.some((file) =>
+    typeof file === 'string' &&
+    path.dirname(file) === REVIEW_RECORD_DIR &&
+    file.endsWith('-code-review.md')
+  );
 }
 
-function gitDiffNameOnly(refspec, cwd) {
+function gitDiffNameOnly(refspec, cwd, options = {}) {
+  const args = ['diff', '--name-only'];
+  if (options.addedOnly) args.push('--diff-filter=A');
+  args.push(refspec);
+
   try {
-    const out = execFileSync('git', ['diff', '--name-only', refspec], {
+    const out = execFileSync('git', args, {
       cwd,
       stdio: ['ignore', 'pipe', 'ignore']
     }).toString();
@@ -51,25 +49,18 @@ function gitDiffNameOnly(refspec, cwd) {
   }
 }
 
-function listReviewRecords(reviewDir) {
-  if (!existsSync(reviewDir)) return [];
-  try {
-    return readdirSync(reviewDir).filter((name) => name.endsWith('-code-review.md')).sort();
-  } catch {
-    return [];
-  }
-}
-
 async function main() {
   const cwd = process.cwd();
   const changedFiles = gitDiffNameOnly('HEAD~1..HEAD', cwd);
+  const addedFiles = gitDiffNameOnly('HEAD~1..HEAD', cwd, { addedOnly: true });
   const scriptFiles = changedFiles.filter((file) => {
     const ext = path.extname(file).toLowerCase();
     return SCRIPT_EXTENSIONS.includes(ext);
   });
 
-  const reviewDir = path.join(cwd, REVIEW_RECORD_DIR);
-  const reviewRecords = listReviewRecords(reviewDir);
+  const reviewRecords = addedFiles.filter((file) =>
+    path.dirname(file) === REVIEW_RECORD_DIR && file.endsWith('-code-review.md')
+  );
 
   console.log('Review gate audit');
   console.log('─────────────────────────────────────────────────────────');
@@ -80,7 +71,7 @@ async function main() {
   } else {
     console.log('Script files (.mjs/.js) changed: 0');
   }
-  console.log(`Code-review records in ${REVIEW_RECORD_DIR}/: ${reviewRecords.length}`);
+  console.log(`Code-review records added in ${REVIEW_RECORD_DIR}/: ${reviewRecords.length}`);
   if (reviewRecords.length) {
     for (const record of reviewRecords) console.log(`  - ${record}`);
   }
@@ -91,10 +82,10 @@ async function main() {
     return;
   }
 
-  if (!hasReviewRecord(reviewDir)) {
+  if (!hasReviewRecord(addedFiles)) {
     console.error(
-      'FAIL: PR has script changes (.mjs/.js) but no code review record in ' +
-        `${REVIEW_RECORD_DIR}/. Add a structured *-code-review.md file before merge.`
+      'FAIL: PR has script changes (.mjs/.js) but adds no structured code review record in ' +
+        `${REVIEW_RECORD_DIR}/. Add a new *-code-review.md file in the same diff before merge.`
     );
     process.exitCode = 1;
     return;
