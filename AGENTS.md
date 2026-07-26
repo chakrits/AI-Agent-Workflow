@@ -55,7 +55,7 @@ Always classify the request first:
 
 Then select the appropriate agent and skill.
 
-When dispatching that agent as a child, write the prompt to [docs/workflow/dispatch-packet-contract.md](./docs/workflow/dispatch-packet-contract.md).
+When dispatching that agent as a child, write the prompt following [docs/workflow/dispatch-packet-contract.md](./docs/workflow/dispatch-packet-contract.md).
 
 ### Skill Selection Rule
 
