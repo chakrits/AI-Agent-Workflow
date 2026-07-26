@@ -201,8 +201,15 @@ listed is a pointer or is omitted.
 **Decision: one canonical repository document; adapters reference it, never copy it.**
 
 - Canonical location: `docs/workflow/dispatch-packet-contract.md`.
-- `.claude/agents/*.md` adapters gain a one-line reference to it. They do not embed the
-  template.
+- `AGENTS.md` carries exactly one reference to it, in its dispatch guidance. No adapter
+  embeds the template.
+
+**Amended 2026-07-26 during implementation.** This section originally required a one-line
+reference in every `.claude/agents/*.md`. That was wrong: the contract governs how a
+packet is *written*, which is a parent activity, and the parent reads `AGENTS.md`. The
+adapters describe what a child role *is*. Eleven references placed in the wrong audience's
+files would add drift surface — in files with no content-hash gate — for no discoverability
+gain. The `AGENTS.md` reference (AC-12) is the whole delivery.
 
 Rationale, grounded in the verified state above: `scripts/validate-skill-parity.mjs`
 content-hashes three skill trees but not `.claude/agents`, which has role-specific
@@ -392,7 +399,7 @@ designed and synthetic under any evaluation shape.
 | AC-01 | `docs/workflow/dispatch-packet-contract.md` exists and contains the D1 template verbatim | `test -f` and `grep -c "^Packet: v1"` |
 | AC-02 | The contract lists all nine mandatory fields and marks the four conditional fields as conditional | `grep` each field name; manual read |
 | AC-03 | The contract states all five discipline rules of D2, each with its rationale | `grep` for each rule heading |
-| AC-04 | The contract contains the D3 role selector table with all seven roles | `grep -c` on role names = 7 |
+| AC-04 | The contract contains the D3 role selector table with all seven roles | Count *distinct* role names, not lines: `grep -oE '<the seven names>' \| sort -u \| wc -l` = 7. A plain `grep -c` cannot work here — the verbatim worked examples required by AC-05 also contain `Role: Documentation Agent` and `Role: QA Agent`. Corrected 2026-07-26 during implementation. |
 | AC-05 | The contract contains both worked before/after examples with their token figures | `grep` for `1,198` and `1,272` |
 | AC-06 | The contract contains the D7 rejection table and the recorded disagreement | `grep` for "Rejected" and "Recorded disagreement" |
 | AC-07 | The contract carries a `## Changelog` section with a `v1` entry | `grep -A3 "## Changelog"` |

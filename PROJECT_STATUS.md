@@ -2,13 +2,13 @@
 
 ## Current Work Item
 - ID: GitHub Issue #102
-- Title: Dispatch Prompt Contract v1 — compact packets with quality-equivalence evaluation
-- Owner: Human Maintainer (review) / Orchestrator Agent (draft owner)
-- Status: Draft awaiting human review; `phase:requirements` only — not `status:spec-ready`
+- Title: Dispatch Packet Contract v1 (slice 102a) — single-sourced, non-pre-judging dispatch packets
+- Owner: Documentation Agent (implementation) / QA Agent (verification next)
+- Status: 102a design approved and implemented; `status:spec-ready` + `phase:development`. Awaiting independent QA verification of AC-01–AC-16 before a PR.
 - References: https://github.com/chakrits/AI-Agent-Workflow/issues/102; canonical 102a design `docs/superpowers/specs/2026-07-26-dispatch-packet-contract-102a-design.md`; decision-record ancestor `docs/superpowers/specs/2026-07-26-dispatch-prompt-contract-v1.md`; `docs/records/work-items/2026-07-26-issue-102-dispatch-prompt-contract.md`
 
 ## Current Stage
-- Requirements — human review of the Issue #102 draft before any implementation planning or dispatch
+- Development complete on branch `docs/issue-102a-dispatch-packet-contract` — `docs/workflow/dispatch-packet-contract.md` created and wired into `AGENTS.md`, `PROJECT_INDEX.md`, and `docs/templates/WORK_ITEM.md`. Next: independent QA verification. 102b (3 synthetic blocked-case fixtures, 12 runs) remains deferred behind the escalation trigger.
 
 ## Change Classification
 - Change Type: Framework / Meta Change
