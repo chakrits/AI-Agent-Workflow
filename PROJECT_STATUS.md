@@ -1,21 +1,21 @@
 # PROJECT_STATUS.md
 
 ## Current Work Item
-- ID: None (idle — awaiting next human-sponsored work item)
-- Title: N/A
-- Owner: N/A
-- Status: Idle
-- References: N/A
+- ID: GitHub Issue #102
+- Title: Dispatch Packet Contract v1 (slice 102a) — single-sourced, non-pre-judging dispatch packets
+- Owner: Human Maintainer (PR review)
+- Status: QA-verified 16/16 PASS at `b7bf1c6`; `status:spec-ready` + `status:development-done` + `status:verification-done` + `phase:human-review`. Ready for a PR. QA evidence: https://github.com/chakrits/AI-Agent-Workflow/issues/102#issuecomment-5084166043
+- References: https://github.com/chakrits/AI-Agent-Workflow/issues/102; canonical 102a design `docs/superpowers/specs/2026-07-26-dispatch-packet-contract-102a-design.md`; decision-record ancestor `docs/superpowers/specs/2026-07-26-dispatch-prompt-contract-v1.md`; `docs/records/work-items/2026-07-26-issue-102-dispatch-prompt-contract.md`
 
 ## Current Stage
-- Idle — last completed work item was GitHub Issue #99 (closed 2026-07-26)
+- Human review — branch `docs/issue-102a-dispatch-packet-contract` is QA-verified and ready for a PR. `docs/workflow/dispatch-packet-contract.md` created and wired into `AGENTS.md`, `PROJECT_INDEX.md`, and `docs/templates/WORK_ITEM.md`. Whoever opens the PR must carry the QA evidence URL into the PR body's QA Evidence field and tick its QA checklist. 102b (3 synthetic blocked-case fixtures, 12 runs) remains deferred behind the escalation trigger.
 
 ## Change Classification
-- Change Type: N/A (idle)
-- Risk Level: N/A
-- Code Change Required: No
-- Architecture Change Required: No
-- Security Review Required: No
+- Change Type: Framework / Meta Change
+- Risk Level: Medium
+- Code Change Required: No (draft only; later decision pending)
+- Architecture Change Required: No (no implementation decision yet)
+- Security Review Required: No (unless the approved implementation changes sensitive controls)
 
 ## Completed
 - GitHub Issue #99 (workflow playbook discoverability) merged through PR #100 as commit `7787e3a`. Delivered: (1) Fix 1 — `stabilize-core.md` wired in as a new "Framework / Meta Change" Change Type in `docs/workflow/dynamic-routing.md`, `AGENTS.md`, and README.md; (2) Fix 2 — `feature-discovery-to-plan.md` linked from `new-feature.md`'s "Use when" section and README, as the pre-discovery entry point for a still-vague request; (3) Fix 3 — `bug-debug-fix.md` backlinked from `bug-fix.md`, without deciding whether to merge them (explicitly deferred to a follow-up); (4) Fix 4 — a "See also" backlink added to 4 skills (`code-review-gate`, `functional-test-design`, `tdd-implementation`, `engineering-postmortem`) pointing to their playbook counterpart, mirrored byte-identically across `.agents/skills/`, `.claude/skills/`, `.agent/skills/`; (5) Fix 5 — a permanent orphan-detection regression test in `test/validate-workflow-playbooks.test.mjs` (206 → 207 total tests) asserting every `docs/workflows/*.md` file has at least one inbound reference from a real routing surface. The implementer's own verbatim Fix 5 test code would have failed after Fix 3 (a spec-internal inconsistency the implementer caught); resolved with a one-hop transitive-reachability tier rather than widening the routing-surface file list beyond the spec's approved diffs — QA independently traced the logic by hand and empirically proved the gate still fires (added and removed a throwaway orphan probe file) before judging the deviation reasonable and correctly scoped. QA Agent independently re-verified all 9 Acceptance Criteria PASS at commit `0611542` (evidence: https://github.com/chakrits/AI-Agent-Workflow/issues/99#issuecomment-5079746566). No change to `docs/vault/00-Index.md` or `PROJECT_INDEX.md` — both kept their existing roles per prior discussion. The automated "Create documentation sync exception" workflow succeeded this time and applied the normal `post-merge-closeout` label to PR #100 automatically.

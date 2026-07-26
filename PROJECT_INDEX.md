@@ -33,6 +33,7 @@ Use these files for dynamic routing, role ownership, quality gates, and handoff 
 - [docs/workflow/quality-gates.md](./docs/workflow/quality-gates.md) - Stage gates and required evidence.
 - [docs/workflow/handoff-contract.md](./docs/workflow/handoff-contract.md) - Required handoff fields and rules.
 - [docs/workflow/testing-conventions.md](./docs/workflow/testing-conventions.md) - Test folder-structure convention for target apps.
+- [docs/workflow/dispatch-packet-contract.md](./docs/workflow/dispatch-packet-contract.md) - Required shape and discipline rules for the dispatch packet a parent agent writes when spawning a child agent.
 
 ## Workflow Playbooks
 

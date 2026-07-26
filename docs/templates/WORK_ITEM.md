@@ -29,5 +29,6 @@
 - Tests before: NN → Tests after: NN (+N)
 - Subagent timeouts: N
 - Rework cycles: N
+- Packet version: v1 · Packet tokens: <median across this item's dispatches>
 
 ## Status: <Open / Closed (YYYY-MM-DD)>
