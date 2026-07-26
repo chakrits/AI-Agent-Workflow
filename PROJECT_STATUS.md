@@ -1,19 +1,19 @@
 # PROJECT_STATUS.md
 
 ## Current Work Item
-- ID: None (idle — awaiting next human-sponsored work item)
-- Title: N/A
-- Owner: N/A
-- Status: Idle
-- References: N/A
+- ID: GitHub Issue #106
+- Title: validate-review-gate cannot fail — directory-presence check is a no-op
+- Owner: Human Maintainer (QA dispatch escalation)
+- Status: Implementation commit `63c972b` awaits independent QA; two in-turn QA dispatches timed out without a terminal receipt
+- References: https://github.com/chakrits/AI-Agent-Workflow/issues/106; branch `fix/issue-106-review-gate-diff-scope`; commit `63c972b12c709bf6688511dfa6802f67e4e001e9`
 
 ## Current Stage
-- Idle — last completed work item was GitHub Issue #102 slice 102a (merged 2026-07-26). Slice 102b (3 synthetic blocked-case fixtures, 12 runs) is deferred behind a declared trigger: `Rework cycles` greater than zero on two consecutive work items after adoption. It has no open Issue; the condition and scope are recorded in `docs/records/work-items/2026-07-26-issue-102-dispatch-prompt-contract.md`.
+- Bug Fix verification — awaiting independent QA. Dispatch control state is `blocked` with `stop_reason: host_completion_unavailable`; Bug Fix task state remains `verifying` (no QA pass/fail result received and no rework consumed).
 
 ## Change Classification
-- Change Type: N/A (idle)
-- Risk Level: N/A
-- Code Change Required: No
+- Change Type: Bug Fix (CI validator)
+- Risk Level: Low
+- Code Change Required: Yes
 - Architecture Change Required: No
 - Security Review Required: No
 
