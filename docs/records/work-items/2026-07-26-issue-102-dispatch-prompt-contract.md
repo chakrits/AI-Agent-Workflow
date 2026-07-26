@@ -25,19 +25,23 @@
 
 ## Sub-tasks
 
-- 102a: canonical packet contract — template, discipline rules, role selectors, storage decision, changelog, observation field. Documentation-only. Design written; awaiting Human Maintainer approval.
-- 102b: 3 synthetic blocked-case fixtures, paired variants, 2 runs each (12 runs). Deferred; opens only on the 102a escalation trigger or by explicit direction.
+- 102a: canonical packet contract — template, discipline rules, role selectors, storage decision, changelog, observation field. Documentation-only. **Done** — merged via PR #103 as `cbb2b3a`.
+- 102b: 3 synthetic blocked-case fixtures, paired variants, 2 runs each (12 runs), reduced from a nine-cell/36-run corpus. **Deferred with no open Issue.** Opens only on the escalation trigger recorded in `docs/workflow/dispatch-packet-contract.md` — `Rework cycles` greater than zero on two consecutive work items after adoption — or by explicit direction. This record is the trigger's home; closing Issue #102 does not lose it.
 - Separate follow-up (not this work item): `scripts/validate-review-gate.mjs:31-39` is a directory-level presence check with 10 matching records already committed, so the gate cannot fail for any future PR. Pre-existing defect; needs its own issue.
 
 ## Lessons Learned
 
-- N/A — evaluation has not started.
+- **A proposal's headline metric can measure something its own design cannot move.** The original draft argued from the 30,000-token context budget while its own non-goals excluded every file in that budget. Measuring the thing actually being changed — 59 real dispatch packets, median 1,087 tokens — showed the benefit was about 2.7% of a child's context, and forced the value proposition to be rebuilt on single-sourcing. Measure the delta, not the neighbourhood.
+- **A gate that cannot fail reads exactly like a gate that passes.** Both reviewers cited `validate-review-gate.mjs` as an obligation the implementation must satisfy. Reading the code showed a directory-level presence check with 10 records already committed. Cite gates from their source, not their name.
+- **Withholding your conclusion is what buys an independent verdict.** The Issue #99 QA packet stated its expected finding before the reviewer looked. This work item's QA packet named three items to adjudicate with no expected answer; QA disagreed on one and caught a real weakening. All four gaps it found were outside the AC set.
+- **Dispatched agents catch the parent's own spec defects when the packet lets them.** Three defects here — D4's misplaced adapter references, and AC-04 and AC-01's unsatisfiable `grep -c` commands — were surfaced by the implementer and QA, not by the author. The implementer followed the packet over the design when the two conflicted and reported it, exactly as the `Fallback` field requires.
+- **A closeout PR may touch only three files.** `scripts/work-item-readiness.mjs:13-15` authorizes `PROJECT_STATUS.md`, `TASK_LOG.md`, and `CHANGELOG.md`. This record's own closure was rejected by CI when bundled into PR #104 and had to follow separately. Update the work-item record in the implementation PR, not the closeout.
 
 ## Metrics
 
-- Tests before: 207
-- Tests after: N/A — no implementation
-- Subagent timeouts: N/A
+- Tests before: 207 → Tests after: 207 (+0 — documentation-only)
+- Subagent timeouts: 0 — one implementer dispatch, one QA dispatch; the QA dispatch hit a transient API error mid-run and was resumed from its transcript rather than re-dispatched
 - Rework cycles: 0
+- Packet version: v1 · Packet tokens: ~360 (implementer), ~410 (QA)
 
-## Status: Open — Draft awaiting Human Maintainer review
+## Status: Closed (2026-07-26) — slice 102a merged via PR #103 as `cbb2b3a`; closeout PR #104 merged as `9c1c783`; slice 102b deferred behind the escalation trigger
