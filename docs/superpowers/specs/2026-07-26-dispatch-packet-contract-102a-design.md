@@ -396,7 +396,7 @@ designed and synthetic under any evaluation shape.
 
 | ID | Criterion | Verification |
 |---|---|---|
-| AC-01 | `docs/workflow/dispatch-packet-contract.md` exists and contains the D1 template verbatim | `test -f` and `grep -c "^Packet: v1"` |
+| AC-01 | `docs/workflow/dispatch-packet-contract.md` exists and contains the D1 template verbatim | `test -f`, then extract the template region and `diff` it against D1 — expect no output. A `grep -c "^Packet: v1"` returns 3, not 1, because AC-05's worked examples also open with that line; do not assert a count. Corrected 2026-07-26 during verification. |
 | AC-02 | The contract lists all nine mandatory fields and marks the four conditional fields as conditional | `grep` each field name; manual read |
 | AC-03 | The contract states all five discipline rules of D2, each with its rationale | `grep` for each rule heading |
 | AC-04 | The contract contains the D3 role selector table with all seven roles | Count *distinct* role names, not lines: `grep -oE '<the seven names>' \| sort -u \| wc -l` = 7. A plain `grep -c` cannot work here — the verbatim worked examples required by AC-05 also contain `Role: Documentation Agent` and `Role: QA Agent`. Corrected 2026-07-26 during implementation. |
@@ -437,7 +437,7 @@ designed and synthetic under any evaluation shape.
 | A compact packet omits a rule that mattered | Prohibitions are explicitly protected from compression by rule 4; the mandatory `Fallback` requires stopping rather than guessing |
 | The contract is written and never used | AC-12 places a reference in `AGENTS.md`; D6 records the packet version on every work item, making non-use visible |
 | Observational evidence never accumulates | The D6 trigger is a declared numeric condition, not a review intention |
-| Parity drift if a future adapter copies the template | D4 forbids copying. Note that `.claude/agents` has no content-hash gate, which is exactly why references are required |
+| Parity drift if a future adapter copies the template | D4 forbids copying, and as amended places the single reference in `AGENTS.md` rather than in the adapters. `.claude/agents` has no content-hash gate, so a copy there would drift undetected |
 | The contract becomes a parallel source alongside the Issue | The contract document is canonical; Issue #102 is the decision record and links to it |
 
 ## Open Questions

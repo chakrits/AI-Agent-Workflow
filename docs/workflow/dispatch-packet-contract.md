@@ -126,10 +126,12 @@ listed is a pointer or is omitted.
 
 ## Storage and Adapters
 
-This document is canonical. Platform adapters under `.claude/agents/`, `.codex/`, and
-equivalent trees reference it by path; they must never copy the template. A copied template
-can drift with no content-hash gate to catch it. A reference can only break as a path,
-which is the cheaper and more detectable failure.
+This document is canonical, and `AGENTS.md` carries the single reference to it. Platform
+adapters under `.claude/agents/`, `.codex/`, and equivalent trees deliberately do **not**
+reference it and must never copy the template: this contract governs how a packet is
+*written*, which is a parent activity, and every parent reaches `AGENTS.md` first. Adapters
+describe what a child role is. A copied template could drift with no content-hash gate to
+catch it; a reference placed in the wrong audience's files buys no discoverability.
 
 ## Worked Examples
 
@@ -226,6 +228,12 @@ Packets stamp `Packet: v1` so an observed outcome can be attributed to a version
 **Escalation trigger.** If `Rework cycles` is greater than zero on two consecutive work
 items after adoption, open Issue 102b (the deferred evaluation slice). This is a written
 condition, not an intention to review later.
+
+**What these two numbers can and cannot show.** There is no baseline arm and no controlled
+comparison, and the prior is thin — three recorded `Rework cycles` values existed at
+adoption, all `0`. The supportable claim is *no observed regression after adoption, against
+no quantified prior*. It is not equivalence and not improvement. Do not cite these numbers
+as evidence that packets improved anything.
 
 ## Rejected From The External Reference
 
