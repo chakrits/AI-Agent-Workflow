@@ -257,15 +257,15 @@ ever stops applying, this rejection should be revisited.
 
 ## Changelog
 
-Every revision records the version, the fields changed, the reason, and the observed
-impact. **Change one field at a time** — when evidence indicates a problem, revise a single
-field or rule and observe again. Simultaneous changes make attribution impossible.
-
 ### v1 — 2026-07-26
 
 - Initial contract: template with nine mandatory and four conditional fields, five
   discipline rules, seven role content selectors, storage decision, worked examples
 - No prior version; no impact to report
+
+Every revision records the version, the fields changed, the reason, and the observed
+impact. **Change one field at a time** — when evidence indicates a problem, revise a single
+field or rule and observe again. Simultaneous changes make attribution impossible.
 
 ## Known Limitations
 
