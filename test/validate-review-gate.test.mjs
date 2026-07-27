@@ -1,23 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { mkdtempSync, rmSync, mkdirSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { readdirSync } from 'node:fs';
 import path from 'node:path';
 import { hasScriptChanges, hasReviewRecord } from '../scripts/validate-review-gate.mjs';
-
-/**
- * Build a disposable docs/records/qa/ directory under a temp root.
- * `records` is an array of filenames to write into that directory.
- */
-function makeTempReviewDir(records) {
-  const root = mkdtempSync(path.join(tmpdir(), 'review-gate-test-'));
-  const reviewDir = path.join(root, 'docs/records/qa');
-  mkdirSync(reviewDir, { recursive: true });
-  for (const name of records) {
-    writeFileSync(path.join(reviewDir, name), `# ${name}\n\nReview content.\n`);
-  }
-  return reviewDir;
-}
 
 test('hasScriptChanges returns true when .mjs files are in the changed list', () => {
   const changed = ['scripts/validate-review-gate.mjs', 'package.json', 'README.md'];
@@ -49,37 +34,41 @@ test('hasScriptChanges ignores extensions with similar suffixes', () => {
   assert.equal(hasScriptChanges(changed), false);
 });
 
-test('hasReviewRecord returns true when *-code-review.md files exist', () => {
-  const reviewDir = makeTempReviewDir([
-    '2026-07-25-validate-review-gate-code-review.md',
-    '2026-07-25-other-notes.md'
-  ]);
-  try {
-    assert.equal(hasReviewRecord(reviewDir), true);
-  } finally {
-    rmSync(reviewDir, { recursive: true, force: true });
-  }
+test('hasReviewRecord returns true when the current diff adds a *-code-review.md file', () => {
+  assert.equal(
+    hasReviewRecord([
+      'scripts/validate-review-gate.mjs',
+      'docs/records/qa/2026-07-25-validate-review-gate-code-review.md'
+    ]),
+    true
+  );
 });
 
-test('hasReviewRecord returns false when no review files exist', () => {
-  const reviewDir = makeTempReviewDir(['2026-07-25-some-other-note.md', 'README.md']);
-  try {
-    assert.equal(hasReviewRecord(reviewDir), false);
-  } finally {
-    rmSync(reviewDir, { recursive: true, force: true });
-  }
+test('hasReviewRecord returns false when no review record is added in the current diff', () => {
+  assert.equal(hasReviewRecord(['scripts/validate-review-gate.mjs']), false);
 });
 
-test('hasReviewRecord returns false when the directory is empty', () => {
-  const reviewDir = makeTempReviewDir([]);
-  try {
-    assert.equal(hasReviewRecord(reviewDir), false);
-  } finally {
-    rmSync(reviewDir, { recursive: true, force: true });
-  }
+test('hasReviewRecord rejects a review record outside the canonical directory', () => {
+  assert.equal(hasReviewRecord(['docs/records/other/2026-07-25-code-review.md']), false);
 });
 
-test('hasReviewRecord returns false when the directory does not exist', () => {
-  const reviewDir = path.join(tmpdir(), `no-such-dir-${Date.now()}`);
-  assert.equal(hasReviewRecord(reviewDir), false);
+test('hasReviewRecord returns false for non-array input', () => {
+  assert.equal(hasReviewRecord(null), false);
+  assert.equal(hasReviewRecord(undefined), false);
+});
+
+test('hasReviewRecord rejects script changes without a new record despite the repository\'s existing review records', () => {
+  const reviewDir = path.resolve('docs/records/qa');
+  const existingRecords = readdirSync(reviewDir).filter((name) => name.endsWith('-code-review.md'));
+
+  assert.ok(existingRecords.length >= 10, 'the real repository fixture must retain its pre-existing records');
+  assert.equal(hasReviewRecord(['scripts/validate-review-gate.mjs']), false);
+});
+
+test('hasReviewRecord accepts this diff\'s newly added, correctly named review record', () => {
+  const reviewDir = path.resolve('docs/records/qa');
+  const record = 'docs/records/qa/2026-07-26-issue-106-review-gate-code-review.md';
+
+  assert.ok(readdirSync(reviewDir).includes(path.basename(record)), 'the review record must be present in this change');
+  assert.equal(hasReviewRecord(['scripts/validate-review-gate.mjs', record]), true);
 });

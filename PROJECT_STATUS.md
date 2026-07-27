@@ -1,14 +1,14 @@
 # PROJECT_STATUS.md
 
 ## Current Work Item
-- ID: GitHub Issue #108
-- Title: work-item-readiness-freshness has no Bug Fix workflow carve-out
+- ID: GitHub Issue #106
+- Title: validate-review-gate cannot fail — directory-presence check is a no-op
 - Owner: Human Maintainer (PR review)
-- Status: Two rounds of independent QA each found a real gap and both were fixed. Round 1: label-only carve-out let a mislabeled Issue silently bypass the gate — fixed by requiring a `Governing workflow: Bug Fix` PR-body declaration alongside the `bug` label (Human Maintainer decision). Round 2: the unanchored declaration regex matched the PR template's own guidance text, reintroducing the same defect class — fixed by anchoring to line start. TDD throughout, re-verified on branch `fix/issue-108-readiness-bugfix-carveout`. `npm test` 207 → 217, all gates pass.
-- References: https://github.com/chakrits/AI-Agent-Workflow/issues/108; branch `fix/issue-108-readiness-bugfix-carveout`; blocked PR: https://github.com/chakrits/AI-Agent-Workflow/pull/107
+- Status: Independently QA-verified PASS at commit `63c972b` (verification performed outside the Codex host after three in-turn QA dispatches there timed out). Bug Fix contract state: `handoff`. PR #107 open; its own `work-item-readiness-freshness` check was blocked until Issue #108's fix merged to `main` (PR #109) and PR #107's body was updated with a `Governing workflow: Bug Fix` declaration — both now done; PR #107 is ready to merge.
+- References: https://github.com/chakrits/AI-Agent-Workflow/issues/106; branch `fix/issue-106-review-gate-diff-scope`; commit `63c972b12c709bf6688511dfa6802f67e4e001e9`; QA evidence https://github.com/chakrits/AI-Agent-Workflow/issues/106#issuecomment-5086787642; PR https://github.com/chakrits/AI-Agent-Workflow/pull/107
 
 ## Current Stage
-- Ready for a PR. PR #107's body needs the `Governing workflow: Bug Fix` line added to satisfy the strengthened check, then both PRs should clear `work-item-readiness-freshness` without any branch-protection override — an attempted `gh pr merge --admin` on #107 failed because this repository's ruleset has `bypass_actors: []`, so no override is possible without editing the ruleset itself (a security-setting change intentionally not performed).
+- Ready to merge — Bug Fix contract state `verifying` → `handoff`. `original_repro_result` and `verification_result` both satisfied; rework count 0. Issue #108 (the readiness-gate carve-out this PR needed) merged separately as PR #109 (`9408abe`) via a temporary, since-reverted branch-protection bypass actor — its own post-merge closeout is still pending as a separate follow-up.
 
 ## Change Classification
 - Change Type: Bug Fix (CI validator)
