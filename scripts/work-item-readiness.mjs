@@ -1,5 +1,6 @@
 const closeoutMarker = /<!-- post-merge-closeout: complete; source-pr-\d+ -->/;
 const qaEvidence = /QA: evidence comment or review URL:\s*https:\/\//i;
+const governingWorkflow = /Governing workflow:\s*Bug Fix\b/i;
 
 export function validateReadiness({
   body = '',
@@ -32,7 +33,14 @@ export function validateReadiness({
   // phase:/status: lifecycle label contract (AGENTS.md: "Bug Fix work continues to use
   // docs/contracts/bug-fix-workflow.yaml rather than this lifecycle label contract").
   // They correctly carry no status:* labels; only QA evidence is still required.
-  if (labels.includes('bug')) {
+  //
+  // The `bug` label alone is not a strong enough signal for a required merge check: a
+  // mislabeled Feature/Enhancement Issue would silently skip the entire lifecycle gate.
+  // The PR must also declare its governing workflow in the body — a second signal the
+  // implementer controls directly and that cannot drift from an Issue's labels the way a
+  // stale or wrong label can. Absent that declaration, a `bug`-labeled work item falls
+  // through to the strict Feature/Enhancement path below (the safe default).
+  if (labels.includes('bug') && governingWorkflow.test(body)) {
     if (!draft && !qaEvidence.test(body)) errors.push('QA evidence URL');
     return errors;
   }

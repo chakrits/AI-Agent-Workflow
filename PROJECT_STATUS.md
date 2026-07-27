@@ -4,11 +4,11 @@
 - ID: GitHub Issue #108
 - Title: work-item-readiness-freshness has no Bug Fix workflow carve-out
 - Owner: Human Maintainer (PR review)
-- Status: Fixed and self-verified on branch `fix/issue-108-readiness-bugfix-carveout`. `npm test` 207 → 212, all gates pass. Discovered while opening PR #107 (Issue #106's fix), which failed this same check for exactly the reason this PR fixes.
+- Status: Independent QA verification (PASS 5/5 ACs) flagged that the initial label-only carve-out let a mislabeled Issue silently bypass the lifecycle gate; Human Maintainer chose to require a `Governing workflow: Bug Fix` PR-body declaration alongside the `bug` label. Strengthened, TDD'd, and re-verified on branch `fix/issue-108-readiness-bugfix-carveout`. `npm test` 207 → 214, all gates pass.
 - References: https://github.com/chakrits/AI-Agent-Workflow/issues/108; branch `fix/issue-108-readiness-bugfix-carveout`; blocked PR: https://github.com/chakrits/AI-Agent-Workflow/pull/107
 
 ## Current Stage
-- Ready for a PR. Once merged, PR #107 should clear `work-item-readiness-freshness` without any branch-protection override — an attempted `gh pr merge --admin` on #107 failed because this repository's ruleset has `bypass_actors: []`, so no override is possible without editing the ruleset itself (a security-setting change intentionally not performed).
+- Ready for a PR. PR #107's body needs the `Governing workflow: Bug Fix` line added to satisfy the strengthened check, then both PRs should clear `work-item-readiness-freshness` without any branch-protection override — an attempted `gh pr merge --admin` on #107 failed because this repository's ruleset has `bypass_actors: []`, so no override is possible without editing the ruleset itself (a security-setting change intentionally not performed).
 
 ## Change Classification
 - Change Type: Bug Fix (CI validator)

@@ -9,10 +9,15 @@ documents as not applying to Bug Fix work.
 
 ## Changed Areas
 
-- `scripts/work-item-readiness.mjs` — `validateReadiness()` gains an early branch for
-  `labels.includes('bug')` that checks only QA evidence (when not a draft) and returns,
-  bypassing the phase-count and `status:*` checks entirely.
-- `test/work-item-readiness.test.mjs` — 5 new regression cases.
+- `scripts/work-item-readiness.mjs` — `validateReadiness()` gains an early branch requiring
+  **both** `labels.includes('bug')` **and** a `Governing workflow: Bug Fix` declaration in
+  the PR body. When both hold, it checks only QA evidence (when not a draft) and returns,
+  bypassing the phase-count and `status:*` checks. When only one holds, it falls through to
+  the strict Feature/Enhancement path.
+- `test/work-item-readiness.test.mjs` — 7 regression cases covering the carve-out and its
+  fallback.
+- `.github/pull_request_template.md` — documents the `Governing workflow: Bug Fix` field
+  under Lifecycle Readiness so authors of future Bug Fix PRs know it exists.
 
 ## Review Focus
 
@@ -27,23 +32,37 @@ documents as not applying to Bug Fix work.
    too, not only the `status:*` labels — `AGENTS.md`'s lifecycle label contract section
    opens with "For Feature and Enhancement work items, use labels in two separate
    categories," scoping both label categories, phase and status, to that workflow.
+6. A `bug` label alone does not trigger the carve-out — the PR body must also declare
+   `Governing workflow: Bug Fix`. A mislabeled Feature/Enhancement Issue is caught by the
+   strict path rather than silently skipping the whole gate.
+7. A declared `Governing workflow: Bug Fix` line alone, on an Issue that isn't labeled
+   `bug`, also does not trigger the carve-out — both signals are required, neither is
+   sufficient alone.
 
 ## Findings
 
 - Root cause confirmed: `validateReadiness()` had exactly one code path for a linked Issue
   and applied the Feature/Enhancement lifecycle label contract unconditionally, with no
   branch recognizing a Bug Fix work item.
-- Chosen approach: label-based carve-out (`labels.includes('bug')`), matching Candidate
-  Approach 1 in Issue #108. Simplest option that satisfies AC-01 through AC-03 without
-  touching the PR template or introducing a second label vocabulary.
-- Verified against Issue #106 directly as the real-world adversarial case: with labels
-  `['bug', 'phase:requirements']` and a valid QA evidence line, `validateReadiness` returns
-  `[]`.
-- Regression coverage added for: ready Bug Fix passes; non-draft Bug Fix without QA
+- Chosen approach: two-signal carve-out — `labels.includes('bug')` **and** a
+  `Governing workflow: Bug Fix` line in the PR body — combining Candidate Approaches 1 and
+  2 from Issue #108, per Human Maintainer decision after independent QA flagged that
+  Approach 1 alone let any Issue mislabeled `bug` silently bypass the entire lifecycle gate
+  on a required merge check.
+- Verified against Issue #106 / PR #107 directly as the real-world adversarial case: with
+  labels `['bug', 'phase:requirements']` and a body carrying both the governing-workflow
+  declaration and a valid QA evidence line, `validateReadiness` returns `[]`; with the
+  declaration missing, the same labels correctly fall through to the strict path and fail.
+- Regression coverage (7 cases): ready Bug Fix passes; non-draft Bug Fix without QA
   evidence fails; draft Bug Fix without QA evidence passes; a Bug Fix Issue with no `phase:`
-  label at all still passes (proving the phase-count check is genuinely bypassed, not
-  incidentally satisfied); Feature/Enhancement path unchanged.
-- Full `npm test` (207 → 212), `validate:contracts`, `validate:skill-parity`, and
+  label at all still passes once its workflow is declared; a `bug`-labeled Issue with no
+  governing-workflow declaration falls through to the strict path; a governing-workflow
+  declaration on a non-`bug`-labeled Issue does not trigger the carve-out;
+  Feature/Enhancement path unchanged including its non-draft shape.
+- `.github/pull_request_template.md` documents the required `Governing workflow: Bug Fix`
+  line under Lifecycle Readiness, so the field is discoverable rather than tribal
+  knowledge.
+- Full `npm test` (207 → 214), `validate:contracts`, `validate:skill-parity`, and
   `validate:skill-usage` pass before handoff.
 
 ## Deliberately Not Enforced
@@ -52,21 +71,22 @@ documents as not applying to Bug Fix work.
   more invasive than needed to unblock the readiness gate.
 - No change to `scripts/work-item-readiness-check.mjs`'s linking/invocation plumbing —
   confirmed unchanged, per AC-05.
+- No enforcement that the declared governing workflow matches reality beyond the two-signal
+  check itself — a PR author could still declare `Governing workflow: Bug Fix` on a
+  work item that isn't one. This raises the bar (both a label and a body declaration must
+  now be wrong together) but does not eliminate the possibility; treated as acceptable
+  residual risk rather than a gap requiring further work.
 
 ## QA Findings and Response
 
-Independent QA verification (PASS on all 5 ACs) flagged two items:
+Independent QA verification (PASS on all 5 original ACs) flagged two items:
 
 1. **Test-effectiveness gap**: the original "Feature/Enhancement work item is unaffected"
    test was byte-for-byte identical to a pre-existing test and added zero coverage toward
    AC-02, and no test exercised a non-draft Feature/Enhancement PR. Fixed: replaced with a
-   non-draft case asserting all four errors (`status:spec-ready`,
-   `status:development-done`, `status:verification-done`, `QA evidence URL`).
-2. **Headline finding, not fixed here, routed forward**: the bare `labels.includes('bug')`
-   signal means any Issue mislabeled `bug` silently bypasses the entire lifecycle gate on a
-   required merge check — a stronger signal (Candidate Approach 2, a PR-body-declared
-   `Governing workflow:` field, which PR #107 already demonstrates in practice) was
-   available but not required by Issue #108's own AC-01 through AC-05. This is a real
-   scope-widening of a security-relevant required check and needs an explicit Human
-   Maintainer decision, not a unilateral implementer choice — see Issue #108's
-   closing comment.
+   non-draft case asserting all four errors.
+2. **Headline finding**: the bare `labels.includes('bug')` signal let any mislabeled Issue
+   bypass the entire lifecycle gate. Human Maintainer decided to require the
+   `Governing workflow: Bug Fix` declaration alongside the label (Candidate Approach 2),
+   implemented above. PR #107's own body is being updated to carry this line so it now
+   satisfies the strengthened check honestly rather than by the weaker original signal.

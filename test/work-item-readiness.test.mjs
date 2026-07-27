@@ -4,6 +4,7 @@ import { validateReadiness } from '../scripts/work-item-readiness.mjs';
 
 const body = 'QA: evidence comment or review URL: https://github.com/x/y/issues/1#comment';
 const labels = ['phase:verification', 'status:spec-ready', 'status:development-done', 'status:verification-done'];
+const bugFixBody = 'Governing workflow: Bug Fix\n\nQA: evidence comment or review URL: https://github.com/x/y/issues/1#comment';
 
 test('accepts a ready same-repository work item', () => {
   assert.deepEqual(
@@ -65,10 +66,10 @@ test('requires QA evidence before a non-draft pull request is ready', () => {
   );
 });
 
-test('accepts a Bug Fix work item with QA evidence and no lifecycle status labels', () => {
+test('accepts a Bug Fix work item with a declared governing workflow, QA evidence, and no lifecycle status labels', () => {
   assert.deepEqual(
     validateReadiness({
-      body,
+      body: bugFixBody,
       draft: false,
       workItem: { labels: ['bug', 'phase:requirements'], isPullRequest: false, isSameRepository: true }
     }),
@@ -76,10 +77,10 @@ test('accepts a Bug Fix work item with QA evidence and no lifecycle status label
   );
 });
 
-test('still requires QA evidence for a non-draft Bug Fix work item', () => {
+test('still requires QA evidence for a non-draft Bug Fix work item that declares its governing workflow', () => {
   assert.deepEqual(
     validateReadiness({
-      body: '',
+      body: 'Governing workflow: Bug Fix',
       draft: false,
       workItem: { labels: ['bug', 'phase:requirements'], isPullRequest: false, isSameRepository: true }
     }),
@@ -87,10 +88,10 @@ test('still requires QA evidence for a non-draft Bug Fix work item', () => {
   );
 });
 
-test('does not require QA evidence for a draft Bug Fix work item', () => {
+test('does not require QA evidence for a draft Bug Fix work item that declares its governing workflow', () => {
   assert.deepEqual(
     validateReadiness({
-      body: '',
+      body: 'Governing workflow: Bug Fix',
       draft: true,
       workItem: { labels: ['bug', 'phase:requirements'], isPullRequest: false, isSameRepository: true }
     }),
@@ -98,14 +99,36 @@ test('does not require QA evidence for a draft Bug Fix work item', () => {
   );
 });
 
-test('does not require lifecycle status labels for a Bug Fix work item even without any phase label', () => {
+test('does not require lifecycle status labels for a Bug Fix work item even without any phase label, once its governing workflow is declared', () => {
   assert.deepEqual(
     validateReadiness({
-      body,
+      body: bugFixBody,
       draft: false,
       workItem: { labels: ['bug'], isPullRequest: false, isSameRepository: true }
     }),
     []
+  );
+});
+
+test('falls through to the strict lifecycle path when the bug label is present but the PR body does not declare its governing workflow', () => {
+  assert.deepEqual(
+    validateReadiness({
+      body: '',
+      draft: false,
+      workItem: { labels: ['bug', 'phase:requirements'], isPullRequest: false, isSameRepository: true }
+    }),
+    ['status:spec-ready', 'status:development-done', 'status:verification-done', 'QA evidence URL']
+  );
+});
+
+test('a declared governing workflow alone, without the bug label, does not trigger the Bug Fix carve-out', () => {
+  assert.deepEqual(
+    validateReadiness({
+      body: bugFixBody,
+      draft: false,
+      workItem: { labels: ['phase:development'], isPullRequest: false, isSameRepository: true }
+    }),
+    ['status:spec-ready', 'status:development-done', 'status:verification-done']
   );
 });
 
