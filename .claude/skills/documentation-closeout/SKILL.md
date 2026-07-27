@@ -27,6 +27,24 @@ Update these files in the closeout branch:
 - `TASK_LOG.md` — add new row with date, work item, agent, action, result, next agent, notes
 - `CHANGELOG.md` — add entry under Added/Changed/Fixed as appropriate
 
+### 1b. Resolve Parallel-Branch Conflicts in Project State Files
+
+Two branches that both diverged from the same point and both edited `PROJECT_STATUS.md`
+and `TASK_LOG.md` (e.g. two Bug Fix branches in flight at once) will conflict when either
+is merged with `main` after the other lands. Resolve with two different rules, because the
+two files have different shapes:
+
+- **`TASK_LOG.md` is append-only.** Every row is an independent, real event — never choose
+  one branch's rows over the other's. Keep both sides' rows (the more recently merged
+  branch's rows first, matching the file's newest-first convention).
+- **`PROJECT_STATUS.md`'s "Current Work Item" / "Current Stage" is a single pointer, not
+  additive.** Keep the branch actually being merged right now; drop the other side's
+  version. It will be properly synced to idle/Completed by its own closeout PR — don't try
+  to fix its staleness here.
+
+After resolving, re-run the full test suite and `validate:contracts` before committing the
+merge — a silent double-count or dropped test file is the most common failure mode.
+
 ### 2. Create Closeout PR
 
 Create a branch: `docs/post-merge-closeout-pr<N>`
