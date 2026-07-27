@@ -65,6 +65,60 @@ test('requires QA evidence before a non-draft pull request is ready', () => {
   );
 });
 
+test('accepts a Bug Fix work item with QA evidence and no lifecycle status labels', () => {
+  assert.deepEqual(
+    validateReadiness({
+      body,
+      draft: false,
+      workItem: { labels: ['bug', 'phase:requirements'], isPullRequest: false, isSameRepository: true }
+    }),
+    []
+  );
+});
+
+test('still requires QA evidence for a non-draft Bug Fix work item', () => {
+  assert.deepEqual(
+    validateReadiness({
+      body: '',
+      draft: false,
+      workItem: { labels: ['bug', 'phase:requirements'], isPullRequest: false, isSameRepository: true }
+    }),
+    ['QA evidence URL']
+  );
+});
+
+test('does not require QA evidence for a draft Bug Fix work item', () => {
+  assert.deepEqual(
+    validateReadiness({
+      body: '',
+      draft: true,
+      workItem: { labels: ['bug', 'phase:requirements'], isPullRequest: false, isSameRepository: true }
+    }),
+    []
+  );
+});
+
+test('does not require lifecycle status labels for a Bug Fix work item even without any phase label', () => {
+  assert.deepEqual(
+    validateReadiness({
+      body,
+      draft: false,
+      workItem: { labels: ['bug'], isPullRequest: false, isSameRepository: true }
+    }),
+    []
+  );
+});
+
+test('a Feature/Enhancement work item is unaffected by the Bug Fix carve-out', () => {
+  assert.deepEqual(
+    validateReadiness({
+      draft: true,
+      workItem: { labels: ['phase:development'], isPullRequest: false, isSameRepository: true }
+    }),
+    ['status:spec-ready']
+  );
+});
+
 test('allows only an authenticated closeout with authorized files', () => {
   const closeout = '<!-- post-merge-closeout: complete; source-pr-1 -->';
   assert.deepEqual(

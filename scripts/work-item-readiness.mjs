@@ -27,6 +27,16 @@ export function validateReadiness({
   }
 
   const labels = workItem.labels ?? [];
+
+  // Bug Fix work items are governed by docs/contracts/bug-fix-workflow.yaml, not the
+  // phase:/status: lifecycle label contract (AGENTS.md: "Bug Fix work continues to use
+  // docs/contracts/bug-fix-workflow.yaml rather than this lifecycle label contract").
+  // They correctly carry no status:* labels; only QA evidence is still required.
+  if (labels.includes('bug')) {
+    if (!draft && !qaEvidence.test(body)) errors.push('QA evidence URL');
+    return errors;
+  }
+
   const phases = labels.filter((label) => label.startsWith('phase:'));
   if (phases.length !== 1) errors.push('exactly one current phase');
   if (!labels.includes('status:spec-ready')) errors.push('status:spec-ready');
