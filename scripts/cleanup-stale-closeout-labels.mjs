@@ -120,14 +120,19 @@ function ghVariableArgs(variables) {
   return args;
 }
 
-async function ghViewRunner(number) {
-  const { stdout } = await execFileAsync('gh', ['pr', 'view', String(number), '--json', 'state,mergedAt,labels']);
+// Both gh calls below take an explicit --repo instead of relying on the
+// current working directory's git remote. confirmPRLabel/applyManifest are
+// given owner/repo explicitly by the caller; silently trusting ambient cwd
+// context instead would let --owner/--repo be no-ops for the very calls
+// that actually read or mutate GitHub state.
+async function ghViewRunner(number, owner, repo) {
+  const { stdout } = await execFileAsync('gh', ['pr', 'view', String(number), '--repo', `${owner}/${repo}`, '--json', 'state,mergedAt,labels']);
   const parsed = JSON.parse(stdout);
   return { state: parsed.state, mergedAt: parsed.mergedAt, labels: parsed.labels.map((l) => l.name) };
 }
 
-async function ghRemoveLabelRunner(number, { label }) {
-  await execFileAsync('gh', ['pr', 'edit', String(number), '--remove-label', label]);
+async function ghRemoveLabelRunner(number, { owner, repo, label }) {
+  await execFileAsync('gh', ['pr', 'edit', String(number), '--repo', `${owner}/${repo}`, '--remove-label', label]);
 }
 
 function parseArgs(argv) {
@@ -146,6 +151,11 @@ function parseArgs(argv) {
 
 async function main() {
   const args = parseArgs(process.argv.slice(2));
+  // confirmPRLabel's interface is viewRunner(number) -- owner/repo are bound
+  // here via closure so --owner/--repo actually reach the gh calls that read
+  // and mutate GitHub state, instead of those calls silently falling back to
+  // whatever repo the cwd's git remote happens to point at.
+  const viewRunner = (number) => ghViewRunner(number, args.owner, args.repo);
 
   if (args.apply) {
     if (!args.manifest) {
@@ -158,7 +168,7 @@ async function main() {
       repo: args.repo,
       label: args.label,
       manifestPath: args.manifest,
-      viewRunner: ghViewRunner,
+      viewRunner,
       removeLabelRunner: ghRemoveLabelRunner
     });
     console.log(`Removed "${args.label}" from: ${result.removed.join(', ') || '(none)'}`);
@@ -175,7 +185,7 @@ async function main() {
     label: args.label,
     staleDays: args.staleDays,
     graphqlRunner: ghGraphqlRunner,
-    viewRunner: ghViewRunner
+    viewRunner
   });
 
   console.log(`Confirmed candidates carrying "${args.label}" on a merged PR: ${report.candidates.length}`);

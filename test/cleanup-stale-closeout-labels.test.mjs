@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
@@ -11,6 +11,17 @@ import {
   loadManifest,
   applyManifest
 } from '../scripts/cleanup-stale-closeout-labels.mjs';
+
+test('the real gh view/remove-label wrappers pin --repo instead of trusting the cwd git remote', async () => {
+  const source = await readFile(new URL('../scripts/cleanup-stale-closeout-labels.mjs', import.meta.url), 'utf8');
+  const viewFn = source.slice(source.indexOf('async function ghViewRunner'), source.indexOf('async function ghRemoveLabelRunner'));
+  const removeFn = source.slice(source.indexOf('async function ghRemoveLabelRunner'), source.indexOf('function parseArgs'));
+
+  assert.match(viewFn, /'gh',\s*\[\s*'pr',\s*'view'/);
+  assert.match(viewFn, /'--repo',\s*`\$\{owner\}\/\$\{repo\}`/);
+  assert.match(removeFn, /'gh',\s*\[\s*'pr',\s*'edit'/);
+  assert.match(removeFn, /'--repo',\s*`\$\{owner\}\/\$\{repo\}`/);
+});
 
 test('listCandidatePRs follows GraphQL pagination to collect every labeled merged PR', async () => {
   const pages = [
