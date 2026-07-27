@@ -1,6 +1,9 @@
 const closeoutMarker = /<!-- post-merge-closeout: complete; source-pr-\d+ -->/;
 const qaEvidence = /QA: evidence comment or review URL:\s*https:\/\//i;
-const governingWorkflow = /Governing workflow:\s*Bug Fix\b/i;
+// Anchored to line start (not merely "contains") so guidance prose that mentions this
+// phrase — e.g. the PR template's own instructional text — cannot satisfy the check by
+// existing unedited. Only a line an author actually wrote as a declaration matches.
+const governingWorkflow = /^Governing workflow:\s*Bug Fix\b/im;
 
 export function validateReadiness({
   body = '',

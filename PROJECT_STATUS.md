@@ -4,7 +4,7 @@
 - ID: GitHub Issue #108
 - Title: work-item-readiness-freshness has no Bug Fix workflow carve-out
 - Owner: Human Maintainer (PR review)
-- Status: Independent QA verification (PASS 5/5 ACs) flagged that the initial label-only carve-out let a mislabeled Issue silently bypass the lifecycle gate; Human Maintainer chose to require a `Governing workflow: Bug Fix` PR-body declaration alongside the `bug` label. Strengthened, TDD'd, and re-verified on branch `fix/issue-108-readiness-bugfix-carveout`. `npm test` 207 → 214, all gates pass.
+- Status: Two rounds of independent QA each found a real gap and both were fixed. Round 1: label-only carve-out let a mislabeled Issue silently bypass the gate — fixed by requiring a `Governing workflow: Bug Fix` PR-body declaration alongside the `bug` label (Human Maintainer decision). Round 2: the unanchored declaration regex matched the PR template's own guidance text, reintroducing the same defect class — fixed by anchoring to line start. TDD throughout, re-verified on branch `fix/issue-108-readiness-bugfix-carveout`. `npm test` 207 → 217, all gates pass.
 - References: https://github.com/chakrits/AI-Agent-Workflow/issues/108; branch `fix/issue-108-readiness-bugfix-carveout`; blocked PR: https://github.com/chakrits/AI-Agent-Workflow/pull/107
 
 ## Current Stage

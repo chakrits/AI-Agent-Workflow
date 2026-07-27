@@ -87,6 +87,26 @@ Independent QA verification (PASS on all 5 original ACs) flagged two items:
    non-draft case asserting all four errors.
 2. **Headline finding**: the bare `labels.includes('bug')` signal let any mislabeled Issue
    bypass the entire lifecycle gate. Human Maintainer decided to require the
-   `Governing workflow: Bug Fix` declaration alongside the label (Candidate Approach 2),
-   implemented above. PR #107's own body is being updated to carry this line so it now
-   satisfies the strengthened check honestly rather than by the weaker original signal.
+   `Governing workflow: Bug Fix` declaration alongside the label (Candidate Approach 2).
+
+## Second QA Re-verification — Finding and Response
+
+The first two-signal implementation (commit `6b6c1c4`) used an unanchored
+`/Governing workflow:\s*Bug Fix\b/i` regex. Re-verification found this reintroduced the
+exact same class of defect one level down: `.github/pull_request_template.md`'s own
+instructional guidance text ("Instead, include this line in the PR body: `Governing
+workflow: Bug Fix`.") **contains the literal matchable phrase**, and the regex had no
+anchoring or code-span exclusion to distinguish a real authored declaration from
+boilerplate prose mentioning it. Any PR retaining that unedited blockquote plus a `bug`
+label would pass without an author ever typing a genuine declaration — arithmetically the
+same failure as the original single-signal defect: a conjunctive gate where one operand
+ships pre-satisfied.
+
+Fixed by anchoring the regex to line start: `/^Governing workflow:\s*Bug Fix\b/im`.
+Reproduced via node before the fix (unedited template matched: `true`) and after (matched:
+`false`), and confirmed the legitimate declaration shape still matches at any position in
+the body (multiline `^`). Added 3 regression cases: the unedited template itself as an
+adversarial fixture (mirroring the pattern from Issue #106's fix, which used the real
+`docs/records/qa/` directory rather than a synthetic one), a blockquoted copy of the
+declaration line, and a genuine mid-body declaration to confirm the anchor doesn't over-
+restrict to only the first line. `npm test` 214 → 217; all gates re-run and pass.
