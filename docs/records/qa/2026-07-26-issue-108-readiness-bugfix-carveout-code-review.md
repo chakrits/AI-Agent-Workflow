@@ -52,3 +52,21 @@ documents as not applying to Bug Fix work.
   more invasive than needed to unblock the readiness gate.
 - No change to `scripts/work-item-readiness-check.mjs`'s linking/invocation plumbing —
   confirmed unchanged, per AC-05.
+
+## QA Findings and Response
+
+Independent QA verification (PASS on all 5 ACs) flagged two items:
+
+1. **Test-effectiveness gap**: the original "Feature/Enhancement work item is unaffected"
+   test was byte-for-byte identical to a pre-existing test and added zero coverage toward
+   AC-02, and no test exercised a non-draft Feature/Enhancement PR. Fixed: replaced with a
+   non-draft case asserting all four errors (`status:spec-ready`,
+   `status:development-done`, `status:verification-done`, `QA evidence URL`).
+2. **Headline finding, not fixed here, routed forward**: the bare `labels.includes('bug')`
+   signal means any Issue mislabeled `bug` silently bypasses the entire lifecycle gate on a
+   required merge check — a stronger signal (Candidate Approach 2, a PR-body-declared
+   `Governing workflow:` field, which PR #107 already demonstrates in practice) was
+   available but not required by Issue #108's own AC-01 through AC-05. This is a real
+   scope-widening of a security-relevant required check and needs an explicit Human
+   Maintainer decision, not a unilateral implementer choice — see Issue #108's
+   closing comment.

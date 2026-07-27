@@ -109,13 +109,14 @@ test('does not require lifecycle status labels for a Bug Fix work item even with
   );
 });
 
-test('a Feature/Enhancement work item is unaffected by the Bug Fix carve-out', () => {
+test('a non-draft Feature/Enhancement work item still requires every lifecycle label, unaffected by the Bug Fix carve-out', () => {
   assert.deepEqual(
     validateReadiness({
-      draft: true,
+      body: '',
+      draft: false,
       workItem: { labels: ['phase:development'], isPullRequest: false, isSameRepository: true }
     }),
-    ['status:spec-ready']
+    ['status:spec-ready', 'status:development-done', 'status:verification-done', 'QA evidence URL']
   );
 });
 
