@@ -2,6 +2,16 @@
 
 ## Decision Log
 
+### ADR-0013: Dispatch Receipt Assurance Model — Repository-Audited, Not Runtime-Attested
+
+- Date: 2026-07-28
+- Status: Proposed — awaiting Boss decision and Security Reviewer re-approval
+- Context: Security review of the Issue #116 Fix 3 (dispatch receipt tool) plan returned BLOCKED — the existing schema/validator accepts a `consumed` receipt's `terminal_result_id` as an unconstrained non-empty string, and nothing prevents a receipt file from being introduced already in a terminal state, so a receipt could assert work was done without any checkable evidence.
+- Decision (proposed): Adopt a repository-audited assurance model — a receipt's state history must be append-only as verified against this repo's own git history, `registered_by`/`state_changed_by` must be drawn from the canonical `AGENTS.md` role set, and `terminal_result_id` must resolve to a real, existing artifact (a commit SHA, a `docs/records/qa|work-items` file, or a shaped GitHub comment URL). This proves the paper trail is internally consistent and checkable — the same assurance level as every other claim in this framework — and is explicitly documented as not proving the target agent actually executed the work.
+- Alternatives Considered: Runtime-attested assurance (a signed token or trusted-issuer proof of actual execution) — rejected for now because this repository has no signing/issuer infrastructure to support it; recorded as a deferred follow-up, not designed further.
+- Consequences: `scripts/validate-dispatch-receipts.mjs` and `docs/contracts/schemas/dispatch-receipt.schema.json` require additional controls (git-history replay, an agent-identity allow-list, terminal-evidence existence checks) before Issue #119's dispatch-receipt tooling can be implemented. See `docs/superpowers/specs/2026-07-28-dispatch-receipt-lifecycle-security-revision.md` for the full control design and required adversarial tests. No implementation proceeds until Boss confirms this option and the Security Reviewer re-approves against it.
+- Owner: Boss / Security Reviewer
+
 ### ADR-0011: Preserve Handoff Parser Compatibility While Improving Scanability
 
 - Date: 2026-07-24
