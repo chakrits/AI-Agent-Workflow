@@ -4,11 +4,11 @@
 - ID: GitHub Issue #106
 - Title: validate-review-gate cannot fail — directory-presence check is a no-op
 - Owner: Human Maintainer (QA dispatch escalation)
-- Status: Implementation commit `63c972b` awaits independent QA; two in-turn QA dispatches timed out without a terminal receipt
-- References: https://github.com/chakrits/AI-Agent-Workflow/issues/106; branch `fix/issue-106-review-gate-diff-scope`; commit `63c972b12c709bf6688511dfa6802f67e4e001e9`
+- Status: Independently QA-verified PASS at commit `63c972b` (verification performed outside the Codex host after three in-turn QA dispatches there timed out). Bug Fix contract state: `handoff`. Ready for a PR.
+- References: https://github.com/chakrits/AI-Agent-Workflow/issues/106; branch `fix/issue-106-review-gate-diff-scope`; commit `63c972b12c709bf6688511dfa6802f67e4e001e9`; QA evidence https://github.com/chakrits/AI-Agent-Workflow/issues/106#issuecomment-5086787642
 
 ## Current Stage
-- Bug Fix verification — awaiting independent QA. Dispatch control state is `blocked` with `stop_reason: host_completion_unavailable`; Bug Fix task state remains `verifying` (no QA pass/fail result received and no rework consumed).
+- Ready for a PR — Bug Fix contract state `verifying` → `handoff`. `original_repro_result` and `verification_result` both satisfied; rework count 0.
 
 ## Change Classification
 - Change Type: Bug Fix (CI validator)
