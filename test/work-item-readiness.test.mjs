@@ -164,6 +164,60 @@ test('a blockquoted copy of the declaration line does not trigger the carve-out'
   );
 });
 
+test('a backtick-wrapped copy of the declaration line does not trigger the carve-out', () => {
+  assert.deepEqual(
+    validateReadiness({
+      body: '`Governing workflow: Bug Fix`',
+      draft: false,
+      workItem: { labels: ['bug', 'phase:requirements'], isPullRequest: false, isSameRepository: true }
+    }),
+    ['status:spec-ready', 'status:development-done', 'status:verification-done', 'QA evidence URL']
+  );
+});
+
+test('the PR template guidance no longer wraps the declaration phrase in backticks', () => {
+  const template = readFileSync(path.join(repoRoot, '.github/pull_request_template.md'), 'utf8');
+  assert.ok(
+    !template.includes('`Governing workflow: Bug Fix`'),
+    'a backtick-wrapped copy of the declaration invites a good-faith author to paste the ' +
+      'backticks too, which then fails the anchored regex — Issue #111'
+  );
+  assert.ok(
+    template.includes('Governing workflow: Bug Fix'),
+    'the corrected guidance must still state the exact phrase, just not backtick-wrapped'
+  );
+});
+
+test('the GitLab merge-request template documents the Bug Fix governing-workflow requirement', () => {
+  const template = readFileSync(
+    path.join(repoRoot, '.gitlab/merge_request_templates/Default.md'),
+    'utf8'
+  );
+  assert.ok(
+    /Bug Fix work items/.test(template),
+    'GitLab authors need the same Bug Fix carve-out guidance the GitHub template documents — Issue #111'
+  );
+  assert.ok(
+    template.includes('Governing workflow: Bug Fix'),
+    'the GitLab template must state the exact declaration phrase'
+  );
+});
+
+test('the unedited GitLab template guidance text does not itself satisfy the governing-workflow declaration', () => {
+  const template = readFileSync(
+    path.join(repoRoot, '.gitlab/merge_request_templates/Default.md'),
+    'utf8'
+  );
+  assert.deepEqual(
+    validateReadiness({
+      body: template,
+      draft: false,
+      workItem: { labels: ['bug', 'phase:requirements'], isPullRequest: false, isSameRepository: true }
+    }),
+    ['status:spec-ready', 'status:development-done', 'status:verification-done', 'QA evidence URL']
+  );
+});
+
 test('a genuine declaration on its own line, anywhere in the body, triggers the carve-out', () => {
   assert.deepEqual(
     validateReadiness({

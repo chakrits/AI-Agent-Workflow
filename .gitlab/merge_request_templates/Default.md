@@ -10,6 +10,8 @@
 ## Lifecycle Readiness
 
 > The Work Item has exactly one current `phase:` label. `status:spec-ready` is required before Developer implementation; it does not replace QA or human approval.
+>
+> **Bug Fix work items** (linked Issue labeled `bug`, governed by `docs/contracts/bug-fix-workflow.yaml`) do not use `phase:`/`status:*` labels. Instead, add a new line to this MR's body reading exactly: Governing workflow: Bug Fix — with no backticks, no quote marker (`>`), and nothing else on that line. QA evidence below is still required.
 
 - [ ] Developer: Work Item current phase and URL are recorded.
 - [ ] Developer: required specification type is Lightweight specification / SDD-design / N/A.
