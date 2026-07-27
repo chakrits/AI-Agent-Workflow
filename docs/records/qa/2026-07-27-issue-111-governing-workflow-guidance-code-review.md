@@ -53,6 +53,19 @@ guidance at all.
 - Full `npm test` (219 → 222), `validate:contracts`, `validate:skill-parity`,
   `validate:skill-usage` pass before handoff.
 
+## QA Findings and Response
+
+Independent QA verification returned BLOCKED on one item: AC-03 required regression
+coverage "proving AC-02 rather than asserting it by inspection," but the original test
+("no longer wraps the declaration phrase in backticks") only checked `template.includes(...)`
+— a string-presence assertion — rather than exercising `validateReadiness()` behaviorally
+with a backtick-wrapped body. Fixed by adding a dedicated behavioral test mirroring the
+existing blockquoted-copy pattern: `validateReadiness()` called with the literal
+backtick-wrapped body `` `Governing workflow: Bug Fix` `` and a `bug` label, asserting it
+falls through to the strict path exactly as the blockquote test does. All other QA findings
+(AC-01, AC-02, AC-04 PASS; regex untouched; repo-wide sweep across all 393 tracked files
+clean) required no changes.
+
 ## Deliberately Not Enforced
 
 - No regex change (Candidate Approach 3) — see Findings above for why.

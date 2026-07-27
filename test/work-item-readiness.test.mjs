@@ -164,6 +164,17 @@ test('a blockquoted copy of the declaration line does not trigger the carve-out'
   );
 });
 
+test('a backtick-wrapped copy of the declaration line does not trigger the carve-out', () => {
+  assert.deepEqual(
+    validateReadiness({
+      body: '`Governing workflow: Bug Fix`',
+      draft: false,
+      workItem: { labels: ['bug', 'phase:requirements'], isPullRequest: false, isSameRepository: true }
+    }),
+    ['status:spec-ready', 'status:development-done', 'status:verification-done', 'QA evidence URL']
+  );
+});
+
 test('the PR template guidance no longer wraps the declaration phrase in backticks', () => {
   const template = readFileSync(path.join(repoRoot, '.github/pull_request_template.md'), 'utf8');
   assert.ok(
