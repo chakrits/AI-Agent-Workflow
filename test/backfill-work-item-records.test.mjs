@@ -188,6 +188,23 @@ test('generateBackfill never overwrites a group whose issue number already has a
   );
 });
 
+test('generateBackfill never overwrites a slug-kind record a human already hand-edited on disk', async () => {
+  const taskLog = `# TASK_LOG.md\n\n${HEADER}| 2026-07-13 | STANDALONE-SLUG-2026-07-13 | Dev | did work | some result | QA | note |\n`;
+  await withRootDir({ 'TASK_LOG.md': taskLog }, async (rootDir) => {
+    const first = await generateBackfill({ rootDir, write: true });
+    assert.equal(first.written.length, 1);
+    const filePath = path.join(rootDir, 'docs/records/work-items', first.written[0].filename);
+    await writeFile(filePath, '# HAND-EDITED, DO NOT LOSE THIS\n');
+
+    const second = await generateBackfill({ rootDir, write: true });
+
+    assert.equal(second.written.length, 0);
+    assert.deepEqual(second.skippedExisting, ['slug-standalone-slug-2026-07-13']);
+    const contentAfter = await readFile(filePath, 'utf8');
+    assert.equal(contentAfter, '# HAND-EDITED, DO NOT LOSE THIS\n');
+  });
+});
+
 test('generateBackfill is idempotent: running twice with --write produces the same file set', async () => {
   const taskLog = `# TASK_LOG.md\n\n${HEADER}| 2026-07-27 | GitHub Issue #400 | Developer Agent | Did work | Result text | QA | note |\n`;
   await withRootDir({ 'TASK_LOG.md': taskLog }, async (rootDir) => {

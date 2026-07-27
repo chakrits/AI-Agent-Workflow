@@ -1,4 +1,4 @@
-import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, readdir, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
@@ -101,16 +101,7 @@ export function determineStatus(group) {
   let closedDate = null;
   for (const row of group.rows) {
     if (isCloseoutEvidence(row.result || '')) {
-      closedDate = row.date; // last matching row wins — rows are in file order (newest first in this repo's TASK_LOG)
-    }
-  }
-  if (!closedDate) {
-    // fall back to the earliest closeout-evidence row if rows aren't newest-first
-    for (const row of [...group.rows].reverse()) {
-      if (isCloseoutEvidence(row.result || '')) {
-        closedDate = row.date;
-        break;
-      }
+      closedDate = row.date; // last matching row in file order wins if more than one closeout row exists
     }
   }
   return closedDate ? { status: `Closed (${closedDate})`, closedDate } : { status: 'Unknown — requires review', closedDate: null };
@@ -135,6 +126,21 @@ export async function existingIssueNumbers(rootDir) {
 
 function earliestDate(group) {
   return [...group.rows].map((r) => r.date).sort()[0];
+}
+
+function computeFilename(group) {
+  const date = earliestDate(group);
+  return group.kind === 'issue' ? `${date}-issue-${group.issueNumber}.md` : `${date}-${slugify(group.slug)}.md`;
+}
+
+async function fileExists(filePath) {
+  try {
+    await stat(filePath);
+    return true;
+  } catch (err) {
+    if (err.code === 'ENOENT') return false;
+    throw err;
+  }
 }
 
 function buildRecordMarkdown(key, group, statusInfo) {
@@ -212,6 +218,7 @@ export async function generateBackfill({ rootDir, write = false, pilot = false }
     }
   }
 
+  const outDir = path.join(rootDir, 'docs/records/work-items');
   const candidates = [];
   const skippedExisting = [];
   const written = [];
@@ -222,23 +229,29 @@ export async function generateBackfill({ rootDir, write = false, pilot = false }
       skippedExisting.push(key);
       continue;
     }
-    candidates.push({ key, rowCount: group.rows.length, kind: group.kind });
+    const filename = computeFilename(group);
+    // No-overwrite applies to every kind: an issue-numbered group is also
+    // skipped here if e.g. a prior pilot run already produced this exact
+    // filename. A slug-kind group has no separate "existing issue numbers"
+    // signal at all, so this on-disk check is the only thing protecting a
+    // human-edited slug record from a later full-batch --write run.
+    if (await fileExists(path.join(outDir, filename))) {
+      skippedExisting.push(key);
+      continue;
+    }
+    candidates.push({ key, rowCount: group.rows.length, kind: group.kind, filename });
   }
 
   const toWrite = pilot ? candidates.slice(0, PILOT_SIZE) : candidates;
 
   if (write) {
-    const outDir = path.join(rootDir, 'docs/records/work-items');
     await mkdir(outDir, { recursive: true });
     for (const candidate of toWrite) {
       const group = groups.get(candidate.key);
       const statusInfo = determineStatus(group);
-      const date = earliestDate(group);
-      const filename =
-        group.kind === 'issue' ? `${date}-issue-${group.issueNumber}.md` : `${date}-${slugify(group.slug)}.md`;
-      const filePath = path.join(outDir, filename);
+      const filePath = path.join(outDir, candidate.filename);
       await writeFile(filePath, buildRecordMarkdown(candidate.key, group, statusInfo));
-      written.push({ key: candidate.key, filename, status: statusInfo.status });
+      written.push({ key: candidate.key, filename: candidate.filename, status: statusInfo.status });
     }
   }
 
