@@ -48,6 +48,20 @@ test('extractIssueNumbers finds multiple issues plus a PR in one column', () => 
   assert.deepEqual(extractIssueNumbers('GitHub Issues #26 / #29; PR #31'), { issues: [26, 29], prs: [31] });
 });
 
+test('extractIssueNumbers keeps plural PR lists out of Issue records', () => {
+  assert.deepEqual(
+    extractIssueNumbers('GitHub Issue #76 / PRs #78, #79, #80, #81'),
+    { issues: [76], prs: [78, 79, 80, 81] }
+  );
+});
+
+test('extractIssueNumbers expands an explicitly labelled PR range without creating Issue records', () => {
+  assert.deepEqual(
+    extractIssueNumbers('GitHub Issue #76 / PRs #78–#81'),
+    { issues: [76], prs: [78, 79, 80, 81] }
+  );
+});
+
 test('extractIssueNumbers treats a bare trailing number as an issue reference', () => {
   assert.deepEqual(extractIssueNumbers('AGENT-PERSONAS-2026-07-16 / #16'), { issues: [16], prs: [] });
 });
@@ -152,6 +166,21 @@ test('generateBackfill dry-run reports the plan without writing any files', asyn
     assert.equal(plan.candidates.length, 1);
     assert.equal(plan.candidates[0].key, 'issue-200');
     await assert.rejects(readFile(path.join(rootDir, 'docs/records/work-items/2026-07-27-issue-200.md')));
+  });
+});
+
+test('generateBackfill dry-run returns diagnostics for malformed and ambiguous Work Item rows', async () => {
+  const taskLog = `# TASK_LOG.md\n\n${HEADER}| 2026-07-27 | GitHub Issue #200 | Developer Agent | Did work | Result text | QA | note |\n| 2026-07-27 | GitHub Issue #201 | Developer Agent | missing result |\n| 2026-07-27 | PRs without a number | Developer Agent | Did work | Result text | QA | note |\n`;
+  await withRootDir({ 'TASK_LOG.md': taskLog }, async (rootDir) => {
+    const plan = await generateBackfill({ rootDir, write: false });
+
+    assert.equal(plan.diagnostics.length, 2);
+    assert.deepEqual(
+      plan.diagnostics.map((diagnostic) => diagnostic.code),
+      ['malformed-row', 'ambiguous-work-item']
+    );
+    assert.match(plan.diagnostics[0].message, /expected at least 6 cells/i);
+    assert.match(plan.diagnostics[1].message, /PR label without a #NN reference/i);
   });
 });
 

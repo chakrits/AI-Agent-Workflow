@@ -10,21 +10,89 @@ const PILOT_SIZE = 10;
 // misattribute unrelated rows to the wrong work item. Only the Work Item
 // column identifies what a row's evidence is *about*.
 export function parseTaskLogRows(content) {
-  const lines = content.split('\n').filter((line) => line.trim().startsWith('|'));
-  if (lines.length < 2) return [];
+  return parseTaskLogRowsDetailed(content).rows;
+}
+
+function parseTaskLogRowsDetailed(content) {
+  const lines = content.split('\n');
+  const tableLines = lines
+    .map((line, index) => ({ line, lineNumber: index + 1 }))
+    .filter(({ line }) => line.trim().startsWith('|'));
+  if (tableLines.length < 2) return { rows: [], diagnostics: [] };
 
   const rows = [];
-  for (const line of lines.slice(1)) {
+  const diagnostics = [];
+  for (const { line, lineNumber } of tableLines.slice(1)) {
     const cells = line
       .split('|')
       .slice(1, -1)
       .map((cell) => cell.trim());
-    if (cells.length < 6) continue;
+    if (cells.length < 6) {
+      diagnostics.push({
+        code: 'malformed-row',
+        lineNumber,
+        message: `TASK_LOG.md line ${lineNumber}: expected at least 6 cells, found ${cells.length}.`
+      });
+      continue;
+    }
     if (/^-+$/.test(cells[0])) continue; // markdown header separator row
     const [date, workItem, agent, action, result, nextAgent, ...noteParts] = cells;
-    rows.push({ date, workItem, agent, action, result, nextAgent, notes: noteParts.join(' | ') });
+    rows.push({ date, workItem, agent, action, result, nextAgent, notes: noteParts.join(' | '), lineNumber });
   }
-  return rows;
+  return { rows, diagnostics };
+}
+
+function addRange(target, start, end) {
+  const step = start <= end ? 1 : -1;
+  for (let number = start; number !== end + step; number += step) {
+    if (!target.includes(number)) target.push(number);
+  }
+}
+
+function extractPrReferences(workItemColumn) {
+  const prs = [];
+  const prPositions = new Set();
+  const diagnostics = [];
+  const labelPattern = /\bPRs?\b/gi;
+
+  for (const label of workItemColumn.matchAll(labelPattern)) {
+    let cursor = label.index + label[0].length;
+    const first = /^\s*#(\d+)/.exec(workItemColumn.slice(cursor));
+    if (!first) {
+      diagnostics.push({
+        code: 'ambiguous-work-item',
+        message: 'Work Item contains a PR label without a #NN reference.'
+      });
+      continue;
+    }
+
+    let previous = Number(first[1]);
+    addRange(prs, previous, previous);
+    const firstHash = cursor + first.index + first[0].indexOf('#');
+    prPositions.add(firstHash);
+    cursor += first.index + first[0].length;
+
+    while (cursor < workItemColumn.length) {
+      const rest = workItemColumn.slice(cursor);
+      const range = /^\s*(?:-|–|—|\bto\b)\s*#?(\d+)/i.exec(rest);
+      const list = /^\s*(?:,|\/|&|\band\b)\s*#(\d+)/i.exec(rest);
+      const next = range || list;
+      if (!next) break;
+
+      const nextNumber = Number(next[1]);
+      if (range) {
+        addRange(prs, previous, nextNumber);
+      } else if (!prs.includes(nextNumber)) {
+        prs.push(nextNumber);
+      }
+      const hashOffset = next[0].indexOf('#');
+      if (hashOffset >= 0) prPositions.add(cursor + hashOffset);
+      previous = nextNumber;
+      cursor += next[0].length;
+    }
+  }
+
+  return { prs, prPositions, diagnostics };
 }
 
 // Returns {issues:number[], prs:number[]} found in a single Work Item column.
@@ -33,11 +101,7 @@ export function parseTaskLogRows(content) {
 // issue reference — verified against this repo's real Issues (#5, #7, #10,
 // #12, #16 all exist and match their slug context) before adopting this rule.
 export function extractIssueNumbers(workItemColumn) {
-  const prMatches = [...workItemColumn.matchAll(/\bPR\s*#(\d+)/gi)].map((m) => Number(m[1]));
-  const prPositions = new Set();
-  for (const m of workItemColumn.matchAll(/\bPR\s*#(\d+)/gi)) {
-    prPositions.add(m.index + m[0].indexOf('#'));
-  }
+  const { prs, prPositions } = extractPrReferences(workItemColumn);
 
   const issues = [];
   for (const m of workItemColumn.matchAll(/#(\d+)/g)) {
@@ -46,7 +110,7 @@ export function extractIssueNumbers(workItemColumn) {
     if (!issues.includes(n)) issues.push(n);
   }
 
-  return { issues, prs: [...new Set(prMatches)] };
+  return { issues, prs };
 }
 
 function slugify(text) {
@@ -200,7 +264,13 @@ ${provenance}
 export async function generateBackfill({ rootDir, write = false, pilot = false }) {
   const taskLogPath = path.join(rootDir, 'TASK_LOG.md');
   const content = await readFile(taskLogPath, 'utf8');
-  const rows = parseTaskLogRows(content);
+  const { rows, diagnostics: malformedRows } = parseTaskLogRowsDetailed(content);
+  const diagnostics = [...malformedRows];
+  for (const row of rows) {
+    for (const diagnostic of extractPrReferences(row.workItem).diagnostics) {
+      diagnostics.push({ ...diagnostic, lineNumber: row.lineNumber, workItem: row.workItem });
+    }
+  }
   const groups = groupRowsByWorkItem(rows);
   const existing = await existingIssueNumbers(rootDir);
 
@@ -255,7 +325,7 @@ export async function generateBackfill({ rootDir, write = false, pilot = false }
     }
   }
 
-  return { candidates, written, skippedExisting };
+  return { candidates, written, skippedExisting, diagnostics };
 }
 
 async function main() {
@@ -271,6 +341,14 @@ async function main() {
   console.log(`Candidates ${write ? 'written' : '(dry-run, nothing written)'}: ${pilot ? Math.min(PILOT_SIZE, plan.candidates.length) : plan.candidates.length}`);
   for (const candidate of plan.candidates.slice(0, pilot ? PILOT_SIZE : plan.candidates.length)) {
     console.log(`  - ${candidate.key} (${candidate.rowCount} TASK_LOG row${candidate.rowCount === 1 ? '' : 's'}, kind=${candidate.kind})`);
+  }
+  if (plan.diagnostics.length > 0) {
+    console.log('\nDiagnostics (review before --write):');
+    for (const diagnostic of plan.diagnostics) {
+      const location = diagnostic.lineNumber ? ` line ${diagnostic.lineNumber}` : '';
+      const context = diagnostic.workItem ? ` Work Item: ${diagnostic.workItem}` : '';
+      console.log(`  - [${diagnostic.code}]${location} ${diagnostic.message}${context}`);
+    }
   }
   if (write) {
     console.log('\nWritten files:');
