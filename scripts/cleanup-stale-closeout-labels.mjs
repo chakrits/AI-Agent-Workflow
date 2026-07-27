@@ -67,17 +67,99 @@ export async function buildDryRunReport({ owner, repo, label = DEFAULT_LABEL, st
   return { candidates, generatedAt: now.toISOString() };
 }
 
-export async function loadManifest(manifestPath) {
+function requireNonEmptyString(value, field) {
+  if (typeof value !== 'string' || value.trim() === '') {
+    throw new Error(`${field} must be a non-empty string`);
+  }
+}
+
+function requirePositiveInteger(value, field) {
+  if (!Number.isInteger(value) || value <= 0) {
+    throw new Error(`${field} must be a positive integer`);
+  }
+}
+
+function validateReconciliationEvidence(evidence, { prefix, manifest, sourcePr }) {
+  const evidencePrefix = `${prefix}.reconciliationEvidence`;
+  if (!evidence || typeof evidence !== 'object' || Array.isArray(evidence)) {
+    throw new Error(`${evidencePrefix} must be an object`);
+  }
+  if (!['closeout_pr', 'project_state'].includes(evidence.kind)) {
+    throw new Error(`${evidencePrefix}.kind must be one of: closeout_pr, project_state`);
+  }
+  if (evidence.owner !== manifest.owner) {
+    throw new Error(`${evidencePrefix}.owner must match manifest.owner`);
+  }
+  if (evidence.repo !== manifest.repo) {
+    throw new Error(`${evidencePrefix}.repo must match manifest.repo`);
+  }
+  requirePositiveInteger(evidence.sourcePr, `${evidencePrefix}.sourcePr`);
+  if (evidence.sourcePr !== sourcePr) {
+    throw new Error(`${evidencePrefix}.sourcePr must match ${prefix}.sourcePr`);
+  }
+  if (!evidence.reference || typeof evidence.reference !== 'object' || Array.isArray(evidence.reference)) {
+    throw new Error(`${evidencePrefix}.reference must be an object`);
+  }
+  requirePositiveInteger(evidence.reference.sourcePr, `${evidencePrefix}.reference.sourcePr`);
+  if (evidence.reference.sourcePr !== sourcePr) {
+    throw new Error(`${evidencePrefix}.reference.sourcePr must match ${prefix}.sourcePr`);
+  }
+  if (evidence.kind === 'closeout_pr') {
+    requirePositiveInteger(evidence.reference.pullRequest, `${evidencePrefix}.reference.pullRequest`);
+    if (evidence.reference.pullRequest === sourcePr) {
+      throw new Error(`${evidencePrefix}.reference.pullRequest must identify a distinct closeout PR`);
+    }
+  } else {
+    if (evidence.reference.path !== 'PROJECT_STATUS.md') {
+      throw new Error(`${evidencePrefix}.reference.path must be PROJECT_STATUS.md`);
+    }
+  }
+}
+
+function validateManifestPR(entry, index) {
+  const prefix = `manifest.prs[${index}]`;
+  if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
+    throw new Error(`${prefix} must be an object with per-PR reconciliation provenance`);
+  }
+  requirePositiveInteger(entry.number, `${prefix}.number`);
+  requirePositiveInteger(entry.sourcePr, `${prefix}.sourcePr`);
+  if (entry.sourcePr !== entry.number) {
+    throw new Error(`${prefix}.sourcePr must match the PR whose label would be removed`);
+  }
+  requireNonEmptyString(entry.missedCleanupRationale, `${prefix}.missedCleanupRationale`);
+}
+
+function assertManifestBinding(manifest, expected) {
+  if (!expected) return;
+  for (const field of ['owner', 'repo', 'label']) {
+    if (manifest[field] !== expected[field]) {
+      throw new Error(`manifest ${field} does not match requested ${field}`);
+    }
+  }
+}
+
+export async function loadManifest(manifestPath, expectedBinding) {
   const raw = await readFile(manifestPath, 'utf8');
   const manifest = JSON.parse(raw);
   const missing = [];
   if (!manifest.approvedBy) missing.push('approvedBy');
   if (!manifest.approvedAt) missing.push('approvedAt');
-  if (!manifest.evidence) missing.push('evidence');
+  if (!manifest.owner) missing.push('owner');
+  if (!manifest.repo) missing.push('repo');
+  if (!manifest.label) missing.push('label');
   if (missing.length) throw new Error(`manifest is missing required field(s): ${missing.join(', ')}`);
   if (!Array.isArray(manifest.prs) || manifest.prs.length === 0) {
-    throw new Error('manifest.prs must be a non-empty array of approved PR numbers');
+    throw new Error('manifest.prs must be a non-empty array of approved PR records');
   }
+  manifest.prs.forEach((entry, index) => {
+    validateManifestPR(entry, index);
+    validateReconciliationEvidence(entry.reconciliationEvidence, {
+      prefix: `manifest.prs[${index}]`,
+      manifest,
+      sourcePr: entry.sourcePr
+    });
+  });
+  assertManifestBinding(manifest, expectedBinding);
   return manifest;
 }
 
@@ -87,10 +169,10 @@ export async function loadManifest(manifestPath) {
 // intent, it does not substitute for a fresh check (Issue #118: "Developer
 // must not remove labels merely because a local test passes").
 export async function applyManifest({ owner, repo, label = DEFAULT_LABEL, manifestPath, viewRunner, removeLabelRunner, readManifest = loadManifest }) {
-  const manifest = await readManifest(manifestPath);
+  const manifest = await readManifest(manifestPath, { owner, repo, label });
   const removed = [];
   const skipped = [];
-  for (const number of manifest.prs) {
+  for (const { number } of manifest.prs) {
     const confirmed = await confirmPRLabel({ number, label, viewRunner });
     if (!confirmed) {
       skipped.push({ number, reason: 'label already removed or PR no longer merged as of live re-check' });

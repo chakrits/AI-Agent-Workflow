@@ -12,6 +12,28 @@ import {
   applyManifest
 } from '../scripts/cleanup-stale-closeout-labels.mjs';
 
+function approvedManifest(prNumbers) {
+  return {
+    owner: 'chakrits',
+    repo: 'AI-Agent-Workflow',
+    label: 'post-merge-closeout',
+    approvedBy: 'chakrits',
+    approvedAt: '2026-07-28',
+    prs: prNumbers.map((number) => ({
+      number,
+      sourcePr: number,
+      reconciliationEvidence: {
+        kind: 'closeout_pr',
+        owner: 'chakrits',
+        repo: 'AI-Agent-Workflow',
+        sourcePr: number,
+        reference: { sourcePr: number, pullRequest: number + 1000 }
+      },
+      missedCleanupRationale: 'Closeout marker exists but label-removal automation did not complete.'
+    }))
+  };
+}
+
 test('the real gh view/remove-label wrappers pin --repo instead of trusting the cwd git remote', async () => {
   const source = await readFile(new URL('../scripts/cleanup-stale-closeout-labels.mjs', import.meta.url), 'utf8');
   const viewFn = source.slice(source.indexOf('async function ghViewRunner'), source.indexOf('async function ghRemoveLabelRunner'));
@@ -115,7 +137,7 @@ test('buildDryRunReport confirms every GraphQL candidate per-PR and only flags a
   assert.ok(!byNumber[999], 'a candidate whose label is already gone must not appear in the report');
 });
 
-test('loadManifest requires approver identity, date, and evidence before any PR is trusted', async () => {
+test('loadManifest requires approver identity, target binding, and per-PR provenance before any PR is trusted', async () => {
   const dir = await mkdtemp(path.join(os.tmpdir(), 'manifest-'));
   try {
     const badPath = path.join(dir, 'bad.json');
@@ -125,10 +147,10 @@ test('loadManifest requires approver identity, date, and evidence before any PR 
     const goodPath = path.join(dir, 'good.json');
     await writeFile(
       goodPath,
-      JSON.stringify({ approvedBy: 'chakrits', approvedAt: '2026-07-28', evidence: 'closeout merged, label missed by automation', prs: [21, 22] })
+      JSON.stringify(approvedManifest([21, 22]))
     );
     const manifest = await loadManifest(goodPath);
-    assert.deepEqual(manifest.prs, [21, 22]);
+    assert.deepEqual(manifest.prs.map((entry) => entry.number), [21, 22]);
   } finally {
     await rm(dir, { recursive: true, force: true });
   }
@@ -138,8 +160,88 @@ test('loadManifest rejects an empty PR list', async () => {
   const dir = await mkdtemp(path.join(os.tmpdir(), 'manifest-'));
   try {
     const emptyPath = path.join(dir, 'empty.json');
-    await writeFile(emptyPath, JSON.stringify({ approvedBy: 'chakrits', approvedAt: '2026-07-28', evidence: 'x', prs: [] }));
+    await writeFile(emptyPath, JSON.stringify({ ...approvedManifest([]), prs: [] }));
     await assert.rejects(() => loadManifest(emptyPath), /prs/);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('loadManifest rejects generic global evidence when an approved PR lacks structured reconciliation provenance', async () => {
+  const dir = await mkdtemp(path.join(os.tmpdir(), 'manifest-'));
+  try {
+    const manifestPath = path.join(dir, 'generic-evidence.json');
+    await writeFile(
+      manifestPath,
+      JSON.stringify({
+        owner: 'chakrits',
+        repo: 'AI-Agent-Workflow',
+        label: 'post-merge-closeout',
+        approvedBy: 'chakrits',
+        approvedAt: '2026-07-28',
+        evidence: 'all labels are safe to remove',
+        prs: [21]
+      })
+    );
+
+    await assert.rejects(() => loadManifest(manifestPath), /per-PR reconciliation provenance/);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('loadManifest rejects a manifest whose repository or target label does not match the requested mutation', async () => {
+  const dir = await mkdtemp(path.join(os.tmpdir(), 'manifest-'));
+  try {
+    const manifestPath = path.join(dir, 'mismatched-binding.json');
+    await writeFile(
+      manifestPath,
+      JSON.stringify({
+        owner: 'another-owner',
+        repo: 'AI-Agent-Workflow',
+        label: 'unrelated-label',
+        approvedBy: 'chakrits',
+        approvedAt: '2026-07-28',
+        prs: approvedManifest([21]).prs.map((entry) => ({
+          ...entry,
+          reconciliationEvidence: { ...entry.reconciliationEvidence, owner: 'another-owner', repo: 'AI-Agent-Workflow' }
+        }))
+      })
+    );
+
+    await assert.rejects(
+      () => loadManifest(manifestPath, { owner: 'chakrits', repo: 'AI-Agent-Workflow', label: 'post-merge-closeout' }),
+      /owner does not match requested owner/
+    );
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('loadManifest rejects a manifest that tries to bind approval for the closeout label to a different requested label', async () => {
+  const dir = await mkdtemp(path.join(os.tmpdir(), 'manifest-'));
+  try {
+    const manifestPath = path.join(dir, 'label-mismatch.json');
+    await writeFile(manifestPath, JSON.stringify(approvedManifest([21])));
+
+    await assert.rejects(
+      () => loadManifest(manifestPath, { owner: 'chakrits', repo: 'AI-Agent-Workflow', label: 'unrelated-label' }),
+      /label does not match requested label/
+    );
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('loadManifest rejects provenance for a different source PR than the one whose label would be removed', async () => {
+  const dir = await mkdtemp(path.join(os.tmpdir(), 'manifest-'));
+  try {
+    const manifestPath = path.join(dir, 'source-pr-mismatch.json');
+    const manifest = approvedManifest([21]);
+    manifest.prs[0].sourcePr = 22;
+    await writeFile(manifestPath, JSON.stringify(manifest));
+
+    await assert.rejects(() => loadManifest(manifestPath), /sourcePr must match the PR/);
   } finally {
     await rm(dir, { recursive: true, force: true });
   }
@@ -151,7 +253,7 @@ test('applyManifest re-confirms every PR live before removing the label — a st
     const manifestPath = path.join(dir, 'manifest.json');
     await writeFile(
       manifestPath,
-      JSON.stringify({ approvedBy: 'chakrits', approvedAt: '2026-07-28', evidence: 'x', prs: [21, 22] })
+      JSON.stringify(approvedManifest([21, 22]))
     );
 
     const viewRunner = async (number) => {
@@ -183,7 +285,7 @@ test('applyManifest never removes a label for a PR outside the approved manifest
   const dir = await mkdtemp(path.join(os.tmpdir(), 'manifest-'));
   try {
     const manifestPath = path.join(dir, 'manifest.json');
-    await writeFile(manifestPath, JSON.stringify({ approvedBy: 'chakrits', approvedAt: '2026-07-28', evidence: 'x', prs: [21] }));
+    await writeFile(manifestPath, JSON.stringify(approvedManifest([21])));
     const removed = [];
     const viewRunner = async () => ({ state: 'MERGED', mergedAt: '2026-07-16T00:00:00Z', labels: ['post-merge-closeout'] });
     const removeLabelRunner = async (number) => removed.push(number);
@@ -192,6 +294,110 @@ test('applyManifest never removes a label for a PR outside the approved manifest
 
     assert.deepEqual(removed, [21]);
     assert.equal(removed.includes(22), false);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('applyManifest rejects generic string reconciliation evidence before a label mutation', async () => {
+  const dir = await mkdtemp(path.join(os.tmpdir(), 'manifest-'));
+  try {
+    const manifestPath = path.join(dir, 'generic-evidence.json');
+    const manifest = approvedManifest([21]);
+    manifest.prs[0].reconciliationEvidence = 'x';
+    await writeFile(manifestPath, JSON.stringify(manifest));
+    const removed = [];
+
+    await assert.rejects(
+      () => applyManifest({
+        owner: 'chakrits',
+        repo: 'AI-Agent-Workflow',
+        label: 'post-merge-closeout',
+        manifestPath,
+        viewRunner: async () => ({ state: 'MERGED', mergedAt: '2026-07-16T00:00:00Z', labels: ['post-merge-closeout'] }),
+        removeLabelRunner: async (number) => removed.push(number)
+      }),
+      /reconciliationEvidence must be an object/
+    );
+    assert.deepEqual(removed, []);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('applyManifest rejects reconciliation evidence for another repository before a label mutation', async () => {
+  const dir = await mkdtemp(path.join(os.tmpdir(), 'manifest-'));
+  try {
+    const manifestPath = path.join(dir, 'wrong-repository.json');
+    const manifest = approvedManifest([21]);
+    manifest.prs[0].reconciliationEvidence.repo = 'other-repo';
+    await writeFile(manifestPath, JSON.stringify(manifest));
+    const removed = [];
+
+    await assert.rejects(
+      () => applyManifest({
+        owner: 'chakrits',
+        repo: 'AI-Agent-Workflow',
+        label: 'post-merge-closeout',
+        manifestPath,
+        viewRunner: async () => ({ state: 'MERGED', mergedAt: '2026-07-16T00:00:00Z', labels: ['post-merge-closeout'] }),
+        removeLabelRunner: async (number) => removed.push(number)
+      }),
+      /reconciliationEvidence\.repo must match manifest\.repo/
+    );
+    assert.deepEqual(removed, []);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('applyManifest rejects reconciliation evidence whose source reference is not the target PR before a label mutation', async () => {
+  const dir = await mkdtemp(path.join(os.tmpdir(), 'manifest-'));
+  try {
+    const manifestPath = path.join(dir, 'wrong-source-reference.json');
+    const manifest = approvedManifest([21]);
+    manifest.prs[0].reconciliationEvidence.reference.sourcePr = 22;
+    await writeFile(manifestPath, JSON.stringify(manifest));
+    const removed = [];
+
+    await assert.rejects(
+      () => applyManifest({
+        owner: 'chakrits',
+        repo: 'AI-Agent-Workflow',
+        label: 'post-merge-closeout',
+        manifestPath,
+        viewRunner: async () => ({ state: 'MERGED', mergedAt: '2026-07-16T00:00:00Z', labels: ['post-merge-closeout'] }),
+        removeLabelRunner: async (number) => removed.push(number)
+      }),
+      /reconciliationEvidence\.reference\.sourcePr must match manifest\.prs\[0\]\.sourcePr/
+    );
+    assert.deepEqual(removed, []);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('applyManifest rejects a reconciliation evidence kind outside the allowlist before a label mutation', async () => {
+  const dir = await mkdtemp(path.join(os.tmpdir(), 'manifest-'));
+  try {
+    const manifestPath = path.join(dir, 'unsupported-evidence-kind.json');
+    const manifest = approvedManifest([21]);
+    manifest.prs[0].reconciliationEvidence.kind = 'comment';
+    await writeFile(manifestPath, JSON.stringify(manifest));
+    const removed = [];
+
+    await assert.rejects(
+      () => applyManifest({
+        owner: 'chakrits',
+        repo: 'AI-Agent-Workflow',
+        label: 'post-merge-closeout',
+        manifestPath,
+        viewRunner: async () => ({ state: 'MERGED', mergedAt: '2026-07-16T00:00:00Z', labels: ['post-merge-closeout'] }),
+        removeLabelRunner: async (number) => removed.push(number)
+      }),
+      /reconciliationEvidence\.kind must be one of/
+    );
+    assert.deepEqual(removed, []);
   } finally {
     await rm(dir, { recursive: true, force: true });
   }
