@@ -3,12 +3,12 @@
 ## Current Work Item
 - ID: GitHub Issue #106
 - Title: validate-review-gate cannot fail — directory-presence check is a no-op
-- Owner: Human Maintainer (QA dispatch escalation)
-- Status: Independently QA-verified PASS at commit `63c972b` (verification performed outside the Codex host after three in-turn QA dispatches there timed out). Bug Fix contract state: `handoff`. Ready for a PR.
-- References: https://github.com/chakrits/AI-Agent-Workflow/issues/106; branch `fix/issue-106-review-gate-diff-scope`; commit `63c972b12c709bf6688511dfa6802f67e4e001e9`; QA evidence https://github.com/chakrits/AI-Agent-Workflow/issues/106#issuecomment-5086787642
+- Owner: Human Maintainer (PR review)
+- Status: Independently QA-verified PASS at commit `63c972b` (verification performed outside the Codex host after three in-turn QA dispatches there timed out). Bug Fix contract state: `handoff`. PR #107 open; its own `work-item-readiness-freshness` check was blocked until Issue #108's fix merged to `main` (PR #109) and PR #107's body was updated with a `Governing workflow: Bug Fix` declaration — both now done; PR #107 is ready to merge.
+- References: https://github.com/chakrits/AI-Agent-Workflow/issues/106; branch `fix/issue-106-review-gate-diff-scope`; commit `63c972b12c709bf6688511dfa6802f67e4e001e9`; QA evidence https://github.com/chakrits/AI-Agent-Workflow/issues/106#issuecomment-5086787642; PR https://github.com/chakrits/AI-Agent-Workflow/pull/107
 
 ## Current Stage
-- Ready for a PR — Bug Fix contract state `verifying` → `handoff`. `original_repro_result` and `verification_result` both satisfied; rework count 0.
+- Ready to merge — Bug Fix contract state `verifying` → `handoff`. `original_repro_result` and `verification_result` both satisfied; rework count 0. Issue #108 (the readiness-gate carve-out this PR needed) merged separately as PR #109 (`9408abe`) via a temporary, since-reverted branch-protection bypass actor — its own post-merge closeout is still pending as a separate follow-up.
 
 ## Change Classification
 - Change Type: Bug Fix (CI validator)
