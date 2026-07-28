@@ -1,0 +1,28 @@
+workflow_id: config-change
+contract_version: 1
+max_rework_attempts: 1
+states: [intake, classifying, owner-review, sa-review, rollout, monitoring, rework, blocked, complete]
+transitions:
+  - { from: intake, to: classifying, requires: [config_owner, change_description, restart_required] }
+  - { from: intake, to: blocked, requires: [stop_reason] }
+  - { from: classifying, to: owner-review, requires: [risk_tier, rollback_plan, removal_condition] }
+  - { from: classifying, to: blocked, requires: [stop_reason] }
+  - { from: owner-review, to: rollout, requires: [owner_approval], when: { risk_tier: low } }
+  - { from: owner-review, to: sa-review, requires: [owner_approval], when: { risk_tier: medium } }
+  - { from: owner-review, to: blocked, requires: [stop_reason] }
+  - { from: sa-review, to: rollout, requires: [sa_approval, staged_rollout_plan] }
+  - { from: sa-review, to: blocked, requires: [stop_reason] }
+  - { from: rollout, to: monitoring, requires: [rollout_evidence] }
+  - { from: monitoring, to: complete, requires: [monitoring_result] }
+  - { from: monitoring, to: rework, requires: [regression_detected, rollback_route] }
+  - from: monitoring
+    to: blocked
+    requires: [regression_detected, human_review_required]
+    terminal_requirements:
+      rework_count: 1
+      state: blocked
+      stop_reason: human_review_required
+      next_route: human-reviewer
+      evidence:
+        human_review_required: true
+  - { from: rework, to: rollout, requires: [rollback_evidence, rework_route] }
