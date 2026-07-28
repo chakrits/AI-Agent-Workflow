@@ -16,7 +16,9 @@
     "validate:review-gate": "node scripts/validate-review-gate.mjs",
     "validate:skill-usage": "node scripts/validate-skill-usage.mjs",
     "validate:metrics": "node scripts/validate-metrics.mjs",
-    "validate:context-budget": "node scripts/validate-context-budget.mjs"
+    "validate:context-budget": "node scripts/validate-context-budget.mjs",
+    "cleanup:closeout-labels": "node scripts/cleanup-stale-closeout-labels.mjs",
+    "backfill:work-items": "node scripts/backfill-work-item-records.mjs"
   },
   "devDependencies": {
     "ajv": "^8.17.1",

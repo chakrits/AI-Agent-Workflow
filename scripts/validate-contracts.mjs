@@ -67,13 +67,60 @@ function hasMeaningfulValue(value) {
   return true;
 }
 
+// The state name that precedes `rework` is contract-specific (bug-fix/
+// new-feature call it "verifying"; config-change calls it "monitoring";
+// data-change calls it "validating"). Derived from the policy's own
+// transitions rather than hardcoded, so this generalizes to any contract
+// shape instead of silently misfiring for one whose pre-rework state isn't
+// literally named "verifying".
+function reworkSourceStates(policy) {
+  return new Set(policy.transitions.filter((transition) => transition.to === 'rework').map((transition) => transition.from));
+}
+
+// A transition's optional `when` clause branches the same `from` state on an
+// evidence field's value -- e.g. Config Change's risk_tier (single value) or
+// Data Change's data_change_kind (a combinable set, hence the `_includes`/
+// `_excludes` suffix forms). This catches an instance that takes a branch
+// inconsistent with its own recorded evidence (e.g. risk_tier: medium but
+// took the low-risk fast-track transition anyway).
+function validateWhenClause(transition, event, state, displayPath) {
+  if (!transition.when) return [];
+  const errors = [];
+  for (const [key, expected] of Object.entries(transition.when)) {
+    if (key.endsWith('_includes')) {
+      const field = key.slice(0, -'_includes'.length);
+      const actual = state.evidence[field];
+      if (!Array.isArray(actual) || !actual.includes(expected)) {
+        errors.push(
+          `${displayPath}: ${eventKey(event)} requires evidence ${field} to include "${expected}" (got ${JSON.stringify(actual)})`
+        );
+      }
+    } else if (key.endsWith('_excludes')) {
+      const field = key.slice(0, -'_excludes'.length);
+      const actual = state.evidence[field];
+      if (Array.isArray(actual) && actual.includes(expected)) {
+        errors.push(`${displayPath}: ${eventKey(event)} requires evidence ${field} to exclude "${expected}"`);
+      }
+    } else {
+      const actual = state.evidence[key];
+      if (actual !== expected) {
+        errors.push(
+          `${displayPath}: ${eventKey(event)} requires evidence ${key} to equal "${expected}" (got ${JSON.stringify(actual)})`
+        );
+      }
+    }
+  }
+  return errors;
+}
+
 function validateHistory(policy, state, displayPath) {
   const errors = [];
   const transitions = new Map(
     policy.transitions.map((transition) => [`${transition.from} -> ${transition.to}`, transition])
   );
+  const reworkSources = reworkSourceStates(policy);
   const reworks = state.history.filter(
-    (event) => event.from === 'verifying' && event.to === 'rework'
+    (event) => reworkSources.has(event.from) && event.to === 'rework'
   ).length;
 
   if (state.history.length === 0 && state.state !== 'intake') {
@@ -93,6 +140,7 @@ function validateHistory(policy, state, displayPath) {
       errors.push(`${displayPath}: illegal transition: ${eventKey(event)}`);
       continue;
     }
+    errors.push(...validateWhenClause(transition, event, state, displayPath));
     for (const evidence of transition.requires) {
       if (!event.evidence_refs.includes(evidence)) {
         errors.push(`${displayPath}: ${eventKey(event)} requires evidence ${evidence}`);
@@ -145,13 +193,14 @@ function validateHistory(policy, state, displayPath) {
   if (state.state === 'blocked' && reworks === policy.max_rework_attempts) {
     const terminalEvent = state.history.at(-1);
     const hasTerminalHumanReview =
-      terminalEvent?.from === 'verifying' &&
+      terminalEvent &&
+      reworkSources.has(terminalEvent.from) &&
       terminalEvent.to === 'blocked' &&
       terminalEvent.evidence_refs.includes('human_review_required') &&
       state.evidence.human_review_required === true;
     if (!hasTerminalHumanReview) {
       errors.push(
-        `${displayPath}: blocked task after retry limit requires terminal verifying -> blocked with human_review_required: true`
+        `${displayPath}: blocked task after retry limit requires a terminal rework-source-state -> blocked transition with human_review_required: true`
       );
     }
     if (state.stop_reason !== 'human_review_required') {

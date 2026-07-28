@@ -12,6 +12,26 @@
 - Consequences: `scripts/validate-dispatch-receipts.mjs` and `docs/contracts/schemas/dispatch-receipt.schema.json` gain the additional controls (git-history replay, an agent-identity allow-list, terminal-evidence existence checks including a live GitHub API check for comment-URL evidence) documented in `docs/superpowers/specs/2026-07-28-dispatch-receipt-lifecycle-security-revision.md`, plus its required adversarial tests. The CI job running `validate:dispatch-receipts` needs read access to `secrets.GITHUB_TOKEN` for the live check.
 - Owner: Boss / Security Reviewer
 
+### ADR-0015: Data Change Is Four Subtypes, Not One Universal Contract
+
+- Date: 2026-07-28
+- Status: Accepted — Boss approved the design and authorized implementation on 2026-07-28
+- Context: Issue #116 review found `schema-design` treated as a universal Data Change state, when it applies only to the `migration` subtype. Reference-data and backfill changes are non-destructive DML against an existing schema (Data Agent's existing Non-Destructive Mechanics / Idempotent Re-run Safety rules); destructive operations need mandatory Human approval and, when they touch PII, mandatory Security Reviewer routing (existing PII Routing rule) regardless of which other subtype they accompany.
+- Decision: Classify data changes into four subtypes (reference-data, backfill, migration, destructive — combinable, not mutually exclusive) and route each through a `data-change` contract that branches on `data_change_kind` and `contains_pii`: `schema-design` only for `migration`; `security-review` only when `contains_pii`; `human-approval` mandatory whenever `destructive` is present. Data Agent never authors the migration file itself (existing Boundary vs SA Agent's Data Migration Safety rule) — only the DML that runs after SA's migration is in place. See `docs/superpowers/specs/2026-07-28-data-change-classification-and-contract-design.md` for the full design and `docs/contracts/data-change-workflow.yaml` for the implemented contract.
+- Alternatives Considered: One universal Data Change contract with `schema-design` always present (rejected — forces non-destructive reference-data/backfill changes through a state they don't need, per the Issue #116 review); treat destructive as its own top-level `data_change_kind` value rather than an orthogonal flag (rejected — a migration that also drops a column is both `migration` and `destructive` simultaneously, which a single-enum design cannot express).
+- Consequences: Shares the `when`-clause conditional-branching validator extension with the companion Config Change contract (ADR-0014), generalized to set-membership (`data_change_kind_includes`/`_excludes`) rather than single-value equality. `scripts/validate-contracts.mjs` also generalizes its retry-limit-block check (previously hardcoded to a "verifying" state name) to derive the pre-rework state from the policy's own transitions, since `data-change`'s pre-rework state is "validating".
+- Owner: BA/Data Agent / SA Agent / Boss
+
+### ADR-0014: Config Change Workflow Is Two Risk Tiers With No Developer State
+
+- Date: 2026-07-28
+- Status: Accepted — Boss approved the design and authorized implementation on 2026-07-28
+- Context: Issue #116 review found that a Config Change contract copied from `new-feature-workflow.yaml` would misrepresent it: Config changes can skip Developer entirely (per the existing Config Agent role definition), and carry two materially different risk/approval depths depending on whether the change is a feature-flag toggle or a runtime parameter with architecture-level consequences.
+- Decision: Adopt a `config-change` contract with no Developer state; `owner-review` branches on `risk_tier` — low-risk (feature flag) proceeds straight to rollout on config-owner approval alone, medium-risk (runtime parameter) requires an additional `sa-review` state. Required evidence fields (`restart_required`, `removal_condition`, `rollback_plan`) are pulled directly from the Config Agent role rules already in `docs/workflow/role-definitions.md`, not invented. See `docs/superpowers/specs/2026-07-28-config-change-workflow-contract-design.md` for the full design and `docs/contracts/config-change-workflow.yaml` for the implemented contract.
+- Alternatives Considered: Copy `new-feature-workflow.yaml`'s shape (rejected — misrepresents the risk/approval profile per the Issue #116 review); a single risk tier with SA review always required (rejected — over-applies architecture review to code-free feature-flag toggles the Config Agent role explicitly exists to fast-track).
+- Consequences: `scripts/validate-contracts.mjs` gains a `when` clause on transitions, branching on a task-state evidence field's value — new syntax relative to the two existing contracts, shared with the companion Data Change contract (ADR-0015).
+- Owner: BA/Config Agent / SA Agent / Boss
+
 ### ADR-0011: Preserve Handoff Parser Compatibility While Improving Scanability
 
 - Date: 2026-07-24
