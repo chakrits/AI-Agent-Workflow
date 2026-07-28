@@ -65,7 +65,10 @@ export function runAudit(root = process.cwd()) {
   const adrCount = countRealAdrs(root);
   const taskLogDecisions = countTaskLogDecisions(root);
   const threshold = 10;
-  const ratio = adrCount > 0 ? taskLogDecisions / adrCount : Infinity;
+  const ratio =
+    adrCount > 0 ? taskLogDecisions / adrCount
+    : taskLogDecisions === 0 ? 0 // clean slate — nothing to audit yet
+    : Infinity; // decisions were made with zero ADRs to show for it — real gap
 
   return {
     adrCount,
