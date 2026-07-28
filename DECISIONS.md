@@ -2,6 +2,16 @@
 
 ## Decision Log
 
+### ADR-0014: Config Change Workflow Is Two Risk Tiers With No Developer State
+
+- Date: 2026-07-28
+- Status: Proposed — awaiting BA/Config Agent, SA Agent, and Boss approval
+- Context: Issue #116 review found that a Config Change contract copied from `new-feature-workflow.yaml` would misrepresent it: Config changes can skip Developer entirely (per the existing Config Agent role definition), and carry two materially different risk/approval depths depending on whether the change is a feature-flag toggle or a runtime parameter with architecture-level consequences.
+- Decision (proposed): Adopt a `config-change` contract with no Developer state; `owner-review` branches on `risk_tier` — low-risk (feature flag) proceeds straight to rollout on config-owner approval alone, medium-risk (runtime parameter) requires an additional `sa-review` state. Required evidence fields (`restart_required`, `removal_condition` for flags, `rollback_plan`) are pulled directly from the Config Agent role rules already in `docs/workflow/role-definitions.md`, not invented. See `docs/superpowers/specs/2026-07-28-config-change-workflow-contract-design.md` for the full state/transition design.
+- Alternatives Considered: Copy `new-feature-workflow.yaml`'s shape (rejected — misrepresents the risk/approval profile per the Issue #116 review); a single risk tier with SA review always required (rejected — over-applies architecture review to code-free feature-flag toggles the Config Agent role explicitly exists to fast-track).
+- Consequences: `scripts/validate-contracts.mjs` needs a small extension to support a `when` clause branching a transition on a task-state field's value — new syntax relative to the two existing contracts. No implementation proceeds until BA/Config Agent and SA Agent approve this design and Boss confirms.
+- Owner: BA/Config Agent / SA Agent / Boss
+
 ### ADR-0011: Preserve Handoff Parser Compatibility While Improving Scanability
 
 - Date: 2026-07-24
