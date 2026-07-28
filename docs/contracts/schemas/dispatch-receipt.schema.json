@@ -1,5 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$comment": "ADR-0013: a 'consumed' state and its terminal_result_id are repository-audited -- they prove the paper trail is internally consistent and the referenced artifact exists. They are NOT runtime-attested and do not cryptographically prove the named target_agent executed the work. See docs/superpowers/specs/2026-07-28-dispatch-receipt-lifecycle-security-revision.md.",
   "type": "object",
   "required": [
     "handoff_event_id",

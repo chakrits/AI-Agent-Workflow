@@ -2,6 +2,16 @@
 
 ## Decision Log
 
+### ADR-0013: Dispatch Receipt Assurance Model — Repository-Audited, Not Runtime-Attested
+
+- Date: 2026-07-28
+- Status: Accepted — Boss confirmed Option A and directed Control 3.3 (GitHub-comment-URL evidence) to be live-verified now rather than deferred, per the Security Reviewer's finding
+- Context: Security review of the Issue #116 Fix 3 (dispatch receipt tool) plan returned BLOCKED — the existing schema/validator accepts a `consumed` receipt's `terminal_result_id` as an unconstrained non-empty string, and nothing prevents a receipt file from being introduced already in a terminal state, so a receipt could assert work was done without any checkable evidence.
+- Decision: Adopt a repository-audited assurance model — a receipt's state history must be append-only as verified against this repo's own git history, `registered_by`/`state_changed_by` must be drawn from the canonical `AGENTS.md` role set, and `terminal_result_id` must resolve to a real, existing artifact (a commit SHA, a `docs/records/qa|work-items` file, or a GitHub comment URL that is live-verified to exist via the GitHub API, not merely shape-checked). This proves the paper trail is internally consistent and checkable — the same assurance level as every other claim in this framework — and is explicitly documented as not proving the target agent actually executed the work.
+- Alternatives Considered: Runtime-attested assurance (a signed token or trusted-issuer proof of actual execution) — rejected for now because this repository has no signing/issuer infrastructure to support it; recorded as a deferred follow-up, not designed further. Shape-only verification of the GitHub-comment-URL evidence form — rejected per the Security Reviewer's finding that this repo's CI already has an available `GITHUB_TOKEN` and precedent for authenticated API calls, so deferring live verification would leave the most commonly-cited evidence form the weakest.
+- Consequences: `scripts/validate-dispatch-receipts.mjs` and `docs/contracts/schemas/dispatch-receipt.schema.json` gain the additional controls (git-history replay, an agent-identity allow-list, terminal-evidence existence checks including a live GitHub API check for comment-URL evidence) documented in `docs/superpowers/specs/2026-07-28-dispatch-receipt-lifecycle-security-revision.md`, plus its required adversarial tests. The CI job running `validate:dispatch-receipts` needs read access to `secrets.GITHUB_TOKEN` for the live check.
+- Owner: Boss / Security Reviewer
+
 ### ADR-0015: Data Change Is Four Subtypes, Not One Universal Contract
 
 - Date: 2026-07-28

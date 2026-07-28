@@ -3,7 +3,16 @@ import test from 'node:test';
 import path from 'node:path';
 import { mkdtemp, mkdir, writeFile, rm, cp } from 'node:fs/promises';
 import os from 'node:os';
-import { validateDispatchReceipts, parseHandoffDispatchDeclarations } from '../scripts/validate-dispatch-receipts.mjs';
+import {
+  validateDispatchReceipts,
+  parseHandoffDispatchDeclarations,
+  isCanonicalIdentity,
+  validateIdentityBinding,
+  parseTerminalResultId,
+  validateTerminalEvidence,
+  validateAppendOnlyHistory,
+  checkExpiryWarnings
+} from '../scripts/validate-dispatch-receipts.mjs';
 
 const workItemUrl = 'https://github.com/chakrits/AI-Agent-Workflow/issues/35';
 
@@ -17,7 +26,7 @@ function handoffMarkdown({ handoffEventId, nextOwner, nextAction = 'Dispatch' })
   return `# Agent Handoff\n\n## Next Action\n\n${nextAction}\n\n## Next Owner\n\n${nextOwner}\n\n## Handoff Event ID\n\n${handoffEventId}\n`;
 }
 
-async function makeRepo({ receipts = [], handoffs = [] }) {
+async function makeRepo({ receipts = [], handoffs = [], extraFiles = {} }) {
   const rootDir = await mkdtemp(path.join(os.tmpdir(), 'dispatch-receipts-'));
   await mkdir(path.join(rootDir, 'docs/records/dispatch-receipts'), { recursive: true });
   await mkdir(path.join(rootDir, 'docs/records/handoff'), { recursive: true });
@@ -26,6 +35,11 @@ async function makeRepo({ receipts = [], handoffs = [] }) {
     path.join(process.cwd(), 'docs/contracts/schemas/dispatch-receipt.schema.json'),
     path.join(rootDir, 'docs/contracts/schemas/dispatch-receipt.schema.json')
   );
+  for (const [relativePath, content] of Object.entries(extraFiles)) {
+    const dest = path.join(rootDir, relativePath);
+    await mkdir(path.dirname(dest), { recursive: true });
+    await writeFile(dest, content, 'utf8');
+  }
   for (const { filename, fields } of receipts) {
     await writeFile(
       path.join(rootDir, 'docs/records/dispatch-receipts', filename),
@@ -132,6 +146,7 @@ test('dispatch_depth correctly computed as 1 for a Work Item first receipt passe
 
 test('dispatch_depth correctly computed as prior max + 1 across mixed states passes', async () => {
   const rootDir = await makeRepo({
+    extraFiles: { 'docs/records/qa/2026-07-19-evt-0006-fixture.md': '# fixture\n' },
     receipts: [
       {
         filename: 'evt-0006.yaml',
@@ -139,7 +154,7 @@ test('dispatch_depth correctly computed as prior max + 1 across mixed states pas
           handoff_event_id: 'evt-0006',
           ...registeredBase,
           state: 'consumed',
-          terminal_result_id: 'res-1',
+          terminal_result_id: 'docs/records/qa/2026-07-19-evt-0006-fixture.md',
           state_changed_at: '2026-07-19T00:30:00Z',
           state_changed_by: 'Security Reviewer',
           dispatch_depth: 1
@@ -303,4 +318,252 @@ test('PR-scoped check still fails when the current PR itself declares Dispatch w
     `expected a missing-receipt error scoped to this PR's own handoff, got: ${JSON.stringify(errors)}`
   );
   await rm(rootDir, { recursive: true, force: true });
+});
+
+// ---------------------------------------------------------------------------
+// ADR-0013 anti-forgery controls (Issue #119) -- required adversarial tests
+// from docs/superpowers/specs/2026-07-28-dispatch-receipt-lifecycle-security-revision.md
+// ---------------------------------------------------------------------------
+
+function receiptFixture(relativePath, content) {
+  return { relativePath, content };
+}
+
+test('Control 1.1: a receipt whose first git revision is already consumed is rejected', () => {
+  const receipts = [receiptFixture('docs/records/dispatch-receipts/evt-forged.yaml', { state: 'consumed' })];
+  const getRevisions = () => [{ sha: 'aaa1111', content: { state: 'consumed', terminal_result_id: 'x' } }];
+
+  const errors = validateAppendOnlyHistory(receipts, { rootDir: '/fake', getRevisions });
+
+  assert.equal(errors.length, 1);
+  assert.match(errors[0], /Control 1\.1/);
+});
+
+test('Control 1.2: a receipt that transitions consumed -> registered in a later revision is rejected', () => {
+  const receipts = [receiptFixture('docs/records/dispatch-receipts/evt-revert.yaml', { state: 'registered' })];
+  const getRevisions = () => [
+    { sha: 'rev1', content: { state: 'registered' } },
+    {
+      sha: 'rev2',
+      content: { state: 'consumed', terminal_result_id: 'x', state_changed_at: 't1', state_changed_by: 'QA Agent' }
+    },
+    { sha: 'rev3', content: { state: 'registered' } }
+  ];
+
+  const errors = validateAppendOnlyHistory(receipts, { rootDir: '/fake', getRevisions });
+
+  assert.equal(errors.length, 1);
+  assert.match(errors[0], /Control 1\.2/);
+});
+
+test('Control 1.2: a receipt that moves between two different terminal states is rejected', () => {
+  const receipts = [receiptFixture('docs/records/dispatch-receipts/evt-relabel.yaml', { state: 'expired' })];
+  const getRevisions = () => [
+    { sha: 'rev1', content: { state: 'registered' } },
+    { sha: 'rev2', content: { state: 'consumed', terminal_result_id: 'x', state_changed_at: 't1', state_changed_by: 'QA Agent' } },
+    { sha: 'rev3', content: { state: 'expired', state_changed_at: 't2', state_changed_by: 'QA Agent' } }
+  ];
+
+  const errors = validateAppendOnlyHistory(receipts, { rootDir: '/fake', getRevisions });
+
+  assert.equal(errors.length, 1);
+  assert.match(errors[0], /Control 1\.2/);
+});
+
+test('Control 1.3: identical state_changed_at/state_changed_by on a revision that changed state is rejected', () => {
+  const receipts = [receiptFixture('docs/records/dispatch-receipts/evt-stale-metadata.yaml', { state: 'consumed' })];
+  const getRevisions = () => [
+    { sha: 'rev1', content: { state: 'registered', state_changed_at: 'STALE', state_changed_by: 'STALE' } },
+    {
+      sha: 'rev2',
+      content: { state: 'consumed', terminal_result_id: 'x', state_changed_at: 'STALE', state_changed_by: 'STALE' }
+    }
+  ];
+
+  const errors = validateAppendOnlyHistory(receipts, { rootDir: '/fake', getRevisions });
+
+  assert.equal(errors.length, 1);
+  assert.match(errors[0], /Control 1\.3/);
+});
+
+test('Control 1: a same-value no-op revision (e.g. a notes edit) after reaching a terminal state is not flagged', () => {
+  const receipts = [receiptFixture('docs/records/dispatch-receipts/evt-noop-edit.yaml', { state: 'consumed' })];
+  const getRevisions = () => [
+    { sha: 'rev1', content: { state: 'registered' } },
+    { sha: 'rev2', content: { state: 'consumed', terminal_result_id: 'x', state_changed_at: 't1', state_changed_by: 'QA Agent' } },
+    { sha: 'rev3', content: { state: 'consumed', terminal_result_id: 'x', state_changed_at: 't1', state_changed_by: 'QA Agent', notes: 'typo fix' } }
+  ];
+
+  const errors = validateAppendOnlyHistory(receipts, { rootDir: '/fake', getRevisions });
+
+  assert.deepEqual(errors, []);
+});
+
+test('Control 1: no git history available is skipped, not flagged (graceful degradation)', () => {
+  const receipts = [receiptFixture('docs/records/dispatch-receipts/evt-no-history.yaml', { state: 'registered' })];
+  const errors = validateAppendOnlyHistory(receipts, { rootDir: '/fake', getRevisions: () => [] });
+
+  assert.deepEqual(errors, []);
+});
+
+test('Control 2: registered_by an unrecognized free-text string is rejected', () => {
+  const receipts = [receiptFixture('docs/records/dispatch-receipts/evt-impersonation.yaml', { registered_by: 'definitely-not-an-agent' })];
+
+  const errors = validateIdentityBinding(receipts);
+
+  assert.equal(errors.length, 1);
+  assert.match(errors[0], /Control 2/);
+});
+
+test('Control 2: a canonical identity with a parenthetical session/tool qualifier is accepted', () => {
+  assert.equal(isCanonicalIdentity('Developer Agent (Codex)'), true);
+  assert.equal(isCanonicalIdentity('QA Agent (re-verification)'), true);
+  assert.equal(isCanonicalIdentity('Boss'), true);
+  assert.equal(isCanonicalIdentity('Security Reviewer'), true);
+  assert.equal(isCanonicalIdentity('random-string'), false);
+});
+
+test('parseTerminalResultId classifies commit SHA, QA/work-item path, comment URL, and invalid shapes', () => {
+  assert.deepEqual(parseTerminalResultId('cb8a9e2'), { kind: 'commit', sha: 'cb8a9e2' });
+  assert.deepEqual(parseTerminalResultId('docs/records/qa/2026-07-28-x.md'), {
+    kind: 'qa-file',
+    path: 'docs/records/qa/2026-07-28-x.md'
+  });
+  assert.deepEqual(
+    parseTerminalResultId('https://github.com/chakrits/AI-Agent-Workflow/issues/117#issuecomment-5098714533'),
+    { kind: 'comment-url', owner: 'chakrits', repo: 'AI-Agent-Workflow', commentId: 5098714533 }
+  );
+  assert.deepEqual(parseTerminalResultId('res-1'), { kind: 'invalid' });
+});
+
+test('Control 3.1: a commit-SHA-shaped terminal_result_id that does not exist is rejected', async () => {
+  const receipts = [receiptFixture('docs/records/dispatch-receipts/evt-fake-sha.yaml', { state: 'consumed', terminal_result_id: '0000000' })];
+
+  const errors = await validateTerminalEvidence(receipts, { rootDir: '/fake', commitExists: async () => false });
+
+  assert.equal(errors.length, 1);
+  assert.match(errors[0], /Control 3\.1/);
+});
+
+test('Control 3.2: a docs/records path terminal_result_id that does not exist is rejected', async () => {
+  const receipts = [
+    receiptFixture('docs/records/dispatch-receipts/evt-fake-path.yaml', {
+      state: 'consumed',
+      terminal_result_id: 'docs/records/qa/does-not-exist.md'
+    })
+  ];
+
+  const errors = await validateTerminalEvidence(receipts, { rootDir: '/fake', fileExists: async () => false });
+
+  assert.equal(errors.length, 1);
+  assert.match(errors[0], /Control 3\.2/);
+});
+
+test('Control 3.3: a terminal_result_id matching none of the three permitted shapes is rejected', async () => {
+  const receipts = [receiptFixture('docs/records/dispatch-receipts/evt-bad-shape.yaml', { state: 'consumed', terminal_result_id: 'res-1' })];
+
+  const errors = await validateTerminalEvidence(receipts, { rootDir: '/fake' });
+
+  assert.equal(errors.length, 1);
+  assert.match(errors[0], /Control 3\.3/);
+});
+
+test('Control 3.3 (live-verification): a well-shaped comment URL for a comment that does not exist is rejected', async () => {
+  const receipts = [
+    receiptFixture('docs/records/dispatch-receipts/evt-fake-comment.yaml', {
+      state: 'consumed',
+      terminal_result_id: 'https://github.com/chakrits/AI-Agent-Workflow/issues/999#issuecomment-1'
+    })
+  ];
+
+  const errors = await validateTerminalEvidence(receipts, {
+    rootDir: '/fake',
+    owner: 'chakrits',
+    repo: 'AI-Agent-Workflow',
+    commentExists: async () => false
+  });
+
+  assert.equal(errors.length, 1);
+  assert.match(errors[0], /live-verification/);
+});
+
+test('Control 3.3 (same-repo enforcement): a comment URL for a different owner/repo is rejected without a network call', async () => {
+  const receipts = [
+    receiptFixture('docs/records/dispatch-receipts/evt-wrong-repo.yaml', {
+      state: 'consumed',
+      terminal_result_id: 'https://github.com/someone-else/other-repo/issues/1#issuecomment-2'
+    })
+  ];
+  let called = false;
+
+  const errors = await validateTerminalEvidence(receipts, {
+    rootDir: '/fake',
+    owner: 'chakrits',
+    repo: 'AI-Agent-Workflow',
+    commentExists: async () => {
+      called = true;
+      return true;
+    }
+  });
+
+  assert.equal(errors.length, 1);
+  assert.match(errors[0], /not this repository/);
+  assert.equal(called, false, 'must not make a network call for a cross-repo URL');
+});
+
+test('Control 3: a live comment URL that does exist passes', async () => {
+  const receipts = [
+    receiptFixture('docs/records/dispatch-receipts/evt-real-comment.yaml', {
+      state: 'consumed',
+      terminal_result_id: 'https://github.com/chakrits/AI-Agent-Workflow/issues/117#issuecomment-5098714533'
+    })
+  ];
+
+  const errors = await validateTerminalEvidence(receipts, {
+    rootDir: '/fake',
+    owner: 'chakrits',
+    repo: 'AI-Agent-Workflow',
+    commentExists: async () => true
+  });
+
+  assert.deepEqual(errors, []);
+});
+
+test('Control 5: a registered receipt older than the TTL produces a non-blocking warning, never an error', () => {
+  const receipts = [
+    receiptFixture('docs/records/dispatch-receipts/evt-stale.yaml', {
+      state: 'registered',
+      registered_at: '2026-07-01T00:00:00Z'
+    })
+  ];
+
+  const warnings = checkExpiryWarnings(receipts, { now: new Date('2026-07-28T00:00:00Z'), ttlDays: 14 });
+
+  assert.equal(warnings.length, 1);
+  assert.match(warnings[0], /non-blocking/);
+});
+
+test('Control 5: a registered receipt within the TTL, and a consumed receipt regardless of age, produce no warning', () => {
+  const receipts = [
+    receiptFixture('docs/records/dispatch-receipts/evt-fresh.yaml', {
+      state: 'registered',
+      registered_at: '2026-07-27T00:00:00Z'
+    }),
+    receiptFixture('docs/records/dispatch-receipts/evt-old-but-consumed.yaml', {
+      state: 'consumed',
+      registered_at: '2026-01-01T00:00:00Z'
+    })
+  ];
+
+  const warnings = checkExpiryWarnings(receipts, { now: new Date('2026-07-28T00:00:00Z'), ttlDays: 14 });
+
+  assert.deepEqual(warnings, []);
+});
+
+test('the existing valid fixture (docs/contracts/examples/dispatch-receipts/example-registered.yaml) continues to pass unmodified', async () => {
+  const errors = await validateDispatchReceipts(process.cwd(), {
+    changedHandoffPaths: []
+  });
+
+  assert.deepEqual(errors, []);
 });
