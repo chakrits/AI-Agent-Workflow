@@ -2,7 +2,7 @@
 
 **Date:** 2026-07-28
 **Author:** SA Agent (session), responding to a Security Reviewer BLOCKED finding
-**Status:** Proposed — awaiting Boss decision on assurance model before Security re-review
+**Status:** Accepted — Boss confirmed Option A and Control 3.3 tightened-now on 2026-07-28; Developer implementation in progress
 **Issue:** #119 (child of #116)
 
 ## Why this exists
@@ -108,9 +108,17 @@ validation time:
 2. **QA/review record path** — `^docs/records/(qa|work-items)/.+\.md$`,
    verified to exist on disk at validation time.
 3. **GitHub comment URL** — `^https://github\.com/[^/]+/[^/]+/(issues|pull)/\d+#issuecomment-\d+$`,
-   verified only for shape in CI (no network egress from the validator);
-   a Security-reviewed follow-up may add an optional live-fetch check for
-   human/local runs where network access is acceptable.
+   with `[owner]/[repo]` required to match the repository being validated
+   (the schema pattern already implies same-repo intent; the validator
+   enforces it), then live-verified to exist via
+   `GET /repos/{owner}/{repo}/issues/comments/{comment_id}` using the
+   ambient `GITHUB_TOKEN` already available in the workflow that runs
+   `validate:dispatch-receipts` (`.github/workflows/validate-contracts.yml`).
+   **Boss decision, 2026-07-28:** tightened now rather than deferred, per
+   the Security Reviewer's finding that shape-only verification would leave
+   the most commonly-cited evidence form in this repo's own TASK_LOG history
+   the weakest-verified one, and that no missing infrastructure justifies
+   deferring it (unlike Decision 1's Option B).
 
 A `terminal_result_id` that matches none of these three shapes, or claims a
 commit SHA / file path that does not exist, fails validation — this is the
@@ -155,9 +163,15 @@ state change under Control 1.
    not exist → rejected (Control 3.2).
 7. `terminal_result_id` that matches none of the three permitted shapes →
    rejected (Control 3.3).
-8. The existing valid fixtures (`docs/contracts/examples/dispatch-receipts/`)
-   continue to pass unmodified, or are updated with real, resolvable
-   evidence values as part of the implementation PR.
+8. `terminal_result_id` shaped like a valid GitHub comment URL for a
+   comment that does not exist (live API check returns 404) → rejected
+   (Control 3.3, live-verification).
+9. `terminal_result_id` shaped like a valid GitHub comment URL for a
+   different owner/repo than the one being validated → rejected without a
+   network call (Control 3.3, same-repo enforcement).
+10. The existing valid fixtures (`docs/contracts/examples/dispatch-receipts/`)
+    continue to pass unmodified, or are updated with real, resolvable
+    evidence values as part of the implementation PR.
 
 ## What happens next
 
