@@ -2,6 +2,16 @@
 
 ## Decision Log
 
+### ADR-0015: Data Change Is Four Subtypes, Not One Universal Contract
+
+- Date: 2026-07-28
+- Status: Proposed — awaiting BA/Data Agent, SA Agent, and Boss approval
+- Context: Issue #116 review found `schema-design` treated as a universal Data Change state, when it applies only to the `migration` subtype. Reference-data and backfill changes are non-destructive DML against an existing schema (Data Agent's existing Non-Destructive Mechanics / Idempotent Re-run Safety rules); destructive operations need mandatory Human approval and, when they touch PII, mandatory Security Reviewer routing (existing PII Routing rule) regardless of which other subtype they accompany.
+- Decision (proposed): Classify data changes into four subtypes (reference-data, backfill, migration, destructive — combinable, not mutually exclusive) and route each through a `data-change` contract that branches on `data_change_kind` and `contains_pii`: `schema-design` only for `migration`; `security-review` only when `contains_pii`; `human-approval` mandatory whenever `destructive` is present. Data Agent never authors the migration file itself (existing Boundary vs SA Agent's Data Migration Safety rule) — only the DML that runs after SA's migration is in place. See `docs/superpowers/specs/2026-07-28-data-change-classification-and-contract-design.md` for the full design.
+- Alternatives Considered: One universal Data Change contract with `schema-design` always present (rejected — forces non-destructive reference-data/backfill changes through a state they don't need, per the Issue #116 review); treat destructive as its own top-level `data_change_kind` value rather than an orthogonal flag (rejected — a migration that also drops a column is both `migration` and `destructive` simultaneously, which a single-enum design cannot express).
+- Consequences: Shares the `when`-clause conditional-branching validator extension with the companion Config Change design (Issue #120, ADR-0014), generalized to set-membership (`data_change_kind_includes`/`_excludes`) rather than single-value equality, designed once for both contracts. No implementation proceeds until BA/Data Agent and SA Agent approve this design and Boss confirms.
+- Owner: BA/Data Agent / SA Agent / Boss
+
 ### ADR-0011: Preserve Handoff Parser Compatibility While Improving Scanability
 
 - Date: 2026-07-24
