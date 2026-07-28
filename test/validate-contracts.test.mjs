@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
-import { readFile, readdir } from 'node:fs/promises';
+import { readFile, readdir, mkdtemp, mkdir, writeFile, rm, cp } from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
 import test from 'node:test';
 import { validateContracts } from '../scripts/validate-contracts.mjs';
 
@@ -1173,9 +1175,108 @@ test('testing-conventions.md exists and is linked from PROJECT_INDEX.md and the 
   assert.match(vaultIndex, /testing-conventions\.md/);
 });
 
-test('accepts the three canonical Bug Fix examples', async () => {
+test('accepts every canonical example fixture across all four contracts', async () => {
   const errors = await validateContracts(process.cwd());
   assert.deepEqual(errors, []);
+});
+
+test('accepts the Config Change low-risk pass and medium-risk retry-limit-blocked examples', async () => {
+  const errors = await validateContracts(process.cwd(), [
+    'docs/contracts/examples/config-change-pass.yaml',
+    'docs/contracts/examples/config-change-blocked.yaml'
+  ]);
+  assert.deepEqual(errors, []);
+});
+
+test('accepts the Data Change reference-data pass and migration+destructive+PII retry-limit-blocked examples', async () => {
+  const errors = await validateContracts(process.cwd(), [
+    'docs/contracts/examples/data-change-pass.yaml',
+    'docs/contracts/examples/data-change-blocked.yaml'
+  ]);
+  assert.deepEqual(errors, []);
+});
+
+test('when clause: a transition taken with evidence inconsistent with its risk_tier branch is rejected', async () => {
+  const rootDir = await mkdtemp(path.join(os.tmpdir(), 'contract-when-'));
+  try {
+    await mkdir(path.join(rootDir, 'docs/contracts/schemas'), { recursive: true });
+    await mkdir(path.join(rootDir, 'docs/contracts/examples'), { recursive: true });
+    await cp(path.join(process.cwd(), 'docs/contracts/config-change-workflow.yaml'), path.join(rootDir, 'docs/contracts/config-change-workflow.yaml'));
+    await cp(
+      path.join(process.cwd(), 'docs/contracts/schemas/config-change-state.schema.json'),
+      path.join(rootDir, 'docs/contracts/schemas/config-change-state.schema.json')
+    );
+    // Same as config-change-pass.yaml but evidence claims risk_tier: medium
+    // while still taking the low-risk owner-review -> rollout transition --
+    // exactly the inconsistency the `when` clause exists to catch.
+    const fixture = (await readFile(path.join(process.cwd(), 'docs/contracts/examples/config-change-pass.yaml'), 'utf8'))
+      .replaceAll('risk_tier: low', 'risk_tier: medium');
+    await writeFile(path.join(rootDir, 'docs/contracts/examples/tampered.yaml'), fixture, 'utf8');
+
+    const errors = await validateContracts(rootDir, ['docs/contracts/examples/tampered.yaml']);
+
+    assert.ok(
+      errors.some((message) => message.includes('requires evidence risk_tier to equal "low"')),
+      `expected a when-clause mismatch error, got: ${JSON.stringify(errors)}`
+    );
+  } finally {
+    await rm(rootDir, { recursive: true, force: true });
+  }
+});
+
+test('when clause (set-membership): data_change_kind_excludes rejects a transition taken while destructive is present', async () => {
+  const rootDir = await mkdtemp(path.join(os.tmpdir(), 'contract-when-set-'));
+  try {
+    await mkdir(path.join(rootDir, 'docs/contracts/schemas'), { recursive: true });
+    await mkdir(path.join(rootDir, 'docs/contracts/examples'), { recursive: true });
+    await cp(path.join(process.cwd(), 'docs/contracts/data-change-workflow.yaml'), path.join(rootDir, 'docs/contracts/data-change-workflow.yaml'));
+    await cp(
+      path.join(process.cwd(), 'docs/contracts/schemas/data-change-state.schema.json'),
+      path.join(rootDir, 'docs/contracts/schemas/data-change-state.schema.json')
+    );
+    // Same as data-change-pass.yaml (reference-data, non-destructive) but
+    // evidence's data_change_kind now also claims destructive -- the fast
+    // executing transition it already took requires data_change_kind to
+    // exclude destructive, so this must be rejected.
+    const fixture = (await readFile(path.join(process.cwd(), 'docs/contracts/examples/data-change-pass.yaml'), 'utf8'))
+      .replace(/data_change_kind: \[reference-data\]/g, 'data_change_kind: [reference-data, destructive]');
+    await writeFile(path.join(rootDir, 'docs/contracts/examples/tampered.yaml'), fixture, 'utf8');
+
+    const errors = await validateContracts(rootDir, ['docs/contracts/examples/tampered.yaml']);
+
+    assert.ok(
+      errors.some((message) => message.includes('requires evidence data_change_kind to exclude "destructive"')),
+      `expected a set-membership when-clause mismatch error, got: ${JSON.stringify(errors)}`
+    );
+  } finally {
+    await rm(rootDir, { recursive: true, force: true });
+  }
+});
+
+test('rework-source-state generalization: retry-limit block is recognized for a contract whose pre-rework state is not literally "verifying"', async () => {
+  const rootDir = await mkdtemp(path.join(os.tmpdir(), 'contract-reworksource-'));
+  try {
+    await mkdir(path.join(rootDir, 'docs/contracts/schemas'), { recursive: true });
+    await mkdir(path.join(rootDir, 'docs/contracts/examples'), { recursive: true });
+    await cp(path.join(process.cwd(), 'docs/contracts/config-change-workflow.yaml'), path.join(rootDir, 'docs/contracts/config-change-workflow.yaml'));
+    await cp(
+      path.join(process.cwd(), 'docs/contracts/schemas/config-change-state.schema.json'),
+      path.join(rootDir, 'docs/contracts/schemas/config-change-state.schema.json')
+    );
+    await cp(
+      path.join(process.cwd(), 'docs/contracts/examples/config-change-blocked.yaml'),
+      path.join(rootDir, 'docs/contracts/examples/config-change-blocked.yaml')
+    );
+
+    // config-change's retry-limit block transitions from "monitoring", not
+    // "verifying" -- if the engine still hardcoded "verifying" this valid
+    // fixture would be wrongly rejected.
+    const errors = await validateContracts(rootDir, ['docs/contracts/examples/config-change-blocked.yaml']);
+
+    assert.deepEqual(errors, []);
+  } finally {
+    await rm(rootDir, { recursive: true, force: true });
+  }
 });
 
 test('rejects a transition not declared by the Bug Fix policy', async () => {
@@ -1226,7 +1327,7 @@ test('rejects a retry-limit block without a terminal human-review event', async 
   ]);
   assert.match(
     errors.join('\n'),
-    /blocked task after retry limit requires terminal verifying -> blocked with human_review_required: true/
+    /blocked task after retry limit requires a terminal rework-source-state -> blocked transition with human_review_required: true/
   );
 });
 
@@ -1236,7 +1337,7 @@ test('rejects a retry-limit block when human-review evidence is not true', async
   ]);
   assert.match(
     errors.join('\n'),
-    /blocked task after retry limit requires terminal verifying -> blocked with human_review_required: true/
+    /blocked task after retry limit requires a terminal rework-source-state -> blocked transition with human_review_required: true/
   );
 });
 
