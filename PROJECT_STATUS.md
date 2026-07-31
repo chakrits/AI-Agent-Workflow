@@ -4,11 +4,11 @@
 - ID: GitHub Issue #132 with split child Issue #133
 - Title: Compatibility-first Progressive Context and Worktree-Scoped Status planning
 - Owner: Orchestrator / SA / Documentation Agent
-- Status: Blocked — Human-approved design/plan, but CP-1 SA dispatch could not produce a terminal receipt; implementation not authorized
+- Status: CP-1 SA terminal result consumed; independent CP-1 review pending; implementation not authorized
 - References: https://github.com/chakrits/AI-Agent-Workflow/issues/132 · https://github.com/chakrits/AI-Agent-Workflow/issues/133
 
 ## Current Stage
-- `phase:blocked` — one combined and two split SA dispatches timed out without terminal receipts. Partial child files were rejected and removed. Stop Reason: `host_completion_unavailable`; `status:spec-ready` and Developer dispatch remain withheld.
+- `phase:planning` — fresh SA child returned `DONE_WITH_CONCERNS` without parent timeout; CP-1 SDDs report PASS for #132/#133. Next gate is independent evidence review before any `status:spec-ready` decision.
 
 ## Change Classification
 - Change Type: Framework / Meta Change
