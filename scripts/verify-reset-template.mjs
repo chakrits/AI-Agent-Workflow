@@ -77,18 +77,7 @@ function assertWithin(root, target, label) {
 }
 
 export async function runDisposableVerification(primaryInput = process.cwd(), dependencies = {}) {
-  const gitRoot = dependencies.gitRoot ?? (({ cwd }) => git(cwd, ['rev-parse', '--show-toplevel']));
-  const gitCommonDir = dependencies.gitCommonDir ?? (async ({ cwd }) => {
-    const value = await git(cwd, ['rev-parse', '--git-common-dir']);
-    return realpath(path.resolve(cwd, value));
-  });
-  const gitCommit = dependencies.gitCommit ?? (({ cwd }) => git(cwd, ['rev-parse', 'HEAD']));
-  const gitStatus = dependencies.gitStatus ?? (({ cwd }) => git(cwd, ['status', '--porcelain=v1', '--untracked-files=all']));
-  const runReset = dependencies.runReset ?? defaultRunReset;
-  const runVerification = dependencies.runVerification ?? (async ({ cwd }) => {
-    for (const [command, args] of VERIFY_COMMANDS) await runVisible(command, args, cwd);
-  });
-  const cleanup = dependencies.cleanup ?? ((target) => rm(target, { recursive: true, force: true }));
+  const fault = dependencies.fault;
 
   const primaryRoot = await realpath(await git(primaryInput, ['rev-parse', '--show-toplevel']));
   const sourceCommit = await git(primaryRoot, ['rev-parse', 'HEAD']);
@@ -102,7 +91,18 @@ export async function runDisposableVerification(primaryInput = process.cwd(), de
   const runParent = await mkdtemp(path.join(os.tmpdir(), 'reset-template-verify-'));
   const candidateRoot = path.join(runParent, 'standalone-clone');
   const ownership = Object.freeze({ runId: randomUUID(), createdRoot: candidateRoot });
-  dependencies.onCandidate?.(candidateRoot);
+
+  async function runReset(phase, scriptPath) {
+    if (!dependencies.simulateReset) {
+      return defaultRunReset({ cwd: candidateRoot, scriptPath, phase });
+    }
+    dependencies.onResetPhase?.(phase);
+    if (dependencies.failResetPhase === phase) throw new Error(`injected ${phase} failure`);
+    if (phase === 'dirty-refusal') return;
+    if (dependencies.simulateApplyMutation && phase === 'apply') {
+      await writeFile(path.join(candidateRoot, 'DECISIONS.md'), '# reset\n');
+    }
+  }
 
   async function attest(expectedCommit) {
     const [primary, candidate, scriptPath] = await Promise.all([
@@ -116,19 +116,28 @@ export async function runDisposableVerification(primaryInput = process.cwd(), de
     if (marker.runId !== ownership.runId || marker.createdRoot !== ownership.createdRoot) {
       throw new Error('Attestation failed: ownership marker does not match this harness run.');
     }
-    const reportedRoot = await realpath(await gitRoot({ cwd: candidate }));
+    const reportedRoot = fault === 'git-root-mismatch'
+      ? await realpath(path.dirname(candidate))
+      : await realpath(await git(candidate, ['rev-parse', '--show-toplevel']));
     if (reportedRoot !== candidate) throw new Error('Attestation failed: canonical Git root mismatch.');
+    const candidateCommonValue = await git(candidate, ['rev-parse', '--git-common-dir']);
+    const primaryCommonValue = await git(primary, ['rev-parse', '--git-common-dir']);
     const [candidateCommon, primaryCommon, candidateGit] = await Promise.all([
-      gitCommonDir({ cwd: candidate }).then(realpath),
-      gitCommonDir({ cwd: primary }).then(realpath),
+      fault === 'shared-common-dir'
+        ? realpath(path.join(primary, primaryCommonValue))
+        : realpath(path.resolve(candidate, candidateCommonValue)),
+      realpath(path.resolve(primary, primaryCommonValue)),
       realpath(path.join(candidate, '.git'))
     ]);
     if (candidateCommon !== candidateGit || candidateCommon === primaryCommon) {
       throw new Error('Attestation failed: linked worktree or primary common-directory alias.');
     }
-    const commit = await gitCommit({ cwd: candidate });
+    const commit = fault === 'wrong-commit' ? 'wrong-commit' : await git(candidate, ['rev-parse', 'HEAD']);
     if (commit !== expectedCommit) throw new Error('Attestation failed: candidate is not at the exact commit.');
-    if ((await gitStatus({ cwd: candidate })) !== '') throw new Error('Attestation failed: candidate is not clean.');
+    const status = fault === 'dirty-clone'
+      ? ' M DECISIONS.md'
+      : await git(candidate, ['status', '--porcelain=v1', '--untracked-files=all']);
+    if (status !== '') throw new Error('Attestation failed: candidate is not clean.');
     return { root: candidate, scriptPath, commit, commonDir: candidateCommon };
   }
 
@@ -139,12 +148,15 @@ export async function runDisposableVerification(primaryInput = process.cwd(), de
     await execFile('git', ['checkout', '--quiet', '--detach', sourceCommit], { cwd: candidateRoot });
     const markerPath = path.join(candidateRoot, '.git', MARKER_NAME);
     await writeFile(markerPath, `${JSON.stringify(ownership)}\n`, { mode: 0o600 });
-    await dependencies.afterCandidateCreated?.({
-      candidateRoot,
-      markerPath,
-      primaryRoot,
-      runParent
-    });
+    if (fault === 'missing-marker') await rm(markerPath);
+    if (fault === 'foreign-marker') {
+      await writeFile(markerPath, JSON.stringify({ runId: 'foreign', createdRoot: candidateRoot }));
+    }
+    if (fault === 'script-mismatch') {
+      const script = path.join(candidateRoot, 'scripts/reset-to-template.mjs');
+      await rm(script);
+      await symlink(path.join(primaryRoot, 'scripts/reset-to-template.mjs'), script);
+    }
 
     const sentinel = Buffer.from(`reset verification ${ownership.runId}\n`);
     const sentinelPath = path.join(candidateRoot, SENTINEL_PATH);
@@ -157,17 +169,19 @@ export async function runDisposableVerification(primaryInput = process.cwd(), de
     const targetBefore = await readFile(dirtyTarget);
     await writeFile(dirtyTarget, Buffer.concat([targetBefore, Buffer.from('\n# harness dirty refusal probe\n')]));
     const dirtySnapshot = await treeDigest(candidateRoot);
-    await runReset({ cwd: candidateRoot, scriptPath: firstAttestation.scriptPath, phase: 'dirty-refusal' });
+    await runReset('dirty-refusal', firstAttestation.scriptPath);
     if (await treeDigest(candidateRoot) !== dirtySnapshot) throw new Error('Dirty-target refusal mutated the candidate.');
     await writeFile(dirtyTarget, targetBefore);
     const applyAttestation = await attest(sourceCommit);
-    await runReset({ cwd: candidateRoot, scriptPath: applyAttestation.scriptPath, phase: 'apply' });
+    await runReset('apply', applyAttestation.scriptPath);
     if (digest(await readFile(sentinelPath)) !== sentinelHash) throw new Error('QA sentinel changed after apply.');
 
     const primaryModules = path.join(primaryRoot, 'node_modules');
     const candidateModules = path.join(candidateRoot, 'node_modules');
     if (await lstat(primaryModules).catch(() => null)) await symlink(primaryModules, candidateModules, 'dir');
-    await runVerification({ cwd: candidateRoot, commands: VERIFY_COMMANDS });
+    if (!dependencies.skipVerification) {
+      for (const [command, args] of VERIFY_COMMANDS) await runVisible(command, args, candidateRoot);
+    }
     await rm(candidateModules, { recursive: true, force: true });
 
     await execFile('git', ['config', 'user.email', 'reset-harness@example.invalid'], { cwd: candidateRoot });
@@ -176,7 +190,7 @@ export async function runDisposableVerification(primaryInput = process.cwd(), de
     await execFile('git', ['commit', '--quiet', '-m', 'test: establish reset baseline'], { cwd: candidateRoot });
     const baselineCommit = await git(candidateRoot, ['rev-parse', 'HEAD']);
     const idempotencyAttestation = await attest(baselineCommit);
-    await runReset({ cwd: candidateRoot, scriptPath: idempotencyAttestation.scriptPath, phase: 'idempotency' });
+    await runReset('idempotency', idempotencyAttestation.scriptPath);
     if ((await git(candidateRoot, ['status', '--porcelain=v1', '--untracked-files=all'])) !== '') {
       throw new Error('Idempotency failed: second reset changed the clone.');
     }
@@ -195,7 +209,8 @@ export async function runDisposableVerification(primaryInput = process.cwd(), de
 
   let cleanupError;
   try {
-    await cleanup(runParent);
+    await dependencies.beforeCleanup?.();
+    await rm(runParent, { recursive: true, force: true });
   } catch (error) {
     cleanupError = error;
   }
@@ -207,7 +222,7 @@ export async function runDisposableVerification(primaryInput = process.cwd(), de
       status: await git(primaryRoot, ['status', '--porcelain=v1', '--untracked-files=all']),
       digest: await treeDigest(primaryRoot)
     };
-    dependencies.onPrimaryIntegrityCheck?.({ before: primaryBefore, after: primaryAfter });
+    dependencies.onPrimaryIntegrityCheck?.();
     if (JSON.stringify(primaryAfter) !== JSON.stringify(primaryBefore)) {
       throw new Error('Primary worktree changed during disposable verification.');
     }
