@@ -118,6 +118,7 @@ export function computeResultDigest(record) {
 
 function withoutDiagnosticTokens(value) {
   const copy = structuredClone(value);
+  delete copy.resultDigest;
   if (Array.isArray(copy?.contextManifest)) {
     for (const entry of copy.contextManifest) delete entry.approximateTokens;
   }
@@ -147,6 +148,11 @@ function collectDifferences(left, right, path = '', differences = []) {
 export function compareCriticalRecords(full, progressive) {
   assertNormalizedRecord(full, { requireResultDigest: true });
   assertNormalizedRecord(progressive, { requireResultDigest: true });
+  for (const record of [full, progressive]) {
+    if (record.resultDigest !== computeResultDigest(record)) {
+      throw new TypeError('normalized record comparator error: resultDigest does not match canonical bytes');
+    }
+  }
   const differences = collectDifferences(
     withoutDiagnosticTokens(full),
     withoutDiagnosticTokens(progressive),
@@ -191,4 +197,73 @@ export function validateContextManifest(manifest, expectedSources) {
   }
 
   return { valid: errors.length === 0, errors };
+}
+
+function valueAtPath(value, path) {
+  return path.split('.').reduce((current, key) => current?.[key], value);
+}
+
+function assertFixtureFields(fixtureId, records, assertions = {}) {
+  for (const [path, expected] of Object.entries(assertions)) {
+    for (const [mode, record] of Object.entries(records)) {
+      if (canonicalSerialize(valueAtPath(record, path)) !== canonicalSerialize(expected)) {
+        throw new Error(`${fixtureId} ${mode} does not satisfy pinned assertion ${path}`);
+      }
+    }
+  }
+}
+
+function applyFixtureMutation(record, mutation) {
+  const copy = structuredClone(record);
+  if (mutation?.deleteField) delete copy[mutation.deleteField];
+  return copy;
+}
+
+export function executeCompatibilityFixture(fixture, recordTemplate) {
+  const records = {
+    full: { ...structuredClone(recordTemplate), ...structuredClone(fixture.full) },
+    progressive: { ...structuredClone(recordTemplate), ...structuredClone(fixture.progressive) },
+  };
+  const { scenario } = fixture;
+  if (!scenario || typeof scenario.operation !== 'string') {
+    throw new Error(`${fixture.id} is missing an executable scenario operation`);
+  }
+  const input = scenario.input ?? {};
+  assertFixtureFields(fixture.id, records, input.assertions);
+
+  if (scenario.operation === 'record-comparison') {
+    return { operation: scenario.operation, comparison: compareCriticalRecords(records.full, records.progressive) };
+  }
+  if (scenario.operation === 'comparator-error') {
+    const target = input.target === 'full' ? 'full' : 'progressive';
+    records[target] = applyFixtureMutation(records[target], input.mutation);
+    try {
+      compareCriticalRecords(records.full, records.progressive);
+      throw new Error(`${fixture.id} expected a comparator error`);
+    } catch (error) {
+      if (!String(error.message).startsWith('normalized record comparator error:')) throw error;
+      return { operation: scenario.operation, error: error.message };
+    }
+  }
+
+  const comparison = compareCriticalRecords(records.full, records.progressive);
+  if (scenario.operation === 'manifest-validation') {
+    return {
+      operation: scenario.operation,
+      comparison,
+      manifestValidation: validateContextManifest(input.manifest, input.expectedSources),
+    };
+  }
+  if (scenario.operation === 'allowlist-validation') {
+    const valid = input.allowedValues.includes(input.candidate);
+    return {
+      operation: scenario.operation,
+      comparison,
+      allowlistValidation: {
+        valid,
+        errors: valid ? [] : [`unknown ${input.valueType}: ${input.candidate}`],
+      },
+    };
+  }
+  throw new Error(`${fixture.id} has unknown scenario operation ${scenario.operation}`);
 }

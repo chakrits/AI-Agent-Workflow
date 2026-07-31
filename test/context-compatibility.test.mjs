@@ -6,6 +6,7 @@ import {
   canonicalSerialize,
   compareCriticalRecords,
   computeResultDigest,
+  executeCompatibilityFixture,
   validateContextManifest,
 } from '../scripts/lib/context-compatibility.mjs';
 
@@ -13,10 +14,6 @@ const fixtureCatalog = JSON.parse(await readFile(
   new URL('./fixtures/context-compatibility-v1.json', import.meta.url),
   'utf8',
 ));
-
-function materializePinnedRecord(overrides) {
-  return { ...structuredClone(fixtureCatalog.recordTemplate), ...structuredClone(overrides) };
-}
 
 function record(overrides = {}) {
   return {
@@ -54,6 +51,11 @@ function record(overrides = {}) {
   };
 }
 
+function validRecord(value = record()) {
+  value.resultDigest = computeResultDigest(value);
+  return value;
+}
+
 test('fixture catalog executes 36 pinned full/progressive normalized record pairs', () => {
   assert.equal(fixtureCatalog.contractVersion, 'context-compatibility/v1');
   const groupCounts = Object.groupBy(fixtureCatalog.fixtures, ({ group }) => group);
@@ -73,18 +75,35 @@ test('fixture catalog executes 36 pinned full/progressive normalized record pair
   ]);
 
   for (const fixture of fixtureCatalog.fixtures) {
-    const full = materializePinnedRecord(fixture.full);
-    const progressive = materializePinnedRecord(fixture.progressive);
-    assert.equal(full.fixtureId, fixture.id);
-    assert.equal(progressive.fixtureId, fixture.id);
-    assert.equal(computeResultDigest(full), full.resultDigest, `${fixture.id} full digest`);
-    assert.equal(computeResultDigest(progressive), progressive.resultDigest, `${fixture.id} progressive digest`);
+    assert.ok(Object.keys(fixture.scenario.input.assertions).length > 0, `${fixture.id} assertions`);
     assert.deepEqual(
-      compareCriticalRecords(full, progressive),
-      fixture.expectedComparison,
+      executeCompatibilityFixture(fixture, fixtureCatalog.recordTemplate),
+      fixture.expectedExecution,
       fixture.id,
     );
   }
+});
+
+test('reviewer repro fixtures execute concrete failure and event semantics', () => {
+  const execute = (id) => {
+    const fixture = fixtureCatalog.fixtures.find((candidate) => candidate.id === id);
+    return executeCompatibilityFixture(fixture, fixtureCatalog.recordTemplate);
+  };
+
+  assert.match(execute('CTX-D02').error, /missing required field dispatchMandatoryFields/);
+  const terminalPass = fixtureCatalog.fixtures.find(({ id }) => id === 'CTX-D05');
+  assert.deepEqual(terminalPass.scenario.input.assertions.dispatchMandatoryFields, {
+    WorkItem: true,
+    NextOwner: 'Reviewer',
+    successorCount: 1,
+    bossEventCount: 1,
+  });
+  assert.deepEqual(execute('CTX-D05').comparison, { compatible: true, differences: [] });
+  assert.deepEqual(execute('CTX-E03').manifestValidation.errors, ['stale source: AGENTS.md']);
+  assert.deepEqual(execute('CTX-E05').manifestValidation.errors, [
+    'duplicate source: AGENTS.md',
+    'malformed manifest entry at index 2',
+  ]);
 });
 
 test('canonical serialization sorts nested object keys without changing array order', () => {
@@ -102,22 +121,37 @@ test('result digest is SHA-256 over the canonical record excluding resultDigest'
   assert.deepEqual(input, before);
 });
 
+test('comparison fails closed when either normalized record has a forged or stale digest', () => {
+  const valid = record();
+  valid.resultDigest = computeResultDigest(valid);
+  const forged = structuredClone(valid);
+  forged.resultDigest = 'f'.repeat(64);
+  const stale = structuredClone(valid);
+  stale.nextOwner = 'QA Agent';
+
+  assert.throws(() => compareCriticalRecords(forged, valid), /resultDigest.*canonical bytes/i);
+  assert.throws(() => compareCriticalRecords(valid, stale), /resultDigest.*canonical bytes/i);
+});
+
 test('critical comparison ignores only contextManifest approximateTokens', () => {
-  const full = record();
+  const full = validRecord();
   const progressive = structuredClone(full);
   progressive.contextManifest[0].approximateTokens = 7;
+  progressive.resultDigest = computeResultDigest(progressive);
   assert.deepEqual(compareCriticalRecords(full, progressive), { compatible: true, differences: [] });
 
   progressive.nextOwner = 'QA Agent';
+  progressive.resultDigest = computeResultDigest(progressive);
   const comparison = compareCriticalRecords(full, progressive);
   assert.equal(comparison.compatible, false);
   assert.deepEqual(comparison.differences, ['nextOwner']);
 });
 
 test('critical comparison reports nested manifest divergence and does not mutate records', () => {
-  const full = record();
+  const full = validRecord();
   const progressive = structuredClone(full);
   progressive.contextManifest[0].loadResult = 'fallback';
+  progressive.resultDigest = computeResultDigest(progressive);
   const before = [structuredClone(full), structuredClone(progressive)];
   assert.deepEqual(compareCriticalRecords(full, progressive), {
     compatible: false,
@@ -132,7 +166,7 @@ test('digest and comparison reject incomplete normalized records with comparator
     /normalized record.*missing required field/i,
   );
   assert.throws(
-    () => compareCriticalRecords(record(), { contractVersion: 'context-compatibility/v1' }),
+    () => compareCriticalRecords(validRecord(), { contractVersion: 'context-compatibility/v1' }),
     /normalized record.*missing required field/i,
   );
 });
@@ -141,7 +175,7 @@ test('digest and comparison reject undefined and non-JSON normalized values expl
   for (const ambiguous of [undefined, () => 'not JSON', Number.NaN, 1n]) {
     const invalid = record({ nextOwner: ambiguous });
     assert.throws(() => computeResultDigest(invalid), /normalized record.*JSON/i);
-    assert.throws(() => compareCriticalRecords(record(), invalid), /normalized record.*JSON/i);
+    assert.throws(() => compareCriticalRecords(validRecord(), invalid), /normalized record.*JSON/i);
   }
 });
 
