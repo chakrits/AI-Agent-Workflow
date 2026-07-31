@@ -1,36 +1,24 @@
 # PROJECT_STATUS.md
 
 ## Current Work Item
-- ID: GitHub Issue #129
-- Title: reset-to-template history scrub
-- Owner: Human Maintainer (merge-review gate)
-- Status: Verification complete — fresh QA passed AC-01 through AC-12; human review remains
-- References: https://github.com/chakrits/AI-Agent-Workflow/issues/129
+- ID: None (idle — awaiting next human-sponsored work item)
+- Title: N/A
+- Owner: N/A
+- Status: Idle
+- References: N/A
 
 ## Current Stage
-- Framework / Meta Change — verification complete (`phase:human-review`). Fresh QA report commit `421ba9d` passes AC-01 through AC-12 against reviewed implementation commit `ffcb121`; the earlier blocked QA report at `ac7c8e4` remains unchanged as incident evidence.
+- Idle — last completed work was Issue #129 (reset-to-template history scrub), merged through PR #130 as `4243eb5`.
 
 ## Change Classification
-- Change Type: Framework / Meta Change
-- Risk Level: Medium — destructive local reset tool and invocation-contract change
-- Code Change Required: Complete — repository-owned harness and regression coverage independently reviewed and verified
-- Architecture Change Required: No — Owner resolved the scope/contract decisions
+- Change Type: N/A (idle)
+- Risk Level: N/A
+- Code Change Required: No
+- Architecture Change Required: No
 - Security Review Required: No
 
-## Issue #129 Planning Evidence
-- Revised plan: `docs/records/implementation-plan/2026-07-28-reset-to-template-history-scrub.md`
-- Decision record: ADR-0016 in `DECISIONS.md`
-- Accepted boundaries: preserve `docs/records/qa/`; preserve README/indexes except targeted evidence-backed updates; require full post-reset tests/validators; require second confirmation plus dirty-target refusal; document a human-only new-root path that is not a security purge; block destructive apply in CI while allowing dry-run.
-- AC-12 clarification: direct agent invocation remains forbidden. Confirmed reset verification is allowed only through a repository-owned harness that proves ownership, canonical Git root and `cwd` binding, standalone-clone isolation from the primary repository, exact commit, and clean state before spawning reset; every failed proof must stop before mutation.
-- Incident trail: retain both accidental confirmed-reset invocations against the primary worktree—the Developer fixture incident in `TASK_LOG.md` and the QA incident in `docs/records/qa/2026-07-31-issue-129-qa-report.md`. Both were restored from unchanged HEAD; neither is waived or converted to a pass.
-- Corrected facts: 14 real ADRs, five GitHub workflow files, and three post-reset test failures caused by live-history assumptions.
-- Review evidence: independent review commit `ffcb121` closes CR-129-H01 through CR-129-H04 with 0 open findings; normal and post-reset suites pass 316/316 and all 11 validators/checks pass.
-- Fresh QA evidence: report commit `421ba9d` independently passes AC-01 through AC-12, focused 68/68, normal/post-reset 316/316, and preserves primary HEAD/status/digest plus the prior blocked report.
-- Next Action: Human review of PR #130
-- Next Owner: Human Maintainer
-- Readiness boundary: `status:verification-done` is supported by fresh evidence. PR review and merge approval remain human decisions; the reset and optional history procedure are not authorized for the primary repository.
-
 ## Completed
+- GitHub Issue #129 (reset-to-template history scrub) merged through PR #130 as `4243eb5`. The delivered reset is dry-run by default, preserves `docs/records/qa/`, requires explicit confirmation and clean contained targets for apply, and blocks destructive CI invocation. A repository-owned fail-closed harness is the only approved agent path for confirmed-reset verification: it proves standalone disposable-root ownership, canonical root/common-directory/script/`cwd` binding, exact commit and clean state, QA sentinel preservation, dirty refusal/no mutation, cleanup, primary integrity, and idempotency. Independent review closed CR-129-H01 through CR-129-H04 with 0 open findings; fresh QA passed AC-01 through AC-12, focused 68/68, normal/post-reset 316/316, and 11/11 validators in both environments. The two restored accidental primary-worktree invocations remain recorded as incident evidence; neither authorizes reset/history operations against the primary repository.
 - GitHub Issue #116 (framework gap closure — work item traceability, evidence-based label cleanup, dispatch-receipt anti-forgery controls, Config/Data contract expansion) closed through 4 source PRs (#122, #123, #124, #127) across 5 child work items (#117–#121). The original 4-fix combined plan was withdrawn after two review passes found factual errors in its own evidence (52 vs 7 stale labels — a `gh pr list --state merged --label` CLI bug; a dispatch-receipt CLI proposal covering 4 of 8 schema-required fields; a 115-TASK_LOG-row denominator vs 27 distinct issues) and process concerns (Fix 1 misclassified as Documentation-only despite being an executable script; Fix 2's age-only label removal risked erasing incomplete-closeout evidence; Fix 3 needed SA + Security design before any tooling; Fix 4 could not copy New Feature's contract shape). The corrected plan split into 5 independently-routed child issues, each Boss-approved individually before implementation:
   - **#117** (PR #122, `42d15fd`) — `scripts/backfill-work-item-records.mjs` groups TASK_LOG rows by distinct issue (not row), generating minimal work-item records with `Unknown — requires review` status unless explicit merge+closeout evidence exists, never overwriting existing records (issue-numbered or slug-based), idempotent. Independent QA found 5 of the original 10 pilot records were fabricated — `#78/#79/#80/#84/#89` are PR numbers misparsed as Issue numbers from `TASK_LOG` rows reading "PRs #78, #79, #80, #81" (plural/list, not the singular `PR #NN` the parser recognized) — root-caused, fixed, and the bad records regenerated correctly. `npm test` 223 → 247.
   - **#118** (PR #123, `971350f`) — `scripts/cleanup-stale-closeout-labels.mjs` enumerates merged-PR candidates via paginated GraphQL (never `gh pr list --label`, which the Issue #116 review proved unreliable for merged PRs), re-confirms every candidate live via `gh pr view --repo <owner>/<repo> --json labels` immediately before any mutation, and gates `--apply` on a human-approved manifest requiring structured per-PR `reconciliationEvidence` (not one free-text string for the whole batch) bound to the requested owner/repo/label. Self-review found and fixed a missing `--repo` pin on the real `gh` wrapper calls (would have silently operated on whatever repo the cwd's git remote pointed at). `npm test` 223 → 242.
