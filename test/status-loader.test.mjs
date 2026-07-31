@@ -19,8 +19,8 @@ function record(overrides = {}) {
     risk: 'medium',
     phase: 'phase:development',
     taskState: 'implementing',
-    governingContract: 'feature-lifecycle',
-    contractVersion: 'v1',
+    governingContract: 'new-feature',
+    contractVersion: '1',
     owner: { kind: 'agent', id: 'developer-agent' },
     evidence: [{
       kind: 'sdd',
@@ -89,6 +89,39 @@ test('rejects missing required fields and unknown keys', async () => {
   }
 });
 
+test('derives legal contract versions and task states from canonical workflow contracts', async () => {
+  const legal = [
+    ['new-feature', '1', 'implementing'],
+    ['bug-fix', '1', 'investigating'],
+    ['config-change', '1', 'monitoring'],
+    ['data-change', '1', 'validating']
+  ].map(([governingContract, contractVersion, taskState], number) => record({
+    issue: {
+      repository: 'chakrits/ai-agent-workflow',
+      number: number + 1,
+      url: `https://github.com/chakrits/ai-agent-workflow/issues/${number + 1}`
+    },
+    governingContract,
+    contractVersion,
+    taskState
+  }));
+  for (const value of legal) value.recordDigest = computeRecordDigest(value);
+  const legalFiles = await fixtureFiles(legal);
+  assert.equal((await loadStatusFiles(legalFiles)).length, 4);
+
+  for (const overrides of [
+    { governingContract: 'feature-lifecycle' },
+    { contractVersion: 'v2' },
+    { taskState: 'invented-state' },
+    { governingContract: 'bug-fix', taskState: 'planning' }
+  ]) {
+    const value = record(overrides);
+    value.recordDigest = computeRecordDigest(value);
+    const [file] = await fixtureFiles([value]);
+    await assert.rejects(loadStatusFiles([file]), /contract|version|task state/i);
+  }
+});
+
 test('enforces identity, timestamp, archive, and digest constraints', async () => {
   const badDigest = record();
   badDigest.recordDigest = '0'.repeat(64);
@@ -108,26 +141,79 @@ test('enforces identity, timestamp, archive, and digest constraints', async () =
   }
 });
 
-test('loads inactive archives by archivedAt then digest within identity', async () => {
-  const archive = (archivedAt, reason) => {
+test('validates connected archive lineage and orders archives deterministically', async () => {
+  const first = record();
+  const archive = (updatedAt, archivedAt, reason, supersedesDigest) => {
     const value = record({
       active: false,
+      updatedAt,
       archivedAt,
       archiveReason: reason,
-      supersedesDigest: 'a'.repeat(64)
+      supersedesDigest
     });
     value.recordDigest = computeRecordDigest(value);
     return value;
   };
-  const later = archive('2026-07-31T04:00:00Z', 'closed later');
-  const earlier = archive('2026-07-31T03:00:00Z', 'closed earlier');
-  const files = await fixtureFiles([later, earlier]);
+  const earlier = archive('2026-07-31T03:00:00Z', '2026-07-31T03:30:00Z', 'closed earlier', first.recordDigest);
+  const later = archive('2026-07-31T04:00:00Z', '2026-07-31T04:30:00Z', 'closed later', earlier.recordDigest);
+  const files = await fixtureFiles([later, first, earlier]);
 
   const loaded = await loadStatusFiles(files);
-  assert.deepEqual(loaded.map(({ archivedAt }) => archivedAt), [
-    '2026-07-31T03:00:00Z',
-    '2026-07-31T04:00:00Z'
+  assert.deepEqual(loaded.filter(({ active }) => !active).map(({ archivedAt }) => archivedAt), [
+    '2026-07-31T03:30:00Z',
+    '2026-07-31T04:30:00Z'
   ]);
+});
+
+test('rejects fabricated, disconnected, branching, and non-monotonic archive histories', async () => {
+  const first = record();
+  const archived = (overrides) => {
+    const value = record({
+      active: false,
+      updatedAt: '2026-07-31T03:00:00Z',
+      archivedAt: '2026-07-31T03:30:00Z',
+      archiveReason: 'closed',
+      supersedesDigest: first.recordDigest,
+      ...overrides
+    });
+    value.recordDigest = computeRecordDigest(value);
+    return value;
+  };
+  const fabricated = archived({ supersedesDigest: 'a'.repeat(64) });
+  const branchOne = archived({ archiveReason: 'branch one' });
+  const branchTwo = archived({ archiveReason: 'branch two' });
+  const backwards = archived({
+    updatedAt: '2026-07-31T01:30:00Z',
+    archivedAt: '2026-07-31T01:45:00Z'
+  });
+
+  for (const values of [[first, fabricated], [first, branchOne, branchTwo], [first, backwards]]) {
+    const files = await fixtureFiles(values);
+    await assert.rejects(loadStatusFiles(files), /lineage|supersedes|monotonic/i);
+  }
+});
+
+test('canonical digest uses a total evidence ordering', () => {
+  const evidence = [
+    {
+      kind: 'test',
+      url: 'test/status-loader.test.mjs',
+      digest: 'a'.repeat(64),
+      commit: '2222222',
+      observedAt: '2026-07-31T02:00:00Z'
+    },
+    {
+      kind: 'test',
+      url: 'test/status-loader.test.mjs',
+      digest: 'a'.repeat(64),
+      commit: '1111111',
+      observedAt: '2026-07-31T01:00:00Z'
+    }
+  ];
+  const forward = record({ evidence });
+  const reversed = record({ evidence: [...evidence].reverse() });
+
+  assert.equal(computeRecordDigest(forward), computeRecordDigest(reversed));
 });
 
 test('rejects duplicate active identity even when filenames differ', async () => {

@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { readFile } from 'node:fs/promises';
+import { readFile, readdir } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 
@@ -10,6 +10,23 @@ const SCHEMA_VERSION = 'work-item-status/v1';
 const schemaPath = fileURLToPath(new URL('../../docs/contracts/schemas/work-item-status.schema.json', import.meta.url));
 const schema = JSON.parse(await readFile(schemaPath, 'utf8'));
 const validate = new Ajv2020({ allErrors: true }).compile(schema);
+const contractsDirectory = fileURLToPath(new URL('../../docs/contracts/', import.meta.url));
+
+async function loadWorkflowContracts() {
+  const filenames = (await readdir(contractsDirectory))
+    .filter((filename) => filename.endsWith('-workflow.yaml'))
+    .sort();
+  const contracts = new Map();
+  for (const filename of filenames) {
+    const contract = parse(await readFile(path.join(contractsDirectory, filename), 'utf8'), { uniqueKeys: true });
+    const key = `${contract.workflow_id}@${String(contract.contract_version)}`;
+    if (contracts.has(key)) throw new Error(`Duplicate canonical workflow contract: ${key}`);
+    contracts.set(key, new Set(contract.states));
+  }
+  return contracts;
+}
+
+const workflowContracts = await loadWorkflowContracts();
 
 function canonicalJson(value) {
   if (Array.isArray(value)) return `[${value.map(canonicalJson).join(',')}]`;
@@ -22,7 +39,9 @@ function canonicalJson(value) {
 function evidenceOrder(left, right) {
   return left.kind.localeCompare(right.kind)
     || left.url.localeCompare(right.url)
-    || (left.digest ?? '').localeCompare(right.digest ?? '');
+    || (left.digest ?? '').localeCompare(right.digest ?? '')
+    || (left.commit ?? '').localeCompare(right.commit ?? '')
+    || left.observedAt.localeCompare(right.observedAt);
 }
 
 function normalizedForDigest(record) {
@@ -58,6 +77,11 @@ function validateSemantics(record, file) {
     fail(file, detail);
   }
 
+  const contractKey = `${record.governingContract}@${record.contractVersion}`;
+  const states = workflowContracts.get(contractKey);
+  if (!states) fail(file, `unknown governing contract or version: ${contractKey}`);
+  if (!states.has(record.taskState)) fail(file, `illegal task state ${record.taskState} for ${contractKey}`);
+
   const expectedUrl = `https://github.com/${record.issue.repository}/issues/${record.issue.number}`;
   if (record.issue.url !== expectedUrl) fail(file, 'issue URL does not agree with repository and number');
   if (!validTimestamp(record.createdAt) || !validTimestamp(record.updatedAt)) fail(file, 'timestamp is invalid');
@@ -71,6 +95,53 @@ function validateSemantics(record, file) {
 
   const expectedDigest = computeRecordDigest(record);
   if (record.recordDigest !== expectedDigest) fail(file, `record digest mismatch (expected ${expectedDigest})`);
+}
+
+function validateLineage(records) {
+  const byIdentity = new Map();
+  for (const record of records) {
+    const identity = `${record.issue.repository}#${record.issue.number}`;
+    const revisions = byIdentity.get(identity) ?? [];
+    revisions.push(record);
+    byIdentity.set(identity, revisions);
+  }
+
+  for (const [identity, revisions] of byIdentity) {
+    const archives = revisions.filter(({ active }) => !active);
+    if (archives.length === 0) continue;
+    const byDigest = new Map(revisions.map((record) => [record.recordDigest, record]));
+    if (byDigest.size !== revisions.length) throw new Error(`Archive lineage for ${identity} contains duplicate revisions`);
+    const roots = revisions.filter(({ active }) => active);
+    if (roots.length !== 1) throw new Error(`Archive lineage for ${identity} requires exactly one prior active revision`);
+
+    const successorCount = new Map();
+    for (const archive of archives) {
+      const prior = byDigest.get(archive.supersedesDigest);
+      if (!prior) throw new Error(`Archive lineage for ${identity} has unresolved supersedesDigest ${archive.supersedesDigest}`);
+      successorCount.set(prior.recordDigest, (successorCount.get(prior.recordDigest) ?? 0) + 1);
+      if (successorCount.get(prior.recordDigest) > 1) throw new Error(`Archive lineage for ${identity} branches at ${prior.recordDigest}`);
+      if (Date.parse(archive.updatedAt) < Date.parse(prior.updatedAt)) {
+        throw new Error(`Archive lineage timestamps are not monotonic for ${identity}`);
+      }
+      if (!prior.active && archive.archivedAt.localeCompare(prior.archivedAt) < 0) {
+        throw new Error(`Archive lineage ordering is not monotonic for ${identity}`);
+      }
+    }
+
+    const rootDigest = roots[0].recordDigest;
+    for (const archive of archives) {
+      const seen = new Set([archive.recordDigest]);
+      let cursor = archive;
+      while (!cursor.active) {
+        cursor = byDigest.get(cursor.supersedesDigest);
+        if (!cursor || seen.has(cursor.recordDigest)) {
+          throw new Error(`Archive lineage for ${identity} is disconnected or cyclic`);
+        }
+        seen.add(cursor.recordDigest);
+      }
+      if (cursor.recordDigest !== rootDigest) throw new Error(`Archive lineage for ${identity} is disconnected`);
+    }
+  }
 }
 
 function statusOrder(left, right) {
@@ -115,6 +186,8 @@ export async function loadStatusFiles(paths) {
     if (activeIdentities.has(identity)) throw new Error(`Duplicate active identity: ${identity}`);
     activeIdentities.add(identity);
   }
+
+  validateLineage(records);
 
   return records.sort(statusOrder);
 }
