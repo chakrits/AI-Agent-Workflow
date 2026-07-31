@@ -14,6 +14,10 @@ const fixtureCatalog = JSON.parse(await readFile(
   'utf8',
 ));
 
+function materializePinnedRecord(overrides) {
+  return { ...structuredClone(fixtureCatalog.recordTemplate), ...structuredClone(overrides) };
+}
+
 function record(overrides = {}) {
   return {
     contractVersion: 'context-compatibility/v1',
@@ -45,11 +49,12 @@ function record(overrides = {}) {
     ],
     authority: 'legacy',
     mutationAttempted: false,
+    resultDigest: '0'.repeat(64),
     ...overrides,
   };
 }
 
-test('fixture catalog freezes exactly 36 unique IDs in the 12/10/8/6 split', () => {
+test('fixture catalog executes 36 pinned full/progressive normalized record pairs', () => {
   assert.equal(fixtureCatalog.contractVersion, 'context-compatibility/v1');
   const groupCounts = Object.groupBy(fixtureCatalog.fixtures, ({ group }) => group);
   assert.deepEqual(
@@ -66,6 +71,20 @@ test('fixture catalog freezes exactly 36 unique IDs in the 12/10/8/6 split', () 
     ...Array.from({ length: 8 }, (_, index) => `CTX-S${String(index + 1).padStart(2, '0')}`),
     ...Array.from({ length: 6 }, (_, index) => `CTX-E${String(index + 1).padStart(2, '0')}`),
   ]);
+
+  for (const fixture of fixtureCatalog.fixtures) {
+    const full = materializePinnedRecord(fixture.full);
+    const progressive = materializePinnedRecord(fixture.progressive);
+    assert.equal(full.fixtureId, fixture.id);
+    assert.equal(progressive.fixtureId, fixture.id);
+    assert.equal(computeResultDigest(full), full.resultDigest, `${fixture.id} full digest`);
+    assert.equal(computeResultDigest(progressive), progressive.resultDigest, `${fixture.id} progressive digest`);
+    assert.deepEqual(
+      compareCriticalRecords(full, progressive),
+      fixture.expectedComparison,
+      fixture.id,
+    );
+  }
 });
 
 test('canonical serialization sorts nested object keys without changing array order', () => {
@@ -76,10 +95,10 @@ test('canonical serialization sorts nested object keys without changing array or
 });
 
 test('result digest is SHA-256 over the canonical record excluding resultDigest', () => {
-  const input = record({ resultDigest: 'must-not-affect-digest' });
+  const input = record();
   const before = structuredClone(input);
   assert.equal(computeResultDigest(input), '23f6db5377932f58e2ac7f6b06d3eaad0dbcf911033301e785be104940fb7b16');
-  assert.equal(computeResultDigest({ ...input, resultDigest: 'different' }), computeResultDigest(input));
+  assert.equal(computeResultDigest({ ...input, resultDigest: '1'.repeat(64) }), computeResultDigest(input));
   assert.deepEqual(input, before);
 });
 
@@ -107,6 +126,39 @@ test('critical comparison reports nested manifest divergence and does not mutate
   assert.deepEqual([full, progressive], before);
 });
 
+test('digest and comparison reject incomplete normalized records with comparator errors', () => {
+  assert.throws(
+    () => computeResultDigest({ contractVersion: 'context-compatibility/v1' }),
+    /normalized record.*missing required field/i,
+  );
+  assert.throws(
+    () => compareCriticalRecords(record(), { contractVersion: 'context-compatibility/v1' }),
+    /normalized record.*missing required field/i,
+  );
+});
+
+test('digest and comparison reject undefined and non-JSON normalized values explicitly', () => {
+  for (const ambiguous of [undefined, () => 'not JSON', Number.NaN, 1n]) {
+    const invalid = record({ nextOwner: ambiguous });
+    assert.throws(() => computeResultDigest(invalid), /normalized record.*JSON/i);
+    assert.throws(() => compareCriticalRecords(record(), invalid), /normalized record.*JSON/i);
+  }
+});
+
+test('digest rejects JSON values that violate the normalized record shape', () => {
+  for (const invalid of [
+    record({ contractVersion: 'context-compatibility/v2' }),
+    record({ slice: 'status' }),
+    record({ workflow: 'Developer' }),
+    record({ dispatchMandatoryFields: [] }),
+    record({ projectionDigest: 7 }),
+    record({ authority: 'progressive' }),
+    record({ mutationAttempted: true }),
+  ]) {
+    assert.throws(() => computeResultDigest(invalid), /normalized record comparator error/i);
+  }
+});
+
 test('manifest validation accepts exact source coverage without mutating inputs', () => {
   const manifest = record().contextManifest;
   const expectedSources = [{ source: 'AGENTS.md', sourceHash: 'a'.repeat(64) }];
@@ -132,5 +184,40 @@ test('manifest validation fails closed for duplicate, missing, unknown, and stal
     const result = validateContextManifest(manifest, expected);
     assert.equal(result.valid, false);
     assert.match(result.errors.join('\n'), expectedError);
+  }
+});
+
+test('manifest validation returns structured invalid results for malformed inputs', () => {
+  const expected = [{ source: 'AGENTS.md', sourceHash: 'a'.repeat(64) }];
+  const malformed = [
+    null,
+    {},
+    [null],
+    [{}],
+    [{ source: 7, sourceHash: 'bad' }],
+    [{ source: 'AGENTS.md', sourceHash: 'a'.repeat(64) }],
+  ];
+  for (const manifest of malformed) {
+    const result = validateContextManifest(manifest, expected);
+    assert.equal(result.valid, false);
+    assert.ok(result.errors.length > 0);
+  }
+});
+
+test('manifest validation rejects duplicate expected sources, including conflicting hashes', () => {
+  const manifest = record().contextManifest;
+  for (const expectedSources of [
+    [
+      { source: 'AGENTS.md', sourceHash: 'a'.repeat(64) },
+      { source: 'AGENTS.md', sourceHash: 'a'.repeat(64) },
+    ],
+    [
+      { source: 'AGENTS.md', sourceHash: 'a'.repeat(64) },
+      { source: 'AGENTS.md', sourceHash: 'b'.repeat(64) },
+    ],
+  ]) {
+    const result = validateContextManifest(manifest, expectedSources);
+    assert.equal(result.valid, false);
+    assert.match(result.errors.join('\n'), /duplicate expected source: AGENTS\.md/);
   }
 });
