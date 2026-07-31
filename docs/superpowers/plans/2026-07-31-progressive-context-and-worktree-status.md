@@ -96,4 +96,4 @@ No prune or deletion is authorized by this planning artifact.
 
 Orchestrator → SA → Documentation Agent → Human Approval/status:spec-ready → Developer per slice → Independent Reviewer → QA → Human review
 
-Current state for both slices is phase:design. Do not dispatch Developer or add status:spec-ready until the design and executable plan pass independent review and are explicitly approved.
+Current state for both slices is phase:planning. Independent review passed at 48754be; do not dispatch Developer or add status:spec-ready until Human Maintainer explicitly approves the specification.

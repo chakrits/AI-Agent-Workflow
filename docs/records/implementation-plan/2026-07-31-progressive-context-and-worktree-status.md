@@ -90,4 +90,4 @@ Focused commands are finalized after file-level design. Record before/after coun
 
 ## 9. Handoff
 
-Next Action: Dispatch to an independent Reviewer after commit. Review source grounding, AC measurability, route preservation, test sufficiency, and housekeeping safety without implementation. PASS routes to Human review for status:spec-ready; findings route to SA/Documentation rework.
+Next Action: Human review. Independent re-review passed at 48754be after one plan rework. Human Maintainer must decide whether to approve the specification and add status:spec-ready per slice; Developer dispatch remains prohibited until that decision.

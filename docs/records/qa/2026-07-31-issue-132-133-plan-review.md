@@ -32,3 +32,14 @@ Rollback must not expose a stale legacy projection when newer authoritative shar
 - Result: BLOCKED → rework
 - Rework count: 1
 - Human specification approval and status:spec-ready remain withheld.
+
+## Fresh re-review
+
+- Reviewed commit: 48754beac81ee8c3806f34c009381b6d17c4f920
+- Result: PASS
+- PLAN-132-133-01: CLOSED — Slice B has its own 36-case corpus.
+- PLAN-132-133-02: CLOSED — measurement protocol v1 defines paired unit, sample, aggregation, fallback denominator, and N/A handling.
+- PLAN-132-133-03: CLOSED — day-30 incomplete sample is BLOCKED pending Human extension/termination.
+- Rollback residual: CLOSED at plan level — shard/projection mismatch blocks legacy restoration.
+- New blocking findings: None.
+- Readiness: #132 and #133 are ready for Human specification review; this does not grant status:spec-ready or implementation authority.
