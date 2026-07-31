@@ -203,3 +203,56 @@ The new tests use this broad hook to delete/replace the marker and script (`test
 | Prior QA | Unchanged and still BLOCKED; no fresh QA claim |
 | Required route | Developer removes the ownership-capable hook, retains coverage through narrow seams, then independent re-review |
 | Fresh-QA packet focus after PASS review | Exact clean review commit; repository-owned harness only; AC-01–AC-12 independently re-derived; no dependency seam capable of selecting candidate/token/reset cwd/script; real sentinel, dirty refusal/restoration/re-attestation/order; canonical aliases/common-dir; exact commit/clean state; zero reset spawn on every failed proof; cleanup/error aggregation and primary HEAD/status/digest on all outcomes; post-reset validators and real idempotency |
+
+## H04 Final Re-review — Commit `a4ddaa5194e57e03f3a07de1263920a0ebbe813c`
+
+### Result
+
+**PASS.** CR-129-H04 is closed, H01–H03 show no regression, all prior Major test-quality gaps remain closed, and no Critical/Major/Minor finding remains in the reviewed range `ddb5a78..a4ddaa5194e57e03f3a07de1263920a0ebbe813c`.
+
+### H04 Closure
+
+`scripts/verify-reset-template.mjs:79-105` now exposes only opaque/fixed test controls: a fault string, simulation booleans, a phase-only observer used exclusively while real reset is disabled, and no-argument cleanup/integrity observers. Candidate root and frozen ownership remain local at lines 91-93. Marker path, token, canonical reset cwd, and reset script remain private inside the operation/attestation closures. The removed `afterCandidateCreated` callback is ignored, proven by `test/verify-reset-template.test.mjs:54-72`.
+
+Opaque faults are applied by closed internal branches at `scripts/verify-reset-template.mjs:119-159`; they return no protected data and accept no path/token callback. Missing/foreign marker, root mismatch, common-directory alias, wrong commit, dirty clone, and script mismatch cannot be composed to replace the candidate or reproduce ownership. `runReset()` fixes cwd to the private candidate and receives the privately attested script path; when `simulateReset` is true, no child process is spawned.
+
+Callbacks remaining on the public dependency object do not cross the destructive ownership boundary:
+
+- `onResetPhase(phase)` receives only a phase and runs only inside the simulated branch.
+- `beforeCleanup()` receives no arguments and runs after all reset/idempotency work.
+- `onPrimaryIntegrityCheck()` receives no arguments and runs after cleanup and after HEAD/status/digest are collected.
+
+### H01–H03 Non-regression
+
+| Finding | Status | Evidence |
+|---|---|---|
+| H01 ownership | CLOSED | Candidate creation, ownership token, marker, cwd, script, canonical root/common-dir and commit/clean checks remain private and inseparable. Forged pre-existing clone test remains green. |
+| H02 lifecycle | CLOSED | Sentinel, dirty refusal, target restoration, re-attestation, apply, validators, baseline commit, second attestation, idempotency, and cleanup order remain unchanged and covered. |
+| H03 cleanup/integrity | CLOSED | Operation, cleanup, and primary-integrity errors remain independently captured and aggregated; cleanup failure still cannot skip HEAD/status/digest collection. |
+
+### Pre-commit Verification
+
+| Command | Result |
+|---|---|
+| `node --test test/verify-reset-template.test.mjs` | PASS, 14/14 |
+| `npm test` | PASS, 316/316 |
+| `npm run validate:contracts` | PASS |
+| `npm run validate:project-state` | PASS |
+| `npm run validate:skill-parity` | PASS, 25 skills |
+| `npm run adr:audit` | PASS, 15 ADRs / 41 decision keywords |
+| `npm run validate:risk-register` | PASS |
+| `npm run validate:review-gate` before record commit | Expected FAIL: reviewed tip changes two scripts and final evidence was not yet committed |
+| `npm run validate:skill-usage` | PASS |
+| `npm run validate:metrics` | PASS |
+| `npm run validate:context-budget` | PASS, 26,020 / 30,000 |
+| `git diff --check` | PASS |
+
+### Final Review Gate
+
+| Item | Result |
+|---|---|
+| Finding tally | 0 Critical, 0 Major, 0 Minor, 0 Questions |
+| Review decision | **PASS** |
+| Prior QA | Preserved unchanged and still BLOCKED; this review is not QA evidence |
+| Next required evidence | Repository-owned harness at the clean review-record tip, then fresh independent QA of AC-01–AC-12 |
+| Fresh-QA focus | Exact clean review commit; repository-owned harness only; independently re-derive all ACs; confirm opaque seams cannot expose candidate/token/marker/cwd/script; sentinel and dirty refusal/restoration/order; canonical root/common-dir/aliases; exact commit/clean state; zero reset spawn on all failed proofs; cleanup/error aggregation and primary integrity; post-reset validators and real idempotency |
