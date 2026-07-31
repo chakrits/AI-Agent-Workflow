@@ -1,20 +1,20 @@
 # PROJECT_STATUS.md
 
 ## Current Work Item
-- ID: None (idle — awaiting next human-sponsored work item)
-- Title: N/A
-- Owner: N/A
-- Status: Idle
-- References: N/A
+- ID: GitHub Issue #129
+- Title: reset-to-template history scrub
+- Owner: Human Maintainer (dispatch-resolution owner)
+- Status: Blocked — Documentation Agent plan reconciliation could not complete in-turn
+- References: https://github.com/chakrits/AI-Agent-Workflow/issues/129
 
 ## Current Stage
-- Idle — last completed work was Issue #116 (framework gap closure, 5 child work items #117–#121), merged through PR #122, #123, #124, #127 as commits `42d15fd`, `971350f`, `286d8a4`, and the #127 squash commit.
+- Framework / Meta Change — planning reconciliation. Owner decisions are recorded on Issue #129, but the plan/ADR update is not complete and Developer implementation has not started.
 
 ## Change Classification
-- Change Type: N/A (idle)
-- Risk Level: N/A
-- Code Change Required: No
-- Architecture Change Required: No
+- Change Type: Framework / Meta Change
+- Risk Level: Medium — destructive local reset tool and invocation-contract change
+- Code Change Required: Yes, after specification readiness
+- Architecture Change Required: No — Owner accepted the system-impact recommendations
 - Security Review Required: No
 
 ## Completed
@@ -69,9 +69,12 @@
 - GitHub Issue #68 (test-tooling readiness — reference-only config templates and skills for Playwright/Supertest/Bruno/Jest/Vitest/pytest/Stryker) merged through PR #70 as commit `0d65956`; Issue #68 closed. Delivered: `docs/workflow/testing-conventions.md` (test folder-structure convention) linked from `PROJECT_INDEX.md` and the vault index; a Playwright config template added to `qa-playwright-testing`; a JS/TS (Stryker) section and config template added to `mutation-testing`; three brand-new skills — `api-testing-tooling` (Supertest + Bruno), `js-unit-testing` (Jest + Vitest), `python-unit-testing` (pytest) — each mirrored byte-identically across `.agents/skills/`, `.claude/skills/`, and `.agent/skills/`; three new `SKILL_CATALOG.md` entries plus a Planned Skills clarifying note; three new QA Skill Routing rows in `docs/workflow/role-definitions.md`, mirrored in `.claude/agents/qa-agent.md`; a `docs/vault/00-Index.md` correction moving five pre-existing skills (`ba-requirement-analysis`, `sa-architecture-design`, `data-config-change`, `qa-playwright-testing`, `security-review`) from "portable only" to "Mirrored" now that all three platform copies are verified in sync, plus the two QA-flagged fixes (AC-06 `SKILL_CATALOG.md` `mutation-testing` Stryker mention; AC-09 vault index 23/23 mirrored-skill count); 6 new regression tests in `test/validate-contracts.test.mjs` (156 → 162 total tests). Zero live dependencies added: no `package.json`/`package-lock.json` change, no `pyproject.toml`/`requirements.txt` created. QA Agent independently verified all 10 Acceptance Criteria PASS at commit `017a34a` (prior AC-06/AC-09 FAILs fixed and re-verified). Default-branch audit passed on `0d65956` and GitHub applied the normal `post-merge-closeout` label to PR #70; no `documentation-sync` exception issue was created.
 
 ## In Progress
-- None — project is idle following the closeout of Issue #116.
+- Issue #129 Owner decisions are recorded at https://github.com/chakrits/AI-Agent-Workflow/issues/129#issuecomment-5140591557.
+- Documentation Agent reconciliation timed out twice in the active Orchestrator turn; no child output or stale changes were consumed.
 
 ## Blockers / Open Questions
+- Issue #129 dispatch is blocked with `stop_reason: host_completion_unavailable`. Attempts: child `019fb724-fb7d-7f03-b14a-14b0f70df390` and child `019fb726-a3ce-7d13-ac45-f9f8b8748a83`, both timed out after 60 seconds and were closed while still running.
+- Issue #129 must not receive `status:spec-ready` or route to Developer until its implementation plan and ADR encode the accepted Owner decisions, including preserving `docs/records/qa/`.
 - R-002: `.gitlab-ci.yml` has not yet been validated on a live GitLab runner; this is an external verification follow-up, not an active implementation task.
 - Deferred and unscheduled: a Prototype/Spike workflow route and a shared cross-role template pattern.
 - Deferred and unscheduled housekeeping follow-up (Issue #41, Boss-approved, non-blocking): QA-1, QA-2, QA-4, QA-5 — see the Completed section entry for detail. No Issue is open for this yet; track it when the follow-up is scheduled.
@@ -79,13 +82,15 @@
 - `api-contract-testing`, `performance-testing`, and `mutation-testing` document tooling (`schemathesis`, `drf-spectacular`, Locust/k6, `mutmut`) that is not installed anywhere in this repo — intentional per the design spec, since this repo has no Django/Python target application yet. Wiring is deferred to whenever a real work item first needs to execute one of these skills.
 
 ## Required Artifacts
-- None (idle)
+- Revised `docs/records/implementation-plan/2026-07-28-reset-to-template-history-scrub.md`
+- New ADR recording the accepted/rejected Issue #129 alternatives
+- Documentation Agent terminal receipt
 
 ## Next Quality Gate
-- Awaiting next human-sponsored work item.
+- Documentation review: revised plan/ADR must pass `adr:audit`, `validate:context-budget`, and `git diff --check`; then Human Maintainer may authorize a fresh dispatch/runtime.
 
 ## Recommended Next Agent
-- None — project is idle. The next agent is determined when a human opens a new work item.
+- Documentation Agent, after the Human Maintainer provides a working completion host or explicitly requests a fresh dispatch turn.
 
 ## Notes
 - GitHub Issue #44's design spec went through two Boss-directed scope expansions after initial brainstorming: first, mirroring the four new QA skills into `.agent/skills/` (Antigravity CLI) rather than leaving it out of scope by analogy to `qa-playwright-testing` not living there; second, backfilling the four pre-existing `.agent/skills/` gaps unrelated to QA (`ba-requirement-analysis`, `data-config-change`, `sa-architecture-design`, `security-review`) in the same pass rather than deferring them. During implementation, the first `.agent/skills/` parity pass would have naively overwritten `dynamic-workflow`, `frontend-ui-engineering`, and `functional-test-design` — three pre-existing skills that intentionally use a thin pointer-adapter pattern unrelated to this work — and Developer Agent correctly escalated this as a mid-implementation blocker rather than silently overwriting them; the resolved approach special-cased those 3 (left untouched) and mirrored the other 17 byte-identical, which QA Agent's parity test independently confirmed.
