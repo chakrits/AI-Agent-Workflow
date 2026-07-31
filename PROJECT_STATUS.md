@@ -3,12 +3,12 @@
 ## Current Work Item
 - ID: GitHub Issue #129
 - Title: reset-to-template history scrub
-- Owner: Developer Agent (implementation owner)
-- Status: Development implementation complete — independent code review and QA pending
+- Owner: QA Agent (independent verification owner)
+- Status: Verification — implementation complete and independent code re-review passed
 - References: https://github.com/chakrits/AI-Agent-Workflow/issues/129
 
 ## Current Stage
-- Framework / Meta Change — implementation (`phase:development`). Owner decisions from Issue #129 comment `5140591557` are encoded in the revised plan and ADR-0016; Human Maintainer approved the specification on 2026-07-31 and GitHub carries `status:spec-ready`.
+- Framework / Meta Change — independent verification (`phase:verification`). Implementation commit `a0bbc7d` received one Critical and one Major review finding; rework commit `af20850` closed both, and independent re-review commit `ec8331c` returned PASS.
 
 ## Change Classification
 - Change Type: Framework / Meta Change
@@ -22,9 +22,9 @@
 - Decision record: ADR-0016 in `DECISIONS.md`
 - Accepted boundaries: preserve `docs/records/qa/`; preserve README/indexes except targeted evidence-backed updates; require full post-reset tests/validators; require second confirmation plus dirty-target refusal; document a human-only new-root path that is not a security purge; block destructive apply in CI while allowing dry-run.
 - Corrected facts: 14 real ADRs, five GitHub workflow files, and three post-reset test failures caused by live-history assumptions.
-- Next Action: Independent code review
-- Next Owner: Reviewer
-- Readiness boundary: Human Maintainer approved the reconciled specification on 2026-07-31; Developer implementation is authorized, while QA verification and human merge approval remain pending.
+- Next Action: Dispatch
+- Next Owner: QA Agent
+- Readiness boundary: implementation and code-review gates are complete; QA must independently verify AC-01 through AC-12 against the exact Draft PR commit before human merge review.
 
 ## Completed
 - GitHub Issue #116 (framework gap closure — work item traceability, evidence-based label cleanup, dispatch-receipt anti-forgery controls, Config/Data contract expansion) closed through 4 source PRs (#122, #123, #124, #127) across 5 child work items (#117–#121). The original 4-fix combined plan was withdrawn after two review passes found factual errors in its own evidence (52 vs 7 stale labels — a `gh pr list --state merged --label` CLI bug; a dispatch-receipt CLI proposal covering 4 of 8 schema-required fields; a 115-TASK_LOG-row denominator vs 27 distinct issues) and process concerns (Fix 1 misclassified as Documentation-only despite being an executable script; Fix 2's age-only label removal risked erasing incomplete-closeout evidence; Fix 3 needed SA + Security design before any tooling; Fix 4 could not copy New Feature's contract shape). The corrected plan split into 5 independently-routed child issues, each Boss-approved individually before implementation:
