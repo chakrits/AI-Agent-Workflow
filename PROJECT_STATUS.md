@@ -4,11 +4,11 @@
 - ID: GitHub Issue #132 with split child Issue #133
 - Title: Compatibility-first Progressive Context and Worktree-Scoped Status planning
 - Owner: Orchestrator / SA / Documentation Agent
-- Status: Independent plan review passed; Human specification review pending; implementation not authorized
+- Status: Human-approved design/plan; CP-1 evidence pending; implementation not yet authorized
 - References: https://github.com/chakrits/AI-Agent-Workflow/issues/132 · https://github.com/chakrits/AI-Agent-Workflow/issues/133
 
 ## Current Stage
-- `phase:planning` — independent re-review passed at `48754be` after one rework. Next Action: Human review of #132/#133 specification; `status:spec-ready` and Developer dispatch remain withheld.
+- `phase:planning` — Human approved the independently-reviewed design/plan. Next Action: SA Agent completes CP-1 baseline/measurement/schema/consumer evidence; `status:spec-ready` and Developer dispatch remain withheld until that gate passes.
 
 ## Change Classification
 - Change Type: Framework / Meta Change

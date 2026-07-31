@@ -9,7 +9,7 @@
 | Risk Level | Medium |
 | Current Owner | Orchestrator / SA / Documentation Agent |
 | Target Branch | 132-feature-progressive-context-loading-strategy-worktree-scoped-status-architecture |
-| Authorization | Not granted; design review and Human status:spec-ready gate pending |
+| Authorization | Human approved design/plan; CP-1 baseline and measurement evidence still gates status:spec-ready and Developer dispatch |
 
 ## 2. Dependency graph
 
@@ -90,4 +90,4 @@ Focused commands are finalized after file-level design. Record before/after coun
 
 ## 9. Handoff
 
-Next Action: Human review. Independent re-review passed at 48754be after one plan rework. Human Maintainer must decide whether to approve the specification and add status:spec-ready per slice; Developer dispatch remains prohibited until that decision.
+Next Action: Dispatch SA Agent for CP-1. Human Maintainer approved the independently-reviewed specification. SA/QA must now freeze normalized fixtures, host-observation protocol/initial supported-host matrix, final Slice-B schema boundaries, projection trigger, and consumer inventory. Add status:spec-ready and dispatch Developer only after CP-1 evidence is reviewed.

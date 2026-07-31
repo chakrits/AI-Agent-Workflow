@@ -6,7 +6,7 @@
 
 **Risk:** Medium
 
-**Status:** Review
+**Status:** Approved — CP-1 evidence pending before implementation readiness
 
 ## 1. Evidence boundary
 
