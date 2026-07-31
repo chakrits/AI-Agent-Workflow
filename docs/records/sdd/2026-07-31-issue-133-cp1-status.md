@@ -8,7 +8,7 @@
 - Status: CP-1 architecture evidence; Human review required before specification readiness
 - Change type / risk: Framework / Meta; Medium
 - Contract version: `status-compatibility/v1`; shard schema `work-item-status/v1`
-- Evidence commit: `f215735` on `132-feature-progressive-context-loading-strategy-worktree-scoped-status-architecture`
+- Evidence commit: `786df83` on `132-feature-progressive-context-loading-strategy-worktree-scoped-status-architecture`
 
 ## Context and evidence boundary
 
@@ -134,14 +134,18 @@ An N/A is allowed only for a field structurally inapplicable to this slice and m
 Commands run from repository root at evidence commit:
 
 ```text
-rg -n --hidden --glob '!.git/**' --glob '!docs/records/sdd/2026-07-31-issue-132-cp1-context.md' --glob '!docs/records/sdd/2026-07-31-issue-133-cp1-status.md' 'PROJECT_STATUS\.md|PROJECT_STATUS' .
+git ls-files -z | xargs -0 rg -n 'PROJECT_STATUS\.md|PROJECT_STATUS'
+git ls-files -z | xargs -0 rg -l 'PROJECT_STATUS\.md|PROJECT_STATUS' | sort
 rg -n --hidden --glob '!.git/**' --glob '*.{mjs,js,cjs,ts,yml,yaml,sh,json}' 'PROJECT_STATUS\.md|PROJECT_STATUS' .
 rg -l --hidden --glob '!.git/**' 'Read `PROJECT_STATUS\.md`|Read AGENTS\.md, PROJECT_STATUS\.md|Update `PROJECT_STATUS\.md`|PROJECT_STATUS\.md and TASK_LOG\.md when appropriate' .agents .agent .claude
+rg -n --hidden --glob '!.git/**' 'PROJECT_STATUS\.md|PROJECT_STATUS' AGENTS.md CLAUDE.md README.md PROJECT_INDEX.md docs/workflow docs/operating-model docs/templates docs/vault .agents .agent .claude scripts test .github/workflows/documentation-sync.yml
 ```
 
-Excluded from the migration count: `PROJECT_STATUS.md` itself; `TASK_LOG.md`; `CHANGELOG.md`; completed work-item, handoff, QA, postmortem, lessons-learned, historical plan/spec records; index/link-only references; the two target SDDs; and comments that merely narrate history. They remain discoverable by the first broad command but do not read, write, validate, authorize, generate, or instruct operational use of current status. Generated/reset artifacts are categorized separately rather than hidden.
+Inclusion test, fixed before classification and counting: include a tracked file when its current executable behavior or instructions read, write, validate, authorize, generate, or direct an operator/agent to use current `PROJECT_STATUS`. Inspect every literal match, plus tests that exercise an included status branch even when the test file does not repeat the literal. Count mirrored host files separately. Deduplicate physical paths across categories except when a file has two explicitly different operational roles.
 
-Count: **56 unique consumer files and 57 categorized surfaces**: 6 executable, 37 policy/adapters, 7 tests, and 7 reset-generated/onboarding surfaces. `scripts/reset-to-template.mjs` is deliberately counted as both an executable consumer and the reset-artifact source, so the surface total is one greater than the deduplicated file total. Mirrored files count separately because each host copy must be migrated or retained as an explicit compatibility exception.
+Excluded from the migration count: `PROJECT_STATUS.md` itself; `TASK_LOG.md`; `CHANGELOG.md`; completed work-item, handoff, QA, postmortem, lessons-learned, historical plan/spec records; index/link-only references; the two target SDDs; scoped packet examples that merely prohibit a status edit; and comments that merely narrate history. They remain discoverable by the broad tracked-file commands but do not independently read, write, validate, authorize, generate, or instruct operational use of current status. Generated/reset artifacts are categorized separately rather than hidden.
+
+Exhaustive result at evidence commit: **61 unique consumer files and 62 categorized surfaces**: 6 executable, 40 policy/adapters, 7 tests, and 9 reset-generated/onboarding/template surfaces. `scripts/reset-to-template.mjs` is deliberately counted as both an executable consumer and the reset-artifact source, so the surface total is one greater than the deduplicated file total. Mirrored files count separately because each host copy must be migrated or retained as an explicit compatibility exception. This result supersedes the prior 56/57 claim and includes all five CP1-133-01 omissions; no further operational consumer passed the inclusion test in the tracked-repository review.
 
 ### Executable consumers (6)
 
@@ -154,7 +158,7 @@ Count: **56 unique consumer files and 57 categorized surfaces**: 6 executable, 3
 | `scripts/cleanup-stale-closeout-labels.mjs:82-115` | Accepts `PROJECT_STATUS.md` as project-state reconciliation evidence. | Change evidence to authoritative shard/set digest; compatibility root reference accepted only with freshness proof. |
 | `.github/workflows/documentation-sync.yml:11-22,68-77` | Runs root project-state validator and routes success/failure closeout behavior. | Invoke shard/set + projection freshness validator; controlled default-branch renderer is a distinct gated step, not a branch writer. |
 
-### Policy and host-adapter consumers (37)
+### Policy and host-adapter consumers (40)
 
 | Evidence | Migration treatment |
 |---|---|
@@ -164,9 +168,10 @@ Count: **56 unique consumer files and 57 categorized surfaces**: 6 executable, 3
 | `.agents/skills/ba-requirement-analysis/SKILL.md:19,31`; `data-config-change/SKILL.md:39,51`; `dynamic-workflow/SKILL.md:14,19,37`; `qa-playwright-testing/SKILL.md:158,170`; `sa-architecture-design/SKILL.md:19,31`; `security-review/SKILL.md:45,57` | Six portable skills: replace direct root read/update with loader + scoped shard transition; keep no dual write. Paths after the first are relative to `.agents/skills/`. |
 | `.agent/skills/ba-requirement-analysis/SKILL.md:19,31`; `data-config-change/SKILL.md:39,51`; `dynamic-workflow/SKILL.md:14,19,37`; `qa-playwright-testing/SKILL.md:158,170`; `sa-architecture-design/SKILL.md:19,31`; `security-review/SKILL.md:45,57` | Six Antigravity mirrors: same treatment; verify mirror parity. Paths after the first are relative to `.agent/skills/`. |
 | `.claude/skills/ba-requirement-analysis/SKILL.md:19,31`; `data-config-change/SKILL.md:39,51`; `dynamic-workflow/SKILL.md:14,19,37`; `qa-playwright-testing/SKILL.md:158,170`; `sa-architecture-design/SKILL.md:19,31`; `security-review/SKILL.md:45,57` | Six Claude skill mirrors: same treatment; verify mirror parity. Paths after the first are relative to `.claude/skills/`. |
+| `.agents/skills/documentation-closeout/SKILL.md:23-46,74-79`; `.agent/skills/documentation-closeout/SKILL.md:23-46,74-79`; `.claude/skills/documentation-closeout/SKILL.md:23-46,74-79` | Three closeout-skill mirrors write/reset the current pointer, prescribe merge-conflict treatment, and verify root status. Replace writes with archive/active shard transitions and verify the controlled projection; preserve mirror parity and the single-authority rule. |
 | `.claude/agents/ba-agent.md:39,43`; `config-agent.md:42,46`; `data-agent.md:46,50`; `developer-agent.md:47,51`; `documentation-agent.md:31,60,64`; `orchestrator-agent.md:34,50,55`; `pm-agent.md:55,59`; `qa-agent.md:23,79,83`; `release-agent.md:42,46`; `sa-agent.md:43,47`; `security-reviewer.md:43,47` | Eleven agent adapters: read normalized active set and write only owned shard transition. Paths after the first are relative to `.claude/agents/`. |
 
-The grouped rows enumerate 1 AGENTS + 1 CLAUDE + 5 canonical workflow/model files + 1 portable workflow + 18 mirrored skill files + 11 Claude agent files = 37 policy/adapter files.
+The grouped rows enumerate 1 AGENTS + 1 CLAUDE + 5 canonical workflow/model files + 1 portable workflow + 18 mirrored general-skill files + 3 mirrored closeout-skill files + 11 Claude agent files = 40 policy/adapter files.
 
 ### Test consumers (7)
 
@@ -180,15 +185,17 @@ The grouped rows enumerate 1 AGENTS + 1 CLAUDE + 5 canonical workflow/model file
 | `test/cleanup-stale-closeout-labels.test.mjs:13-395` (module coverage; status-path branch originates at script lines 82-115) | Add authoritative digest evidence and stale projection rejection. |
 | `test/validate-contracts.test.mjs:413-458` | Update closeout contract expected files/policy and assert single authority/no dual write. |
 
-### Reset-generated and onboarding surfaces (7)
+### Reset-generated, onboarding, and template surfaces (9)
 
 | Evidence | Migration treatment |
 |---|---|
-| `scripts/reset-to-template.mjs:10-46` | Source generator: empty authoritative set plus deterministic compatibility projection. Counted here for artifact ownership and above for executable impact; physical-file total counts it once in executable, so unique-file count is **56** while surface count is **57**. |
+| `scripts/reset-to-template.mjs:10-46` | Source generator: empty authoritative set plus deterministic compatibility projection. Counted here for artifact ownership and above for executable impact; physical-file total counts it once in executable, so unique-file count is **61** while surface count is **62**. |
 | `docs/workflow/reset-to-template.md:9`; `README.md:34,89,176,243`; `docs/vault/00-Index.md:20` | Document authoritative shard location/loader; link root as generated compatibility view. |
 | `.agent/skills/verification-before-completion/templates/COMPLETION_CHECK.md:32`; `.agents/skills/verification-before-completion/templates/COMPLETION_CHECK.md:32`; `.claude/skills/verification-before-completion/templates/COMPLETION_CHECK.md:32` | Replace yes/no root update with authoritative set transition + projection freshness evidence. |
+| `docs/templates/COMPLETION_CHECK.md:28-36` | Replace the root-status yes/no prompt with authoritative shard-transition and projection-freshness evidence fields. |
+| `docs/templates/POST_MERGE_DOCUMENTATION_REVIEW.md:19-29` | Replace root-status impact review with authoritative active/archive transition impact plus generated-projection freshness treatment. |
 
-Consumer reporting for handoff: **56 unique files, 57 categorized surfaces** because `scripts/reset-to-template.mjs` is both executable and the reset artifact source. No consumer is silently omitted by deduplicating that dual role.
+Independent arithmetic from the enumerated paths: 6 executable + 40 policy/adapters + 7 tests + 9 reset/onboarding/template surfaces = **62 surfaces**. Removing the one explicit cross-category duplicate, `scripts/reset-to-template.mjs`, yields **61 unique files**. All 61 included paths exist at the evidence commit, and each cited line records operational current-status behavior. No other path is double-counted.
 
 ## Migration checkpoints and temporary exceptions
 
@@ -220,7 +227,8 @@ Before authority switch, disable shadow and keep root legacy authority. After sw
 - Decision: freeze the 36 `STS-*` fixtures independently from Slice A.
 - Assumption: YAML is a storage encoding and canonical JSON is the digest model; implementation may select a conforming parser but cannot change normalization silently.
 - Unresolved Human decision: exact default-branch trigger/platform credentials and owner; this design permits no feature-branch projection writer.
-- Unresolved evidence: independent review of the 56-file inventory, executable migration implementation, 36-case run, 20 preselected historical replays, 10 real-Git cases, live shadow, rollback rehearsal, and Human Go/No-Go.
+- Resolved rework evidence: CP1-133-01 inventory reconciled to 61 unique files / 62 categorized surfaces at `786df83`; fresh independent Reviewer confirmation remains required before CP-1 acceptance.
+- Unresolved evidence: executable migration implementation, 36-case run, 20 preselected historical replays, 10 real-Git cases, live shadow, rollback rehearsal, and Human Go/No-Go.
 - Human gate: Human Maintainer owns trigger/authority switch/rollback decisions. This record does not authorize `status:spec-ready`.
 
 ## Related artifacts
