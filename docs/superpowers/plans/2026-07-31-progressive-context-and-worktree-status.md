@@ -35,11 +35,11 @@ Prose may differ. Structured behavior may not.
 
 | Gate | Minimum evidence |
 |---|---|
-| Deterministic compatibility corpus | 36 scenarios: routing 12, dispatch/handoff 10, stop/backward/rework 8, fallback/error 6 |
+| Deterministic compatibility corpus | 36 scenarios per slice: routing 12, dispatch/handoff 10, stop/backward/rework 8, slice-specific fallback/error 6 |
 | Host activation | Every supported adapter; host-independent core cases are not multiplied artificially |
 | Historical replay | 20 closed work items covering Feature, Bug Fix, Documentation, Framework/Meta, security-sensitive, and backward-routing paths |
 | Worktree integration | 10 real-Git permutations: two merge orders for 2 worktrees, six merge orders for 3 worktrees, two stale/crash rebuilds |
-| Live shadow | 10 consecutive work items or 14 calendar days, whichever is later; Human decision no later than day 30 |
+| Live shadow | 10 consecutive work items or 14 calendar days, whichever is later; an incomplete sample on day 30 is BLOCKED pending Human extension/termination |
 
 ## Migration sequence
 
@@ -58,7 +58,7 @@ Independent dual-write is prohibited.
 - 100% parity for critical structured behavior.
 - Zero unexplained routing, stop-gate, dispatch, handoff, status-union, or terminal-consumption divergence.
 - Zero lost updates, duplicate active records, stale projections, or status-artifact merge conflicts across all worktree permutations.
-- Context boot reduction: median at least 50%, p95 at least 40%.
+- Under measurement protocol v1, each observable supported host has at least 36 paired runs, median reduction at least 50%, and 5th-percentile reduction at least 40%.
 - Safe fallback rate at most 5%.
 - Full repository gates pass at the exact reviewed commit.
 - Independent Reviewer and QA evidence plus Human approval.

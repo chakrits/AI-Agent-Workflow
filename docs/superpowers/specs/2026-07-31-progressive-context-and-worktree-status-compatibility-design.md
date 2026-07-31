@@ -44,6 +44,19 @@ Unknown role/skill, missing source, stale hash, malformed or duplicate shard, in
 - 10 consecutive live work items or 14 days, whichever is later.
 - Human Go/No-Go by day 30.
 - Compatibility removal only after 10 additional fallback-free live work items and separate approval.
+- If fewer than 10 qualifying live work items exist on day 30, the result is BLOCKED, not Go or No-Go. The new path remains non-default until Human Maintainer approves a time-boxed extension or ends the migration.
+
+### D7 — Context measurement protocol v1
+
+Every comparison is a paired run against the same repository commit, task fixture, host, model/configuration, and adapter version.
+
+- Primary unit: host-native input tokens loaded before the first task-specific tool/action. Source chars/4 is diagnostic only and cannot satisfy Go.
+- Per-pair reduction: 1 - (progressive input tokens / full-context input tokens).
+- Minimum population: all 36 deterministic scenarios per observable supported host. Historical/live observations are reported separately and do not replace this minimum.
+- Aggregation: each host must independently have median reduction at least 50% and 5th-percentile reduction at least 40%. Results are never pooled to hide a failing host.
+- Unsupported/unobservable host: mark N/A with evidence and exclude it from the supported activation claim. It blocks Go for that host but does not block a separately approved per-host rollout.
+- Operational fallback: a non-adversarial progressive activation cannot produce a valid manifest/normalized decision and invokes legacy. Denominator is all non-adversarial progressive activation attempts, reported per host and overall. Deliberate negative/fallback fixtures are excluded from this rate.
+- Safe fallback must preserve the normalized legacy result and create no dispatch, consumption, lifecycle, or status mutation before fallback completes.
 
 ## 3. Slice A contract
 
@@ -66,6 +79,8 @@ The shared loader produces a deterministic normalized set. A renderer may emit P
 | Stop/backward/rework | 8 | Human gates, BA/SA/Dev/Security routes, retry exhaustion, circuit breaker |
 | Fallback/error | 6 | unknown role/skill, stale hash, missing pack, malformed/duplicate/unsupported shard |
 
+Each slice runs its own 36 cases. The first 30 exercise the same routing, dispatch/handoff, and stop/backward/rework contract. Slice A's six error cases cover unknown role/skill, stale hash, missing pack, and context-manifest failures. Slice B's six error cases cover malformed, duplicate, stale, unsupported-version, missing, and projection-mismatch status inputs. An evidence-backed N/A is allowed only when a field cannot apply to that slice and the expected unchanged behavior is still asserted.
+
 Twenty historical work items are selected before execution to avoid cherry-picking and must include major change types, backward routing, and security-sensitive work.
 
 Worktree integration has 10 real-Git cases: A→B and B→A for two worktrees, all six orders for three worktrees, one stale-base rebuild, and one interrupted projection rebuild. Expected result is the exact union, and cleanup runs after pass or failure.
@@ -76,7 +91,7 @@ Worktree integration has 10 real-Git cases: A→B and B→A for two worktrees, a
 
 - 100% critical-field equivalence.
 - Zero lost update, duplicate active record, stale accepted projection, status-artifact conflict, weakened gate, or terminal-consumption defect.
-- Context median reduction at least 50%; p95 reduction at least 40%.
+- Per observable supported host, context median reduction at least 50% and 5th-percentile reduction at least 40% under measurement protocol v1.
 - Safe fallback at most 5%.
 - Exact-commit gates, independent Reviewer, independent QA, and Human approval.
 
@@ -96,11 +111,11 @@ Current evidence: seven prunable worktrees; six clean; .worktrees/pr-122 contain
 
 ## 8. Rollback
 
-Before authority switch, disable shadow and leave legacy unchanged. After switch, disable new activation and restore legacy reads from the last verified projection without discarding shards. Rollback cannot rewrite lifecycle/evidence history. Compatibility removal is a separate Human-approved change.
+Before authority switch, disable shadow and leave legacy unchanged. After switch, the controlled path keeps a verified legacy projection synchronized with every accepted authoritative shard update. Rollback first compares projection digest/version with the shard set; if current, restore legacy reads without discarding shards. If any shard is newer or the digest differs, stop as BLOCKED for reconciliation—never expose stale legacy state as current. Rollback cannot rewrite lifecycle/evidence history. Compatibility removal is a separate Human-approved change.
 
 ## 9. Open decisions before status:spec-ready
 
-- Exact host-observation mechanism and supported-host matrix.
+- Concrete host-native telemetry adapters and initial supported-host matrix implementing measurement protocol v1.
 - Final shard schema and archive layout.
 - Controlled projection trigger on the default branch.
 - Complete repository-derived consumer list.

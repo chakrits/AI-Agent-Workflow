@@ -26,8 +26,8 @@ Slices may be implemented separately after the shared comparison contract is app
 
 | ID | Task | Owner | Verification |
 |---|---|---|---|
-| P-01 | Freeze baseline and normalized comparison fields | SA / QA | 36 expected fixtures reviewed |
-| P-02 | Record actual host-loading baseline and supported adapters | Documentation / QA | reproducible evidence per host |
+| P-01 | Freeze baseline, normalized fields, and measurement protocol v1 fixtures | SA / QA | 36 expected fixtures and paired-run formula reviewed |
+| P-02 | Record host-native token baseline and supported adapters | Documentation / QA | at least 36 paired observations per observable supported host; N/A blocks that host claim |
 | A-01 | Add failing boot-manifest, stale-pack, and fallback tests | Developer | focused RED at intended seam |
 | A-02 | Implement minimum context pack and adapter path | Developer | focused GREEN; scope review |
 | A-03 | Run 36 scenarios and 20 historical replays | Reviewer / QA | 100% critical parity |
@@ -38,8 +38,8 @@ Slices may be implemented separately after the shared comparison contract is app
 | B-03 | Migrate consumers vertically | Developer | checkpoint after every two consumers |
 | B-04 | Add controlled renderer and freshness validation | Developer | stale projection rejected |
 | B-05 | Build disposable real-Git test harness | Developer | cleanup after pass/failure |
-| B-06 | Run all 10 merge/rebuild permutations | Reviewer / QA | exact union, zero loss/conflict |
-| B-07 | Run historical replay and bounded live shadow | QA | thresholds met |
+| B-06 | Run Slice B's 36 compatibility cases plus all 10 merge/rebuild permutations | Reviewer / QA | critical parity plus exact union, zero loss/conflict |
+| B-07 | Run 20 historical replays and bounded live shadow | QA | thresholds met; day-30 incomplete sample is BLOCKED |
 | B-08 | Prepare Go/No-Go B and rollback rehearsal | QA / Human | legacy restoration without evidence loss |
 
 ## 4. Checkpoints
@@ -52,7 +52,7 @@ Slices may be implemented separately after the shared comparison contract is app
 
 ## 5. Test strategy
 
-Executable behavior follows TDD. Required evidence includes unit/schema/parser tests, normalized fixtures, 20 historical replays, 10 real-Git worktree permutations, each supported host activation, and exact-commit full regression. Security review is added only if implementation introduces trust, permission, secret, privacy, or security-control impact.
+Executable behavior follows TDD. Each slice runs its own 36-case normalized compatibility corpus. Required evidence also includes 20 historical replays, Slice B's 10 real-Git worktree permutations, at least 36 paired token observations per observable supported host for Slice A, and exact-commit full regression. Operational fallback rates exclude deliberate adversarial fixtures and are reported per host and overall. Security review is added only if implementation introduces trust, permission, secret, privacy, or security-control impact.
 
 ## 6. Minimum verification
 
@@ -73,7 +73,8 @@ Focused commands are finalized after file-level design. Record before/after coun
 |---|---|
 | Shadow comparator fails | Disable shadow; legacy remains authoritative |
 | Context critical divergence | No-Go; keep full-context route |
-| Status critical divergence | No-Go; restore legacy reads and retain shards/evidence |
+| Day 30 with fewer than 10 qualifying live items | BLOCKED; remain non-default pending Human extension/termination |
+| Status critical divergence | No-Go; restore legacy reads only after projection/shard freshness proof; otherwise BLOCKED for reconciliation |
 | Projection stale/malformed | Fail closed; no dispatch, consumption, or state advance |
 | Dirty/stale worktree | Preserve and route for owner disposition |
 | Compatibility removal concern | Keep adapter and open separate approval work |
