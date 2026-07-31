@@ -2,108 +2,138 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import path from 'node:path';
 import os from 'node:os';
-import { mkdtemp, mkdir, realpath, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, mkdir, readFile, realpath, rm, writeFile } from 'node:fs/promises';
+import { execFile as execFileCallback } from 'node:child_process';
+import { promisify } from 'node:util';
 
-import { attestDisposableClone } from '../scripts/verify-reset-template.mjs';
+import * as harness from '../scripts/verify-reset-template.mjs';
 
-async function fixture() {
-  const parent = await mkdtemp(path.join(os.tmpdir(), 'reset-harness-guard-'));
-  const primaryRoot = path.join(parent, 'primary');
-  const candidateRoot = path.join(parent, 'candidate');
-  await mkdir(path.join(primaryRoot, '.git'), { recursive: true });
-  await mkdir(path.join(primaryRoot, 'scripts'), { recursive: true });
-  await mkdir(path.join(candidateRoot, '.git'), { recursive: true });
-  await mkdir(path.join(candidateRoot, 'scripts'), { recursive: true });
-  await writeFile(path.join(primaryRoot, 'scripts/reset-to-template.mjs'), '// foreign fixture\n');
-  await writeFile(path.join(candidateRoot, 'scripts/reset-to-template.mjs'), '// fixture\n');
-  return { parent, primaryRoot, candidateRoot };
+const { runDisposableVerification } = harness;
+
+const execFile = promisify(execFileCallback);
+
+async function makePrimary() {
+  const parent = await mkdtemp(path.join(os.tmpdir(), 'reset-harness-integration-'));
+  const primary = path.join(parent, 'primary');
+  await mkdir(path.join(primary, 'scripts'), { recursive: true });
+  await mkdir(path.join(primary, 'docs/records/qa'), { recursive: true });
+  await writeFile(path.join(primary, 'scripts/reset-to-template.mjs'), '// fixture reset\n');
+  await writeFile(path.join(primary, 'DECISIONS.md'), '# decisions\n');
+  await writeFile(path.join(primary, 'docs/records/qa/existing.md'), 'existing evidence\n');
+  await execFile('git', ['init', '-q'], { cwd: primary });
+  await execFile('git', ['config', 'user.email', 'fixture@example.test'], { cwd: primary });
+  await execFile('git', ['config', 'user.name', 'Fixture'], { cwd: primary });
+  await execFile('git', ['add', '.'], { cwd: primary });
+  await execFile('git', ['commit', '-qm', 'fixture'], { cwd: primary });
+  return { parent, primary };
 }
 
-function probes(overrides = {}) {
+function injectedRun({ failPhase, mutateApply = false } = {}) {
+  const calls = [];
   return {
-    gitRoot: async ({ cwd }) => realpath(cwd),
-    gitCommonDir: async ({ cwd }) => realpath(path.join(cwd, '.git')),
-    gitCommit: async () => 'expected-commit',
-    gitStatus: async () => '',
-    ...overrides
+    calls,
+    dependencies: {
+      runReset: async ({ cwd, phase }) => {
+        calls.push({ cwd: await realpath(cwd), phase });
+        if (phase === failPhase) throw new Error(`injected ${phase} failure`);
+        if (phase === 'dirty-refusal') return;
+        if (mutateApply && phase === 'apply') await writeFile(path.join(cwd, 'DECISIONS.md'), '# reset\n');
+      },
+      runVerification: async () => {}
+    }
   };
 }
 
-async function expectRefusal(setup, pattern) {
-  const roots = await fixture();
-  let spawnCount = 0;
+test('destructive attestation is not publicly callable with forged ownership data', () => {
+  assert.equal('attestDisposableClone' in harness, false);
+});
+
+test('pre-existing clone with forged marker cannot become the destructive candidate', async () => {
+  const roots = await makePrimary();
+  const forged = path.join(roots.parent, 'forged-clone');
+  await execFile('git', ['clone', '-q', roots.primary, forged]);
+  await writeFile(path.join(forged, '.git/reset-verification-owner.json'), JSON.stringify({ runId: 'forged', createdRoot: forged }));
+  const run = injectedRun({ mutateApply: true });
   try {
-    const options = await setup(roots);
-    await assert.rejects(
-      attestDisposableClone({
-        primaryRoot: roots.primaryRoot,
-        candidateRoot: roots.candidateRoot,
-        cwd: roots.candidateRoot,
-        scriptPath: path.join(roots.candidateRoot, 'scripts/reset-to-template.mjs'),
-        expectedCommit: 'expected-commit',
-        marker: { runId: 'run-specific-token', createdRoot: roots.candidateRoot },
-        readMarker: async () => ({ runId: 'run-specific-token', createdRoot: roots.candidateRoot }),
-        probes: probes(),
-        spawnReset: async () => { spawnCount += 1; },
-        ...options
-      }),
-      pattern
-    );
-    assert.equal(spawnCount, 0, 'reset child must never spawn after failed attestation');
+    await runDisposableVerification(roots.primary, run.dependencies);
+    assert.ok(run.calls.length > 0);
+    const canonicalForged = await realpath(forged);
+    assert.ok(run.calls.every(({ cwd }) => cwd !== canonicalForged));
   } finally {
     await rm(roots.parent, { recursive: true, force: true });
   }
+});
+
+test('harness owns sentinel, dirty refusal, restoration, apply, idempotency, and cleanup', async () => {
+  const roots = await makePrimary();
+  const run = injectedRun({ mutateApply: true });
+  let candidate;
+  try {
+    const evidence = await runDisposableVerification(roots.primary, {
+      ...run.dependencies,
+      onCandidate: (root) => { candidate = root; }
+    });
+    assert.deepEqual(run.calls.map(({ phase }) => phase), ['dirty-refusal', 'apply', 'idempotency']);
+    assert.equal(evidence.sentinelPreserved, true);
+    assert.equal(evidence.dirtyRefusalPreservedTargets, true);
+    assert.equal(evidence.primaryPreserved, true);
+    await assert.rejects(readFile(candidate), /ENOENT/);
+    assert.equal((await execFile('git', ['status', '--porcelain'], { cwd: roots.primary })).stdout, '');
+  } finally {
+    await rm(roots.parent, { recursive: true, force: true });
+  }
+});
+
+for (const [name, dependencies, pattern] of [
+  ['canonical Git-root mismatch', { gitRoot: async ({ cwd }) => path.dirname(cwd) }, /Git root/i],
+  ['wrong exact commit', { gitCommit: async () => 'wrong-commit' }, /exact commit/i]
+]) {
+  test(`harness refuses ${name} with zero destructive spawn and cleans up`, async () => {
+    const roots = await makePrimary();
+    const run = injectedRun();
+    let candidate;
+    try {
+      await assert.rejects(
+        runDisposableVerification(roots.primary, { ...run.dependencies, ...dependencies, onCandidate: (root) => { candidate = root; } }),
+        pattern
+      );
+      assert.equal(run.calls.length, 0);
+      await assert.rejects(readFile(candidate), /ENOENT/);
+      assert.equal((await execFile('git', ['status', '--porcelain'], { cwd: roots.primary })).stdout, '');
+    } finally {
+      await rm(roots.parent, { recursive: true, force: true });
+    }
+  });
 }
 
-test('guard refuses wrong cwd before reset spawn', async () => {
-  await expectRefusal(({ primaryRoot }) => ({ cwd: primaryRoot }), /cwd/i);
-});
-
-test('guard refuses the primary root before reset spawn', async () => {
-  await expectRefusal(({ primaryRoot }) => ({ candidateRoot: primaryRoot, cwd: primaryRoot }), /primary/i);
-});
-
-test('guard refuses a linked worktree common directory before reset spawn', async () => {
-  await expectRefusal(({ primaryRoot }) => ({
-    probes: probes({ gitCommonDir: async () => path.join(primaryRoot, '.git') })
-  }), /common directory|linked worktree/i);
-});
-
-test('guard refuses a missing ownership marker before reset spawn', async () => {
-  await expectRefusal(() => ({ readMarker: async () => null }), /ownership marker/i);
-});
-
-test('guard refuses a foreign ownership marker before reset spawn', async () => {
-  await expectRefusal(() => ({ readMarker: async () => ({ runId: 'foreign-token' }) }), /ownership marker/i);
-});
-
-test('guard refuses a script-path mismatch before reset spawn', async () => {
-  await expectRefusal(({ primaryRoot }) => ({
-    scriptPath: path.join(primaryRoot, 'scripts/reset-to-template.mjs')
-  }), /script path/i);
-});
-
-test('guard refuses a dirty clone before reset spawn', async () => {
-  await expectRefusal(() => ({ probes: probes({ gitStatus: async () => ' M DECISIONS.md\n' }) }), /clean/i);
-});
-
-test('guard invokes reset exactly once only after every proof passes', async () => {
-  const roots = await fixture();
-  let spawnCount = 0;
+test('path alias resolves to the primary root and cannot be used as a candidate', async () => {
+  const roots = await makePrimary();
+  const alias = path.join(roots.parent, 'primary-alias');
+  await execFile('ln', ['-s', roots.primary, alias]);
+  const run = injectedRun({ failPhase: 'apply' });
   try {
-    const evidence = await attestDisposableClone({
-      primaryRoot: roots.primaryRoot,
-      candidateRoot: roots.candidateRoot,
-      cwd: roots.candidateRoot,
-      scriptPath: path.join(roots.candidateRoot, 'scripts/reset-to-template.mjs'),
-      expectedCommit: 'expected-commit',
-      marker: { runId: 'run-specific-token', createdRoot: roots.candidateRoot },
-      readMarker: async () => ({ runId: 'run-specific-token', createdRoot: roots.candidateRoot }),
-      probes: probes(),
-      spawnReset: async () => { spawnCount += 1; }
-    });
-    assert.equal(spawnCount, 1);
-    assert.equal(evidence.commit, 'expected-commit');
+    await assert.rejects(runDisposableVerification(alias, run.dependencies), /injected apply failure/);
+    const canonicalPrimary = await realpath(alias);
+    assert.ok(run.calls.every(({ cwd }) => cwd !== canonicalPrimary));
+    assert.equal((await execFile('git', ['status', '--porcelain'], { cwd: roots.primary })).stdout, '');
+  } finally {
+    await rm(roots.parent, { recursive: true, force: true });
+  }
+});
+
+test('injected failure cleans candidate and preserves primary integrity', async () => {
+  const roots = await makePrimary();
+  const run = injectedRun({ failPhase: 'apply' });
+  let candidate;
+  const before = await readFile(path.join(roots.primary, 'DECISIONS.md'));
+  try {
+    await assert.rejects(
+      runDisposableVerification(roots.primary, { ...run.dependencies, onCandidate: (root) => { candidate = root; } }),
+      /injected apply failure/
+    );
+    await assert.rejects(readFile(candidate), /ENOENT/);
+    assert.deepEqual(await readFile(path.join(roots.primary, 'DECISIONS.md')), before);
+    assert.equal((await execFile('git', ['status', '--porcelain'], { cwd: roots.primary })).stdout, '');
   } finally {
     await rm(roots.parent, { recursive: true, force: true });
   }
