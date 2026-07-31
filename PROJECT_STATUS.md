@@ -1,20 +1,20 @@
 # PROJECT_STATUS.md
 
 ## Current Work Item
-- ID: None (idle — awaiting next human-sponsored work item)
-- Title: N/A
-- Owner: N/A
-- Status: Idle
-- References: N/A
+- ID: GitHub Issue #132 with split child Issue #133
+- Title: Compatibility-first Progressive Context and Worktree-Scoped Status planning
+- Owner: Orchestrator / SA / Documentation Agent
+- Status: Design review pending; implementation not authorized
+- References: https://github.com/chakrits/AI-Agent-Workflow/issues/132 · https://github.com/chakrits/AI-Agent-Workflow/issues/133
 
 ## Current Stage
-- Idle — last completed work was Issue #129 (reset-to-template history scrub), merged through PR #130 as `4243eb5`.
+- `phase:design` — compatibility design, ADR-0017, executable plan, Go/No-Go thresholds, and housekeeping controls drafted. Next gate is independent Reviewer, then Human specification approval.
 
 ## Change Classification
-- Change Type: N/A (idle)
-- Risk Level: N/A
-- Code Change Required: No
-- Architecture Change Required: No
+- Change Type: Framework / Meta Change
+- Risk Level: Medium
+- Code Change Required: No in current planning stage; Yes after separate approval per slice
+- Architecture Change Required: Yes
 - Security Review Required: No
 
 ## Completed

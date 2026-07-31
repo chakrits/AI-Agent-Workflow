@@ -2,6 +2,16 @@
 
 ## Decision Log
 
+### ADR-0017: Use One Authoritative Path During Progressive Context and Status Migration
+
+- Date: 2026-07-31
+- Status: Proposed — Human approved the compatibility-first direction; exact design/plan still requires independent review before `status:spec-ready`
+- Context: Issue #132 originally proposed reducing context and compiling a shared root status projection, but code-backed counter-review showed the token target was unsatisfiable as written, host activation was unproven, and committing a generated root projection could retain conflicts or silently lose updates. The accepted split created #132 for progressive context and #133 for worktree-scoped status. Both affect workflow routing, dispatch/handoff continuity, and project-state consumers.
+- Decision: Use a bounded shadow compatibility migration with exactly one authoritative path per phase. Legacy behavior remains authoritative while the new path is read-only. After 36 deterministic scenarios, 20 historical replays, slice-specific worktree tests, bounded live shadow, independent review/QA, and Human approval, authority may switch once; the legacy representation is then generated from the new source rather than independently written. Critical structured behavior requires 100% parity. Independent dual-write is prohibited.
+- Alternatives Considered: Immediate cutover (rejected because host behavior and consumer completeness are not yet proven); permanent dual-write (rejected because it creates split-brain and attribution ambiguity); long-lived manual A/B worktrees (rejected because behavior can be paired using disposable worktrees without housekeeping debt); accepting an 85% context-reduction claim from corpus size alone (rejected because corpus size does not prove host boot loading).
+- Consequences: #132 and #133 have separate implementation/Go decisions; new code must include normalized compatibility evidence and fail-closed fallback; feature branches do not independently commit a changing root status projection; compatibility removal requires a later Human approval. Existing dirty, detached, or host-managed worktrees remain preserved until owner disposition.
+- Owner: Human Maintainer / Orchestrator / SA Agent
+
 ### ADR-0016: Reset Project History While Preserving QA Evidence and Reusable Navigation
 
 - Date: 2026-07-31
