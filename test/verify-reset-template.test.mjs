@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import path from 'node:path';
 import os from 'node:os';
-import { mkdtemp, mkdir, readFile, realpath, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, mkdir, readFile, realpath, rm, symlink, unlink, writeFile } from 'node:fs/promises';
 import { execFile as execFileCallback } from 'node:child_process';
 import { promisify } from 'node:util';
 
@@ -137,4 +137,110 @@ test('injected failure cleans candidate and preserves primary integrity', async 
   } finally {
     await rm(roots.parent, { recursive: true, force: true });
   }
+});
+
+test('cleanup failure cannot skip primary integrity and preserves both operation and cleanup errors', async () => {
+  const roots = await makePrimary();
+  const run = injectedRun({ failPhase: 'apply' });
+  let candidate;
+  let integrityChecks = 0;
+  try {
+    await assert.rejects(
+      runDisposableVerification(roots.primary, {
+        ...run.dependencies,
+        onCandidate: (root) => { candidate = root; },
+        cleanup: async () => { throw new Error('injected cleanup failure'); },
+        onPrimaryIntegrityCheck: () => {
+          integrityChecks += 1;
+          throw new Error('injected integrity probe failure');
+        }
+      }),
+      (error) =>
+        error instanceof AggregateError &&
+        /injected apply failure/.test(error.message) &&
+        /injected cleanup failure/.test(error.message) &&
+        /injected integrity probe failure/.test(error.message)
+    );
+    assert.equal(integrityChecks, 1);
+    assert.ok(await realpath(candidate));
+  } finally {
+    if (candidate) await rm(path.dirname(candidate), { recursive: true, force: true });
+    await rm(roots.parent, { recursive: true, force: true });
+  }
+});
+
+async function expectPostCreationRefusal(name, hook, overrides = {}, pattern) {
+  const roots = await makePrimary();
+  const run = injectedRun();
+  let integrityChecks = 0;
+  try {
+    await assert.rejects(
+      runDisposableVerification(roots.primary, {
+        ...run.dependencies,
+        ...overrides,
+        afterCandidateCreated: hook,
+        onPrimaryIntegrityCheck: () => { integrityChecks += 1; }
+      }),
+      pattern,
+      name
+    );
+    assert.equal(run.calls.length, 0, `${name}: destructive reset must not spawn`);
+    assert.equal(integrityChecks, 1, `${name}: primary integrity must be checked`);
+  } finally {
+    await rm(roots.parent, { recursive: true, force: true });
+  }
+}
+
+test('missing marker refuses with zero spawn and checks primary integrity', async () => {
+  await expectPostCreationRefusal(
+    'missing marker',
+    ({ markerPath }) => unlink(markerPath),
+    {},
+    /marker|ENOENT/i
+  );
+});
+
+test('foreign marker refuses with zero spawn and checks primary integrity', async () => {
+  await expectPostCreationRefusal(
+    'foreign marker',
+    ({ markerPath, candidateRoot }) =>
+      writeFile(markerPath, JSON.stringify({ runId: 'foreign', createdRoot: candidateRoot })),
+    {},
+    /ownership marker/i
+  );
+});
+
+test('linked/shared common-dir canonical alias refuses with zero spawn and checks integrity', async () => {
+  let primaryCommonAlias;
+  await expectPostCreationRefusal(
+    'shared common dir alias',
+    async ({ primaryRoot, runParent }) => {
+      primaryCommonAlias = path.join(runParent, 'primary-common-alias');
+      await symlink(path.join(primaryRoot, '.git'), primaryCommonAlias);
+    },
+    { gitCommonDir: async ({ cwd }) => cwd.includes('standalone-clone') ? primaryCommonAlias : path.join(cwd, '.git') },
+    /linked worktree|common-directory/i
+  );
+});
+
+test('dirty clone refuses with zero spawn and checks primary integrity', async () => {
+  await expectPostCreationRefusal(
+    'dirty clone',
+    async () => {},
+    { gitStatus: async ({ cwd }) => cwd.includes('standalone-clone') ? ' M DECISIONS.md' : '' },
+    /not clean/i
+  );
+});
+
+test('reset script canonical path/cwd mismatch refuses with zero spawn and checks integrity', async () => {
+  await expectPostCreationRefusal(
+    'script cwd mismatch',
+    async ({ candidateRoot, primaryRoot }) => {
+      const script = path.join(candidateRoot, 'scripts/reset-to-template.mjs');
+      await unlink(script);
+      await symlink(path.join(primaryRoot, 'scripts/reset-to-template.mjs'), script);
+    },
+    {},
+    /script path.*outside/i
+  );
 });

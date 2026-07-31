@@ -88,6 +88,7 @@ export async function runDisposableVerification(primaryInput = process.cwd(), de
   const runVerification = dependencies.runVerification ?? (async ({ cwd }) => {
     for (const [command, args] of VERIFY_COMMANDS) await runVisible(command, args, cwd);
   });
+  const cleanup = dependencies.cleanup ?? ((target) => rm(target, { recursive: true, force: true }));
 
   const primaryRoot = await realpath(await git(primaryInput, ['rev-parse', '--show-toplevel']));
   const sourceCommit = await git(primaryRoot, ['rev-parse', 'HEAD']);
@@ -131,11 +132,19 @@ export async function runDisposableVerification(primaryInput = process.cwd(), de
     return { root: candidate, scriptPath, commit, commonDir: candidateCommon };
   }
 
+  let result;
+  let operationError;
   try {
     await execFile('git', ['clone', '--quiet', '--no-local', '--no-checkout', primaryRoot, candidateRoot]);
     await execFile('git', ['checkout', '--quiet', '--detach', sourceCommit], { cwd: candidateRoot });
     const markerPath = path.join(candidateRoot, '.git', MARKER_NAME);
     await writeFile(markerPath, `${JSON.stringify(ownership)}\n`, { mode: 0o600 });
+    await dependencies.afterCandidateCreated?.({
+      candidateRoot,
+      markerPath,
+      primaryRoot,
+      runParent
+    });
 
     const sentinel = Buffer.from(`reset verification ${ownership.runId}\n`);
     const sentinelPath = path.join(candidateRoot, SENTINEL_PATH);
@@ -173,24 +182,52 @@ export async function runDisposableVerification(primaryInput = process.cwd(), de
     }
     if (digest(await readFile(sentinelPath)) !== sentinelHash) throw new Error('QA sentinel changed during idempotency.');
 
-    return {
+    result = {
       commit: sourceCommit,
       sentinelPreserved: true,
       dirtyRefusalPreservedTargets: true,
       primaryPreserved: true,
       verificationCommands: VERIFY_COMMANDS.length
     };
-  } finally {
-    await rm(runParent, { recursive: true, force: true });
+  } catch (error) {
+    operationError = error;
+  }
+
+  let cleanupError;
+  try {
+    await cleanup(runParent);
+  } catch (error) {
+    cleanupError = error;
+  }
+
+  let integrityError;
+  try {
     const primaryAfter = {
       commit: await git(primaryRoot, ['rev-parse', 'HEAD']),
       status: await git(primaryRoot, ['status', '--porcelain=v1', '--untracked-files=all']),
       digest: await treeDigest(primaryRoot)
     };
+    dependencies.onPrimaryIntegrityCheck?.({ before: primaryBefore, after: primaryAfter });
     if (JSON.stringify(primaryAfter) !== JSON.stringify(primaryBefore)) {
       throw new Error('Primary worktree changed during disposable verification.');
     }
+  } catch (error) {
+    integrityError = error;
   }
+
+  const failures = [
+    ['Operation', operationError],
+    ['Cleanup', cleanupError],
+    ['Primary integrity', integrityError]
+  ].filter(([, error]) => error);
+  if (failures.length === 1) throw failures[0][1];
+  if (failures.length > 1) {
+    throw new AggregateError(
+      failures.map(([, error]) => error),
+      failures.map(([label, error]) => `${label} failed: ${error.message}`).join('; ')
+    );
+  }
+  return result;
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1]).href) {
