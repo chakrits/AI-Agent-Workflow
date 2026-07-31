@@ -148,3 +148,58 @@ These cases were present in the approved D3a regression list or explicitly reque
 | Prior QA | Unchanged and still BLOCKED; this is not fresh QA evidence |
 | Required route | Developer fixes CR-129-H03 and completes every recorded negative case, then a fresh independent re-review |
 | Fresh-QA focus after PASS review | Real repository-owned harness at exact clean review tip; AC-01–AC-12 re-derived independently; sentinel/refusal/restoration/order; aliases/common-dir linkage; exact commit/clean state; zero spawn on all proofs; cleanup and primary integrity on success/failure; post-reset validators and idempotency |
+
+## Final Re-review — Commit `6bcae6d6fb7a693ea797eec84d77a6ec2f637993`
+
+### Final Re-review Result
+
+**BLOCKED.** CR-129-H03 is closed and all requested refusal scenarios now have passing zero-`runReset`/integrity-observation tests, but the new post-creation test hook reopens the ownership boundary as a Major production seam. The repository-owned destructive harness was not run.
+
+### Closure Evidence
+
+| Finding / gap | Status | Independent evidence |
+|---|---|---|
+| CR-129-H03 | **CLOSED** | `scripts/verify-reset-template.mjs:198-229` captures operation, cleanup, and primary-integrity errors independently. Cleanup rejection cannot skip the HEAD/status/tree-digest snapshot, and multiple errors are preserved as an `AggregateError` containing each original error. `test/verify-reset-template.test.mjs:142-170` injects simultaneous operation, cleanup, and integrity failures and proves all three survive while the integrity observer runs once. |
+| Missing/foreign marker | **CLOSED AS TEST GAP** | `test/verify-reset-template.test.mjs:194-211` removes or replaces the marker and proves zero `runReset` calls plus one primary-integrity observation. |
+| Linked/common-dir canonical alias | **CLOSED AS TEST GAP** | `test/verify-reset-template.test.mjs:213-224` returns a symlink alias to the primary common directory and proves refusal before `runReset` plus integrity observation. |
+| Dirty clone | **CLOSED AS TEST GAP** | `test/verify-reset-template.test.mjs:226-233` injects dirty candidate status and proves refusal before `runReset` plus integrity observation. |
+| Script/cwd mismatch | **CLOSED AS TEST GAP** | `test/verify-reset-template.test.mjs:235-246` replaces the candidate script with a symlink resolving into the primary root and proves canonical containment refusal before `runReset` plus integrity observation. |
+
+### CR-129-H04 — Major — post-creation hook exposes the ownership token and can replace the candidate
+
+**Evidence:** `scripts/verify-reset-template.mjs:139-149` writes the unguessable ownership marker and then invokes caller-supplied `dependencies.afterCandidateCreated` with `candidateRoot`, `markerPath`, `primaryRoot`, and `runParent`. The callback therefore runs inside the protected interval and has a direct path to read the just-created run token. It can read `markerPath`, remove/rename the harness clone, place a different clean standalone clone at the same `candidateRoot`, and copy the stolen marker into its `.git`. Canonical root, script containment, standalone common directory, exact commit, and clean status can all still pass because the replacement occupies the same canonical path and commit. This violates the final packet requirement that the hook cannot select the candidate or token and reintroduces the mechanism behind CR-129-H01.
+
+The new tests use this broad hook to delete/replace the marker and script (`test/verify-reset-template.test.mjs:181-182,194-246`) but do not test that the hook itself lacks authority to reproduce ownership. Passing negative tests therefore coexist with a caller-controlled ownership bypass.
+
+**Impact:** a caller-injected seam can substitute a foreign candidate after setup and before attestation, while retaining a self-consistent copied token. D3a proof 1—harness-created candidate for the current run—is not fail-closed.
+
+**Required rework:** remove the path-bearing post-creation callback from the production operation. Replace it with capability-limited fault adapters for the specific proof being tested (for example marker-read result, common-dir/status probes, and canonical script resolution) that cannot read the real token, replace the candidate tree, choose candidate/cwd/script, or run arbitrary code in the protected interval. Add a test asserting the public dependency surface exposes no candidate/token/reset-cwd/reset-script selection capability; retain all 13 behavioral cases through the narrower seams.
+
+### Final Re-review Verification Evidence
+
+| Command | Result |
+|---|---|
+| `node --test test/verify-reset-template.test.mjs` | PASS, 13/13 |
+| `npm test` | PASS, 315/315 |
+| `npm run validate:contracts` | PASS |
+| `npm run validate:project-state` | PASS |
+| `npm run validate:skill-parity` | PASS, 25 skills |
+| `npm run adr:audit` | PASS, 15 ADRs / 41 decision keywords |
+| `npm run validate:risk-register` | PASS |
+| `npm run validate:review-gate` before review-record commit | Expected FAIL: tip changes two scripts and final re-review evidence was not yet in `HEAD~1..HEAD` |
+| `npm run validate:skill-usage` | PASS |
+| `npm run validate:metrics` | PASS |
+| `npm run validate:context-budget` | PASS, 26,020 / 30,000 |
+| `git diff --check` | PASS |
+| Repository-owned destructive harness | **NOT RUN** — final safety review remains blocked |
+
+### Final Gate and Handoff
+
+| Item | Result |
+|---|---|
+| Rework range | `bbf338e..6bcae6d6fb7a693ea797eec84d77a6ec2f637993` |
+| Findings after final re-review | CR-129-H03 closed; recorded refusal tests closed; CR-129-H04 Major open |
+| Review gate | **BLOCKED** |
+| Prior QA | Unchanged and still BLOCKED; no fresh QA claim |
+| Required route | Developer removes the ownership-capable hook, retains coverage through narrow seams, then independent re-review |
+| Fresh-QA packet focus after PASS review | Exact clean review commit; repository-owned harness only; AC-01–AC-12 independently re-derived; no dependency seam capable of selecting candidate/token/reset cwd/script; real sentinel, dirty refusal/restoration/re-attestation/order; canonical aliases/common-dir; exact commit/clean state; zero reset spawn on every failed proof; cleanup/error aggregation and primary HEAD/status/digest on all outcomes; post-reset validators and real idempotency |
