@@ -3,19 +3,28 @@
 ## Current Work Item
 - ID: GitHub Issue #129
 - Title: reset-to-template history scrub
-- Owner: Human Maintainer (dispatch-resolution owner)
-- Status: Blocked — Documentation Agent plan reconciliation could not complete in-turn
+- Owner: Human Maintainer (specification-review owner)
+- Status: Planning — Owner-approved scope reconciled into the implementation plan and ADR; awaiting human review
 - References: https://github.com/chakrits/AI-Agent-Workflow/issues/129
 
 ## Current Stage
-- Framework / Meta Change — planning reconciliation. Owner decisions are recorded on Issue #129, but the plan/ADR update is not complete and Developer implementation has not started.
+- Framework / Meta Change — specification planning (`phase:planning` in local project state). Owner decisions from Issue #129 comment `5140591557` are encoded in the revised plan and ADR-0016. Developer implementation has not started, `status:spec-ready` is not claimed, and QA has not evaluated the implementation.
 
 ## Change Classification
 - Change Type: Framework / Meta Change
 - Risk Level: Medium — destructive local reset tool and invocation-contract change
 - Code Change Required: Yes, after specification readiness
-- Architecture Change Required: No — Owner accepted the system-impact recommendations
+- Architecture Change Required: No — Owner resolved the scope/contract decisions
 - Security Review Required: No
+
+## Issue #129 Planning Evidence
+- Revised plan: `docs/records/implementation-plan/2026-07-28-reset-to-template-history-scrub.md`
+- Decision record: ADR-0016 in `DECISIONS.md`
+- Accepted boundaries: preserve `docs/records/qa/`; preserve README/indexes except targeted evidence-backed updates; require full post-reset tests/validators; require second confirmation plus dirty-target refusal; document a human-only new-root path that is not a security purge; block destructive apply in CI while allowing dry-run.
+- Corrected facts: 14 real ADRs, five GitHub workflow files, and three post-reset test failures caused by live-history assumptions.
+- Next Action: Human review
+- Next Owner: Human Maintainer
+- Readiness boundary: the reconciled plan is a candidate specification. Only the Human Maintainer may accept it and authorize lifecycle progression before Developer dispatch.
 
 ## Completed
 - GitHub Issue #116 (framework gap closure — work item traceability, evidence-based label cleanup, dispatch-receipt anti-forgery controls, Config/Data contract expansion) closed through 4 source PRs (#122, #123, #124, #127) across 5 child work items (#117–#121). The original 4-fix combined plan was withdrawn after two review passes found factual errors in its own evidence (52 vs 7 stale labels — a `gh pr list --state merged --label` CLI bug; a dispatch-receipt CLI proposal covering 4 of 8 schema-required fields; a 115-TASK_LOG-row denominator vs 27 distinct issues) and process concerns (Fix 1 misclassified as Documentation-only despite being an executable script; Fix 2's age-only label removal risked erasing incomplete-closeout evidence; Fix 3 needed SA + Security design before any tooling; Fix 4 could not copy New Feature's contract shape). The corrected plan split into 5 independently-routed child issues, each Boss-approved individually before implementation:

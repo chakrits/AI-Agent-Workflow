@@ -2,6 +2,16 @@
 
 ## Decision Log
 
+### ADR-0016: Reset Project History While Preserving QA Evidence and Reusable Navigation
+
+- Date: 2026-07-31
+- Status: Accepted — Owner decisions recorded in Issue #129 comment `5140591557`
+- Context: The reset-to-template plan proposed clearing project work items and lessons learned, wiping the ADR log, stubbing reusable navigation files, warning only after destructive mutation, and forbidding any CI reference to the reset. A disposable-clone impact review corrected that proposal: the repository has 14 real ADRs and five GitHub workflow files; the indexes do not have the asserted direct historical-file links; `npm test` fails after reset because two tests depend on live history; and clearing `docs/records/qa/` would remove review evidence required by existing gate tests.
+- Decision: Clear `docs/records/work-items/` and `docs/records/lessons-learned/`, replace `DECISIONS.md` with a blank structural stub, and preserve `docs/records/qa/`. Preserve `README.md`, `PROJECT_INDEX.md`, and `docs/vault/00-Index.md` except for targeted evidence-backed updates. Keep dry-run as the default; destructive apply requires an explicit second confirmation and must fail closed before mutation when any targeted path contains tracked, staged, or untracked changes. The optional history procedure is a human-only new-root/orphan baseline for a new project and must be documented as not a security-grade purge. CI may use harmless dry-run, but regression coverage must block destructive `--apply`.
+- Alternatives Considered: Clear `docs/records/qa/` and rewrite review-gate tests around an empty live directory (rejected because QA records are durable evidence, not disposable project history); replace README and both indexes with structural stubs (rejected because current link evidence does not justify whole-file loss); warn only after apply (rejected because it cannot prevent deletion of unrecoverable untracked content); allow `--apply` as the sole destructive confirmation or add a dirty-state override (rejected because both weaken the fail-closed safety boundary); perform selective history rewriting as part of the reset (rejected because the template use case needs a clean new baseline, while secret/sensitive-data purge requires separate security review and remote coordination); ban all CI references including dry-run (rejected because only mutation is hazardous).
+- Consequences: Issue #129's implementation plan must include fixture isolation for `test/backfill-work-item-records.test.mjs` and `test/validate-review-gate.test.mjs`, preservation regression coverage for QA records, full post-reset `npm test` and validators, the two-part destructive guard, targeted documentation updates, and independent review/QA. Existing repository history and QA evidence remain intact when the implementation PR merges because reset is not automatically applied.
+- Owner: Human Maintainer / Owner
+
 ### ADR-0013: Dispatch Receipt Assurance Model — Repository-Audited, Not Runtime-Attested
 
 - Date: 2026-07-28
