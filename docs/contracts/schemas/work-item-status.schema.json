@@ -1,0 +1,101 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/chakrits/AI-Agent-Workflow/docs/contracts/schemas/work-item-status.schema.json",
+  "title": "Work Item Status v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion", "issue", "changeType", "risk", "phase", "taskState",
+    "governingContract", "contractVersion", "owner", "evidence", "active",
+    "createdAt", "updatedAt", "archivedAt", "archiveReason", "supersedesDigest",
+    "recordDigest"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "work-item-status/v1" },
+    "issue": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["repository", "number", "url"],
+      "properties": {
+        "repository": { "type": "string", "pattern": "^[a-z0-9](?:[a-z0-9._-]*/)[a-z0-9][a-z0-9._-]*$" },
+        "number": { "type": "integer", "minimum": 1 },
+        "url": { "type": "string", "pattern": "^https://[^\\s]+$" }
+      }
+    },
+    "changeType": {
+      "enum": [
+        "feature", "enhancement", "bug_fix", "config_change", "data_change",
+        "api_contract_change", "test_only", "documentation_only", "framework_meta",
+        "security_sensitive"
+      ]
+    },
+    "risk": { "enum": ["low", "medium", "high", "critical"] },
+    "phase": {
+      "enum": [
+        "phase:requirements", "phase:design", "phase:planning", "phase:development",
+        "phase:verification", "phase:human-review", "phase:blocked", "phase:release",
+        "not_applicable"
+      ]
+    },
+    "taskState": { "type": "string", "minLength": 1 },
+    "governingContract": { "type": "string", "minLength": 1 },
+    "contractVersion": { "type": "string", "minLength": 1 },
+    "owner": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "id"],
+      "properties": {
+        "kind": { "enum": ["agent", "human"] },
+        "id": { "type": "string", "minLength": 1 }
+      }
+    },
+    "evidence": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["kind", "url", "observedAt"],
+        "properties": {
+          "kind": { "type": "string", "minLength": 1 },
+          "url": { "type": "string", "minLength": 1 },
+          "commit": { "type": "string", "minLength": 1 },
+          "digest": { "$ref": "#/$defs/digest" },
+          "observedAt": { "$ref": "#/$defs/timestamp" }
+        }
+      }
+    },
+    "active": { "type": "boolean" },
+    "createdAt": { "$ref": "#/$defs/timestamp" },
+    "updatedAt": { "$ref": "#/$defs/timestamp" },
+    "archivedAt": { "oneOf": [{ "$ref": "#/$defs/timestamp" }, { "type": "null" }] },
+    "archiveReason": { "type": ["string", "null"] },
+    "supersedesDigest": { "oneOf": [{ "$ref": "#/$defs/digest" }, { "type": "null" }] },
+    "recordDigest": { "$ref": "#/$defs/digest" }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "active": { "const": true } }, "required": ["active"] },
+      "then": {
+        "properties": {
+          "archivedAt": { "type": "null" },
+          "archiveReason": { "type": "null" },
+          "supersedesDigest": { "type": "null" }
+        }
+      },
+      "else": {
+        "properties": {
+          "archivedAt": { "$ref": "#/$defs/timestamp" },
+          "archiveReason": { "type": "string", "minLength": 1 },
+          "supersedesDigest": { "$ref": "#/$defs/digest" }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "digest": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "timestamp": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]+)?Z$"
+    }
+  }
+}
