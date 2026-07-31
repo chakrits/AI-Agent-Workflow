@@ -1,7 +1,5 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { readdirSync } from 'node:fs';
-import path from 'node:path';
 import { hasScriptChanges, hasReviewRecord } from '../scripts/validate-review-gate.mjs';
 
 test('hasScriptChanges returns true when .mjs files are in the changed list', () => {
@@ -57,18 +55,25 @@ test('hasReviewRecord returns false for non-array input', () => {
   assert.equal(hasReviewRecord(undefined), false);
 });
 
-test('hasReviewRecord rejects script changes without a new record despite the repository\'s existing review records', () => {
-  const reviewDir = path.resolve('docs/records/qa');
-  const existingRecords = readdirSync(reviewDir).filter((name) => name.endsWith('-code-review.md'));
+test('hasReviewRecord rejects script changes without a new record despite deterministic historical review records', () => {
+  const existingRecords = Array.from(
+    { length: 10 },
+    (_, index) => `docs/records/qa/2026-07-${String(index + 1).padStart(2, '0')}-historical-code-review.md`
+  );
 
-  assert.ok(existingRecords.length >= 10, 'the real repository fixture must retain its pre-existing records');
+  assert.equal(existingRecords.length, 10);
+  assert.ok(existingRecords.every((record) => record.endsWith('-code-review.md')));
   assert.equal(hasReviewRecord(['scripts/validate-review-gate.mjs']), false);
 });
 
-test('hasReviewRecord accepts this diff\'s newly added, correctly named review record', () => {
-  const reviewDir = path.resolve('docs/records/qa');
+test('hasReviewRecord preserves Issue #106 adversarial intent with a deterministic added record', () => {
   const record = 'docs/records/qa/2026-07-26-issue-106-review-gate-code-review.md';
 
-  assert.ok(readdirSync(reviewDir).includes(path.basename(record)), 'the review record must be present in this change');
+  assert.equal(hasReviewRecord(['scripts/validate-review-gate.mjs']), false);
   assert.equal(hasReviewRecord(['scripts/validate-review-gate.mjs', record]), true);
+  assert.equal(
+    hasReviewRecord(['scripts/validate-review-gate.mjs', 'docs/records/qa/issue-106-review.md']),
+    false,
+    'Issue #106 evidence must still use the canonical *-code-review.md naming contract'
+  );
 });

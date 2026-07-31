@@ -271,15 +271,20 @@ test('generateBackfill writes a record carrying TASK_LOG provenance for every so
   });
 });
 
-test('the real repository TASK_LOG.md parses without throwing and groups by distinct issue', async () => {
-  const content = await readFile('TASK_LOG.md', 'utf8');
+test('a deterministic historical TASK_LOG fixture parses and groups distinct issues', () => {
+  const rowsFixture = Array.from(
+    { length: 20 },
+    (_, index) =>
+      `| 2026-07-${String(10 + (index % 10)).padStart(2, '0')} | GitHub Issue #${100 + index} | Developer Agent | Historical action | Historical result | QA Agent | fixture row ${index} |`
+  ).join('\n');
+  const content = `# TASK_LOG.md\n\n${HEADER}${rowsFixture}\n`;
   const rows = parseTaskLogRows(content);
   const groups = groupRowsByWorkItem(rows);
   const issueGroups = [...groups.values()].filter((g) => g.kind === 'issue');
 
-  assert.ok(rows.length > 100, `expected >100 TASK_LOG rows, got ${rows.length}`);
-  assert.ok(issueGroups.length > 15, `expected >15 distinct issue groups, got ${issueGroups.length}`);
+  assert.equal(rows.length, 20);
+  assert.equal(issueGroups.length, 20);
   for (const group of issueGroups) {
-    assert.ok(group.rows.length >= 1);
+    assert.equal(group.rows.length, 1);
   }
 });

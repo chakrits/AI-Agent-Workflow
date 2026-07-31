@@ -225,6 +225,27 @@ test('runAudit returns passed=false when ratio exceeds threshold (> 10:1)', () =
   }
 });
 
+test('runAudit returns passed=true when no ADRs and no decisions exist (clean-slate reset repo)', () => {
+  const decisions = `# DECISIONS.md
+
+No ADRs yet — this is a fresh clone of the workflow template.
+`;
+  const taskLog = `# TASK_LOG.md
+
+| Date | Work Item | Agent | Action | Result | Next Agent | Notes |
+`;
+  const root = makeTempRepo({ decisions, taskLog });
+  try {
+    const result = runAudit(root);
+    assert.equal(result.passed, true);
+    assert.equal(result.adrCount, 0);
+    assert.equal(result.taskLogDecisions, 0);
+    assert.equal(result.ratio, 0);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
 test('runAudit returns passed=false when no ADRs exist (ratio = Infinity)', () => {
   const decisions = `# DECISIONS.md
 
@@ -329,6 +350,31 @@ test('CLI exits 1 when ratio exceeds threshold', () => {
       exitCode = err.status ?? 1;
     }
     assert.equal(exitCode, 1, 'CLI must exit 1 when ratio exceeds threshold');
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('CLI exits 0 when no ADRs and no decisions exist (clean-slate reset repo)', () => {
+  const decisions = `# DECISIONS.md
+
+No ADRs yet — this is a fresh clone of the workflow template.
+`;
+  const taskLog = `# TASK_LOG.md
+
+| Date | Work Item | Agent | Action | Result | Next Agent | Notes |
+`;
+  const root = makeTempRepo({ decisions, taskLog });
+  const scriptPath = path.resolve(import.meta.dirname, '..', 'scripts', 'adr-audit.mjs');
+  try {
+    let exitCode;
+    try {
+      execFileSync('node', [scriptPath], { cwd: root, stdio: ['ignore', 'pipe', 'pipe'] });
+      exitCode = 0;
+    } catch (err) {
+      exitCode = err.status ?? 1;
+    }
+    assert.equal(exitCode, 0, 'CLI must exit 0 when there are no ADRs and no decisions to audit');
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

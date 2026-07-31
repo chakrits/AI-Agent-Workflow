@@ -1,21 +1,34 @@
 # PROJECT_STATUS.md
 
 ## Current Work Item
-- ID: None (idle — awaiting next human-sponsored work item)
-- Title: N/A
-- Owner: N/A
-- Status: Idle
-- References: N/A
+- ID: GitHub Issue #129
+- Title: reset-to-template history scrub
+- Owner: Human Maintainer (merge-review gate)
+- Status: Verification complete — fresh QA passed AC-01 through AC-12; human review remains
+- References: https://github.com/chakrits/AI-Agent-Workflow/issues/129
 
 ## Current Stage
-- Idle — last completed work was Issue #116 (framework gap closure, 5 child work items #117–#121), merged through PR #122, #123, #124, #127 as commits `42d15fd`, `971350f`, `286d8a4`, and the #127 squash commit.
+- Framework / Meta Change — verification complete (`phase:human-review`). Fresh QA report commit `421ba9d` passes AC-01 through AC-12 against reviewed implementation commit `ffcb121`; the earlier blocked QA report at `ac7c8e4` remains unchanged as incident evidence.
 
 ## Change Classification
-- Change Type: N/A (idle)
-- Risk Level: N/A
-- Code Change Required: No
-- Architecture Change Required: No
+- Change Type: Framework / Meta Change
+- Risk Level: Medium — destructive local reset tool and invocation-contract change
+- Code Change Required: Complete — repository-owned harness and regression coverage independently reviewed and verified
+- Architecture Change Required: No — Owner resolved the scope/contract decisions
 - Security Review Required: No
+
+## Issue #129 Planning Evidence
+- Revised plan: `docs/records/implementation-plan/2026-07-28-reset-to-template-history-scrub.md`
+- Decision record: ADR-0016 in `DECISIONS.md`
+- Accepted boundaries: preserve `docs/records/qa/`; preserve README/indexes except targeted evidence-backed updates; require full post-reset tests/validators; require second confirmation plus dirty-target refusal; document a human-only new-root path that is not a security purge; block destructive apply in CI while allowing dry-run.
+- AC-12 clarification: direct agent invocation remains forbidden. Confirmed reset verification is allowed only through a repository-owned harness that proves ownership, canonical Git root and `cwd` binding, standalone-clone isolation from the primary repository, exact commit, and clean state before spawning reset; every failed proof must stop before mutation.
+- Incident trail: retain both accidental confirmed-reset invocations against the primary worktree—the Developer fixture incident in `TASK_LOG.md` and the QA incident in `docs/records/qa/2026-07-31-issue-129-qa-report.md`. Both were restored from unchanged HEAD; neither is waived or converted to a pass.
+- Corrected facts: 14 real ADRs, five GitHub workflow files, and three post-reset test failures caused by live-history assumptions.
+- Review evidence: independent review commit `ffcb121` closes CR-129-H01 through CR-129-H04 with 0 open findings; normal and post-reset suites pass 316/316 and all 11 validators/checks pass.
+- Fresh QA evidence: report commit `421ba9d` independently passes AC-01 through AC-12, focused 68/68, normal/post-reset 316/316, and preserves primary HEAD/status/digest plus the prior blocked report.
+- Next Action: Human review of PR #130
+- Next Owner: Human Maintainer
+- Readiness boundary: `status:verification-done` is supported by fresh evidence. PR review and merge approval remain human decisions; the reset and optional history procedure are not authorized for the primary repository.
 
 ## Completed
 - GitHub Issue #116 (framework gap closure — work item traceability, evidence-based label cleanup, dispatch-receipt anti-forgery controls, Config/Data contract expansion) closed through 4 source PRs (#122, #123, #124, #127) across 5 child work items (#117–#121). The original 4-fix combined plan was withdrawn after two review passes found factual errors in its own evidence (52 vs 7 stale labels — a `gh pr list --state merged --label` CLI bug; a dispatch-receipt CLI proposal covering 4 of 8 schema-required fields; a 115-TASK_LOG-row denominator vs 27 distinct issues) and process concerns (Fix 1 misclassified as Documentation-only despite being an executable script; Fix 2's age-only label removal risked erasing incomplete-closeout evidence; Fix 3 needed SA + Security design before any tooling; Fix 4 could not copy New Feature's contract shape). The corrected plan split into 5 independently-routed child issues, each Boss-approved individually before implementation:
@@ -69,9 +82,10 @@
 - GitHub Issue #68 (test-tooling readiness — reference-only config templates and skills for Playwright/Supertest/Bruno/Jest/Vitest/pytest/Stryker) merged through PR #70 as commit `0d65956`; Issue #68 closed. Delivered: `docs/workflow/testing-conventions.md` (test folder-structure convention) linked from `PROJECT_INDEX.md` and the vault index; a Playwright config template added to `qa-playwright-testing`; a JS/TS (Stryker) section and config template added to `mutation-testing`; three brand-new skills — `api-testing-tooling` (Supertest + Bruno), `js-unit-testing` (Jest + Vitest), `python-unit-testing` (pytest) — each mirrored byte-identically across `.agents/skills/`, `.claude/skills/`, and `.agent/skills/`; three new `SKILL_CATALOG.md` entries plus a Planned Skills clarifying note; three new QA Skill Routing rows in `docs/workflow/role-definitions.md`, mirrored in `.claude/agents/qa-agent.md`; a `docs/vault/00-Index.md` correction moving five pre-existing skills (`ba-requirement-analysis`, `sa-architecture-design`, `data-config-change`, `qa-playwright-testing`, `security-review`) from "portable only" to "Mirrored" now that all three platform copies are verified in sync, plus the two QA-flagged fixes (AC-06 `SKILL_CATALOG.md` `mutation-testing` Stryker mention; AC-09 vault index 23/23 mirrored-skill count); 6 new regression tests in `test/validate-contracts.test.mjs` (156 → 162 total tests). Zero live dependencies added: no `package.json`/`package-lock.json` change, no `pyproject.toml`/`requirements.txt` created. QA Agent independently verified all 10 Acceptance Criteria PASS at commit `017a34a` (prior AC-06/AC-09 FAILs fixed and re-verified). Default-branch audit passed on `0d65956` and GitHub applied the normal `post-merge-closeout` label to PR #70; no `documentation-sync` exception issue was created.
 
 ## In Progress
-- None — project is idle following the closeout of Issue #116.
+- Issue #129 QA report records AC-01–AC-11 PASS, AC-12 FAIL; Draft PR #130 remains Draft.
 
 ## Blockers / Open Questions
+- Issue #129 QA is BLOCKED at `docs/records/qa/2026-07-31-issue-129-qa-report.md`. AC-12 categorically forbids autonomous destructive reset/history commands, while AC-07/AC-08 and plan §8 require agents to run confirmed reset in a disposable clone. Human Maintainer must clarify the criterion and decide whether the recovered real-worktree invocation requires an explicit exception/ADR plus fresh QA.
 - R-002: `.gitlab-ci.yml` has not yet been validated on a live GitLab runner; this is an external verification follow-up, not an active implementation task.
 - Deferred and unscheduled: a Prototype/Spike workflow route and a shared cross-role template pattern.
 - Deferred and unscheduled housekeeping follow-up (Issue #41, Boss-approved, non-blocking): QA-1, QA-2, QA-4, QA-5 — see the Completed section entry for detail. No Issue is open for this yet; track it when the follow-up is scheduled.
@@ -79,13 +93,18 @@
 - `api-contract-testing`, `performance-testing`, and `mutation-testing` document tooling (`schemathesis`, `drf-spectacular`, Locust/k6, `mutmut`) that is not installed anywhere in this repo — intentional per the design spec, since this repo has no Django/Python target application yet. Wiring is deferred to whenever a real work item first needs to execute one of these skills.
 
 ## Required Artifacts
-- None (idle)
+- Revised `docs/records/implementation-plan/2026-07-28-reset-to-template-history-scrub.md`
+- ADR-0016 in `DECISIONS.md`
+- `docs/workflow/reset-to-template.md`
+- Independent code-review record (pending Reviewer)
+- AC-by-AC QA evidence (pending QA Agent)
 
 ## Next Quality Gate
-- Awaiting next human-sponsored work item.
+- Human Maintainer reviews PR #130 and decides whether to merge.
+- No agent may apply the reset to the primary repository or perform the optional history procedure.
 
 ## Recommended Next Agent
-- None — project is idle. The next agent is determined when a human opens a new work item.
+- Human Maintainer.
 
 ## Notes
 - GitHub Issue #44's design spec went through two Boss-directed scope expansions after initial brainstorming: first, mirroring the four new QA skills into `.agent/skills/` (Antigravity CLI) rather than leaving it out of scope by analogy to `qa-playwright-testing` not living there; second, backfilling the four pre-existing `.agent/skills/` gaps unrelated to QA (`ba-requirement-analysis`, `data-config-change`, `sa-architecture-design`, `security-review`) in the same pass rather than deferring them. During implementation, the first `.agent/skills/` parity pass would have naively overwritten `dynamic-workflow`, `frontend-ui-engineering`, and `functional-test-design` — three pre-existing skills that intentionally use a thin pointer-adapter pattern unrelated to this work — and Developer Agent correctly escalated this as a mid-implementation blocker rather than silently overwriting them; the resolved approach special-cased those 3 (left untouched) and mirrored the other 17 byte-identical, which QA Agent's parity test independently confirmed.

@@ -219,17 +219,17 @@ git config core.hooksPath .githooks
 
 ### Resetting to a blank template
 
-If you're starting a new project from a clone of this repo, `PROJECT_STATUS.md`, `TASK_LOG.md`, `CHANGELOG.md`, `RISKS.md`, and every file under `docs/records/*/` and `docs/superpowers/{specs,plans}/` still carry this repo's own history. Reset them to a blank baseline before your first commit:
+If you're starting a new project from a clone of this repo, the project-state files and declared historical record directories still carry this repo's own history. Preview the reset inventory before your first commit:
 
 ```bash
 # Preview what would change — nothing is modified
 npm run reset:template
 
-# Actually apply the reset
-npm run reset:template -- --apply
+# Apply only after reviewing the inventory; both flags are required
+npm run reset:template -- --apply --confirm-reset
 ```
 
-This never touches the canonical workflow itself (`AGENTS.md`, `docs/workflow/`, `docs/templates/`, `.claude/`, `.agents/`, `.agent/`, `.codex/`, skills, or CI config) — only this repo's own accumulated project data.
+The command refuses dirty tracked, staged, or untracked target content. It preserves `docs/records/qa/`, the reusable navigation files, and the canonical workflow itself. See [Reset to Template](./docs/workflow/reset-to-template.md) for the exact scope, required post-reset checks, recovery limits, and the human-only optional new-root procedure.
 
 ## Knowledge Base (Obsidian)
 
