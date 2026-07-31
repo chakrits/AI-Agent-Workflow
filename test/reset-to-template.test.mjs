@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import path from 'node:path';
-import { mkdtemp, mkdir, writeFile, readFile, readdir, rm } from 'node:fs/promises';
+import { mkdtemp, mkdir, writeFile, readFile, readdir, rm, symlink, lstat, readlink } from 'node:fs/promises';
 import os from 'node:os';
 import { execFile as execFileCallback } from 'node:child_process';
 import { promisify } from 'node:util';
@@ -52,6 +52,41 @@ async function snapshotTargets(rootDir) {
     contents[file] = await readFile(path.join(rootDir, file), 'utf8').catch(() => null);
   }
   return { status: stdout, contents };
+}
+
+async function snapshotDeclaredTargets(rootDir) {
+  async function snapshot(relativePath) {
+    const absolutePath = path.join(rootDir, relativePath);
+    const metadata = await lstat(absolutePath).catch(() => null);
+    if (!metadata) return null;
+    if (metadata.isSymbolicLink()) {
+      return { type: 'symlink', target: await readlink(absolutePath) };
+    }
+    if (metadata.isDirectory()) {
+      const entries = await readdir(absolutePath);
+      return {
+        type: 'directory',
+        entries: Object.fromEntries(
+          await Promise.all(
+            entries.sort().map(async (entry) => [
+              entry,
+              await snapshot(path.join(relativePath, entry))
+            ])
+          )
+        )
+      };
+    }
+    return { type: 'file', content: await readFile(absolutePath, 'base64') };
+  }
+
+  return Object.fromEntries(
+    await Promise.all(
+      [...Object.keys(STUB_CONTENT), ...CLEARED_DIRECTORIES].map(async (target) => [
+        target,
+        await snapshot(target)
+      ])
+    )
+  );
 }
 
 async function runCli(rootDir, args = []) {
@@ -217,16 +252,63 @@ test('CLI applies in a clean git fixture with both confirmations and is idempote
   await rm(rootDir, { recursive: true, force: true });
 });
 
-test('CI scan rejects destructive apply in GitHub and GitLab but permits dry-run references', async () => {
+test('CLI rejects a committed symlinked target before mutating any declared target or outside data', async () => {
+  const rootDir = await initGitFixture();
+  const outsideDir = await mkdtemp(path.join(os.tmpdir(), 'reset-template-outside-'));
+  const sentinel = path.join(outsideDir, 'sentinel.txt');
+  await writeFile(sentinel, 'must survive byte-for-byte\n');
+  const symlinkTarget = path.join(rootDir, 'docs/records/work-items');
+  await rm(symlinkTarget, { recursive: true });
+  await symlink(outsideDir, symlinkTarget);
+  await execFile('git', ['add', '-A'], { cwd: rootDir });
+  await execFile('git', ['commit', '-qm', 'committed symlink fixture'], { cwd: rootDir });
+  const beforeTargets = await snapshotDeclaredTargets(rootDir);
+  const beforeSentinel = await readFile(sentinel);
+
+  await assert.rejects(
+    runCli(rootDir, ['--apply', '--confirm-reset']),
+    (error) =>
+      error.code !== 0 &&
+      /symlink|outside|containment/i.test(error.stderr) &&
+      /docs\/records\/work-items/.test(error.stderr)
+  );
+
+  assert.deepEqual(await snapshotDeclaredTargets(rootDir), beforeTargets);
+  assert.deepEqual(await readFile(sentinel), beforeSentinel);
+  await rm(rootDir, { recursive: true, force: true });
+  await rm(outsideDir, { recursive: true, force: true });
+});
+
+test('CI scan rejects GitHub and GitLab multiline destructive forms while permitting dry runs', async () => {
   const rootDir = await mkdtemp(path.join(os.tmpdir(), 'reset-template-ci-'));
   await mkdir(path.join(rootDir, '.github/workflows'), { recursive: true });
   await writeFile(
     path.join(rootDir, '.github/workflows/check.yml'),
-    'steps:\n  - run: npm run reset:template\n  - run: node scripts/reset-to-template.mjs --apply --confirm-reset\n'
+    `steps:
+  - run: >
+      npm run reset:template --
+      --apply --confirm-reset
+  - run: |
+      node scripts/reset-to-template.mjs
+      --apply --confirm-reset
+  - run: |
+      npm run reset:template
+`
   );
   await writeFile(
     path.join(rootDir, '.gitlab-ci.yml'),
-    'safe:\n  script: npm run reset:template\nunsafe:\n  script: npm run reset:template -- --apply\n'
+    `folded:
+  script: >
+    node scripts/reset-to-template.mjs
+    --apply --confirm-reset
+literal:
+  script: |
+    npm run reset:template --
+    --apply --confirm-reset
+safe:
+  script: |
+    node scripts/reset-to-template.mjs
+`
   );
 
   assert.deepEqual(findDestructiveCiInvocations(rootDir), [

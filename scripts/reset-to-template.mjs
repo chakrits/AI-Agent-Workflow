@@ -1,4 +1,4 @@
-import { readdir, readFile, writeFile, rm, mkdir, stat } from 'node:fs/promises';
+import { readdir, readFile, writeFile, rm, mkdir, stat, lstat, realpath } from 'node:fs/promises';
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { execFile as execFileCallback } from 'node:child_process';
 import { promisify } from 'node:util';
@@ -97,6 +97,40 @@ async function exists(targetPath) {
   }
 }
 
+function isContained(rootDir, targetPath) {
+  const relative = path.relative(rootDir, targetPath);
+  return relative === '' || (!relative.startsWith(`..${path.sep}`) && relative !== '..' && !path.isAbsolute(relative));
+}
+
+async function validateResetTargets(rootDir) {
+  const resolvedRoot = await realpath(rootDir);
+  const targets = [...Object.keys(STUB_CONTENT), ...CLEARED_DIRECTORIES];
+
+  for (const relativeTarget of targets) {
+    const targetPath = path.resolve(resolvedRoot, relativeTarget);
+    if (!isContained(resolvedRoot, targetPath)) {
+      throw new Error(`Refusing reset: target escapes repository containment: ${relativeTarget}`);
+    }
+
+    let currentPath = resolvedRoot;
+    for (const segment of relativeTarget.split('/')) {
+      currentPath = path.join(currentPath, segment);
+      const metadata = await lstat(currentPath).catch((error) => {
+        if (error.code === 'ENOENT') return null;
+        throw error;
+      });
+      if (!metadata) break;
+      if (metadata.isSymbolicLink()) {
+        throw new Error(`Refusing reset: symlinked target path is not allowed: ${relativeTarget}`);
+      }
+      const resolvedPath = await realpath(currentPath);
+      if (!isContained(resolvedRoot, resolvedPath)) {
+        throw new Error(`Refusing reset: target resolves outside repository containment: ${relativeTarget}`);
+      }
+    }
+  }
+}
+
 async function clearDirectory(rootDir, relativeDir) {
   const dirPath = path.join(rootDir, relativeDir);
   const entries = (await exists(dirPath)) ? await readdir(dirPath) : [];
@@ -127,20 +161,33 @@ function workflowFiles(rootDir) {
 
 export function findDestructiveCiInvocations(rootDir) {
   return workflowFiles(rootDir)
-    .filter((file) =>
-      readFileSync(file, 'utf8')
-        .split(/\r?\n/)
-        .some(
-          (line) =>
-            /(?:reset:template|scripts\/reset-to-template\.mjs)/.test(line) &&
-            /(?:^|\s)--apply(?:\s|$)/.test(line)
-        )
-    )
+    .filter((file) => {
+      const lines = readFileSync(file, 'utf8').split(/\r?\n/);
+      const commands = [...lines];
+      for (let index = 0; index < lines.length; index += 1) {
+        const blockStart = lines[index].match(/^(\s*)(?:-\s*)?(?:run|script):\s*[>|][+-]?\s*$/);
+        if (!blockStart) continue;
+        const parentIndent = blockStart[1].length;
+        const blockLines = [];
+        for (let next = index + 1; next < lines.length; next += 1) {
+          const indent = lines[next].match(/^\s*/)[0].length;
+          if (lines[next].trim() && indent <= parentIndent) break;
+          blockLines.push(lines[next].trim());
+        }
+        commands.push(blockLines.join(' '));
+      }
+      return commands.some(
+        (command) =>
+          /(?:reset:template|scripts\/reset-to-template\.mjs)/.test(command) &&
+          /(?:^|\s)--apply(?:\s|$)/.test(command)
+      );
+    })
     .map((file) => path.relative(rootDir, file))
     .sort();
 }
 
 export async function planReset(rootDir) {
+  await validateResetTargets(rootDir);
   const fileChanges = [];
   for (const [relativeFile, stub] of Object.entries(STUB_CONTENT)) {
     const filePath = path.join(rootDir, relativeFile);
@@ -161,6 +208,7 @@ export async function planReset(rootDir) {
 }
 
 export async function applyReset(rootDir) {
+  await validateResetTargets(rootDir);
   const fileResults = [];
   for (const [relativeFile, stub] of Object.entries(STUB_CONTENT)) {
     await writeFile(path.join(rootDir, relativeFile), stub, 'utf8');
