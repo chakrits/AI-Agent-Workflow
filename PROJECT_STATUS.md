@@ -3,17 +3,17 @@
 ## Current Work Item
 - ID: GitHub Issue #129
 - Title: reset-to-template history scrub
-- Owner: Human Maintainer (acceptance-clarification owner)
-- Status: Blocked — AC-12 failed and conflicts with the disposable-reset verification required by AC-07/AC-08 and plan §8
+- Owner: Developer Agent (approved harness rework), with independent Reviewer/QA next
+- Status: Blocked — AC-12 clarification is approved; repository-owned disposable-root harness and fresh independent verification are required
 - References: https://github.com/chakrits/AI-Agent-Workflow/issues/129
 
 ## Current Stage
-- Framework / Meta Change — blocked at independent verification (`phase:blocked`). QA report commit `ac7c8e4` passes AC-01 through AC-11 but fails AC-12 after an accidental confirmed reset targeted the real worktree and was restored from unchanged HEAD.
+- Framework / Meta Change — blocked for safety rework (`phase:blocked`). QA report commit `ac7c8e4` remains AC-01 through AC-11 PASS / AC-12 FAIL. Human Maintainer comment `5141017441` permits confirmed reset only through a repository-owned fail-closed harness in a positively verified standalone disposable Git root, never the primary worktree; autonomous history rewriting remains forbidden.
 
 ## Change Classification
 - Change Type: Framework / Meta Change
 - Risk Level: Medium — destructive local reset tool and invocation-contract change
-- Code Change Required: Yes, after specification readiness
+- Code Change Required: Yes — implement the approved disposable verification harness and regression coverage
 - Architecture Change Required: No — Owner resolved the scope/contract decisions
 - Security Review Required: No
 
@@ -21,10 +21,12 @@
 - Revised plan: `docs/records/implementation-plan/2026-07-28-reset-to-template-history-scrub.md`
 - Decision record: ADR-0016 in `DECISIONS.md`
 - Accepted boundaries: preserve `docs/records/qa/`; preserve README/indexes except targeted evidence-backed updates; require full post-reset tests/validators; require second confirmation plus dirty-target refusal; document a human-only new-root path that is not a security purge; block destructive apply in CI while allowing dry-run.
+- AC-12 clarification: direct agent invocation remains forbidden. Confirmed reset verification is allowed only through a repository-owned harness that proves ownership, canonical Git root and `cwd` binding, standalone-clone isolation from the primary repository, exact commit, and clean state before spawning reset; every failed proof must stop before mutation.
+- Incident trail: retain both accidental confirmed-reset invocations against the primary worktree—the Developer fixture incident in `TASK_LOG.md` and the QA incident in `docs/records/qa/2026-07-31-issue-129-qa-report.md`. Both were restored from unchanged HEAD; neither is waived or converted to a pass.
 - Corrected facts: 14 real ADRs, five GitHub workflow files, and three post-reset test failures caused by live-history assumptions.
-- Next Action: Blocked
-- Next Owner: Human Maintainer
-- Readiness boundary: implementation/code review passed, but QA did not pass all ACs. Human approval is required to reconcile AC-12 with the disposable-clone apply mandated by AC-07/AC-08 and plan §8; no `status:verification-done` or PR readiness transition is allowed.
+- Next Action: Developer handoff; Issue and Draft PR remain `phase:blocked`
+- Next Owner: Developer Agent
+- Readiness boundary: `status:spec-ready` and `status:development-done` remain historical evidence, not a current pass. Developer must implement only the approved harness/isolation regression scope without direct reset or history execution. A new independent review and fresh QA Agent must re-derive AC-01–AC-12; no `status:verification-done`, PR-ready, or human-review transition is allowed before that fresh pass.
 
 ## Completed
 - GitHub Issue #116 (framework gap closure — work item traceability, evidence-based label cleanup, dispatch-receipt anti-forgery controls, Config/Data contract expansion) closed through 4 source PRs (#122, #123, #124, #127) across 5 child work items (#117–#121). The original 4-fix combined plan was withdrawn after two review passes found factual errors in its own evidence (52 vs 7 stale labels — a `gh pr list --state merged --label` CLI bug; a dispatch-receipt CLI proposal covering 4 of 8 schema-required fields; a 115-TASK_LOG-row denominator vs 27 distinct issues) and process concerns (Fix 1 misclassified as Documentation-only despite being an executable script; Fix 2's age-only label removal risked erasing incomplete-closeout evidence; Fix 3 needed SA + Security design before any tooling; Fix 4 could not copy New Feature's contract shape). The corrected plan split into 5 independently-routed child issues, each Boss-approved individually before implementation:
@@ -96,10 +98,11 @@
 - AC-by-AC QA evidence (pending QA Agent)
 
 ## Next Quality Gate
-- Independent Reviewer must inspect the `.mjs` implementation and add a structured code-review record; then QA independently verifies AC-01 through AC-12 against the committed SHA.
+- Developer implements the repository-owned disposable verification harness and its fail-closed regression matrix without running confirmed reset directly or against the primary worktree.
+- A new independent Reviewer inspects the harness boundary and tests; afterward a fresh QA Agent independently verifies AC-01 through AC-12 against the exact new commit.
 
 ## Recommended Next Agent
-- Reviewer, followed by QA Agent.
+- Developer Agent, followed by a new independent Reviewer and fresh QA Agent.
 
 ## Notes
 - GitHub Issue #44's design spec went through two Boss-directed scope expansions after initial brainstorming: first, mirroring the four new QA skills into `.agent/skills/` (Antigravity CLI) rather than leaving it out of scope by analogy to `qa-playwright-testing` not living there; second, backfilling the four pre-existing `.agent/skills/` gaps unrelated to QA (`ba-requirement-analysis`, `data-config-change`, `sa-architecture-design`, `security-review`) in the same pass rather than deferring them. During implementation, the first `.agent/skills/` parity pass would have naively overwritten `dynamic-workflow`, `frontend-ui-engineering`, and `functional-test-design` — three pre-existing skills that intentionally use a thin pointer-adapter pattern unrelated to this work — and Developer Agent correctly escalated this as a mid-implementation blocker rather than silently overwriting them; the resolved approach special-cased those 3 (left untouched) and mirrored the other 17 byte-identical, which QA Agent's parity test independently confirmed.
