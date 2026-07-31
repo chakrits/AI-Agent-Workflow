@@ -34,7 +34,7 @@
       "enum": [
         "phase:requirements", "phase:design", "phase:planning", "phase:development",
         "phase:verification", "phase:human-review", "phase:blocked", "phase:release",
-        "not_applicable"
+        "phase:not_applicable"
       ]
     },
     "taskState": { "type": "string", "minLength": 1 },

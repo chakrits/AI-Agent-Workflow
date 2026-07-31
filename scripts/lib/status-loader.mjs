@@ -27,6 +27,18 @@ async function loadWorkflowContracts() {
 }
 
 const workflowContracts = await loadWorkflowContracts();
+const newFeaturePhases = new Map([
+  ['intake', new Set(['phase:requirements'])],
+  ['discovery', new Set(['phase:requirements'])],
+  ['designing', new Set(['phase:design'])],
+  ['planning', new Set(['phase:planning'])],
+  ['implementing', new Set(['phase:development'])],
+  ['verifying', new Set(['phase:verification'])],
+  ['rework', new Set(['phase:requirements', 'phase:design', 'phase:planning', 'phase:development'])],
+  ['human-review', new Set(['phase:human-review'])],
+  ['blocked', new Set(['phase:blocked'])],
+  ['release', new Set(['phase:release'])]
+]);
 
 function canonicalJson(value) {
   if (Array.isArray(value)) return `[${value.map(canonicalJson).join(',')}]`;
@@ -81,6 +93,13 @@ function validateSemantics(record, file) {
   const states = workflowContracts.get(contractKey);
   if (!states) fail(file, `unknown governing contract or version: ${contractKey}`);
   if (!states.has(record.taskState)) fail(file, `illegal task state ${record.taskState} for ${contractKey}`);
+  if (record.governingContract === 'new-feature') {
+    if (!newFeaturePhases.get(record.taskState)?.has(record.phase)) {
+      fail(file, `illegal phase ${record.phase} for ${contractKey} state ${record.taskState}`);
+    }
+  } else if (record.phase !== 'phase:not_applicable') {
+    fail(file, `phase must be phase:not_applicable for ${contractKey}`);
+  }
 
   const expectedUrl = `https://github.com/${record.issue.repository}/issues/${record.issue.number}`;
   if (record.issue.url !== expectedUrl) fail(file, 'issue URL does not agree with repository and number');
@@ -111,15 +130,33 @@ function validateLineage(records) {
     if (archives.length === 0) continue;
     const byDigest = new Map(revisions.map((record) => [record.recordDigest, record]));
     if (byDigest.size !== revisions.length) throw new Error(`Archive lineage for ${identity} contains duplicate revisions`);
-    const roots = revisions.filter(({ active }) => active);
-    if (roots.length !== 1) throw new Error(`Archive lineage for ${identity} requires exactly one prior active revision`);
-
     const successorCount = new Map();
+    const predecessors = new Map();
+    const rootDigests = new Set(revisions.filter(({ active }) => active).map(({ recordDigest }) => recordDigest));
     for (const archive of archives) {
-      const prior = byDigest.get(archive.supersedesDigest);
-      if (!prior) throw new Error(`Archive lineage for ${identity} has unresolved supersedesDigest ${archive.supersedesDigest}`);
-      successorCount.set(prior.recordDigest, (successorCount.get(prior.recordDigest) ?? 0) + 1);
-      if (successorCount.get(prior.recordDigest) > 1) throw new Error(`Archive lineage for ${identity} branches at ${prior.recordDigest}`);
+      let prior = byDigest.get(archive.supersedesDigest);
+      if (!prior) {
+        const removedActive = {
+          ...archive,
+          active: true,
+          archivedAt: null,
+          archiveReason: null,
+          supersedesDigest: null
+        };
+        const externalDigest = computeRecordDigest(removedActive);
+        if (archive.supersedesDigest !== externalDigest) {
+          throw new Error(`Archive lineage for ${identity} has fabricated supersedesDigest ${archive.supersedesDigest}`);
+        }
+        predecessors.set(archive.recordDigest, { externalDigest });
+        rootDigests.add(externalDigest);
+        prior = removedActive;
+      } else {
+        predecessors.set(archive.recordDigest, { record: prior });
+      }
+      successorCount.set(archive.supersedesDigest, (successorCount.get(archive.supersedesDigest) ?? 0) + 1);
+      if (successorCount.get(archive.supersedesDigest) > 1) {
+        throw new Error(`Archive lineage for ${identity} branches at ${archive.supersedesDigest}`);
+      }
       if (Date.parse(archive.updatedAt) < Date.parse(prior.updatedAt)) {
         throw new Error(`Archive lineage timestamps are not monotonic for ${identity}`);
       }
@@ -128,12 +165,18 @@ function validateLineage(records) {
       }
     }
 
-    const rootDigest = roots[0].recordDigest;
+    if (rootDigests.size !== 1) throw new Error(`Archive lineage for ${identity} is disconnected`);
+    const [rootDigest] = rootDigests;
     for (const archive of archives) {
       const seen = new Set([archive.recordDigest]);
       let cursor = archive;
       while (!cursor.active) {
-        cursor = byDigest.get(cursor.supersedesDigest);
+        const predecessor = predecessors.get(cursor.recordDigest);
+        if (predecessor?.externalDigest) {
+          cursor = { active: true, recordDigest: predecessor.externalDigest };
+          break;
+        }
+        cursor = predecessor?.record;
         if (!cursor || seen.has(cursor.recordDigest)) {
           throw new Error(`Archive lineage for ${identity} is disconnected or cyclic`);
         }

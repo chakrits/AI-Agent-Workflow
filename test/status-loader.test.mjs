@@ -91,11 +91,11 @@ test('rejects missing required fields and unknown keys', async () => {
 
 test('derives legal contract versions and task states from canonical workflow contracts', async () => {
   const legal = [
-    ['new-feature', '1', 'implementing'],
-    ['bug-fix', '1', 'investigating'],
-    ['config-change', '1', 'monitoring'],
-    ['data-change', '1', 'validating']
-  ].map(([governingContract, contractVersion, taskState], number) => record({
+    ['new-feature', '1', 'implementing', 'phase:development'],
+    ['bug-fix', '1', 'investigating', 'phase:not_applicable'],
+    ['config-change', '1', 'monitoring', 'phase:not_applicable'],
+    ['data-change', '1', 'validating', 'phase:not_applicable']
+  ].map(([governingContract, contractVersion, taskState, phase], number) => record({
     issue: {
       repository: 'chakrits/ai-agent-workflow',
       number: number + 1,
@@ -103,7 +103,8 @@ test('derives legal contract versions and task states from canonical workflow co
     },
     governingContract,
     contractVersion,
-    taskState
+    taskState,
+    phase
   }));
   for (const value of legal) value.recordDigest = computeRecordDigest(value);
   const legalFiles = await fixtureFiles(legal);
@@ -119,6 +120,31 @@ test('derives legal contract versions and task states from canonical workflow co
     value.recordDigest = computeRecordDigest(value);
     const [file] = await fixtureFiles([value]);
     await assert.rejects(loadStatusFiles([file]), /contract|version|task state/i);
+  }
+});
+
+test('enforces canonical lifecycle phase for governing contract and task state', async () => {
+  const valid = [
+    record({ taskState: 'discovery', phase: 'phase:requirements' }),
+    record({ taskState: 'designing', phase: 'phase:design' }),
+    record({ taskState: 'verifying', phase: 'phase:verification' }),
+    record({ governingContract: 'bug-fix', taskState: 'investigating', phase: 'phase:not_applicable' })
+  ];
+  for (const value of valid) value.recordDigest = computeRecordDigest(value);
+  for (const value of valid) {
+    const [file] = await fixtureFiles([value]);
+    assert.equal((await loadStatusFiles([file])).length, 1);
+  }
+
+  for (const overrides of [
+    { governingContract: 'bug-fix', taskState: 'investigating', phase: 'phase:development' },
+    { taskState: 'implementing', phase: 'phase:verification' },
+    { taskState: 'designing', phase: 'phase:requirements' }
+  ]) {
+    const value = record(overrides);
+    value.recordDigest = computeRecordDigest(value);
+    const [file] = await fixtureFiles([value]);
+    await assert.rejects(loadStatusFiles([file]), /phase/i);
   }
 });
 
@@ -165,6 +191,23 @@ test('validates connected archive lineage and orders archives deterministically'
   ]);
 });
 
+test('accepts archived-only identity whose closure resolves the removed active digest', async () => {
+  const prior = record();
+  const closure = {
+    ...prior,
+    active: false,
+    archivedAt: '2026-07-31T03:00:00Z',
+    archiveReason: 'completed',
+    supersedesDigest: prior.recordDigest
+  };
+  closure.recordDigest = computeRecordDigest(closure);
+  const [file] = await fixtureFiles([closure]);
+
+  const loaded = await loadStatusFiles([file]);
+  assert.equal(loaded.length, 1);
+  assert.equal(loaded[0].active, false);
+});
+
 test('rejects fabricated, disconnected, branching, and non-monotonic archive histories', async () => {
   const first = record();
   const archived = (overrides) => {
@@ -186,8 +229,20 @@ test('rejects fabricated, disconnected, branching, and non-monotonic archive his
     updatedAt: '2026-07-31T01:30:00Z',
     archivedAt: '2026-07-31T01:45:00Z'
   });
+  const externalPrior = record();
+  const externalBranch = ['one', 'two'].map((archiveReason) => {
+    const value = {
+      ...externalPrior,
+      active: false,
+      archivedAt: '2026-07-31T03:30:00Z',
+      archiveReason,
+      supersedesDigest: externalPrior.recordDigest
+    };
+    value.recordDigest = computeRecordDigest(value);
+    return value;
+  });
 
-  for (const values of [[first, fabricated], [first, branchOne, branchTwo], [first, backwards]]) {
+  for (const values of [[first, fabricated], [first, branchOne, branchTwo], [first, backwards], externalBranch]) {
     const files = await fixtureFiles(values);
     await assert.rejects(loadStatusFiles(files), /lineage|supersedes|monotonic/i);
   }
