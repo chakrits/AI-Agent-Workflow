@@ -4,11 +4,11 @@
 - ID: GitHub Issue #132 with split child Issue #133
 - Title: Compatibility-first Progressive Context and Worktree-Scoped Status planning
 - Owner: Orchestrator / SA / Documentation Agent
-- Status: CP-1 SA terminal result consumed; independent CP-1 review pending; implementation not authorized
+- Status: #132 CP-1 independently passed and awaits Human readiness decision; #133 CP-1 blocked for inventory rework; implementation not authorized
 - References: https://github.com/chakrits/AI-Agent-Workflow/issues/132 · https://github.com/chakrits/AI-Agent-Workflow/issues/133
 
 ## Current Stage
-- `phase:planning` — fresh SA child returned `DONE_WITH_CONCERNS` without parent timeout; CP-1 SDDs report PASS for #132/#133. Next gate is independent evidence review before any `status:spec-ready` decision.
+- Mixed slice state — #132 remains `phase:planning` after independent CP-1 PASS; #133 routes to `phase:blocked`/SA rework for CP1-133-01. No Developer dispatch until each slice independently reaches readiness.
 
 ## Change Classification
 - Change Type: Framework / Meta Change
