@@ -11,6 +11,22 @@ const OBJECT_RECORD_FIELDS = ['dispatchMandatoryFields', 'acknowledgement', 'ter
 const STRING_RECORD_FIELDS = [
   'fixtureId', 'changeType', 'risk', 'lifecyclePhase', 'nextOwner', 'stopBackwardReworkResult',
 ];
+const REQUIRED_DISPATCH_HANDOFF_FIELDS = [
+  'Packet', 'Role', 'Repo state', 'Objective', 'Authoritative source', 'Scope', 'Verify',
+  'Return', 'Fallback', 'From Agent', 'To Agent', 'Work Item', 'Work Item URL',
+  'Change Request URL', 'Change Type', 'Risk Level', 'Lifecycle Phase',
+  'Specification Readiness', 'Current Stage', 'Task State', 'Contract Version',
+  'Rework Count', 'Completed Work', 'Artifacts Produced', 'Files Changed',
+  'Verification Performed', 'Evidence References', 'Acceptance Criteria Verification Status',
+  'Acceptance Traceability Matrix URL', 'Verified Commit SHA',
+  'Platform Activation Record URL / Status', 'QA Evidence URL', 'Stop Reason',
+  'Known Limitations', 'Open Questions', 'QA / Review Focus', 'Recommended Next Step',
+  'Next Action', 'Next Owner', 'Orchestration Turn ID', 'Boss Event Required',
+  'Dispatch State', 'Source Agent', 'Target Agent', 'Dispatch Result',
+  'Acknowledgement Evidence', 'Boss Event', 'Handoff Event ID', 'Parent Orchestrator ID',
+  'Child Task ID', 'Terminal Result ID', 'Completion Event Evidence', 'Consumption Evidence',
+  'Timeout / Cancellation Reason',
+];
 
 function isPlainObject(value) {
   return value !== null && typeof value === 'object' && !Array.isArray(value)
@@ -199,6 +215,16 @@ export function validateContextManifest(manifest, expectedSources) {
   return { valid: errors.length === 0, errors };
 }
 
+function validateDispatchFieldSet(fields) {
+  const actual = new Set(Object.keys(fields));
+  const required = new Set(REQUIRED_DISPATCH_HANDOFF_FIELDS);
+  const errors = [
+    ...REQUIRED_DISPATCH_HANDOFF_FIELDS.filter((field) => !actual.has(field)).map((field) => `missing dispatch/handoff field: ${field}`),
+    ...[...actual].filter((field) => !required.has(field)).map((field) => `unknown dispatch/handoff field: ${field}`),
+  ];
+  return { valid: errors.length === 0, errors };
+}
+
 function valueAtPath(value, path) {
   return path.split('.').reduce((current, key) => current?.[key], value);
 }
@@ -233,6 +259,16 @@ export function executeCompatibilityFixture(fixture, recordTemplate) {
 
   if (scenario.operation === 'record-comparison') {
     return { operation: scenario.operation, comparison: compareCriticalRecords(records.full, records.progressive) };
+  }
+  if (scenario.operation === 'dispatch-field-validation') {
+    return {
+      operation: scenario.operation,
+      comparison: compareCriticalRecords(records.full, records.progressive),
+      fieldValidation: {
+        full: validateDispatchFieldSet(records.full.dispatchMandatoryFields),
+        progressive: validateDispatchFieldSet(records.progressive.dispatchMandatoryFields),
+      },
+    };
   }
   if (scenario.operation === 'comparator-error') {
     const target = input.target === 'full' ? 'full' : 'progressive';

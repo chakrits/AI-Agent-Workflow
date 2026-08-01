@@ -15,6 +15,23 @@ const fixtureCatalog = JSON.parse(await readFile(
   'utf8',
 ));
 
+const REQUIRED_DISPATCH_HANDOFF_FIELDS = [
+  'Packet', 'Role', 'Repo state', 'Objective', 'Authoritative source', 'Scope', 'Verify',
+  'Return', 'Fallback', 'From Agent', 'To Agent', 'Work Item', 'Work Item URL',
+  'Change Request URL', 'Change Type', 'Risk Level', 'Lifecycle Phase',
+  'Specification Readiness', 'Current Stage', 'Task State', 'Contract Version',
+  'Rework Count', 'Completed Work', 'Artifacts Produced', 'Files Changed',
+  'Verification Performed', 'Evidence References', 'Acceptance Criteria Verification Status',
+  'Acceptance Traceability Matrix URL', 'Verified Commit SHA',
+  'Platform Activation Record URL / Status', 'QA Evidence URL', 'Stop Reason',
+  'Known Limitations', 'Open Questions', 'QA / Review Focus', 'Recommended Next Step',
+  'Next Action', 'Next Owner', 'Orchestration Turn ID', 'Boss Event Required',
+  'Dispatch State', 'Source Agent', 'Target Agent', 'Dispatch Result',
+  'Acknowledgement Evidence', 'Boss Event', 'Handoff Event ID', 'Parent Orchestrator ID',
+  'Child Task ID', 'Terminal Result ID', 'Completion Event Evidence', 'Consumption Evidence',
+  'Timeout / Cancellation Reason',
+];
+
 function record(overrides = {}) {
   return {
     contractVersion: 'context-compatibility/v1',
@@ -90,20 +107,44 @@ test('reviewer repro fixtures execute concrete failure and event semantics', () 
     return executeCompatibilityFixture(fixture, fixtureCatalog.recordTemplate);
   };
 
-  assert.match(execute('CTX-D02').error, /missing required field dispatchMandatoryFields/);
-  const terminalPass = fixtureCatalog.fixtures.find(({ id }) => id === 'CTX-D05');
-  assert.deepEqual(terminalPass.scenario.input.assertions.dispatchMandatoryFields, {
-    WorkItem: true,
-    NextOwner: 'Reviewer',
-    successorCount: 1,
-    bossEventCount: 1,
+  assert.deepEqual(execute('CTX-D02').fieldValidation.progressive, {
+    valid: false,
+    errors: ['missing dispatch/handoff field: Scope'],
   });
+  const terminalPass = fixtureCatalog.fixtures.find(({ id }) => id === 'CTX-D05');
+  const terminalFields = terminalPass.scenario.input.assertions.dispatchMandatoryFields;
+  assert.deepEqual(terminalFields['Dispatch Result'], { successorCount: 1, redispatchCount: 0 });
+  assert.deepEqual(terminalFields['Boss Event'], { count: 1 });
+  assert.deepEqual(terminalFields['Completion Event Evidence'], { count: 1 });
   assert.deepEqual(execute('CTX-D05').comparison, { compatible: true, differences: [] });
   assert.deepEqual(execute('CTX-E03').manifestValidation.errors, ['stale source: AGENTS.md']);
   assert.deepEqual(execute('CTX-E05').manifestValidation.errors, [
     'duplicate source: AGENTS.md',
     'malformed manifest entry at index 2',
   ]);
+});
+
+test('dispatch fixtures use the exact canonical field set and numeric side-effect evidence', () => {
+  const dispatchFixtures = fixtureCatalog.fixtures.filter(({ id }) => id.startsWith('CTX-D'));
+  assert.equal(dispatchFixtures.length, 10);
+  for (const fixture of dispatchFixtures) {
+    const record = { ...structuredClone(fixtureCatalog.recordTemplate), ...structuredClone(fixture.full) };
+    assert.deepEqual(
+      Object.keys(record.dispatchMandatoryFields).sort(),
+      [...REQUIRED_DISPATCH_HANDOFF_FIELDS].sort(),
+      `${fixture.id} canonical dispatch/handoff fields`,
+    );
+  }
+
+  const fields = (id) => {
+    const fixture = dispatchFixtures.find((candidate) => candidate.id === id);
+    return { ...fixtureCatalog.recordTemplate.dispatchMandatoryFields, ...fixture.full.dispatchMandatoryFields };
+  };
+  assert.deepEqual(fields('CTX-D06')['Dispatch Result'], { successorCount: 0, redispatchCount: 0 });
+  assert.deepEqual(fields('CTX-D09')['Dispatch Result'], { successorCount: 0, redispatchCount: 0 });
+  assert.deepEqual(fields('CTX-D10')['Dispatch Result'], { successorCount: 0, redispatchCount: 0 });
+  assert.deepEqual(fields('CTX-D09')['Boss Event'], { count: 0 });
+  assert.deepEqual(fields('CTX-D10')['Completion Event Evidence'], { count: 0 });
 });
 
 test('canonical serialization sorts nested object keys without changing array order', () => {
