@@ -225,13 +225,18 @@ function statusOrder(left, right) {
 export async function loadStatusFiles(paths, { mode = 'active', expectedHeadDigest } = {}) {
   if (!Array.isArray(paths) || paths.length === 0) statusError('MISSING_INPUT');
   const baselineRss = process.memoryUsage().rss;
+  let peakRss = baselineRss;
   const inputs = await preflight(paths, mode);
   let allocatedBytes = 0;
+  const measureMemory = () => {
+    peakRss = Math.max(peakRss, process.memoryUsage().rss);
+    return enforceMemoryBudget({ baselineRss, currentRss: peakRss, allocatedBytes });
+  };
   for (const input of inputs) {
     try { input.raw = await readFile(input.file); } catch { statusError('MISSING_INPUT', input.inputId); }
     allocatedBytes += input.raw.length;
   }
-  enforceMemoryBudget({ baselineRss, currentRss: process.memoryUsage().rss, allocatedBytes });
+  measureMemory();
   const parseErrors = [];
   for (const input of inputs) {
     try {
@@ -240,7 +245,7 @@ export async function loadStatusFiles(paths, { mode = 'active', expectedHeadDige
     } catch (error) { parseErrors.push(error); }
   }
   throwFirst(parseErrors);
-  enforceMemoryBudget({ baselineRss, currentRss: process.memoryUsage().rss, allocatedBytes });
+  measureMemory();
   validateStage(inputs, validateSchema);
   validateStage(inputs, validatePolicyAndSemantics);
   validateStage(inputs, validateDigest);
@@ -258,5 +263,6 @@ export async function loadStatusFiles(paths, { mode = 'active', expectedHeadDige
   const result = records.sort(statusOrder);
   if (assurance) Object.defineProperty(result, 'assurance', { value: assurance, enumerable: false });
   if (mode === 'active' && Buffer.byteLength(JSON.stringify(result)) > STATUS_LIMITS.normalizedActiveBytes) statusError('NORMALIZED_SIZE_LIMIT');
+  Object.defineProperty(result, 'resources', { value: measureMemory(), enumerable: false });
   return result;
 }

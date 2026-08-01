@@ -431,6 +431,8 @@ test('isolated loader enforces the same bounded contract without side effects', 
   const before = await readFile(files[0]);
   const loaded = await loadStatusFilesIsolated(files);
   assert.equal(loaded[0].recordDigest, value.recordDigest);
+  assert.ok(loaded.resources.residentDelta <= STATUS_LIMITS.residentBytes * 1.2);
+  assert.ok(loaded.resources.allocatedBytes > 0);
   assert.deepEqual(await readFile(files[0]), before);
 });
 

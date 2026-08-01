@@ -16,6 +16,7 @@ export function loadStatusFilesIsolated(paths, options = {}) {
       }
       const records = message.records;
       if (message.assurance) Object.defineProperty(records, 'assurance', { value: message.assurance, enumerable: false });
+      Object.defineProperty(records, 'resources', { value: Object.freeze(message.resources), enumerable: false });
       resolve(records);
     });
     worker.send({ paths, options });
