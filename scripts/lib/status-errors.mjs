@@ -1,12 +1,13 @@
 export class StatusError extends Error {
-  constructor(code, path, detail = '') {
-    super(`${code}${path ? `: ${path}` : ''}${detail ? ` (${detail})` : ''}`);
+  constructor(code, inputId) {
+    const safeInputId = /^input\[[0-9]{4,}\]$/.test(inputId ?? '') ? inputId : undefined;
+    super(`${code}${safeInputId ? `: ${safeInputId}` : ''}`);
     this.name = 'StatusError';
     this.code = code;
-    this.path = path;
+    this.inputId = safeInputId;
   }
 }
 
-export function statusError(code, path, detail) {
-  throw new StatusError(code, path, detail);
+export function statusError(code, inputId) {
+  throw new StatusError(code, inputId);
 }

@@ -7,6 +7,8 @@ import test from 'node:test';
 import { stringify } from 'yaml';
 
 import { canonicalizeJcs, digestJcs } from '../scripts/lib/status-jcs.mjs';
+import { loadStatusFilesIsolated } from '../scripts/lib/status-loader-isolated.mjs';
+import { enforceMemoryBudget } from '../scripts/lib/status-resources.mjs';
 import { parseStatusBytes, STATUS_LIMITS } from '../scripts/lib/status-parser.mjs';
 import { computeRecordDigest, loadStatusFiles } from '../scripts/lib/status-loader.mjs';
 
@@ -319,17 +321,51 @@ test('loader uses the bounded parser and applies aggregate precedence before par
   await assert.rejects(loadStatusFiles(aggregateFiles), rejectsCode('AGGREGATE_LIMIT'));
 });
 
+test('selects parser errors globally before schema errors independent of caller order', async () => {
+  const invalidSchema = await fixtureFiles([{ schemaVersion: 'work-item-status/v1' }]);
+  const directory = await mkdtemp(path.join(tmpdir(), 'status-loader-'));
+  const invalidUtf8 = path.join(directory, 'later.yaml');
+  await writeFile(invalidUtf8, Buffer.from([0xff]));
+  for (const files of [[...invalidSchema, invalidUtf8], [invalidUtf8, ...invalidSchema]]) {
+    await assert.rejects(loadStatusFiles(files), rejectsCode('INVALID_UTF8'));
+  }
+});
+
+test('memory budget seam passes at the boundary and fails closed above it', () => {
+  assert.doesNotThrow(() => enforceMemoryBudget({ baselineRss: 10, currentRss: 10, allocatedBytes: STATUS_LIMITS.residentBytes }));
+  assert.throws(
+    () => enforceMemoryBudget({ baselineRss: 10, currentRss: 10, allocatedBytes: STATUS_LIMITS.residentBytes + 1 }),
+    rejectsCode('MEMORY_BUDGET_EXCEEDED')
+  );
+  assert.throws(
+    () => enforceMemoryBudget({ baselineRss: 10, currentRss: 11 + STATUS_LIMITS.residentBytes, allocatedBytes: 0 }),
+    rejectsCode('MEMORY_BUDGET_EXCEEDED')
+  );
+});
+
+test('isolated loader enforces the same bounded contract without side effects', async () => {
+  const value = record();
+  const files = await fixtureFiles([value]);
+  const before = await readFile(files[0]);
+  const loaded = await loadStatusFilesIsolated(files);
+  assert.equal(loaded[0].recordDigest, value.recordDigest);
+  assert.deepEqual(await readFile(files[0]), before);
+});
+
 test('rejects sensitive and ambiguous evidence URLs without echoing their value', async () => {
   for (const url of [
     'https://user:password@github.com/acme/project',
     'https://github.com/acme/project?token=secret',
+    'docs/%74oken-proof.md',
+    'docs/%2574oken-proof.md',
     'docs/%2e%2e/private-key.pem',
     '../outside.md'
   ]) {
     const value = record({ evidence: [{ kind: 'test', url, observedAt: '2026-07-31T02:00:00Z' }] });
     value.recordDigest = computeRecordDigest(value);
     const [file] = await fixtureFiles([value]);
-    await assert.rejects(loadStatusFiles([file]), (error) => error.code === 'DATA_POLICY_ERROR' && !error.message.includes(url));
+    await assert.rejects(loadStatusFiles([file]), (error) => error.code === 'DATA_POLICY_ERROR'
+      && !error.message.includes(url) && !error.message.includes(path.dirname(file)));
   }
 });
 
@@ -369,6 +405,18 @@ test('rejects fabricated, disconnected, branching, and non-monotonic archive his
 
   const fabricatedOnly = await fixtureFiles([fabricated]);
   await assert.rejects(loadStatusFiles(fabricatedOnly, { mode: 'archive-identity' }), rejectsCode('MISSING_PREIMAGE'));
+
+  const foreignPrior = record({ issue: { repository: 'acme/project', number: 1, url: 'https://github.com/acme/project/issues/1' } });
+  foreignPrior.recordDigest = computeRecordDigest(foreignPrior);
+  const wrongIdentity = archived({ supersedesDigest: foreignPrior.recordDigest });
+  wrongIdentity.recordDigest = computeRecordDigest(wrongIdentity);
+  const identityFiles = await fixtureFiles([foreignPrior, wrongIdentity]);
+  await assert.rejects(loadStatusFiles(identityFiles, { mode: 'archive-all' }), rejectsCode('IDENTITY_MISMATCH'));
+
+  const secondRoot = record({ updatedAt: '2026-07-31T02:30:00Z' });
+  secondRoot.recordDigest = computeRecordDigest(secondRoot);
+  const disconnectedFiles = await fixtureFiles([first, secondRoot]);
+  await assert.rejects(loadStatusFiles(disconnectedFiles, { mode: 'archive-identity' }), rejectsCode('DISCONNECTED_LINEAGE'));
 
   for (const values of [[first, fabricated], [first, branchOne, branchTwo], [first, backwards], externalBranch]) {
     const files = await fixtureFiles(values);

@@ -8,6 +8,7 @@ import { parse } from 'yaml';
 import { statusError } from './status-errors.mjs';
 import { digestJcs, evidenceCompare, utf8Compare } from './status-jcs.mjs';
 import { parseStatusBytes, STATUS_LIMITS } from './status-parser.mjs';
+import { enforceMemoryBudget } from './status-resources.mjs';
 
 const SCHEMA_VERSION = 'work-item-status/v1';
 const schemaPath = fileURLToPath(new URL('../../docs/contracts/schemas/work-item-status.schema.json', import.meta.url));
@@ -52,40 +53,60 @@ function validTimestamp(value) {
 
 const sensitive = /(?:password|passwd|secret|token|bearer|private[-_ ]?key|api[-_ ]?key|apikey|access[-_ ]?key|authorization)/i;
 
+function safeDecode(component) {
+  let decoded;
+  try { decoded = decodeURIComponent(component); } catch { return null; }
+  if (/%[0-9a-f]{2}/i.test(decoded)) return null;
+  return decoded;
+}
+
+function safePathComponents(pathname) {
+  const components = pathname.split('/');
+  for (const component of components) {
+    const decoded = safeDecode(component);
+    if (decoded === null || sensitive.test(decoded) || /[\\/\0-\x1f\x7f]/.test(decoded)
+        || decoded === '.' || decoded === '..') return false;
+  }
+  return true;
+}
+
 function validEvidenceUrl(value) {
-  if (typeof value !== 'string' || sensitive.test(value) || /[\0-\x1f\x7f\\]/.test(value) || /%(?:2f|5c)/i.test(value)) return false;
+  if (typeof value !== 'string' || /[\0-\x1f\x7f\\]/.test(value)) return false;
   if (value.startsWith('https://')) {
     try {
       const url = new URL(value);
       return url.protocol === 'https:' && url.hostname === 'github.com' && !url.username && !url.password
-        && !url.port && !url.search && !url.hash && url.pathname.length > 1;
+        && !url.port && !url.search && !url.hash && url.pathname.length > 1
+        && !sensitive.test(url.hostname) && safePathComponents(url.pathname);
     } catch { return false; }
   }
   if (value.startsWith('/') || value.includes('?') || value.includes('#')) return false;
-  let decoded;
-  try { decoded = decodeURIComponent(value); } catch { return false; }
-  return !decoded.split('/').some((segment) => segment === '..' || segment === '.');
+  return safePathComponents(value);
 }
 
-function validateSemantics(record, file) {
-  if (!validate(record)) statusError('SCHEMA_ERROR', file);
-  if (record.schemaVersion !== SCHEMA_VERSION) statusError('SCHEMA_ERROR', file);
-  if (record.evidence.some(({ url }) => !validEvidenceUrl(url))) statusError('DATA_POLICY_ERROR', file);
+function validateSchema(record, inputId) {
+  if (!validate(record) || record.schemaVersion !== SCHEMA_VERSION) statusError('SCHEMA_ERROR', inputId);
+}
 
+function validatePolicyAndSemantics(record, inputId) {
+  if (record.evidence.some(({ url }) => !validEvidenceUrl(url))) statusError('DATA_POLICY_ERROR', inputId);
   const contractKey = `${record.governingContract}@${record.contractVersion}`;
   const states = workflowContracts.get(contractKey);
-  if (!states?.has(record.taskState)) statusError('SEMANTIC_ERROR', file);
+  if (!states?.has(record.taskState)) statusError('SEMANTIC_ERROR', inputId);
   if (record.governingContract === 'new-feature') {
-    if (!lifecyclePhases.get(record.taskState)?.includes(record.phase)) statusError('SEMANTIC_ERROR', file);
-  } else if (record.phase !== 'phase:not_applicable') statusError('SEMANTIC_ERROR', file);
+    if (!lifecyclePhases.get(record.taskState)?.includes(record.phase)) statusError('SEMANTIC_ERROR', inputId);
+  } else if (record.phase !== 'phase:not_applicable') statusError('SEMANTIC_ERROR', inputId);
 
-  if (record.issue.url !== `https://github.com/${record.issue.repository}/issues/${record.issue.number}`) statusError('SEMANTIC_ERROR', file);
+  if (record.issue.url !== `https://github.com/${record.issue.repository}/issues/${record.issue.number}`) statusError('SEMANTIC_ERROR', inputId);
   if (!validTimestamp(record.createdAt) || !validTimestamp(record.updatedAt)
-      || Date.parse(record.updatedAt) < Date.parse(record.createdAt)) statusError('SEMANTIC_ERROR', file);
+      || Date.parse(record.updatedAt) < Date.parse(record.createdAt)) statusError('SEMANTIC_ERROR', inputId);
   if (!record.active && (!validTimestamp(record.archivedAt)
-      || Date.parse(record.archivedAt) < Date.parse(record.updatedAt))) statusError('SEMANTIC_ERROR', file);
-  if (record.evidence.some(({ observedAt }) => !validTimestamp(observedAt))) statusError('SEMANTIC_ERROR', file);
-  if (record.recordDigest !== computeRecordDigest(record)) statusError('RECORD_DIGEST_MISMATCH', file);
+      || Date.parse(record.archivedAt) < Date.parse(record.updatedAt))) statusError('SEMANTIC_ERROR', inputId);
+  if (record.evidence.some(({ observedAt }) => !validTimestamp(observedAt))) statusError('SEMANTIC_ERROR', inputId);
+}
+
+function validateDigest(record, inputId) {
+  if (record.recordDigest !== computeRecordDigest(record)) statusError('RECORD_DIGEST_MISMATCH', inputId);
 }
 
 function limitsFor(mode) {
@@ -99,41 +120,72 @@ async function preflight(paths, mode) {
   const [fileLimit, aggregateLimit] = limitsFor(mode);
   if (ordered.length > fileLimit) statusError('FILE_COUNT_LIMIT');
   let aggregate = 0;
-  for (const file of ordered) {
+  for (let index = 0; index < ordered.length; index += 1) {
+    const file = ordered[index];
+    const inputId = `input[${String(index).padStart(4, '0')}]`;
     let metadata;
-    try { metadata = await lstat(file); } catch { statusError('MISSING_INPUT', path.resolve(file)); }
-    if (!metadata.isFile()) statusError('MISSING_INPUT', path.resolve(file));
-    if (metadata.size > STATUS_LIMITS.rawFileBytes) statusError('RAW_FILE_LIMIT', path.resolve(file));
+    try { metadata = await lstat(file); } catch { statusError('MISSING_INPUT', inputId); }
+    if (!metadata.isFile()) statusError('MISSING_INPUT', inputId);
+    if (metadata.size > STATUS_LIMITS.rawFileBytes) statusError('RAW_FILE_LIMIT', inputId);
     aggregate += metadata.size;
   }
   if (aggregate > aggregateLimit) statusError('AGGREGATE_LIMIT');
-  return ordered;
+  return ordered.map((file, index) => ({ file, inputId: `input[${String(index).padStart(4, '0')}]` }));
+}
+
+const errorRank = new Map([
+  ['INVALID_UTF8', 2], ['FORBIDDEN_YAML_FEATURE', 3], ['YAML_PARSE_ERROR', 4],
+  ['JSON_DOMAIN_ERROR', 5], ['NODE_LIMIT', 5], ['CONTAINER_DEPTH_LIMIT', 5]
+]);
+
+function throwFirst(errors) {
+  if (errors.length === 0) return;
+  errors.sort((left, right) => (errorRank.get(left.code) ?? 99) - (errorRank.get(right.code) ?? 99)
+    || utf8Compare(left.inputId ?? '', right.inputId ?? ''));
+  throw errors[0];
+}
+
+function validateStage(records, operation) {
+  const errors = [];
+  for (const item of records) {
+    try { operation(item.record, item.inputId); } catch (error) { errors.push(error); }
+  }
+  throwFirst(errors);
 }
 
 function identityOf(record) {
   return `${record.issue.repository}#${record.issue.number}`;
 }
 
-function validateLineage(records, expectedHeadDigest) {
+function validateLineage(records, expectedHeadDigest, archiveMode) {
   const groups = new Map();
   for (const record of records) groups.set(identityOf(record), [...(groups.get(identityOf(record)) ?? []), record]);
+  const allByDigest = new Map();
+  let duplicateDigest = false;
+  for (const record of records) {
+    if (allByDigest.has(record.recordDigest)) duplicateDigest = true;
+    allByDigest.set(record.recordDigest, record);
+  }
+  const lineageErrors = new Set();
+  for (const record of records.filter(({ active }) => !active)) {
+    const prior = allByDigest.get(record.supersedesDigest);
+    if (!prior) lineageErrors.add('MISSING_PREIMAGE');
+    else if (identityOf(prior) !== identityOf(record)) lineageErrors.add('IDENTITY_MISMATCH');
+    else if (prior.createdAt !== record.createdAt) lineageErrors.add('CREATED_AT_MISMATCH');
+    else if (Date.parse(record.updatedAt) < Date.parse(prior.updatedAt)
+        || (!prior.active && record.archivedAt < prior.archivedAt)) lineageErrors.add('NON_MONOTONIC_TIME');
+  }
+  for (const code of ['MISSING_PREIMAGE', 'IDENTITY_MISMATCH', 'CREATED_AT_MISMATCH', 'NON_MONOTONIC_TIME']) {
+    if (lineageErrors.has(code)) statusError(code);
+  }
+  if (duplicateDigest) statusError('DUPLICATE_DIGEST');
   let assurance;
   for (const revisions of groups.values()) {
-    if (!revisions.some(({ active }) => !active)) continue;
-    const byDigest = new Map();
-    for (const revision of revisions) {
-      if (byDigest.has(revision.recordDigest)) statusError('DUPLICATE_DIGEST');
-      byDigest.set(revision.recordDigest, revision);
-    }
+    if (!archiveMode && !revisions.some(({ active }) => !active)) continue;
     const roots = revisions.filter(({ active, supersedesDigest }) => active && supersedesDigest === null);
     const successors = new Map();
     for (const revision of revisions.filter(({ active }) => !active)) {
-      const prior = byDigest.get(revision.supersedesDigest);
-      if (!prior) statusError('MISSING_PREIMAGE');
-      if (identityOf(prior) !== identityOf(revision)) statusError('IDENTITY_MISMATCH');
-      if (prior.createdAt !== revision.createdAt) statusError('CREATED_AT_MISMATCH');
-      if (Date.parse(revision.updatedAt) < Date.parse(prior.updatedAt)
-          || (!prior.active && revision.archivedAt < prior.archivedAt)) statusError('NON_MONOTONIC_TIME');
+      const prior = allByDigest.get(revision.supersedesDigest);
       if (successors.has(prior.recordDigest)) statusError('BRANCHED_LINEAGE');
       successors.set(prior.recordDigest, revision);
     }
@@ -143,7 +195,7 @@ function validateLineage(records, expectedHeadDigest) {
       while (cursor?.supersedesDigest !== null) {
         if (seen.has(cursor.recordDigest)) statusError('CYCLIC_LINEAGE');
         seen.add(cursor.recordDigest);
-        cursor = byDigest.get(cursor.supersedesDigest);
+        cursor = allByDigest.get(cursor.supersedesDigest);
       }
     }
     if (roots.length !== 1) statusError('DISCONNECTED_LINEAGE');
@@ -154,7 +206,7 @@ function validateLineage(records, expectedHeadDigest) {
     while (cursor) {
       if (visited.has(cursor.recordDigest)) statusError('CYCLIC_LINEAGE');
       visited.add(cursor.recordDigest);
-      cursor = cursor.supersedesDigest === null ? null : byDigest.get(cursor.supersedesDigest);
+      cursor = cursor.supersedesDigest === null ? null : allByDigest.get(cursor.supersedesDigest);
     }
     if (visited.size !== revisions.length || !visited.has(roots[0].recordDigest)) statusError('DISCONNECTED_LINEAGE');
     if (expectedHeadDigest && heads[0].recordDigest !== expectedHeadDigest) statusError('STALE_LINEAGE_HEAD');
@@ -172,15 +224,27 @@ function statusOrder(left, right) {
 
 export async function loadStatusFiles(paths, { mode = 'active', expectedHeadDigest } = {}) {
   if (!Array.isArray(paths) || paths.length === 0) statusError('MISSING_INPUT');
-  const orderedPaths = await preflight(paths, mode);
-  const records = [];
-  for (const file of orderedPaths) {
-    let raw;
-    try { raw = await readFile(file); } catch { statusError('MISSING_INPUT', path.resolve(file)); }
-    const record = parseStatusBytes(raw, path.resolve(file));
-    validateSemantics(record, path.resolve(file));
-    records.push({ ...record, evidence: [...record.evidence].sort(evidenceCompare) });
+  const baselineRss = process.memoryUsage().rss;
+  const inputs = await preflight(paths, mode);
+  let allocatedBytes = 0;
+  for (const input of inputs) {
+    try { input.raw = await readFile(input.file); } catch { statusError('MISSING_INPUT', input.inputId); }
+    allocatedBytes += input.raw.length;
   }
+  enforceMemoryBudget({ baselineRss, currentRss: process.memoryUsage().rss, allocatedBytes });
+  const parseErrors = [];
+  for (const input of inputs) {
+    try {
+      input.record = parseStatusBytes(input.raw, input.inputId);
+      allocatedBytes += Buffer.byteLength(JSON.stringify(input.record));
+    } catch (error) { parseErrors.push(error); }
+  }
+  throwFirst(parseErrors);
+  enforceMemoryBudget({ baselineRss, currentRss: process.memoryUsage().rss, allocatedBytes });
+  validateStage(inputs, validateSchema);
+  validateStage(inputs, validatePolicyAndSemantics);
+  validateStage(inputs, validateDigest);
+  const records = inputs.map(({ record }) => ({ ...record, evidence: [...record.evidence].sort(evidenceCompare) }));
   if (mode === 'active' && records.some(({ active }) => !active)) statusError('SEMANTIC_ERROR');
   const active = new Set();
   if (mode === 'active') {
@@ -190,7 +254,7 @@ export async function loadStatusFiles(paths, { mode = 'active', expectedHeadDige
       active.add(identity);
     }
   }
-  const assurance = validateLineage(records, expectedHeadDigest);
+  const assurance = validateLineage(records, expectedHeadDigest, mode !== 'active');
   const result = records.sort(statusOrder);
   if (assurance) Object.defineProperty(result, 'assurance', { value: assurance, enumerable: false });
   if (mode === 'active' && Buffer.byteLength(JSON.stringify(result)) > STATUS_LIMITS.normalizedActiveBytes) statusError('NORMALIZED_SIZE_LIMIT');
