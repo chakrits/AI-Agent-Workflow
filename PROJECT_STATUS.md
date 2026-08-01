@@ -3,19 +3,19 @@
 ## Current Work Item
 - ID: GitHub Issue #132 with split child Issue #133
 - Title: Compatibility-first Progressive Context and Worktree-Scoped Status planning
-- Owner: Separate Developer Agents per slice
-- Status: #132 authorization unchanged; #133 ADR-0018 accepted and bounded foundation B-01/B-02/B-05 authorized. Neither slice has authority-switch or Go approval.
+- Owner: #132 owner/authorization unchanged; #133 awaits hosted runtime evidence and fresh QA closure
+- Status: #132 authorization unchanged. #133 bounded foundation implementation is development-done at `641f1ff`; runtime-matrix implementation is `4568420`, with Security and Code Review records through `ea1630e`. Local Node 22/macOS and Python 3.14 compatibility evidence passes, but hosted Ubuntu/Windows Node 22 and Python 3.12 remain pending. Neither slice has authority-switch or Go approval.
 - References: https://github.com/chakrits/AI-Agent-Workflow/issues/132 · https://github.com/chakrits/AI-Agent-Workflow/issues/133
 
 ## Current Stage
-- `phase:development` — #132 continues its approved increment. #133 may implement only strict schema/loader/JCS, digest-covered manifest and flat-peer library logic, versioned fixtures, and disposable CAS/TOCTOU harnesses; then independent Reviewer, QA, and Security implementation review. Consumer migration, hosted writer/projection activation, authority switch, rollback activation, and Go remain gated.
+- `phase:verification` for #133 — open a Draft PR only to obtain the missing hosted Ubuntu/Windows Node 22 and Python 3.12 runtime evidence, then route the exact results to fresh QA. `status:development-done` exists; do not add `status:verification-done` or move to `phase:human-review` until the hosted matrix passes and fresh QA closes the remaining limitation. #132 state remains unchanged. Increment 2 CAS/writer, consumer migration, hosted writer/projection activation, authority switch, rollback activation, release, and Go remain unauthorized.
 
 ## Change Classification
 - Change Type: Framework / Meta Change
 - Risk Level: Medium
-- Code Change Required: Yes — bounded, separately scoped implementation increments
+- Code Change Required: Complete for the currently authorized #133 bounded loader and runtime-matrix increments; later implementation remains unauthorized
 - Architecture Change Required: Yes
-- Security Review Required: Yes for #133 implementation and hosted activation; final design re-review PASS is `16c3ecf`
+- Security Review Required: Completed for the exact #133 loader and runtime-matrix implementations (`69afa7e`, `85f0d0d`); hosted activation and any later security-sensitive increment require separate review
 
 ## Completed
 - GitHub Issue #129 (reset-to-template history scrub) merged through PR #130 as `4243eb5`. The delivered reset is dry-run by default, preserves `docs/records/qa/`, requires explicit confirmation and clean contained targets for apply, and blocks destructive CI invocation. A repository-owned fail-closed harness is the only approved agent path for confirmed-reset verification: it proves standalone disposable-root ownership, canonical root/common-directory/script/`cwd` binding, exact commit and clean state, QA sentinel preservation, dirty refusal/no mutation, cleanup, primary integrity, and idempotency. Independent review closed CR-129-H01 through CR-129-H04 with 0 open findings; fresh QA passed AC-01 through AC-12, focused 68/68, normal/post-reset 316/316, and 11/11 validators in both environments. The two restored accidental primary-worktree invocations remain recorded as incident evidence; neither authorizes reset/history operations against the primary repository.
