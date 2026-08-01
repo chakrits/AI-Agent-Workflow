@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
-import { mkdtemp, writeFile } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
+import { mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
@@ -77,6 +78,19 @@ test('normative JCS rejects invalid numbers, strings, and oversized preimages', 
     () => canonicalizeJcs({ value: 'x'.repeat(STATUS_LIMITS.canonicalBytes) }),
     rejectsCode('CANONICAL_SIZE_LIMIT')
   );
+});
+
+test('executes versioned JCS fixture vectors from exact checked-in bytes', async () => {
+  const directory = path.join(process.cwd(), 'test/fixtures/work-item-status/v1');
+  const manifest = JSON.parse(await readFile(path.join(directory, 'manifest.json'), 'utf8'));
+  assert.equal(manifest.fixtureManifestVersion, 'work-item-status-fixtures/v1');
+  for (const fixture of manifest.cases) {
+    const raw = await readFile(path.join(directory, fixture.inputPaths[0]));
+    assert.equal(createHash('sha256').update(raw).digest('hex'), fixture.inputSha256[0], fixture.id);
+    const value = JSON.parse(raw);
+    assert.equal(canonicalizeJcs(value).toString('hex'), fixture.canonicalUtf8Hex, fixture.id);
+    assert.equal(digestJcs(value), fixture.digests.record, fixture.id);
+  }
 });
 
 function record(overrides = {}) {
@@ -157,7 +171,7 @@ test('rejects missing required fields and unknown keys', async () => {
 
   for (const value of [missingOwner, unknownKey]) {
     const [file] = await fixtureFiles([value]);
-    await assert.rejects(loadStatusFiles([file]), /status validation failed/i);
+    await assert.rejects(loadStatusFiles([file]), rejectsCode('SCHEMA_ERROR'));
   }
 });
 
@@ -191,7 +205,7 @@ test('derives legal contract versions and task states from canonical workflow co
     const value = record(overrides);
     value.recordDigest = computeRecordDigest(value);
     const [file] = await fixtureFiles([value]);
-    await assert.rejects(loadStatusFiles([file]), /contract|version|task state/i);
+    await assert.rejects(loadStatusFiles([file]), rejectsCode('SEMANTIC_ERROR'));
   }
 });
 
@@ -216,7 +230,7 @@ test('enforces canonical lifecycle phase for governing contract and task state',
     const value = record(overrides);
     value.recordDigest = computeRecordDigest(value);
     const [file] = await fixtureFiles([value]);
-    await assert.rejects(loadStatusFiles([file]), /phase/i);
+    await assert.rejects(loadStatusFiles([file]), rejectsCode('SEMANTIC_ERROR'));
   }
 });
 
@@ -235,7 +249,7 @@ test('enforces identity, timestamp, archive, and digest constraints', async () =
   for (const value of invalidRecords) {
     if (value.recordDigest !== '0'.repeat(64)) value.recordDigest = computeRecordDigest(value);
     const [file] = await fixtureFiles([value]);
-    await assert.rejects(loadStatusFiles([file]), /status validation failed|digest mismatch/i);
+    await assert.rejects(loadStatusFiles([file]), (error) => ['SCHEMA_ERROR', 'SEMANTIC_ERROR', 'RECORD_DIGEST_MISMATCH'].includes(error.code));
   }
 });
 
@@ -256,28 +270,67 @@ test('validates connected archive lineage and orders archives deterministically'
   const later = archive('2026-07-31T04:00:00Z', '2026-07-31T04:30:00Z', 'closed later', earlier.recordDigest);
   const files = await fixtureFiles([later, first, earlier]);
 
-  const loaded = await loadStatusFiles(files);
+  const loaded = await loadStatusFiles(files, { mode: 'archive-identity' });
   assert.deepEqual(loaded.filter(({ active }) => !active).map(({ archivedAt }) => archivedAt), [
     '2026-07-31T03:30:00Z',
     '2026-07-31T04:30:00Z'
   ]);
 });
 
-test('accepts archived-only identity whose closure resolves the removed active digest', async () => {
+test('accepts archived-only flat-peer lineage with a materially changed closure', async () => {
   const prior = record();
   const closure = {
     ...prior,
+    taskState: 'human-review',
+    phase: 'phase:human-review',
+    owner: { kind: 'human', id: 'maintainer' },
+    evidence: [{ kind: 'closeout', url: 'docs/closeout.md', observedAt: '2026-07-31T03:00:00Z' }],
     active: false,
+    updatedAt: '2026-07-31T03:00:00Z',
     archivedAt: '2026-07-31T03:00:00Z',
     archiveReason: 'completed',
     supersedesDigest: prior.recordDigest
   };
   closure.recordDigest = computeRecordDigest(closure);
-  const [file] = await fixtureFiles([closure]);
+  const files = await fixtureFiles([closure, prior]);
 
-  const loaded = await loadStatusFiles([file]);
-  assert.equal(loaded.length, 1);
-  assert.equal(loaded[0].active, false);
+  const loaded = await loadStatusFiles(files, { mode: 'archive-identity' });
+  assert.equal(loaded.length, 2);
+  assert.equal(loaded.assurance, 'UNANCHORED_BUNDLE');
+  assert.equal(loaded.at(-1).owner.id, 'maintainer');
+});
+
+test('loader uses the bounded parser and applies aggregate precedence before parsing', async () => {
+  const directory = await mkdtemp(path.join(tmpdir(), 'status-loader-'));
+  const forbidden = path.join(directory, 'forbidden.yaml');
+  await writeFile(forbidden, 'value: &anchor 1\ncopy: *anchor\n');
+  await assert.rejects(loadStatusFiles([forbidden]), rejectsCode('FORBIDDEN_YAML_FEATURE'));
+
+  const oversized = path.join(directory, 'oversized.yaml');
+  await writeFile(oversized, Buffer.alloc(STATUS_LIMITS.rawFileBytes + 1));
+  await assert.rejects(loadStatusFiles([forbidden, oversized]), rejectsCode('RAW_FILE_LIMIT'));
+
+  const aggregateFiles = [];
+  for (let index = 0; index < 43; index += 1) {
+    const file = path.join(directory, `aggregate-${index}.yaml`);
+    await writeFile(file, Buffer.alloc(98_000));
+    aggregateFiles.push(file);
+  }
+  await assert.rejects(loadStatusFiles(aggregateFiles), rejectsCode('AGGREGATE_LIMIT'));
+});
+
+test('rejects sensitive and ambiguous evidence URLs without echoing their value', async () => {
+  for (const url of [
+    'https://user:password@github.com/acme/project',
+    'https://github.com/acme/project?token=secret',
+    'docs/%2e%2e/private-key.pem',
+    '../outside.md'
+  ]) {
+    const value = record({ evidence: [{ kind: 'test', url, observedAt: '2026-07-31T02:00:00Z' }] });
+    value.recordDigest = computeRecordDigest(value);
+    const [file] = await fixtureFiles([value]);
+    await assert.rejects(loadStatusFiles([file]), (error) => error.code === 'DATA_POLICY_ERROR' && !error.message.includes(url));
+  }
 });
 
 test('rejects fabricated, disconnected, branching, and non-monotonic archive histories', async () => {
@@ -314,9 +367,14 @@ test('rejects fabricated, disconnected, branching, and non-monotonic archive his
     return value;
   });
 
+  const fabricatedOnly = await fixtureFiles([fabricated]);
+  await assert.rejects(loadStatusFiles(fabricatedOnly, { mode: 'archive-identity' }), rejectsCode('MISSING_PREIMAGE'));
+
   for (const values of [[first, fabricated], [first, branchOne, branchTwo], [first, backwards], externalBranch]) {
     const files = await fixtureFiles(values);
-    await assert.rejects(loadStatusFiles(files), /lineage|supersedes|monotonic/i);
+    await assert.rejects(loadStatusFiles(files, { mode: 'archive-identity' }), (error) => [
+      'MISSING_PREIMAGE', 'BRANCHED_LINEAGE', 'NON_MONOTONIC_TIME', 'DISCONNECTED_LINEAGE'
+    ].includes(error.code));
   }
 });
 
@@ -349,7 +407,7 @@ test('rejects duplicate active identity even when filenames differ', async () =>
   second.recordDigest = computeRecordDigest(second);
   const files = await fixtureFiles([first, second]);
 
-  await assert.rejects(loadStatusFiles(files), /duplicate active identity/i);
+  await assert.rejects(loadStatusFiles(files), rejectsCode('DUPLICATE_ACTIVE_IDENTITY'));
 });
 
 test('malformed, unsupported, and missing inputs fail closed', async () => {
@@ -360,8 +418,8 @@ test('malformed, unsupported, and missing inputs fail closed', async () => {
   unsupported.recordDigest = computeRecordDigest(unsupported);
   const [unsupportedFile] = await fixtureFiles([unsupported]);
 
-  await assert.rejects(loadStatusFiles([malformed]), /parse/i);
-  await assert.rejects(loadStatusFiles([unsupportedFile]), /unsupported schema version/i);
-  await assert.rejects(loadStatusFiles([path.join(directory, 'missing.yaml')]), /missing|ENOENT/i);
-  await assert.rejects(loadStatusFiles([]), /missing expected status shard/i);
+  await assert.rejects(loadStatusFiles([malformed]), rejectsCode('YAML_PARSE_ERROR'));
+  await assert.rejects(loadStatusFiles([unsupportedFile]), rejectsCode('SCHEMA_ERROR'));
+  await assert.rejects(loadStatusFiles([path.join(directory, 'missing.yaml')]), rejectsCode('MISSING_INPUT'));
+  await assert.rejects(loadStatusFiles([]), rejectsCode('MISSING_INPUT'));
 });

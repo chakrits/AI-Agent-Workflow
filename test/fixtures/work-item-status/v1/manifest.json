@@ -1,0 +1,42 @@
+{
+  "fixtureManifestVersion": "work-item-status-fixtures/v1",
+  "cases": [
+    {
+      "id": "JCS-U01", "mode": "active", "inputPaths": ["jcs-u01.json"],
+      "inputSha256": ["c505756049182f47039e80179eb34433c25f7f460abb91380106ae59c3eea348"],
+      "expectedInputs": { "defaultBranch": null, "manifestDigest": null, "setDigest": null, "headDigest": null },
+      "expectedOutputs": { "defaultBranch": null, "manifestDigest": null, "setDigest": null, "headDigest": null },
+      "canonicalUtf8Hex": "7b226e223a302c2273223a22c3a9222c2275223a22f09f9880227d",
+      "digests": { "record": "903bf2f2ba8236df38cea14ea59fa43b0d0d564a3d97a6065f45f783e5ecac0b", "projection": null },
+      "normalizedJson": { "n": 0, "s": "é", "u": "😀" },
+      "approvals": [], "writerIdentity": null, "expectedPrimaryError": null, "orderedDiagnostics": [],
+      "sideEffects": [{ "operation": "unchanged", "before": null, "after": null }],
+      "stdout": "", "stderr": "", "maxObservedResources": { "rawBytes": 28, "canonicalBytes": 27, "nodes": 7, "containerDepth": 1 }
+    },
+    {
+      "id": "JCS-N01", "mode": "active", "inputPaths": ["jcs-n01.json"],
+      "inputSha256": ["a3326da8c3507c0a7d1b6be26601d6dcf8b98a4d32452aed4620ff17ced4fd23"],
+      "expectedInputs": { "defaultBranch": null, "manifestDigest": null, "setDigest": null, "headDigest": null },
+      "expectedOutputs": { "defaultBranch": null, "manifestDigest": null, "setDigest": null, "headDigest": null },
+      "canonicalUtf8Hex": "7b226d6178223a393030373139393235343734303939312c226d696e223a2d393030373139393235343734303939317d",
+      "digests": { "record": "63546eb60913dcb1cdd5118f7bf4885beed344af930c8a9d5f38fad243fd4819", "projection": null },
+      "normalizedJson": { "max": 9007199254740991, "min": -9007199254740991 },
+      "approvals": [], "writerIdentity": null, "expectedPrimaryError": null, "orderedDiagnostics": [],
+      "sideEffects": [{ "operation": "unchanged", "before": null, "after": null }],
+      "stdout": "", "stderr": "", "maxObservedResources": { "rawBytes": 49, "canonicalBytes": 48, "nodes": 5, "containerDepth": 1 }
+    },
+    {
+      "id": "JCS-E01", "mode": "active", "inputPaths": ["jcs-e01.json"],
+      "inputSha256": ["e4f79ab7c855b0a9fd62dce11f9fdc02a17394b57526b5abfd7901b6d744f547"],
+      "expectedInputs": { "defaultBranch": null, "manifestDigest": null, "setDigest": null, "headDigest": null },
+      "expectedOutputs": { "defaultBranch": null, "manifestDigest": null, "setDigest": null, "headDigest": null },
+      "canonicalUtf8Hex": "7b2265766964656e6365223a5b7b22636f6d6d6974223a22222c22646967657374223a22222c226b696e64223a2261222c226f627365727665644174223a22323032362d30382d30315430303a30303a30305a222c2275726c223a227a227d2c7b22636f6d6d6974223a22222c22646967657374223a22222c226b696e64223a22c3a9222c226f627365727665644174223a22323032362d30382d30315430303a30303a30305a222c2275726c223a2261227d5d7d",
+      "digests": { "record": "e5ac81d780e5c913b183400fb612c8d81ce280ca7121ed0ea694ebeb6492cf56", "projection": null },
+      "normalizedJson": { "evidence": [{ "kind": "é", "url": "a", "digest": "", "commit": "", "observedAt": "2026-08-01T00:00:00Z" }, { "kind": "a", "url": "z", "digest": "", "commit": "", "observedAt": "2026-08-01T00:00:00Z" }] },
+      "approvals": [], "writerIdentity": null, "expectedPrimaryError": null, "orderedDiagnostics": [],
+      "sideEffects": [{ "operation": "unchanged", "before": null, "after": null }],
+      "stdout": "", "stderr": "", "maxObservedResources": { "rawBytes": 182, "canonicalBytes": 181, "nodes": 25, "containerDepth": 3 }
+    }
+  ],
+  "runtimes": ["node-22-linux", "node-22-macos", "node-22-windows", "python-3.12-jcs-reference"]
+}
