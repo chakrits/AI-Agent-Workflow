@@ -82,16 +82,98 @@ test('normative JCS rejects invalid numbers, strings, and oversized preimages', 
   );
 });
 
-test('executes versioned JCS fixture vectors from exact checked-in bytes', async () => {
+test('executes the versioned increment-1 fixture contract and preserves source bytes', async () => {
   const directory = path.join(process.cwd(), 'test/fixtures/work-item-status/v1');
   const manifest = JSON.parse(await readFile(path.join(directory, 'manifest.json'), 'utf8'));
   assert.equal(manifest.fixtureManifestVersion, 'work-item-status-fixtures/v1');
+  assert.equal(manifest.cases.length, 31);
+  assert.equal(manifest.deferredCases.length, 4);
+  assert.ok(manifest.deferredCases.every(({ deferredTo }) => deferredTo === 'increment-2'));
   for (const fixture of manifest.cases) {
-    const raw = await readFile(path.join(directory, fixture.inputPaths[0]));
-    assert.equal(createHash('sha256').update(raw).digest('hex'), fixture.inputSha256[0], fixture.id);
-    const value = JSON.parse(raw);
-    assert.equal(canonicalizeJcs(value).toString('hex'), fixture.canonicalUtf8Hex, fixture.id);
-    assert.equal(digestJcs(value), fixture.digests.record, fixture.id);
+    for (const field of ['expectedInputs', 'expectedOutputs', 'digests', 'approvals', 'writerIdentity',
+      'expectedPrimaryError', 'orderedDiagnostics', 'sideEffects', 'stdout', 'stderr', 'maxObservedResources']) {
+      assert.ok(Object.hasOwn(fixture, field), `${fixture.id}:${field}`);
+    }
+    const files = fixture.inputPaths.map((input) => path.join(directory, input));
+    const raws = await Promise.all(files.map((file) => readFile(file)));
+    const hashes = raws.map((raw) => createHash('sha256').update(raw).digest('hex'));
+    assert.deepEqual(hashes, fixture.inputSha256, fixture.id);
+    let observedError = null;
+    let result;
+    try {
+      if (fixture.executor === 'jcs') {
+        const value = JSON.parse(raws[0]);
+        result = canonicalizeJcs(value);
+        if (fixture.canonicalUtf8Hex) assert.equal(result.toString('hex'), fixture.canonicalUtf8Hex, fixture.id);
+        if (fixture.digests.record) assert.equal(digestJcs(value), fixture.digests.record, fixture.id);
+      } else if (fixture.executor === 'parser') {
+        result = parseStatusBytes(raws[0], 'input[0000]');
+      } else if (fixture.executor === 'loader') {
+        result = await loadStatusFiles(files, {
+          mode: fixture.mode,
+          expectedHeadDigest: fixture.expectedInputs.headDigest ?? undefined
+        });
+      } else if (fixture.executor === 'memory') {
+        result = enforceMemoryBudget({ baselineRss: 0, currentRss: 0, allocatedBytes: fixture.maxObservedResources.residentBytes });
+      } else if (fixture.executor === 'isolated-loader') {
+        result = await loadStatusFilesIsolated(files, { mode: fixture.mode });
+      } else if (fixture.executor === 'rollback-bytes') {
+        const value = JSON.parse(raws[0]);
+        assert.equal(computeRecordDigest(value), fixture.digests.record);
+        result = raws[0];
+      } else if (fixture.executor === 'generated-invalid-utf8') {
+        result = parseStatusBytes(Buffer.from([0xff]), 'input[0000]');
+      } else if (fixture.executor === 'generated-raw-limit') {
+        result = parseStatusBytes(Buffer.alloc(STATUS_LIMITS.rawFileBytes + 1), 'input[0000]');
+      } else if (fixture.executor === 'generated-depth-limit') {
+        let value = { leaf: 1 };
+        for (let index = 1; index < 17; index += 1) value = { child: value };
+        result = parseStatusBytes(Buffer.from(JSON.stringify(value)), 'input[0000]');
+      } else if (fixture.executor === 'generated-node-limit') {
+        result = parseStatusBytes(Buffer.from(`values: [${Array.from({ length: 10_001 }, () => 'null').join(',')}]`), 'input[0000]');
+      } else if (fixture.executor === 'generated-precedence') {
+        const temporary = await mkdtemp(path.join(tmpdir(), 'status-loader-manifest-'));
+        const schemaFile = path.join(temporary, 'a-schema.json');
+        const utf8File = path.join(temporary, 'z-utf8.yaml');
+        await writeFile(schemaFile, raws[0]);
+        await writeFile(utf8File, Buffer.from([0xff]));
+        result = await loadStatusFiles([schemaFile, utf8File]);
+      } else if (fixture.executor === 'generated-aggregate') {
+        const temporary = await mkdtemp(path.join(tmpdir(), 'status-loader-manifest-'));
+        const aggregateFiles = [];
+        for (let index = 0; index < 43; index += 1) {
+          const file = path.join(temporary, `${index}.yaml`);
+          await writeFile(file, Buffer.alloc(98_000));
+          aggregateFiles.push(file);
+        }
+        result = await loadStatusFiles(aggregateFiles);
+      } else {
+        const active = JSON.parse(raws[0]);
+        const closure = raws[1] ? JSON.parse(raws[1]) : null;
+        let generated;
+        if (fixture.executor === 'generated-identity') {
+          closure.issue = { repository: 'acme/project', number: 1, url: 'https://github.com/acme/project/issues/1' };
+          closure.recordDigest = computeRecordDigest(closure);
+          generated = [active, closure];
+        } else if (fixture.executor === 'generated-cycle') {
+          closure.supersedesDigest = closure.recordDigest;
+          generated = [active, closure];
+        } else {
+          const extraRoot = { ...active, updatedAt: '2026-08-01T01:30:00Z' };
+          extraRoot.recordDigest = computeRecordDigest(extraRoot);
+          generated = fixture.executor === 'generated-unvisited' ? [active, closure, extraRoot] : [active, extraRoot];
+        }
+        result = await loadStatusFiles(await fixtureFiles(generated), { mode: fixture.mode });
+      }
+    } catch (error) {
+      observedError = error;
+    }
+    assert.equal(observedError?.code ?? null, fixture.expectedPrimaryError, fixture.id);
+    if (!observedError && fixture.orderedDiagnostics.includes('UNANCHORED_BUNDLE')) {
+      assert.equal(result.assurance, 'UNANCHORED_BUNDLE', fixture.id);
+    }
+    const afterHashes = await Promise.all(files.map(async (file) => createHash('sha256').update(await readFile(file)).digest('hex')));
+    assert.deepEqual(afterHashes, hashes, `${fixture.id}:side-effects`);
   }
 });
 
