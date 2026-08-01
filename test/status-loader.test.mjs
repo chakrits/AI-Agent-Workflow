@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { link, mkdtemp, readFile, writeFile } from 'node:fs/promises';
+import { copyFile, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
@@ -161,9 +161,14 @@ test('executes the versioned increment-1 fixture contract and preserves source b
         });
       } else if (fixture.executor === 'generated-memory-workload') {
         const workload = await overBudgetWorkload();
-        assert.equal(workload.aggregateBytes, fixture.maxObservedResources.rawBytes);
-        assert.equal(workload.reservedBytes, fixture.maxObservedResources.allocatedBytes);
-        result = await loadStatusFilesIsolated(workload.files, { mode: fixture.mode });
+        try {
+          assert.equal(workload.files.length, fixture.expectedInputs.fileCount);
+          assert.equal(workload.aggregateBytes, fixture.maxObservedResources.rawBytes);
+          assert.equal(workload.reservedBytes, fixture.maxObservedResources.allocatedBytes);
+          result = await loadStatusFilesIsolated(workload.files, { mode: fixture.mode });
+        } finally {
+          await workload.cleanup();
+        }
       } else {
         const active = JSON.parse(raws[0]);
         const closure = raws[1] ? JSON.parse(raws[1]) : null;
@@ -241,17 +246,27 @@ async function fixtureFiles(records) {
 
 async function overBudgetWorkload() {
   const directory = await mkdtemp(path.join(tmpdir(), 'status-loader-memory-'));
-  const source = path.join(directory, 'source.json');
-  const padding = `${JSON.stringify(record())}\n${' '.repeat(59_000)}`;
-  await writeFile(source, padding);
-  const files = [source];
-  for (let index = 1; index < 1_100; index += 1) {
-    const file = path.join(directory, `${index}.json`);
-    await link(source, file);
-    files.push(file);
+  try {
+    const source = path.join(directory, 'source.json');
+    const padding = `${JSON.stringify(record())}\n${' '.repeat(59_000)}`;
+    await writeFile(source, padding);
+    const files = [source];
+    for (let index = 1; index < 1_100; index += 1) {
+      const file = path.join(directory, `${index}.json`);
+      await copyFile(source, file);
+      files.push(file);
+    }
+    const aggregateBytes = Buffer.byteLength(padding) * files.length;
+    return {
+      files,
+      aggregateBytes,
+      reservedBytes: aggregateBytes * 3 + files.length * 1_024,
+      cleanup: () => rm(directory, { recursive: true, force: true })
+    };
+  } catch (error) {
+    await rm(directory, { recursive: true, force: true });
+    throw error;
   }
-  const aggregateBytes = Buffer.byteLength(padding) * files.length;
-  return { files, aggregateBytes, reservedBytes: aggregateBytes * 3 + files.length * 1_024 };
 }
 
 test('loads valid records in deterministic identity and evidence order', async () => {
@@ -522,9 +537,15 @@ test('isolated loader settles on a premature worker exit without inheriting unsa
 
 test('isolated loader rejects an actual benign over-budget file set before retention', async () => {
   const workload = await overBudgetWorkload();
-  assert.ok(workload.aggregateBytes <= STATUS_LIMITS.archiveAllAggregateBytes);
-  assert.ok(workload.reservedBytes > STATUS_LIMITS.residentBytes);
-  await assert.rejects(loadStatusFilesIsolated(workload.files, { mode: 'archive-all' }), rejectsCode('MEMORY_BUDGET_EXCEEDED'));
+  try {
+    assert.equal(workload.files.length, 1_100);
+    assert.equal(workload.aggregateBytes, 65_721_700);
+    assert.ok(workload.aggregateBytes <= STATUS_LIMITS.archiveAllAggregateBytes);
+    assert.ok(workload.reservedBytes > STATUS_LIMITS.residentBytes);
+    await assert.rejects(loadStatusFilesIsolated(workload.files, { mode: 'archive-all' }), rejectsCode('MEMORY_BUDGET_EXCEEDED'));
+  } finally {
+    await workload.cleanup();
+  }
 });
 
 test('rejects sensitive and ambiguous evidence URLs without echoing their value', async () => {

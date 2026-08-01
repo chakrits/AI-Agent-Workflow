@@ -27,11 +27,17 @@ test('runtime matrix is read-only, bounded, pinned, and dependency-safe', async 
   assert.ok(steps.every((step) => !JSON.stringify(step).includes('secrets.')));
 });
 
-test('JCS fixture checkout attributes require LF on every runner', () => {
-  for (const fixture of ['manifest.json', 'jcs-u01.json', 'jcs-negative-zero.json']) {
+test('text fixture checkout attributes require LF on every runner', () => {
+  for (const fixture of ['manifest.json', 'jcs-u01.json', 'jcs-negative-zero.json', 'parser-forbidden.yaml']) {
     const relative = `test/fixtures/work-item-status/v1/${fixture}`;
     const output = execFileSync('git', ['check-attr', 'text', 'eol', '--', relative], { encoding: 'utf8' });
     assert.match(output, /: text: set\r?\n/);
     assert.match(output, /: eol: lf\r?\n/);
   }
+});
+
+test('memory workload uses regular copies instead of hard links', async () => {
+  const source = await readFile('test/status-loader.test.mjs', 'utf8');
+  assert.match(source, /await copyFile\(source, file\)/);
+  assert.doesNotMatch(source, /await link\(source, file\)/);
 });
