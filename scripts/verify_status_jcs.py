@@ -5,11 +5,17 @@ import argparse
 import hashlib
 import json
 import math
-from pathlib import Path
+from pathlib import Path, PurePosixPath, PureWindowsPath
+import stat
+import sys
 
 
 MAX_SAFE_INTEGER = 9_007_199_254_740_991
 MAX_CANONICAL_BYTES = 65_536
+MAX_MANIFEST_BYTES = 65_536
+MAX_FIXTURE_BYTES = 98_304
+EXIT_OK = 0
+EXIT_DATA_ERROR = 65
 VECTOR_IDS = ("JCS-U01", "JCS-N01", "JCS-E01")
 NEGATIVE_VECTOR_IDS = (
     "JCS-X01-negative-zero", "JCS-X02-fraction", "JCS-X03-overflow", "JCS-X04-lone-surrogate"
@@ -18,6 +24,12 @@ NEGATIVE_VECTOR_IDS = (
 
 class DomainError(ValueError):
     pass
+
+
+class VerifierError(ValueError):
+    def __init__(self, code):
+        self.code = code
+        super().__init__(code)
 
 
 def _validate(value, depth=0, seen=None):
@@ -114,29 +126,103 @@ def _load_json(raw):
     return json.loads(raw.decode("utf-8"), object_pairs_hook=_unique_object, parse_int=_parse_integer)
 
 
+def _bounded_read(path, limit, size_code, invalid_code):
+    try:
+        metadata = path.lstat()
+        if stat.S_ISLNK(metadata.st_mode):
+            code = "FIXTURE_SYMLINK" if invalid_code == "FIXTURE_PATH_INVALID" else invalid_code
+            raise VerifierError(code)
+        if not stat.S_ISREG(metadata.st_mode):
+            raise VerifierError(invalid_code)
+        if metadata.st_size > limit:
+            raise VerifierError(size_code)
+        with path.open("rb") as source:
+            raw = source.read(limit + 1)
+    except VerifierError:
+        raise
+    except OSError as error:
+        raise VerifierError(invalid_code) from error
+    if len(raw) > limit:
+        raise VerifierError(size_code)
+    return raw
+
+
+def _fixture_path(fixture_root, relative):
+    if not isinstance(relative, str) or not relative:
+        raise VerifierError("FIXTURE_PATH_INVALID")
+    posix = PurePosixPath(relative.replace("\\", "/"))
+    windows = PureWindowsPath(relative)
+    if posix.is_absolute() or windows.is_absolute() or ".." in posix.parts or ".." in windows.parts:
+        raise VerifierError("FIXTURE_PATH_INVALID")
+    candidate = fixture_root.joinpath(*posix.parts)
+    try:
+        current = fixture_root
+        for part in posix.parts:
+            current = current / part
+            if current.is_symlink():
+                raise VerifierError("FIXTURE_SYMLINK")
+        candidate.resolve(strict=True).relative_to(fixture_root.resolve(strict=True))
+    except VerifierError:
+        raise
+    except (OSError, ValueError) as error:
+        raise VerifierError("FIXTURE_PATH_INVALID") from error
+    return candidate
+
+
+def _manifest_cases(fixture_root):
+    raw = _bounded_read(
+        fixture_root / "manifest.json", MAX_MANIFEST_BYTES, "MANIFEST_SIZE_LIMIT", "MANIFEST_INVALID"
+    )
+    try:
+        manifest = json.loads(raw.decode("utf-8"), object_pairs_hook=_unique_object)
+        return {case["id"]: case for case in manifest["cases"]}
+    except (DomainError, UnicodeError, json.JSONDecodeError, AttributeError, IndexError, KeyError, TypeError) as error:
+        raise VerifierError("MANIFEST_INVALID") from error
+
+
+def _verified_fixture(fixture_root, case):
+    try:
+        relative = case["inputPaths"][0]
+        expected = case["inputSha256"][0]
+    except (KeyError, IndexError, TypeError) as error:
+        raise VerifierError("MANIFEST_INVALID") from error
+    if not isinstance(expected, str) or len(expected) != 64:
+        raise VerifierError("MANIFEST_INVALID")
+    path = _fixture_path(fixture_root, relative)
+    raw = _bounded_read(path, MAX_FIXTURE_BYTES, "FIXTURE_SIZE_LIMIT", "FIXTURE_PATH_INVALID")
+    if hashlib.sha256(raw).hexdigest() != expected:
+        raise VerifierError("INPUT_DIGEST_MISMATCH")
+    return raw
+
+
 def verify_manifest(root):
     fixture_dir = root / "test" / "fixtures" / "work-item-status" / "v1"
-    manifest = json.loads((fixture_dir / "manifest.json").read_text(encoding="utf-8"))
-    cases = {case["id"]: case for case in manifest["cases"]}
+    cases = _manifest_cases(fixture_dir)
     verified = []
     for vector_id in VECTOR_IDS:
-        case = cases[vector_id]
-        raw = (fixture_dir / case["inputPaths"][0]).read_bytes()
-        value = _load_json(raw)
-        canonical = canonicalize(value)
+        try:
+            case = cases[vector_id]
+            canonical = canonicalize(_load_json(_verified_fixture(fixture_dir, case)))
+        except KeyError as error:
+            raise VerifierError("MANIFEST_INVALID") from error
+        except (DomainError, UnicodeError, json.JSONDecodeError) as error:
+            raise VerifierError("VECTOR_INVALID") from error
         digest = hashlib.sha256(canonical).hexdigest()
         if canonical.hex() != case["canonicalUtf8Hex"] or digest != case["digests"]["record"]:
-            raise AssertionError(f"{vector_id}: canonical bytes or digest mismatch")
+            raise VerifierError("VECTOR_MISMATCH")
         verified.append(vector_id)
     for vector_id in NEGATIVE_VECTOR_IDS:
-        case = cases[vector_id]
-        raw = (fixture_dir / case["inputPaths"][0]).read_bytes()
         try:
-            canonicalize(_load_json(raw))
+            case = cases[vector_id]
+            canonicalize(_load_json(_verified_fixture(fixture_dir, case)))
         except DomainError:
             verified.append(vector_id)
             continue
-        raise AssertionError(f"{vector_id}: expected restricted-domain rejection")
+        except KeyError as error:
+            raise VerifierError("MANIFEST_INVALID") from error
+        except (UnicodeError, json.JSONDecodeError) as error:
+            raise VerifierError("VECTOR_INVALID") from error
+        raise VerifierError("EXPECTED_REJECTION_MISSING")
     return verified
 
 
@@ -144,9 +230,14 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--root", type=Path, default=Path(__file__).resolve().parents[1])
     args = parser.parse_args()
-    verified = verify_manifest(args.root.resolve())
+    try:
+        verified = verify_manifest(args.root.resolve())
+    except VerifierError as error:
+        print(error.code, file=sys.stderr)
+        return EXIT_DATA_ERROR
     print(f"Verified {len(verified)} JCS vectors: {', '.join(verified)}")
+    return EXIT_OK
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())
