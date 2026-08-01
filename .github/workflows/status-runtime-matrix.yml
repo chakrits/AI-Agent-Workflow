@@ -1,0 +1,46 @@
+name: Status runtime matrix
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  node-status:
+    name: Node 22 status tests (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Run focused status tests
+        run: node --test test/status-loader.test.mjs
+      - name: Run full test suite
+        run: npm test
+
+  python-jcs-reference:
+    name: Python 3.12 JCS reference (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 5
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Test independent verifier
+        run: python -m unittest discover -s test -p "test_status_jcs_reference.py"
+      - name: Verify fixed JCS vectors
+        run: python scripts/verify_status_jcs.py
