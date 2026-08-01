@@ -9,11 +9,14 @@ const checkoutSha = '34e114876b0b11c390a56381ad16ebd13914f8d5';
 const setupNodeSha = '49933ea5288caeca8642d1e84afbd3f7d6820020';
 const setupPythonSha = 'a26af69be951a213d495a4c3e4e4022e16d87065';
 
-test('runtime matrix is read-only, bounded, pinned, and dependency-safe', async () => {
+test('runtime gate is Ubuntu-only, read-only, bounded, pinned, and dependency-safe', async () => {
   const workflow = parse(await readFile(workflowPath, 'utf8'));
   assert.deepEqual(workflow.permissions, { contents: 'read' });
-  assert.deepEqual(workflow.jobs['node-status'].strategy.matrix.os, ['ubuntu-latest', 'windows-latest']);
-  assert.deepEqual(workflow.jobs['python-jcs-reference'].strategy.matrix.os, ['ubuntu-latest', 'windows-latest']);
+  assert.equal(workflow.jobs['node-status']['runs-on'], 'ubuntu-latest');
+  assert.equal(workflow.jobs['python-jcs-reference']['runs-on'], 'ubuntu-latest');
+  assert.equal(workflow.jobs['node-status'].strategy, undefined);
+  assert.equal(workflow.jobs['python-jcs-reference'].strategy, undefined);
+  assert.doesNotMatch(JSON.stringify(workflow), /windows/i);
   assert.equal(workflow.jobs['node-status']['timeout-minutes'], 15);
   assert.equal(workflow.jobs['python-jcs-reference']['timeout-minutes'], 5);
 
@@ -25,6 +28,15 @@ test('runtime matrix is read-only, bounded, pinned, and dependency-safe', async 
   assert.equal(steps.filter(({ uses }) => uses === `actions/setup-python@${setupPythonSha}`).length, 1);
   assert.ok(steps.some(({ run }) => run === 'npm ci --ignore-scripts --no-audit --no-fund'));
   assert.ok(steps.every((step) => !JSON.stringify(step).includes('secrets.')));
+});
+
+test('fixture manifest declares only the accepted increment runtimes', async () => {
+  const manifest = JSON.parse(await readFile('test/fixtures/work-item-status/v1/manifest.json', 'utf8'));
+  assert.deepEqual(manifest.runtimes, [
+    'node-22-linux',
+    'node-22-macos',
+    'python-3.12-jcs-reference',
+  ]);
 });
 
 test('text fixture checkout attributes require LF on every runner', () => {

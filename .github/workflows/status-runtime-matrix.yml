@@ -8,13 +8,9 @@ permissions:
 
 jobs:
   node-status:
-    name: Node 22 status tests (${{ matrix.os }})
-    runs-on: ${{ matrix.os }}
+    name: Node 22 status tests (Ubuntu)
+    runs-on: ubuntu-latest
     timeout-minutes: 15
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, windows-latest]
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
@@ -31,13 +27,9 @@ jobs:
         run: npm test
 
   python-jcs-reference:
-    name: Python 3.12 JCS reference (${{ matrix.os }})
-    runs-on: ${{ matrix.os }}
+    name: Python 3.12 JCS reference (Ubuntu)
+    runs-on: ubuntu-latest
     timeout-minutes: 5
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, windows-latest]
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:

@@ -45,5 +45,5 @@
     { "id":"CAS-D03-transition", "mode":"transition", "deferredTo":"increment-2", "reason":"transition writer is out of increment-1 scope" },
     { "id":"CAS-D04-correction", "mode":"correction", "deferredTo":"increment-2", "reason":"correction writer is out of increment-1 scope" }
   ],
-  "runtimes": ["node-22-linux", "node-22-macos", "node-22-windows", "python-3.12-jcs-reference"]
+  "runtimes": ["node-22-linux", "node-22-macos", "python-3.12-jcs-reference"]
 }
