@@ -7,9 +7,9 @@
 | Work Items | #132 Progressive Context; #133 Worktree-Scoped Status |
 | Change Type | Framework / Meta Change |
 | Risk Level | Medium |
-| Current Owner | Orchestrator / SA / Documentation Agent |
+| Current Owner | Human Architecture Approver for Slice B; Slice A ownership unchanged |
 | Target Branch | 132-feature-progressive-context-loading-strategy-worktree-scoped-status-architecture |
-| Authorization | Human approved design/plan; CP-1 baseline and measurement evidence still gates status:spec-ready and Developer dispatch |
+| Authorization | Slice A/#132 historical authorization is unchanged. Slice B/#133 implementation is paused: ADR-0018 remains Proposed; Security PASS `5e904c6` permits fresh Human architecture review only; no current `status:spec-ready` or Developer dispatch. |
 
 ## 2. Dependency graph
 
@@ -20,7 +20,7 @@
 
     Housekeeping inventory ─> disposable worktree harness ─> Slice B permutations
 
-Slices may be implemented separately after the shared comparison contract is approved. Authority switches are sequential Human decisions.
+Slices may be implemented separately after their current contracts are approved. Slice B cannot resume until fresh Human approval of amended ADR-0018/CAS and the open governance decisions. Authority switches remain sequential Human decisions.
 
 ## 3. Tasks
 
@@ -33,18 +33,19 @@ Slices may be implemented separately after the shared comparison contract is app
 | A-03 | Run 36 scenarios and 20 historical replays | Reviewer / QA | 100% critical parity |
 | A-04 | Run bounded live shadow and prepare Go/No-Go A | QA / Human | 10 items/14 days plus metrics |
 | H-01 | Capture and safely disposition worktree inventory | Orchestrator / Human | pre/post dry-run; dirty evidence preserved |
-| B-01 | Add schema, loader, duplicate, and stale RED tests | Developer | focused RED at intended seam |
-| B-02 | Implement schema and shared loader | Developer | focused GREEN |
-| B-03 | Migrate consumers vertically | Developer | checkpoint after every two consumers |
-| B-04 | Add controlled renderer and freshness validation | Developer | stale projection rejected |
-| B-05 | Build disposable real-Git test harness | Developer | cleanup after pass/failure |
+| B-00 | Obtain fresh Human approval for amended ADR-0018, manifest/default-ref CAS, correction governance, controlled writer, limits/runtime/retention, migration and rollback | Human Architecture Approver | approval record; ADR-0018 Accepted or work remains blocked |
+| B-01 | Replace superseded schema/loader through failing manifest/parser/CAS tests | Developer — paused pending B-00 | focused RED at intended seams; no authoritative fallback to superseded loader |
+| B-02 | Implement strict schema/shared loader, digest-covered status manifest, and controlled integration CAS | Developer — paused pending B-00 | focused GREEN plus local-vs-authoritative acceptance proof |
+| B-03 | Migrate consumers vertically | Developer — paused pending B-00 | checkpoint after every two consumers |
+| B-04 | Add controlled renderer and freshness validation | Developer — paused pending B-00 | stale projection rejected |
+| B-05 | Build disposable real-Git CAS/TOCTOU harness | Developer — paused pending B-00 | A→B/B→A winner-stale-retry permutations; cleanup after pass/failure |
 | B-06 | Run Slice B's 36 compatibility cases plus all 10 merge/rebuild permutations | Reviewer / QA | critical parity plus exact union, zero loss/conflict |
 | B-07 | Run 20 historical replays and bounded live shadow | QA | thresholds met; day-30 incomplete sample is BLOCKED |
 | B-08 | Prepare Go/No-Go B and rollback rehearsal | QA / Human | legacy restoration without evidence loss |
 
 ## 4. Checkpoints
 
-- CP-1 after P-01/P-02: approve measurable contracts before status:spec-ready.
+- CP-1 after P-01/P-02 and Slice B B-00: approve measurable contracts and amended architecture before Slice B `status:spec-ready`.
 - CP-2 after A-02 or B-02: focused tests plus full suite and independent review.
 - CP-3 every two consumer migrations: focused matrix and project-state validators.
 - CP-4 before live shadow: deterministic/historical gates and rollback rehearsal pass.
@@ -52,7 +53,7 @@ Slices may be implemented separately after the shared comparison contract is app
 
 ## 5. Test strategy
 
-Executable behavior follows TDD. Each slice runs its own 36-case normalized compatibility corpus. Required evidence also includes 20 historical replays, Slice B's 10 real-Git worktree permutations, at least 36 paired token observations per observable supported host for Slice A, and exact-commit full regression. Operational fallback rates exclude deliberate adversarial fixtures and are reported per host and overall. Security review is added only if implementation introduces trust, permission, secret, privacy, or security-control impact.
+Executable behavior follows TDD after authorization. Each slice runs its own 36-case normalized compatibility corpus. Required evidence also includes 20 historical replays, Slice B's digest-covered manifest/default-ref CAS and A→B/B→A race/TOCTOU permutations, at least 36 paired token observations per observable supported host for Slice A, and exact-commit full regression. Security design review passed only for Human review; Security implementation and controlled-writer/credential review are mandatory before Slice B activation.
 
 ## 6. Minimum verification
 
@@ -90,4 +91,4 @@ Focused commands are finalized after file-level design. Record before/after coun
 
 ## 9. Handoff
 
-Next Action: Dispatch SA Agent for CP-1. Human Maintainer approved the independently-reviewed specification. SA/QA must now freeze normalized fixtures, host-observation protocol/initial supported-host matrix, final Slice-B schema boundaries, projection trigger, and consumer inventory. Add status:spec-ready and dispatch Developer only after CP-1 evidence is reviewed.
+Next Action: Fresh Human architecture review of amended ADR-0018 and the SDD's manifest/default-ref CAS, correction governance, controlled-writer credentials, limits/runtime/retention, migration, and rollback. Security PASS `5e904c6` is supporting evidence only. Slice B remains `phase:blocked`; do not add `status:spec-ready` or dispatch Developer unless Human explicitly accepts the amended architecture. Slice A history/authorization is unchanged.
