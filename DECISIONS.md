@@ -2,6 +2,16 @@
 
 ## Decision Log
 
+### ADR-0018: Retain the Canonical Predecessor Preimage in Every v1 Archive
+
+- Date: 2026-08-01
+- Status: Proposed — Human architecture approval required before Issue #133 implementation resumes
+- Context: The approved `work-item-status/v1` draft deletes the active predecessor when closing a work item, permits closure state, phase, owner, evidence, and `updatedAt` to differ, and retains only `supersedesDigest`. An archived-only loader therefore has no genuine predecessor preimage. Reconstructing one from closure fields can validate a record that never existed and is not cryptographic lineage proof. The exact non-lifecycle sentinel also drifted between prose (`not_applicable`) and schema/implementation (`phase:not_applicable`).
+- Decision: Require every inactive `work-item-status/v1` record to embed the complete canonical immediate predecessor as `supersedesPreimage`; active records carry `supersedesPreimage: null`. Recompute the predecessor under the RFC 8785/SHA-256 contract and require equality with both its stored `recordDigest` and the successor's `supersedesDigest`. Archived-only validation recursively verifies the self-contained linear chain with identity, chronology, 64-level depth, and 1 MiB canonical archive limits. The exact non-lifecycle sentinel is `phase:not_applicable`; bare `not_applicable` is invalid. Archive creation must copy the accepted predecessor before deletion and atomically commit immutable archive creation plus active removal.
+- Alternatives Considered: Persist only an API-validated transition log (rejected because a digest assertion cannot prove absent predecessor bytes; including the bytes collapses to the selected model, while signatures/transparency add an unapproved trust system); store predecessor preimages in a separate content-addressed object store (deferred because it is sound only with a complete object bundle and adds a second namespace, lookup/GC/orphan rules, migration, and rollback dependencies for negligible expected deduplication); reconstruct the predecessor from closure fields (rejected because closure fields are allowed to change); rely on Git history (rejected as the archive must verify offline and independently of repository history).
+- Consequences: The pre-activation v1 archive shape changes and existing implementation commits/tests are evidence, not authority. Developer must add the field/schema semantics, replace reconstruction logic with preimage verification, add canonical vectors and adversarial/migration/rollback tests, and rerun all existing Slice-B gates. Archives grow linearly and nested corrections can grow cumulatively, so v1 fails closed above the frozen limits and requires Human disposition rather than pruning. Shadow authority and ADR-0017's single-authority migration remain unchanged. Human must approve this architecture change before implementation or Go authorization.
+- Owner: SA Agent / Human Maintainer
+
 ### ADR-0017: Use One Authoritative Path During Progressive Context and Status Migration
 
 - Date: 2026-07-31

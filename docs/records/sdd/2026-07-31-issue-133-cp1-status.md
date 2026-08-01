@@ -5,7 +5,7 @@
 - Work Item ID: GitHub Issue #133
 - Title: Worktree-scoped status — CP-1 schema, projection, and consumer contract
 - Owner: SA Agent
-- Status: CP-1 architecture evidence; Human review required before specification readiness
+- Status: CP-1 architecture rework candidate; Human approval required before implementation resumes
 - Change type / risk: Framework / Meta; Medium
 - Contract version: `status-compatibility/v1`; shard schema `work-item-status/v1`
 - Evidence commit: `786df83` on `132-feature-progressive-context-loading-strategy-worktree-scoped-status-architecture`
@@ -46,7 +46,7 @@ Paths are frozen architecture boundaries, not currently activated repository fac
 
 ## Shard schema `work-item-status/v1`
 
-Canonical serialization is UTF-8 YAML parsed into a canonical JSON model; the set digest uses lexicographically sorted object keys, deterministic arrays below, no insignificant whitespace, then SHA-256.
+Canonical serialization is UTF-8 YAML parsed into the JSON data model and serialized under RFC 8785 as defined below; record and set digests use SHA-256.
 
 | Field | Type / constraint |
 |---|---|
@@ -54,25 +54,106 @@ Canonical serialization is UTF-8 YAML parsed into a canonical JSON model; the se
 | `issue.repository`, `issue.number` | Required canonical repository slug and positive integer; compound identity is globally unique in the set |
 | `issue.url` | Required canonical HTTPS URL; must agree with identity |
 | `changeType`, `risk` | Required canonical enums |
-| `phase` | Exactly one canonical current `phase:` value when lifecycle contract applies; explicit `not_applicable` plus governing contract otherwise |
+| `phase` | Exactly one canonical current `phase:` value when lifecycle contract applies; exact sentinel `phase:not_applicable` plus governing contract otherwise. The bare string `not_applicable` is invalid. |
 | `taskState`, `governingContract`, `contractVersion` | Required; state must be legal for the named contract/version |
 | `owner.kind`, `owner.id` | Required; kind `agent` or `human`, stable identifier |
-| `evidence[]` | Ordered by `(kind, url, digest)`; each item has kind, immutable URL/path, optional commit/digest, observed timestamp |
+| `evidence[]` | Ordered by `(kind, url, digest-or-empty, commit-or-empty, observedAt)`; each item has kind, immutable URL/path, optional commit/digest, observed timestamp |
 | `active` | Boolean; exactly one active record per issue identity or zero after archival |
 | `createdAt`, `updatedAt` | RFC 3339 UTC; `updatedAt >= createdAt` and monotonic across accepted revisions |
-| `archivedAt`, `archiveReason`, `supersedesDigest` | Required only when inactive/archive; active records use `null` |
+| `archivedAt`, `archiveReason`, `supersedesDigest`, `supersedesPreimage` | Required only when inactive/archive; active records use `null`. `supersedesPreimage` is the complete canonical predecessor record, including its `recordDigest`, exactly as accepted before the transition. |
 | `recordDigest` | SHA-256 of canonical record excluding this field |
 
 Unknown keys are rejected in v1. Empty owner/evidence identifiers, malformed timestamps/URLs, illegal phase/task-state combinations, digest mismatch, unsupported schema, and active records carrying archive fields are malformed. A missing expected shard is an explicit error, not an empty set inference.
+
+### Canonical digest preimage
+
+For every record, including a nested predecessor snapshot, the digest preimage is the RFC 8785 JSON Canonicalization Scheme serialization of the parsed JSON data model after:
+
+1. removing only that record object's own `recordDigest` member;
+2. sorting `evidence` by the total tuple `(kind, url, digest-or-empty, commit-or-empty, observedAt)`; and
+3. preserving every other member and array value exactly, including archive metadata and `supersedesPreimage` when present.
+
+The digest is lowercase hexadecimal SHA-256 over the UTF-8 bytes of that serialization. YAML spelling, key order, comments, anchors, and whitespace never enter the preimage. Numbers outside the schema are rejected before canonicalization. A predecessor snapshot is self-contained: its stored `recordDigest` must equal the digest recomputed from its own canonical preimage. Implementations must use an RFC 8785 implementation or prove byte-for-byte equivalence with the frozen vectors; the earlier informal `canonical JSON` wording is superseded by this definition.
+
+`supersedesPreimage` is not flattened or pruned. For an archive-to-archive correction, it contains the immediately preceding archive record with that record's own `supersedesPreimage` retained, because those bytes are part of the predecessor digest. V1 therefore permits a linear nested chain. Implementations enforce the archive-size limit below and route an exceeded limit to Human review; they never truncate the chain silently.
+
+### Exact active and archive shapes
+
+- Active record: `active: true`; `archivedAt`, `archiveReason`, `supersedesDigest`, and `supersedesPreimage` are all `null`.
+- Archive record: `active: false`; `archivedAt` is a valid UTC timestamp; `archiveReason` is non-empty; `supersedesDigest` is a SHA-256 digest; and `supersedesPreimage` is a complete valid `work-item-status/v1` record whose recomputed `recordDigest` equals `supersedesDigest`.
+- The archive may set closure `taskState`, `phase`, `owner`, `evidence`, and `updatedAt` independently of the predecessor, subject to the same contract legality and timestamp rules. This is why the predecessor snapshot is retained.
+- `createdAt` and issue identity are invariant across the lineage. `updatedAt` is greater than or equal to the predecessor's `updatedAt`; `archivedAt` is greater than or equal to the archive's `updatedAt`. A successor's identity must equal its predecessor's identity.
+- Every non-lifecycle governing contract uses only `phase:not_applicable`; this literal applies equally to active, archived, fixture, projection, and migration output.
 
 ## Loader, archive, ordering, and conflict rules
 
 - Load all active files and requested archives through one library/API. Normalize issue identity; reject duplicate active identity even if filenames differ.
 - Active ordering is `(issue.repository ASC, issue.number ASC)`. Archive ordering is `(archivedAt ASC, recordDigest ASC)` within identity. Evidence ordering is defined by schema above.
-- An archive transition is one atomic logical operation: validate current active digest, write immutable archive with closure evidence, remove active identity, derive the new set digest. Never overwrite archive history.
+- An archive transition is one atomic logical operation: validate current active digest and set digest, retain the exact accepted active record as `supersedesPreimage`, create and validate the closure archive, durably write the immutable archive, remove the active identity, then derive the new set digest. Never overwrite archive history.
 - Optimistic concurrency requires expected prior `recordDigest` and expected authoritative set digest. Mismatch is stale and rejected; merge/retry starts from the latest set.
 - Unsupported versions fail closed. Migration is explicit version-to-version transformation with retained source digest; readers do not silently coerce.
 - A malformed, stale, duplicate, unsupported, or missing record produces no accepted set and no projection.
+
+### Archive transition algorithm
+
+Given identity `I`, expected active digest `D`, expected authoritative set digest `S`, and requested closure values:
+
+1. Load and validate the complete authoritative set. Reject unless its set digest is `S` and it contains exactly one active record for `I` with recomputed and stored digest `D`.
+2. Copy the accepted active record as the parsed `supersedesPreimage`; do not synthesize it from requested closure values.
+3. Build the inactive closure record. Preserve issue identity and `createdAt`; set `supersedesDigest = D` and `supersedesPreimage` to the copied predecessor; apply the requested legal closure state/phase/owner/evidence/timestamps.
+4. Recompute and set the archive `recordDigest`, then run schema, semantic, predecessor, chronology, linearity, and size validation over the candidate archive and complete candidate set.
+5. Commit archive creation and active deletion as one repository change. If either path is absent, duplicated, or partially changed, reject the candidate set and emit no projection.
+6. Recompute the authoritative set digest and render only after the committed set validates. Retrying uses the latest active and set digests; it never reuses a stale closure candidate.
+
+The loader does not prove who authored a transition. It proves that the archive is internally bound to a retained predecessor preimage and that the supplied set is structurally and cryptographically connected. Git commit review remains the repository's authorship/change-control boundary.
+
+### Archived-only offline verification
+
+For each archive identity, without consulting an active file, Git history, network service, transition API log, or projection:
+
+1. Validate the outer archive record and recompute its `recordDigest`.
+2. Require `supersedesPreimage`; validate it recursively as `work-item-status/v1`.
+3. Recompute the immediate predecessor digest and require equality with both its stored `recordDigest` and the outer `supersedesDigest`.
+4. Require invariant issue identity and `createdAt`, legal state/phase combinations (including exact `phase:not_applicable`), and monotonic timestamps.
+5. Follow nested `supersedesPreimage` values until an active root is reached. Reject a cycle, repeated digest, branch, missing preimage, depth over 64, or an outer archive whose RFC 8785 UTF-8 serialization exceeds 1,048,576 bytes.
+6. When multiple top-level archives for one identity are supplied, require one linear chain: exactly one root, at most one successor per digest, and no disconnected archive. Duplicate digests or competing successors reject the entire set.
+
+No fallback may reconstruct a predecessor by changing `active`, clearing archive fields, or copying closure state. A hash without its preimage is not lineage proof.
+
+### Failure modes and limits
+
+`MISSING_PREIMAGE`, `PREIMAGE_DIGEST_MISMATCH`, `IDENTITY_MISMATCH`, `CREATED_AT_MISMATCH`, `NON_MONOTONIC_TIME`, `DISCONNECTED_LINEAGE`, `BRANCHED_LINEAGE`, `CYCLIC_LINEAGE`, `ARCHIVE_DEPTH_EXCEEDED`, and `ARCHIVE_SIZE_EXCEEDED` are fail-closed validation classes. Any one rejects the complete candidate set, suppresses projection, and leaves the last accepted authoritative set unchanged. Depth and size failures require Human disposition: retain v1 history or approve a future compacting schema; v1 has no pruning operation.
+
+## Alternatives evaluated
+
+| Option | Single authority / context | Archive size | Tamper and offline proof | Projection / rollback | Migration / testability | Decision |
+|---|---|---|---|---|---|---|
+| A. Embedded canonical predecessor snapshot | One archive store and one loader; no runtime context dependency | Duplicates one predecessor and nests corrections; bounded by 64 levels / 1 MiB | Self-contained digest-preimage binding; works offline | Archive alone restores the exact predecessor; projection remains derived | One schema addition and deterministic vectors; straightforward adversarial tests | **Selected: minimum sound model** |
+| B. Transition API validates active before deletion and persists transition evidence | API becomes a required write boundary; an independent evidence authority is needed | Small only if evidence omits the preimage | A digest/log assertion alone cannot prove a deleted preimage. Including it reduces to A; trusted signatures/transparency add unapproved infrastructure | Rollback still needs predecessor bytes from elsewhere | Requires API durability, issuer trust, replay, key rotation, and outage tests | Rejected for v1 |
+| C. Content-addressed predecessor object store keyed by digest | Adds a second authoritative namespace and lookup dependency | Deduplicates repeated preimages, but this workload rarely repeats them | Sound offline only when the object bundle is complete | Rollback is possible, but missing-object and GC rules become critical | Adds object migration, reachability, GC, bundling, and orphan tests | Deferred; complexity is not justified for v1 |
+
+Encryption, signatures, Merkle trees, and Git-history-only proof do not recover absent predecessor bytes and are not simpler alternatives. Git history may corroborate an archive but is not required for archived-only validation.
+
+## Backward compatibility and migration
+
+- The shard identifier remains `work-item-status/v1`, but the pre-activation archive draft is tightened incompatibly: every inactive v1 record now requires `supersedesPreimage`; active records require it as `null`. This frozen-architecture change requires Human approval before Developer work resumes.
+- Existing active v1 fixtures migrate mechanically by adding `supersedesPreimage: null` and recomputing `recordDigest` and affected set/projection digests.
+- Existing inactive fixtures or artifacts may migrate only when the exact predecessor record is available from the paired fixture or immutable repository evidence. Migration copies that record, verifies its old digest, adds `supersedesPreimage`, and recomputes archive/set/projection digests.
+- An archived record whose predecessor bytes cannot be recovered is not grandfathered, guessed, or reconstructed from closure fields. Migration stops with `MISSING_PREIMAGE`; Human must restore evidence or exclude the artifact through a separately approved migration decision.
+- During shadow, legacy `PROJECT_STATUS.md` remains authority and incompatible candidate shards are evidence only. Rollback before authority switch deletes/disables candidate v1 outputs and returns to the unchanged legacy path. After switch, rollback restores the exact retained active predecessor from `supersedesPreimage`, validates its digest and the resulting set, and regenerates the projection; archive evidence remains immutable.
+
+## Acceptance tests for the reworked v1 boundary
+
+1. An archived-only closure whose closure state, phase, owner, evidence, and `updatedAt` differ from the active predecessor validates when the exact predecessor preimage is retained.
+2. Changing any predecessor field without updating its digest fails; changing both predecessor and digest still fails against outer `supersedesDigest`.
+3. A fabricated `supersedesDigest`, missing/null/partial preimage, reconstructed-predecessor shortcut, disconnected chain, branch, cycle, duplicate digest, identity change, `createdAt` change, or non-monotonic timestamp fails closed with no projection.
+4. Canonical vectors prove RFC 8785 bytes, total evidence ordering, nested archive hashing, YAML key/whitespace independence, and lowercase SHA-256 output.
+5. Active, archive, fixture, migration, and projection cases accept `phase:not_applicable` for non-lifecycle contracts and reject bare `not_applicable` and every other phase.
+6. Transition tests prove stale active/set digests and partial archive/delete changes preserve the prior accepted set; a valid transition retains the exact predecessor and produces deterministic record/set/projection digests.
+7. Archived-only verification passes with no active path, Git history, network, API log, or projection available.
+8. Migration tests cover active fixtures, recoverable archives, and unrecoverable archives; rollback restores byte-equivalent canonical predecessor data while retaining immutable closure evidence.
+9. Depth 64 and canonical size exactly 1 MiB are accepted; depth 65 and size above 1 MiB fail with the named classes.
+10. The existing 36-case Slice-B corpus, 20 historical replays, 10 real-Git permutations, full suite, contract validators, projection freshness checks, and independent Reviewer/QA gates remain required.
 
 ## Projection and freshness contract
 
@@ -223,13 +304,16 @@ Before authority switch, disable shadow and keep root legacy authority. After sw
 
 ## Decisions, assumptions, and unresolved evidence
 
-- Decision: freeze `work-item-status/v1`, active/archive paths, deterministic ordering, optimistic concurrency, and single controlled renderer boundary.
+- Proposed decision (ADR-0018): retain the complete canonical immediate predecessor in `supersedesPreimage`; reject transition-log-only, reconstructed-predecessor, Git-history-only, and separate object-store models for v1.
+- Decision unchanged from ADR-0017: retain active/archive paths, deterministic ordering, optimistic concurrency, one authoritative path per phase, and a single controlled renderer boundary.
 - Decision: freeze the 36 `STS-*` fixtures independently from Slice A.
-- Assumption: YAML is a storage encoding and canonical JSON is the digest model; implementation may select a conforming parser but cannot change normalization silently.
+- Assumption: YAML is only a storage encoding; RFC 8785 JSON is the digest model. Implementation may select a conforming parser/canonicalizer but cannot change normalization silently.
+- Unresolved Human decision: approve or reject ADR-0018's incompatible pre-activation v1 archive shape and frozen 64-level / 1,048,576-byte limits. Until approval, existing implementation is paused and neither the old reconstruction model nor this proposal is authorized for Go.
+- Unresolved Human decision: disposition for any migration input whose genuine predecessor preimage cannot be recovered; the default is fail closed, not reconstruction or waiver.
 - Unresolved Human decision: exact default-branch trigger/platform credentials and owner; this design permits no feature-branch projection writer.
 - Resolved rework evidence: CP1-133-01 inventory reconciled to 61 unique files / 62 categorized surfaces at `786df83`; fresh independent Reviewer confirmation remains required before CP-1 acceptance.
 - Unresolved evidence: executable migration implementation, 36-case run, 20 preselected historical replays, 10 real-Git cases, live shadow, rollback rehearsal, and Human Go/No-Go.
-- Human gate: Human Maintainer owns trigger/authority switch/rollback decisions. This record does not authorize `status:spec-ready`.
+- Human gate: Human Maintainer owns ADR-0018 acceptance, trigger/authority switch/rollback decisions, and unrecoverable migration disposition. This record does not authorize implementation, `status:spec-ready`, or Go.
 
 ## Related artifacts
 
