@@ -7,9 +7,9 @@
 | Work Items | #132 Progressive Context; #133 Worktree-Scoped Status |
 | Change Type | Framework / Meta Change |
 | Risk Level | Medium |
-| Current Owner | Developer Agent for Slice B bounded foundation; Slice A ownership unchanged |
+| Current Owner | Developer Agent for Issue #133 Ubuntu-only CI rerun, then Fresh QA Agent; Slice A ownership unchanged |
 | Target Branch | 132-feature-progressive-context-loading-strategy-worktree-scoped-status-architecture |
-| Authorization | Slice A/#132 authorization is unchanged. Human accepted ADR-0018 after reviews `ddcf373`/`16c3ecf`; Slice B bounded foundation B-01/B-02/B-05 is implementation-authorized. B-03/B-04/B-06 through B-08, hosted writer activation, authority switch, rollback activation, release, and Go remain gated. |
+| Authorization | Slice A/#132 authorization is unchanged. Human accepted ADR-0018 after reviews `ddcf373`/`16c3ecf` and on 2026-08-02 narrowed Issue #133 increment verification to local macOS Node 22 plus hosted Ubuntu Node 22 and Python 3.12. Windows is unsupported/deferred and N/A for this merge gate. B-03/B-04/B-06 through B-08, hosted writer activation, authority switch, rollback activation, release, and Go remain gated. |
 
 ## 2. Dependency graph
 
@@ -47,6 +47,7 @@ Slices may be implemented separately. Slice B may execute only the bounded found
 
 - CP-1: **passed for bounded Slice B foundation** after P-01/P-02, reviews `ddcf373`/`16c3ecf`, and Human B-00 approval. This does not pass activation checkpoints.
 - CP-2 after A-02 or B-02: focused tests plus full suite and independent review.
+- CP-2 runtime evidence for Issue #133: local macOS Node 22 plus rerun hosted Ubuntu Node 22 and Python 3.12. Windows is N/A/deferred for this increment; preserve its partial-pass/failure evidence and track whole-repo portability separately under the Human Maintainer/repository backlog.
 - CP-3 every two consumer migrations: focused matrix and project-state validators.
 - CP-4 before live shadow: deterministic/historical gates and rollback rehearsal pass.
 - CP-5 after live shadow: independent QA report and Human Go/No-Go.
@@ -91,4 +92,4 @@ Focused commands are finalized after file-level design. Record before/after coun
 
 ## 9. Handoff
 
-Next Action: Dispatch Developer for B-01/B-02/B-05 only, using TDD and small commits; then independent Reviewer, QA, and Security implementation review. Keep B-03/B-04/B-06–B-08 and every hosted/activation/cutover/rollback/Go action blocked pending shadow compatibility evidence and a separate Human checkpoint. Slice A history/authorization is unchanged.
+Next Action: Developer reruns the supported Ubuntu-only CI cells at the exact PR #135 commit and returns hosted Node 22 and Python 3.12 evidence to a Fresh QA Agent. Windows is N/A/deferred for this increment and must not block merge; its whole-repository portability follow-up remains with the Human Maintainer/repository backlog. Keep `status:verification-done` and `phase:human-review` withheld until the Ubuntu rerun passes and fresh QA closes the gate. B-03/B-04/B-06–B-08 and every hosted activation/cutover/rollback/Go action remain unauthorized. Slice A history/authorization is unchanged.

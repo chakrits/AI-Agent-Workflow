@@ -3,12 +3,12 @@
 ## Current Work Item
 - ID: GitHub Issue #132 with split child Issue #133
 - Title: Compatibility-first Progressive Context and Worktree-Scoped Status planning
-- Owner: #132 owner/authorization unchanged; #133 awaits hosted runtime evidence and fresh QA closure
-- Status: #132 authorization unchanged. #133 bounded foundation implementation is development-done at `641f1ff`; runtime-matrix implementation is `4568420`, with Security and Code Review records through `ea1630e`. Local Node 22/macOS and Python 3.14 compatibility evidence passes, but hosted Ubuntu/Windows Node 22 and Python 3.12 remain pending. Neither slice has authority-switch or Go approval.
+- Owner: #132 owner/authorization unchanged; #133 Developer Agent for Ubuntu-only CI rerun, then Fresh QA Agent
+- Status: #132 authorization unchanged. #133 remains development-done and `phase:verification` at portability-review HEAD `835302e`. The accepted merge gate is local macOS Node 22 plus hosted Ubuntu Node 22 and Python 3.12. Windows is unsupported/deferred and N/A for this increment; it must not block merge. Neither slice has authority-switch or Go approval.
 - References: https://github.com/chakrits/AI-Agent-Workflow/issues/132 · https://github.com/chakrits/AI-Agent-Workflow/issues/133
 
 ## Current Stage
-- `phase:verification` for #133 — open a Draft PR only to obtain the missing hosted Ubuntu/Windows Node 22 and Python 3.12 runtime evidence, then route the exact results to fresh QA. `status:development-done` exists; do not add `status:verification-done` or move to `phase:human-review` until the hosted matrix passes and fresh QA closes the remaining limitation. #132 state remains unchanged. Increment 2 CAS/writer, consumer migration, hosted writer/projection activation, authority switch, rollback activation, release, and Go remain unauthorized.
+- `phase:verification` for #133 — rerun PR #135's supported Ubuntu-only CI cells for Node 22 and Python 3.12, then route exact evidence to fresh QA. Local macOS Node 22 evidence already passes. Historical Windows evidence is preserved: Python 3.12 passed, focused status tests passed after portability fix `52c7b8c`, and six unrelated full-suite tests failed; Windows is not supported for this increment. `status:development-done` exists; do not add `status:verification-done` or move to `phase:human-review` until the Ubuntu rerun passes and fresh QA closes the gate. #132 state remains unchanged. Increment 2 CAS/writer, consumer migration, hosted writer/projection activation, authority switch, rollback activation, release, and Go remain unauthorized.
 
 ## Change Classification
 - Change Type: Framework / Meta Change
