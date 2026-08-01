@@ -147,6 +147,25 @@ test('dispatch fixtures use the exact canonical field set and numeric side-effec
   assert.deepEqual(fields('CTX-D10')['Completion Event Evidence'], { count: 0 });
 });
 
+test('CTX-D06 preserves its exact blocked reason, owner, and side-effect counts', () => {
+  const fixture = fixtureCatalog.fixtures.find(({ id }) => id === 'CTX-D06');
+  const assertions = fixture.scenario.input.assertions;
+  assert.equal(assertions.stopBackwardReworkResult, 'blocked');
+  assert.equal(assertions.nextOwner, 'Human Maintainer');
+  assert.equal(assertions.dispatchMandatoryFields['Stop Reason'], 'terminal_result_blocked');
+  assert.deepEqual(assertions.dispatchMandatoryFields['Dispatch Result'], {
+    successorCount: 0,
+    redispatchCount: 0,
+  });
+  assert.deepEqual(assertions.dispatchMandatoryFields['Boss Event'], { count: 1 });
+  assert.deepEqual(assertions.dispatchMandatoryFields['Completion Event Evidence'], { count: 1 });
+  assert.deepEqual(assertions.dispatchMandatoryFields['Consumption Evidence'], { count: 1 });
+  assert.deepEqual(
+    executeCompatibilityFixture(fixture, fixtureCatalog.recordTemplate),
+    fixture.expectedExecution,
+  );
+});
+
 test('canonical serialization sorts nested object keys without changing array order', () => {
   const input = { z: 1, a: { y: 2, x: 3 }, list: [{ b: 1, a: 2 }, 'x'] };
   const before = structuredClone(input);
