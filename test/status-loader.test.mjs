@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { mkdtemp, readFile, writeFile } from 'node:fs/promises';
+import { link, mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
@@ -9,6 +9,7 @@ import { stringify } from 'yaml';
 import { canonicalizeJcs, digestJcs } from '../scripts/lib/status-jcs.mjs';
 import { loadStatusFilesIsolated } from '../scripts/lib/status-loader-isolated.mjs';
 import { enforceMemoryBudget } from '../scripts/lib/status-resources.mjs';
+import { STATUS_MODES } from '../scripts/lib/status-modes.mjs';
 import { parseStatusBytes, STATUS_LIMITS } from '../scripts/lib/status-parser.mjs';
 import { computeRecordDigest, loadStatusFiles } from '../scripts/lib/status-loader.mjs';
 
@@ -86,9 +87,10 @@ test('executes the versioned increment-1 fixture contract and preserves source b
   const directory = path.join(process.cwd(), 'test/fixtures/work-item-status/v1');
   const manifest = JSON.parse(await readFile(path.join(directory, 'manifest.json'), 'utf8'));
   assert.equal(manifest.fixtureManifestVersion, 'work-item-status-fixtures/v1');
-  assert.equal(manifest.cases.length, 31);
+  assert.equal(manifest.cases.length, 34);
   assert.equal(manifest.deferredCases.length, 4);
   assert.ok(manifest.deferredCases.every(({ deferredTo }) => deferredTo === 'increment-2'));
+  assert.ok([...manifest.cases, ...manifest.deferredCases].every(({ mode }) => STATUS_MODES.includes(mode)));
   for (const fixture of manifest.cases) {
     for (const field of ['expectedInputs', 'expectedOutputs', 'digests', 'approvals', 'writerIdentity',
       'expectedPrimaryError', 'orderedDiagnostics', 'sideEffects', 'stdout', 'stderr', 'maxObservedResources']) {
@@ -111,7 +113,8 @@ test('executes the versioned increment-1 fixture contract and preserves source b
       } else if (fixture.executor === 'loader') {
         result = await loadStatusFiles(files, {
           mode: fixture.mode,
-          expectedHeadDigest: fixture.expectedInputs.headDigest ?? undefined
+          expectedHeadDigest: fixture.expectedInputs.headDigest ?? undefined,
+          identity: fixture.mode === 'archive-identity' ? 'chakrits/ai-agent-workflow#133' : undefined
         });
       } else if (fixture.executor === 'memory') {
         result = enforceMemoryBudget({ baselineRss: 0, currentRss: 0, allocatedBytes: fixture.maxObservedResources.residentBytes });
@@ -147,6 +150,20 @@ test('executes the versioned increment-1 fixture contract and preserves source b
           aggregateFiles.push(file);
         }
         result = await loadStatusFiles(aggregateFiles);
+      } else if (fixture.executor === 'generated-mode') {
+        result = await loadStatusFiles(files, { mode: fixture.expectedInputs.requestedMode });
+      } else if (fixture.executor === 'generated-mixed-identity') {
+        const first = JSON.parse(raws[0]);
+        const other = { ...first, issue: { repository: 'acme/project', number: 1, url: 'https://github.com/acme/project/issues/1' } };
+        other.recordDigest = computeRecordDigest(other);
+        result = await loadStatusFiles(await fixtureFiles([first, other]), {
+          mode: fixture.mode, identity: fixture.expectedInputs.requestedIdentity
+        });
+      } else if (fixture.executor === 'generated-memory-workload') {
+        const workload = await overBudgetWorkload();
+        assert.equal(workload.aggregateBytes, fixture.maxObservedResources.rawBytes);
+        assert.equal(workload.reservedBytes, fixture.maxObservedResources.allocatedBytes);
+        result = await loadStatusFilesIsolated(workload.files, { mode: fixture.mode });
       } else {
         const active = JSON.parse(raws[0]);
         const closure = raws[1] ? JSON.parse(raws[1]) : null;
@@ -163,7 +180,10 @@ test('executes the versioned increment-1 fixture contract and preserves source b
           extraRoot.recordDigest = computeRecordDigest(extraRoot);
           generated = fixture.executor === 'generated-unvisited' ? [active, closure, extraRoot] : [active, extraRoot];
         }
-        result = await loadStatusFiles(await fixtureFiles(generated), { mode: fixture.mode });
+        result = await loadStatusFiles(await fixtureFiles(generated), {
+          mode: fixture.mode,
+          identity: fixture.mode === 'archive-identity' ? 'chakrits/ai-agent-workflow#133' : undefined
+        });
       }
     } catch (error) {
       observedError = error;
@@ -219,6 +239,21 @@ async function fixtureFiles(records) {
   }));
 }
 
+async function overBudgetWorkload() {
+  const directory = await mkdtemp(path.join(tmpdir(), 'status-loader-memory-'));
+  const source = path.join(directory, 'source.json');
+  const padding = `${JSON.stringify(record())}\n${' '.repeat(59_000)}`;
+  await writeFile(source, padding);
+  const files = [source];
+  for (let index = 1; index < 1_100; index += 1) {
+    const file = path.join(directory, `${index}.json`);
+    await link(source, file);
+    files.push(file);
+  }
+  const aggregateBytes = Buffer.byteLength(padding) * files.length;
+  return { files, aggregateBytes, reservedBytes: aggregateBytes * 3 + files.length * 1_024 };
+}
+
 test('loads valid records in deterministic identity and evidence order', async () => {
   const issue133 = record({
     evidence: [
@@ -244,6 +279,15 @@ test('loads valid records in deterministic identity and evidence order', async (
     'chakrits/ai-agent-workflow#133'
   ]);
   assert.deepEqual(loaded[1].evidence.map(({ kind }) => kind), ['sdd', 'test']);
+});
+
+test('rejects unsupported modes before filesystem work', async () => {
+  assert.deepEqual(STATUS_MODES, [
+    'active', 'archive-identity', 'archive-all', 'transition', 'correction', 'authoritative-integration'
+  ]);
+  for (const mode of ['bogus', 'ACTIVE', '', null]) {
+    await assert.rejects(loadStatusFiles(['/must-not-be-read'], { mode }), rejectsCode('UNSUPPORTED_MODE'));
+  }
 });
 
 test('rejects missing required fields and unknown keys', async () => {
@@ -354,7 +398,7 @@ test('validates connected archive lineage and orders archives deterministically'
   const later = archive('2026-07-31T04:00:00Z', '2026-07-31T04:30:00Z', 'closed later', earlier.recordDigest);
   const files = await fixtureFiles([later, first, earlier]);
 
-  const loaded = await loadStatusFiles(files, { mode: 'archive-identity' });
+  const loaded = await loadStatusFiles(files, { mode: 'archive-identity', identity: 'chakrits/ai-agent-workflow#133' });
   assert.deepEqual(loaded.filter(({ active }) => !active).map(({ archivedAt }) => archivedAt), [
     '2026-07-31T03:30:00Z',
     '2026-07-31T04:30:00Z'
@@ -378,10 +422,22 @@ test('accepts archived-only flat-peer lineage with a materially changed closure'
   closure.recordDigest = computeRecordDigest(closure);
   const files = await fixtureFiles([closure, prior]);
 
-  const loaded = await loadStatusFiles(files, { mode: 'archive-identity' });
+  const loaded = await loadStatusFiles(files, { mode: 'archive-identity', identity: 'chakrits/ai-agent-workflow#133' });
   assert.equal(loaded.length, 2);
   assert.equal(loaded.assurance, 'UNANCHORED_BUNDLE');
   assert.equal(loaded.at(-1).owner.id, 'maintainer');
+});
+
+test('archive-identity requires an explicit identity and rejects mixed bundles', async () => {
+  const first = record();
+  const other = record({ issue: { repository: 'acme/project', number: 1, url: 'https://github.com/acme/project/issues/1' } });
+  other.recordDigest = computeRecordDigest(other);
+  const files = await fixtureFiles([first, other]);
+  await assert.rejects(loadStatusFiles(files, { mode: 'archive-identity' }), rejectsCode('IDENTITY_MISMATCH'));
+  await assert.rejects(
+    loadStatusFiles(files, { mode: 'archive-identity', identity: 'chakrits/ai-agent-workflow#133' }),
+    rejectsCode('IDENTITY_MISMATCH')
+  );
 });
 
 test('loader uses the bounded parser and applies aggregate precedence before parsing', async () => {
@@ -436,6 +492,24 @@ test('isolated loader enforces the same bounded contract without side effects', 
   assert.deepEqual(await readFile(files[0]), before);
 });
 
+test('isolated loader settles on a premature worker exit without inheriting unsafe exec modes', async () => {
+  const workerPath = path.join(process.cwd(), 'test/fixtures/work-item-status/v1/premature-worker.mjs');
+  await assert.rejects(
+    Promise.race([
+      loadStatusFilesIsolated([], {}, { workerPath }),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 1_000))
+    ]),
+    rejectsCode('ISOLATED_WORKER_EXIT')
+  );
+});
+
+test('isolated loader rejects an actual benign over-budget file set before retention', async () => {
+  const workload = await overBudgetWorkload();
+  assert.ok(workload.aggregateBytes <= STATUS_LIMITS.archiveAllAggregateBytes);
+  assert.ok(workload.reservedBytes > STATUS_LIMITS.residentBytes);
+  await assert.rejects(loadStatusFilesIsolated(workload.files, { mode: 'archive-all' }), rejectsCode('MEMORY_BUDGET_EXCEEDED'));
+});
+
 test('rejects sensitive and ambiguous evidence URLs without echoing their value', async () => {
   for (const url of [
     'https://user:password@github.com/acme/project',
@@ -488,7 +562,7 @@ test('rejects fabricated, disconnected, branching, and non-monotonic archive his
   });
 
   const fabricatedOnly = await fixtureFiles([fabricated]);
-  await assert.rejects(loadStatusFiles(fabricatedOnly, { mode: 'archive-identity' }), rejectsCode('MISSING_PREIMAGE'));
+  await assert.rejects(loadStatusFiles(fabricatedOnly, { mode: 'archive-identity', identity: 'chakrits/ai-agent-workflow#133' }), rejectsCode('MISSING_PREIMAGE'));
 
   const foreignPrior = record({ issue: { repository: 'acme/project', number: 1, url: 'https://github.com/acme/project/issues/1' } });
   foreignPrior.recordDigest = computeRecordDigest(foreignPrior);
@@ -500,11 +574,11 @@ test('rejects fabricated, disconnected, branching, and non-monotonic archive his
   const secondRoot = record({ updatedAt: '2026-07-31T02:30:00Z' });
   secondRoot.recordDigest = computeRecordDigest(secondRoot);
   const disconnectedFiles = await fixtureFiles([first, secondRoot]);
-  await assert.rejects(loadStatusFiles(disconnectedFiles, { mode: 'archive-identity' }), rejectsCode('DISCONNECTED_LINEAGE'));
+  await assert.rejects(loadStatusFiles(disconnectedFiles, { mode: 'archive-identity', identity: 'chakrits/ai-agent-workflow#133' }), rejectsCode('DISCONNECTED_LINEAGE'));
 
   for (const values of [[first, fabricated], [first, branchOne, branchTwo], [first, backwards], externalBranch]) {
     const files = await fixtureFiles(values);
-    await assert.rejects(loadStatusFiles(files, { mode: 'archive-identity' }), (error) => [
+    await assert.rejects(loadStatusFiles(files, { mode: 'archive-identity', identity: 'chakrits/ai-agent-workflow#133' }), (error) => [
       'MISSING_PREIMAGE', 'BRANCHED_LINEAGE', 'NON_MONOTONIC_TIME', 'DISCONNECTED_LINEAGE'
     ].includes(error.code));
   }

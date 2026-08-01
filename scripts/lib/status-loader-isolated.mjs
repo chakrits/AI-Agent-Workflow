@@ -3,22 +3,46 @@ import { fileURLToPath } from 'node:url';
 
 import { StatusError } from './status-errors.mjs';
 
-const workerPath = fileURLToPath(new URL('./status-loader-worker.mjs', import.meta.url));
+const defaultWorkerPath = fileURLToPath(new URL('./status-loader-worker.mjs', import.meta.url));
 
-export function loadStatusFilesIsolated(paths, options = {}) {
+export function loadStatusFilesIsolated(paths, options = {}, { workerPath = defaultWorkerPath } = {}) {
   return new Promise((resolve, reject) => {
-    const worker = fork(workerPath, [], { stdio: ['ignore', 'ignore', 'ignore', 'ipc'] });
-    worker.once('error', reject);
+    let worker;
+    try {
+      worker = fork(workerPath, [], {
+        execArgv: ['--max-old-space-size=96'],
+        stdio: ['ignore', 'ignore', 'ignore', 'ipc']
+      });
+    } catch {
+      reject(new StatusError('ISOLATED_WORKER_EXIT'));
+      return;
+    }
+    let settled = false;
+    const finish = (operation, value) => {
+      if (settled) return;
+      settled = true;
+      worker.removeAllListeners();
+      operation(value);
+    };
+    worker.once('error', () => finish(reject, new StatusError('ISOLATED_WORKER_EXIT')));
+    worker.once('exit', () => finish(reject, new StatusError('ISOLATED_WORKER_EXIT')));
+    worker.once('close', () => finish(reject, new StatusError('ISOLATED_WORKER_EXIT')));
     worker.once('message', (message) => {
       if (!message.ok) {
-        reject(new StatusError(message.error.code, message.error.inputId));
+        finish(reject, new StatusError(message.error.code, message.error.inputId));
         return;
       }
       const records = message.records;
       if (message.assurance) Object.defineProperty(records, 'assurance', { value: message.assurance, enumerable: false });
       Object.defineProperty(records, 'resources', { value: Object.freeze(message.resources), enumerable: false });
-      resolve(records);
+      finish(resolve, records);
     });
-    worker.send({ paths, options });
+    try {
+      worker.send({ paths, options }, (error) => {
+        if (error) finish(reject, new StatusError('ISOLATED_WORKER_EXIT'));
+      });
+    } catch {
+      finish(reject, new StatusError('ISOLATED_WORKER_EXIT'));
+    }
   });
 }

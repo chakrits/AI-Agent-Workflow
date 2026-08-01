@@ -9,6 +9,7 @@ import { statusError } from './status-errors.mjs';
 import { digestJcs, evidenceCompare, utf8Compare } from './status-jcs.mjs';
 import { parseStatusBytes, STATUS_LIMITS } from './status-parser.mjs';
 import { enforceMemoryBudget } from './status-resources.mjs';
+import { requireStatusMode } from './status-modes.mjs';
 
 const SCHEMA_VERSION = 'work-item-status/v1';
 const schemaPath = fileURLToPath(new URL('../../docs/contracts/schemas/work-item-status.schema.json', import.meta.url));
@@ -130,7 +131,10 @@ async function preflight(paths, mode) {
     aggregate += metadata.size;
   }
   if (aggregate > aggregateLimit) statusError('AGGREGATE_LIMIT');
-  return ordered.map((file, index) => ({ file, inputId: `input[${String(index).padStart(4, '0')}]` }));
+  return {
+    aggregate,
+    inputs: ordered.map((file, index) => ({ file, inputId: `input[${String(index).padStart(4, '0')}]` }))
+  };
 }
 
 const errorRank = new Map([
@@ -222,31 +226,36 @@ function statusOrder(left, right) {
     || utf8Compare(left.recordDigest, right.recordDigest);
 }
 
-export async function loadStatusFiles(paths, { mode = 'active', expectedHeadDigest } = {}) {
+export async function loadStatusFiles(paths, { mode = 'active', expectedHeadDigest, identity } = {}) {
+  requireStatusMode(mode);
+  if (mode === 'archive-identity' && !/^[a-z0-9][a-z0-9._-]*\/[a-z0-9][a-z0-9._-]*#[1-9][0-9]*$/.test(identity ?? '')) {
+    statusError('IDENTITY_MISMATCH');
+  }
   if (!Array.isArray(paths) || paths.length === 0) statusError('MISSING_INPUT');
   const baselineRss = process.memoryUsage().rss;
   let peakRss = baselineRss;
-  const inputs = await preflight(paths, mode);
-  let allocatedBytes = 0;
+  const { aggregate, inputs } = await preflight(paths, mode);
+  let allocatedBytes = aggregate * 3 + inputs.length * 1_024;
   const measureMemory = () => {
     peakRss = Math.max(peakRss, process.memoryUsage().rss);
     return enforceMemoryBudget({ baselineRss, currentRss: peakRss, allocatedBytes });
   };
-  for (const input of inputs) {
-    try { input.raw = await readFile(input.file); } catch { statusError('MISSING_INPUT', input.inputId); }
-    allocatedBytes += input.raw.length;
-  }
   measureMemory();
   const parseErrors = [];
   for (const input of inputs) {
+    let raw;
     try {
-      input.record = parseStatusBytes(input.raw, input.inputId);
-      allocatedBytes += Buffer.byteLength(JSON.stringify(input.record));
+      raw = await readFile(input.file);
+      input.record = parseStatusBytes(raw, input.inputId);
     } catch (error) { parseErrors.push(error); }
+    raw = undefined;
   }
   throwFirst(parseErrors);
   measureMemory();
   validateStage(inputs, validateSchema);
+  if (mode === 'archive-identity' && inputs.some(({ record }) => identityOf(record) !== identity)) {
+    statusError('IDENTITY_MISMATCH');
+  }
   validateStage(inputs, validatePolicyAndSemantics);
   validateStage(inputs, validateDigest);
   const records = inputs.map(({ record }) => ({ ...record, evidence: [...record.evidence].sort(evidenceCompare) }));
