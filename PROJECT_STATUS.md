@@ -3,19 +3,19 @@
 ## Current Work Item
 - ID: GitHub Issue #132 with split child Issue #133
 - Title: Compatibility-first Progressive Context and Worktree-Scoped Status planning
-- Owner: Orchestrator / SA / Documentation Agent
-- Status: Human approved specification readiness for #132/#133; first implementation increments authorized on separate worktrees
+- Owner: Separate Developer Agents per slice
+- Status: #132 authorization unchanged; #133 ADR-0018 accepted and bounded foundation B-01/B-02/B-05 authorized. Neither slice has authority-switch or Go approval.
 - References: https://github.com/chakrits/AI-Agent-Workflow/issues/132 · https://github.com/chakrits/AI-Agent-Workflow/issues/133
 
 ## Current Stage
-- `phase:development` — Human approved `status:spec-ready` for #132/#133 after independent CP-1 PASS. Next Action: separate Developer TDD increments, then independent code review and QA.
+- `phase:development` — #132 continues its approved increment. #133 may implement only strict schema/loader/JCS, digest-covered manifest and flat-peer library logic, versioned fixtures, and disposable CAS/TOCTOU harnesses; then independent Reviewer, QA, and Security implementation review. Consumer migration, hosted writer/projection activation, authority switch, rollback activation, and Go remain gated.
 
 ## Change Classification
 - Change Type: Framework / Meta Change
 - Risk Level: Medium
-- Code Change Required: No in current planning stage; Yes after separate approval per slice
+- Code Change Required: Yes — bounded, separately scoped implementation increments
 - Architecture Change Required: Yes
-- Security Review Required: No
+- Security Review Required: Yes for #133 implementation and hosted activation; final design re-review PASS is `16c3ecf`
 
 ## Completed
 - GitHub Issue #129 (reset-to-template history scrub) merged through PR #130 as `4243eb5`. The delivered reset is dry-run by default, preserves `docs/records/qa/`, requires explicit confirmation and clean contained targets for apply, and blocks destructive CI invocation. A repository-owned fail-closed harness is the only approved agent path for confirmed-reset verification: it proves standalone disposable-root ownership, canonical root/common-directory/script/`cwd` binding, exact commit and clean state, QA sentinel preservation, dirty refusal/no mutation, cleanup, primary integrity, and idempotency. Independent review closed CR-129-H01 through CR-129-H04 with 0 open findings; fresh QA passed AC-01 through AC-12, focused 68/68, normal/post-reset 316/316, and 11/11 validators in both environments. The two restored accidental primary-worktree invocations remain recorded as incident evidence; neither authorizes reset/history operations against the primary repository.
