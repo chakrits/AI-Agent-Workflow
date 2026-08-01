@@ -9,7 +9,7 @@ import { stringify } from 'yaml';
 import { canonicalizeJcs, digestJcs } from '../scripts/lib/status-jcs.mjs';
 import { loadStatusFilesIsolated } from '../scripts/lib/status-loader-isolated.mjs';
 import { enforceMemoryBudget } from '../scripts/lib/status-resources.mjs';
-import { STATUS_MODES } from '../scripts/lib/status-modes.mjs';
+import { INCREMENT_1_STATUS_MODES, STATUS_MODES } from '../scripts/lib/status-modes.mjs';
 import { parseStatusBytes, STATUS_LIMITS } from '../scripts/lib/status-parser.mjs';
 import { computeRecordDigest, loadStatusFiles } from '../scripts/lib/status-loader.mjs';
 
@@ -87,7 +87,7 @@ test('executes the versioned increment-1 fixture contract and preserves source b
   const directory = path.join(process.cwd(), 'test/fixtures/work-item-status/v1');
   const manifest = JSON.parse(await readFile(path.join(directory, 'manifest.json'), 'utf8'));
   assert.equal(manifest.fixtureManifestVersion, 'work-item-status-fixtures/v1');
-  assert.equal(manifest.cases.length, 34);
+  assert.equal(manifest.cases.length, 37);
   assert.equal(manifest.deferredCases.length, 4);
   assert.ok(manifest.deferredCases.every(({ deferredTo }) => deferredTo === 'increment-2'));
   assert.ok([...manifest.cases, ...manifest.deferredCases].every(({ mode }) => STATUS_MODES.includes(mode)));
@@ -285,8 +285,25 @@ test('rejects unsupported modes before filesystem work', async () => {
   assert.deepEqual(STATUS_MODES, [
     'active', 'archive-identity', 'archive-all', 'transition', 'correction', 'authoritative-integration'
   ]);
+  assert.deepEqual(INCREMENT_1_STATUS_MODES, ['active', 'archive-identity', 'archive-all']);
   for (const mode of ['bogus', 'ACTIVE', '', null]) {
     await assert.rejects(loadStatusFiles(['/must-not-be-read'], { mode }), rejectsCode('UNSUPPORTED_MODE'));
+  }
+  for (const mode of ['transition', 'correction', 'authoritative-integration']) {
+    await assert.rejects(loadStatusFiles(['/must-not-be-read'], { mode }), rejectsCode('UNSUPPORTED_MODE'));
+    await assert.rejects(loadStatusFilesIsolated(['/must-not-be-read'], { mode }), rejectsCode('UNSUPPORTED_MODE'));
+  }
+});
+
+test('keeps exactly the increment-1 modes executable', async () => {
+  for (const mode of INCREMENT_1_STATUS_MODES) {
+    await assert.rejects(
+      loadStatusFiles(['/must-not-be-read'], {
+        mode,
+        identity: mode === 'archive-identity' ? 'chakrits/ai-agent-workflow#133' : undefined
+      }),
+      rejectsCode('MISSING_INPUT')
+    );
   }
 });
 

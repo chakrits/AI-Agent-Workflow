@@ -9,7 +9,7 @@ import { statusError } from './status-errors.mjs';
 import { digestJcs, evidenceCompare, utf8Compare } from './status-jcs.mjs';
 import { parseStatusBytes, STATUS_LIMITS } from './status-parser.mjs';
 import { enforceMemoryBudget } from './status-resources.mjs';
-import { requireStatusMode } from './status-modes.mjs';
+import { requireIncrement1StatusMode } from './status-modes.mjs';
 
 const SCHEMA_VERSION = 'work-item-status/v1';
 const schemaPath = fileURLToPath(new URL('../../docs/contracts/schemas/work-item-status.schema.json', import.meta.url));
@@ -227,7 +227,7 @@ function statusOrder(left, right) {
 }
 
 export async function loadStatusFiles(paths, { mode = 'active', expectedHeadDigest, identity } = {}) {
-  requireStatusMode(mode);
+  requireIncrement1StatusMode(mode);
   if (mode === 'archive-identity' && !/^[a-z0-9][a-z0-9._-]*\/[a-z0-9][a-z0-9._-]*#[1-9][0-9]*$/.test(identity ?? '')) {
     statusError('IDENTITY_MISMATCH');
   }

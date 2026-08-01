@@ -2,11 +2,13 @@ import { fork } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 import { StatusError } from './status-errors.mjs';
+import { requireIncrement1StatusMode } from './status-modes.mjs';
 
 const defaultWorkerPath = fileURLToPath(new URL('./status-loader-worker.mjs', import.meta.url));
 
 export function loadStatusFilesIsolated(paths, options = {}, { workerPath = defaultWorkerPath } = {}) {
   return new Promise((resolve, reject) => {
+    requireIncrement1StatusMode(options.mode ?? 'active');
     let worker;
     try {
       worker = fork(workerPath, [], {
