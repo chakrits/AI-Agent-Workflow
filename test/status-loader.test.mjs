@@ -5,7 +5,79 @@ import path from 'node:path';
 import test from 'node:test';
 import { stringify } from 'yaml';
 
+import { canonicalizeJcs, digestJcs } from '../scripts/lib/status-jcs.mjs';
+import { parseStatusBytes, STATUS_LIMITS } from '../scripts/lib/status-parser.mjs';
 import { computeRecordDigest, loadStatusFiles } from '../scripts/lib/status-loader.mjs';
+
+function rejectsCode(code) {
+  return (error) => error?.code === code && !/token|secret|password/i.test(error.message);
+}
+
+test('bounded parser applies raw and UTF-8 precedence before YAML conversion', () => {
+  assert.throws(
+    () => parseStatusBytes(Buffer.alloc(STATUS_LIMITS.rawFileBytes + 1, 0xff), 'oversize.yaml'),
+    rejectsCode('RAW_FILE_LIMIT')
+  );
+  assert.throws(() => parseStatusBytes(Buffer.from([0xff]), 'invalid.yaml'), rejectsCode('INVALID_UTF8'));
+  assert.throws(() => parseStatusBytes(Buffer.from([0xef, 0xbb, 0xbf, 0x61]), 'bom.yaml'), rejectsCode('INVALID_UTF8'));
+});
+
+test('bounded parser rejects forbidden YAML features before generic parse errors', () => {
+  for (const source of [
+    'a: &anchor 1\nb: *anchor\n',
+    'base: &base {a: 1}\nvalue: {<<: *base}\n',
+    'value: !custom payload\n',
+    '%YAML 1.2\n---\nvalue: 1\n',
+    'value: 1\nvalue: 2\n',
+    '? [complex]\n: value\n',
+    '---\na: 1\n---\nb: 2\n'
+  ]) {
+    assert.throws(() => parseStatusBytes(Buffer.from(source), 'forbidden.yaml'), rejectsCode('FORBIDDEN_YAML_FEATURE'));
+  }
+  assert.throws(() => parseStatusBytes(Buffer.from('value: [unterminated'), 'parse.yaml'), rejectsCode('YAML_PARSE_ERROR'));
+});
+
+test('bounded parser enforces JSON numbers, nodes, and iterative container depth', () => {
+  for (const source of ['value: -0\n', 'value: 1.5\n', 'value: 1e400\n', 'value: 9007199254740992\n']) {
+    assert.throws(() => parseStatusBytes(Buffer.from(source), 'number.yaml'), rejectsCode('JSON_DOMAIN_ERROR'));
+  }
+  let depth16Value = { value: 1 };
+  for (let index = 1; index < 16; index += 1) depth16Value = { child: depth16Value };
+  const depth16 = JSON.stringify(depth16Value);
+  assert.doesNotThrow(() => parseStatusBytes(Buffer.from(depth16), 'depth-16.yaml'));
+  const depth17 = JSON.stringify({ child: depth16Value });
+  assert.throws(() => parseStatusBytes(Buffer.from(depth17), 'depth-17.yaml'), rejectsCode('CONTAINER_DEPTH_LIMIT'));
+  const tooManyNodes = `values: [${Array.from({ length: 10_001 }, () => 'null').join(',')}]`;
+  assert.throws(() => parseStatusBytes(Buffer.from(tooManyNodes), 'nodes.yaml'), rejectsCode('NODE_LIMIT'));
+});
+
+test('normative JCS matches frozen UTF-8 and digest vectors without mutation', () => {
+  const vectors = [
+    [{ n: 0, s: 'é', u: '😀' }, '{"n":0,"s":"é","u":"😀"}', '903bf2f2ba8236df38cea14ea59fa43b0d0d564a3d97a6065f45f783e5ecac0b'],
+    [{ max: 9007199254740991, min: -9007199254740991 }, '{"max":9007199254740991,"min":-9007199254740991}', '63546eb60913dcb1cdd5118f7bf4885beed344af930c8a9d5f38fad243fd4819']
+  ];
+  for (const [value, canonical, digest] of vectors) {
+    assert.equal(canonicalizeJcs(value).toString('utf8'), canonical);
+    assert.equal(digestJcs(value), digest);
+  }
+  const record = { evidence: [
+    { kind: 'é', url: 'a', digest: '', commit: '', observedAt: '2026-08-01T00:00:00Z' },
+    { kind: 'a', url: 'z', digest: '', commit: '', observedAt: '2026-08-01T00:00:00Z' }
+  ] };
+  const before = structuredClone(record);
+  assert.equal(digestJcs(record), 'e5ac81d780e5c913b183400fb612c8d81ce280ca7121ed0ea694ebeb6492cf56');
+  assert.deepEqual(record, before);
+});
+
+test('normative JCS rejects invalid numbers, strings, and oversized preimages', () => {
+  for (const value of [-0, 1.5, Infinity, NaN, 9007199254740992, '\ud800']) {
+    assert.throws(() => canonicalizeJcs({ value }), rejectsCode('JSON_DOMAIN_ERROR'));
+  }
+  assert.throws(
+    () => canonicalizeJcs({ value: 'x'.repeat(STATUS_LIMITS.canonicalBytes) }),
+    rejectsCode('CANONICAL_SIZE_LIMIT')
+  );
+});
 
 function record(overrides = {}) {
   const value = {
