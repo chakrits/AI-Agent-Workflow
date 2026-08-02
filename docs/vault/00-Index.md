@@ -67,7 +67,7 @@ This is the entry point for browsing this repo as an Obsidian vault. The vault r
 
 ## Skills — three portable copies (`.agents/`, `.claude/`, `.agent/`)
 
-All 25 skills are mirrored across all three platforms (Claude Code, portable, Antigravity); none are role-specific-only anymore.
+All 36 skills are mirrored across all three platforms (Claude Code, portable, Antigravity); none are role-specific-only anymore.
 
 **Mirrored (all three platforms):**
 
@@ -96,6 +96,17 @@ All 25 skills are mirrored across all three platforms (Claude Code, portable, An
 - api-testing-tooling — [[../../.agents/skills/api-testing-tooling/SKILL.md|portable]] · [[../../.claude/skills/api-testing-tooling/SKILL.md|claude]] · [[../../.agent/skills/api-testing-tooling/SKILL.md|antigravity]]
 - js-unit-testing — [[../../.agents/skills/js-unit-testing/SKILL.md|portable]] · [[../../.claude/skills/js-unit-testing/SKILL.md|claude]] · [[../../.agent/skills/js-unit-testing/SKILL.md|antigravity]]
 - python-unit-testing — [[../../.agents/skills/python-unit-testing/SKILL.md|portable]] · [[../../.claude/skills/python-unit-testing/SKILL.md|claude]] · [[../../.agent/skills/python-unit-testing/SKILL.md|antigravity]]
+- api-test-design — [[../../.agents/skills/api-test-design/SKILL.md|portable]] · [[../../.claude/skills/api-test-design/SKILL.md|claude]] · [[../../.agent/skills/api-test-design/SKILL.md|antigravity]]
+- api-compliance-patterns — [[../../.agents/skills/api-compliance-patterns/SKILL.md|portable]] · [[../../.claude/skills/api-compliance-patterns/SKILL.md|claude]] · [[../../.agent/skills/api-compliance-patterns/SKILL.md|antigravity]]
+- api-security-patterns — [[../../.agents/skills/api-security-patterns/SKILL.md|portable]] · [[../../.claude/skills/api-security-patterns/SKILL.md|claude]] · [[../../.agent/skills/api-security-patterns/SKILL.md|antigravity]]
+- api-versioning-deprecation — [[../../.agents/skills/api-versioning-deprecation/SKILL.md|portable]] · [[../../.claude/skills/api-versioning-deprecation/SKILL.md|claude]] · [[../../.agent/skills/api-versioning-deprecation/SKILL.md|antigravity]]
+- api-observability-monitoring — [[../../.agents/skills/api-observability-monitoring/SKILL.md|portable]] · [[../../.claude/skills/api-observability-monitoring/SKILL.md|claude]] · [[../../.agent/skills/api-observability-monitoring/SKILL.md|antigravity]]
+- api-integration-patterns — [[../../.agents/skills/api-integration-patterns/SKILL.md|portable]] · [[../../.claude/skills/api-integration-patterns/SKILL.md|claude]] · [[../../.agent/skills/api-integration-patterns/SKILL.md|antigravity]]
+- api-mocking-sandbox — [[../../.agents/skills/api-mocking-sandbox/SKILL.md|portable]] · [[../../.claude/skills/api-mocking-sandbox/SKILL.md|claude]] · [[../../.agent/skills/api-mocking-sandbox/SKILL.md|antigravity]]
+- coding-standards — [[../../.agents/skills/coding-standards/SKILL.md|portable]] · [[../../.claude/skills/coding-standards/SKILL.md|claude]] · [[../../.agent/skills/coding-standards/SKILL.md|antigravity]]
+- backend-patterns — [[../../.agents/skills/backend-patterns/SKILL.md|portable]] · [[../../.claude/skills/backend-patterns/SKILL.md|claude]] · [[../../.agent/skills/backend-patterns/SKILL.md|antigravity]]
+- frontend-react-patterns — [[../../.agents/skills/frontend-react-patterns/SKILL.md|portable]] · [[../../.claude/skills/frontend-react-patterns/SKILL.md|claude]] · [[../../.agent/skills/frontend-react-patterns/SKILL.md|antigravity]]
+- frontend-visual-design — [[../../.agents/skills/frontend-visual-design/SKILL.md|portable]] · [[../../.claude/skills/frontend-visual-design/SKILL.md|claude]] · [[../../.agent/skills/frontend-visual-design/SKILL.md|antigravity]]
 
 **Role-specific (portable only, `.agents/skills/`):**
 

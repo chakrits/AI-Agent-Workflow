@@ -117,6 +117,22 @@ Non-trivial business logic belongs in a service layer, not in views, serializers
 
 Every new or changed REST endpoint requires a machine-readable schema (OpenAPI, e.g. via `drf-spectacular`) before Developer Agent implements it. The contract must define the request/response schema, error response format, pagination, versioning approach, and authentication requirement. The contract is the source of truth Documentation Agent uses to publish API docs — SA Agent does not itself write end-user documentation.
 
+Default to standard REST conventions when drafting a new contract: resource-plural nouns, HTTP methods for CRUD semantics, and one consistent pagination/error envelope reused across every endpoint rather than a bespoke shape per endpoint.
+
+### Skill Routing
+
+Unlike QA Agent's Skill Routing table (one request routes to exactly one skill), these apply as conditional sub-checks *within* drafting a single contract — more than one row can apply to the same endpoint.
+
+| Condition | Skill |
+|---|---|
+| Endpoint touches personal, health, or payment data | `.agents/skills/api-compliance-patterns/` |
+| Endpoint accepts an object identifier | `.agents/skills/api-security-patterns/` |
+| Change is breaking, or a version needs a deprecation flow | `.agents/skills/api-versioning-deprecation/` |
+| Endpoint has its own SLA/SLO/health-check needs | `.agents/skills/api-observability-monitoring/` |
+| One app calling another app's API (webhooks, chained requests, async events) | `.agents/skills/api-integration-patterns/` |
+
+State the endpoint's versioning approach regardless of which rows above apply, and confirm each applicable skill's checklist is answerable from the contract as written before publishing it.
+
 ### Data Migration Safety
 
 Any PostgreSQL schema change that affects existing data must state its Django migration strategy in the SDD: expand/contract sequencing, backfill plan, and rollback plan. SA Agent designs the migration strategy; running or authoring non-destructive reference/seed data changes remains Data Agent's responsibility.
@@ -145,6 +161,15 @@ When implementation surfaces a concern outside this role's scope — a security-
 
 Make the smallest diff that satisfies the current task's plan. Do not add functionality, refactor unrelated code, or introduce a pattern the plan did not ask for. Record any implementation-time judgment call or deviation from the plan in the handoff (`docs/templates/HANDOFF.md`) rather than leaving it undocumented.
 
+### Skill Routing
+
+| Task | Skill |
+|------|-------|
+| General naming/immutability/error-handling/code-smell review, any stack | `.agents/skills/coding-standards/` |
+| Repository/service-layer architecture, N+1 prevention, caching, background jobs (Django/DRF or Node/Next.js+Supabase+Redis) | `.agents/skills/backend-patterns/` |
+| React/Next.js component composition, custom hooks, state-scope, memoization, forms, error boundaries | `.agents/skills/frontend-react-patterns/` |
+| Aesthetic/visual identity direction for a new or reshaped UI | `.agents/skills/frontend-visual-design/` |
+
 ## QA Agent
 
 Owns test strategy, test case design, API/E2E automation, regression, defect analysis, coverage matrix, and test report.
@@ -157,11 +182,13 @@ Owns test strategy, test case design, API/E2E automation, regression, defect ana
 | Playwright E2E automation | `.agents/skills/qa-playwright-testing/` |
 | Security-sensitive test review | `.agents/skills/security-review/` |
 | Config or data validation workflow | `.agents/skills/data-config-change/` |
+| Design API test cases (happy/negative/boundary/auth) from a schema or endpoint description, before any script/fuzz run exists | `.agents/skills/api-test-design/` |
 | Validate implementation against SA Agent's OpenAPI schema | `.agents/skills/api-contract-testing/` |
 | Execute Performance/Reliability/Scalability NFR targets (load, stress, spike, soak) | `.agents/skills/performance-testing/` |
 | Validate test effectiveness via mutation testing | `.agents/skills/mutation-testing/` |
 | Review Developer Agent's unit/component tests for quality and anti-patterns | `.agents/skills/test-quality-discipline/` |
-| Hand-scripted API tests (Supertest) or versionable API collections (Bruno) | `.agents/skills/api-testing-tooling/` |
+| Hand-scripted API tests (Supertest), versionable API collections (Bruno), or Postman/Newman | `.agents/skills/api-testing-tooling/` |
+| Mock server/sandbox/fixtures for a dependency not yet available or too unstable to test against directly | `.agents/skills/api-mocking-sandbox/` |
 | JS/TS unit/component testing (Jest or Vitest) | `.agents/skills/js-unit-testing/` |
 | Python unit/component testing (pytest) | `.agents/skills/python-unit-testing/` |
 
@@ -232,6 +259,13 @@ Before reviewing anything else, check the change against this list — adapted t
 
 Record each item as checked, or as `N/A — <reason>` when the change doesn't touch that surface.
 
+### Skill Routing
+
+| Task | Skill |
+|------|-------|
+| API-specific authN/authZ (BOLA/IDOR, excessive data exposure, mass assignment, OWASP API Security Top 10) | `.agents/skills/api-security-patterns/` |
+| GDPR/HIPAA/PCI-DSS/SOC2-aligned API patterns for personal, health, or payment data | `.agents/skills/api-compliance-patterns/` |
+
 ### Severity Scale
 
 Classify every finding on this scale — distinct from `code-review-gate`'s generic Critical/Major/Minor/Question taxonomy, calibrated specifically to exploitability and blast radius:
@@ -288,7 +322,7 @@ Every validation and rollback query must be safe to run twice — a failed deplo
 
 ### PII Routing
 
-If a data change touches PII, route to Security Reviewer before executing it — not just record it in the plan's Risk section. Security Reviewer's Scan Checklist covers sensitive data handling; Data Agent's job is to trigger that review, not skip it because the change "is just data."
+If a data change touches PII, route to Security Reviewer before executing it — not just record it in the plan's Risk section. Security Reviewer's Scan Checklist covers sensitive data handling; Data Agent's job is to trigger that review, not skip it because the change "is just data." If the data is also exposed through an API (not only stored), Security Reviewer applies `api-compliance-patterns` for the endpoint-level classification/retention/audit pattern on top of this routing.
 
 ### Escalation Guard
 

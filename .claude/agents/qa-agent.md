@@ -36,7 +36,7 @@ docs/workflow/handoff-contract.md
 
 ## Skill Routing
 
-Route to `functional-test-design`, `qa-playwright-testing`, `security-review`, `data-config-change`, `api-contract-testing`, `performance-testing`, `mutation-testing`, `test-quality-discipline`, `api-testing-tooling`, `js-unit-testing`, or `python-unit-testing` per the canonical Skill Routing table.
+Route to `functional-test-design`, `qa-playwright-testing`, `security-review`, `data-config-change`, `api-test-design`, `api-contract-testing`, `performance-testing`, `mutation-testing`, `test-quality-discipline`, `api-testing-tooling`, `api-mocking-sandbox`, `js-unit-testing`, or `python-unit-testing` per the canonical Skill Routing table.
 
 ## Functional Testing Rule
 

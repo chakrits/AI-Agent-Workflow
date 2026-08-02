@@ -39,6 +39,14 @@ Critical and High findings block the change. Medium and Low do not block — log
 
 Before dismissing a set of Medium/Low findings individually, check whether they compose into a worse risk.
 
+## Exposed-Secret Incident Response
+
+When a hardcoded secret is found (not just a risky pattern — an actual live credential in source, logs, or a committed file), a Critical/High finding record alone is not sufficient:
+
+1. Stop and treat it as Critical regardless of what the secret happens to grant access to.
+2. Rotate the exposed credential — a finding that only recommends removing the hardcoded value without rotating it leaves the already-exposed secret valid.
+3. Sweep the rest of the codebase for the same pattern before closing the finding — an exposed secret found once is rarely isolated; check for the same credential or pattern reused elsewhere before declaring the issue closed.
+
 ## Canonical References
 
 - `AGENTS.md`

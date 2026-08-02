@@ -1,6 +1,6 @@
 ---
 name: api-testing-tooling
-description: Write and run hand-scripted API tests with Supertest (Node/Express HTTP assertions) and manage versionable API collections with Bruno. Use for functional API test cases distinct from api-contract-testing's OpenAPI schema-fuzzing.
+description: Write and run hand-scripted API tests with Supertest (Node/Express HTTP assertions), manage versionable API collections with Bruno, or run existing Postman collections via Newman in CI. Use for functional API test cases distinct from api-contract-testing's OpenAPI schema-fuzzing.
 ---
 
 # api-testing-tooling
@@ -46,6 +46,26 @@ bru run --env local
 ```
 
 See `templates/bruno-collection/` for a minimal collection structure.
+
+## Postman + Newman (team-standard alternative)
+
+Use when the team already maintains its API collections in Postman rather than Bruno — both are equally valid per this skill; do not migrate an existing Postman collection to Bruno solely for tooling consistency.
+
+### Installation
+
+```bash
+npm install -g newman   # CLI runner for Postman collections in CI
+```
+
+### Running
+
+```bash
+newman run collection.json -e environment.json
+```
+
+Export the Postman collection and environment as JSON (`File > Export`) and commit both alongside the tests under `tests/api/` — an uncommitted, GUI-only collection is not CI-runnable and not reviewable in a PR diff.
+
+See `templates/postman-collection.example.json` for a minimal collection structure.
 
 ## Where Tests Live
 

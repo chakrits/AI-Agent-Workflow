@@ -12,7 +12,7 @@ Build production-quality, content-led UI that belongs in the target product rath
 - New or changed pages, components, forms, interaction states, responsive layouts, or visual/UX fixes.
 - Accessibility improvements to a user-facing interface.
 
-Do not use for backend-only work, requirement discovery without a UI change, or generic test design. Route browser automation to `qa-playwright-testing` after the UI behavior is defined.
+Do not use for backend-only work, requirement discovery without a UI change, or generic test design. Route browser automation to `qa-playwright-testing` after the UI behavior is defined. For component/hook/state architecture decisions, use `frontend-react-patterns`; for aesthetic/visual-identity direction, use `frontend-visual-design` — this skill governs the delivery workflow (accessibility, responsive breakpoints, design-system compliance) those two feed into.
 
 ## Delivery workflow
 
