@@ -1319,10 +1319,10 @@ test('SKILL_CATALOG.md carries all 7 new API skill entries', async () => {
   assert.doesNotMatch(catalog, /\| API Test Design \|/);
 });
 
-test('docs/vault/00-Index.md links all 7 new API skills and the mirrored-skill count is 32', async () => {
+test('docs/vault/00-Index.md links all 7 new API skills and the mirrored-skill count is 36', async () => {
   const vaultIndex = await readFile('docs/vault/00-Index.md', 'utf8');
 
-  assert.match(vaultIndex, /All 32 skills are mirrored/);
+  assert.match(vaultIndex, /All 36 skills are mirrored/);
   for (const skill of [
     'api-test-design',
     'api-compliance-patterns',
@@ -1334,6 +1334,88 @@ test('docs/vault/00-Index.md links all 7 new API skills and the mirrored-skill c
   ]) {
     assert.match(vaultIndex, new RegExp('^- ' + skill + ' —', 'm'));
   }
+});
+
+test('the 4 new Developer Agent skills carry their required content', async () => {
+  const [codingStandards, backendPatterns, frontendReactPatterns, frontendVisualDesign] = await Promise.all([
+    readFile('.agents/skills/coding-standards/SKILL.md', 'utf8'),
+    readFile('.agents/skills/backend-patterns/SKILL.md', 'utf8'),
+    readFile('.agents/skills/frontend-react-patterns/SKILL.md', 'utf8'),
+    readFile('.agents/skills/frontend-visual-design/SKILL.md', 'utf8')
+  ]);
+
+  assert.match(codingStandards, /## Immutability/);
+  assert.match(codingStandards, /## Naming/);
+  assert.match(codingStandards, /## Code Smells to Watch For/);
+
+  assert.match(backendPatterns, /## Repository Pattern/);
+  assert.match(backendPatterns, /## N\+1 Query Prevention/);
+  assert.match(backendPatterns, /never a per-process in-memory counter/);
+
+  assert.match(frontendReactPatterns, /## Component Composition/);
+  assert.match(frontendReactPatterns, /## Custom Hooks/);
+  assert.match(frontendReactPatterns, /## State-Scope Selection/);
+
+  assert.match(frontendVisualDesign, /## Ground the Design in the Subject/);
+  assert.match(frontendVisualDesign, /## Avoiding the Generic-AI-Default Look/);
+  assert.match(frontendVisualDesign, /## Copywriting Voice/);
+
+  // None of the 4 skills may carry the source repos' product-promotion or license artifacts.
+  for (const skill of [codingStandards, backendPatterns, frontendReactPatterns, frontendVisualDesign]) {
+    assert.doesNotMatch(skill, /TestMu/i);
+    assert.doesNotMatch(skill, /HyperExecute/i);
+  }
+});
+
+test('security-review carries the exposed-secret incident-response procedure', async () => {
+  const securityReview = await readFile('.agents/skills/security-review/SKILL.md', 'utf8');
+
+  assert.match(securityReview, /## Exposed-Secret Incident Response/);
+  assert.match(securityReview, /Rotate the exposed credential/);
+  assert.match(securityReview, /Sweep the rest of the codebase/);
+});
+
+test('the 4 new Developer Agent skills are byte-identical SKILL.md across all three platforms', async () => {
+  const newSkillNames = ['coding-standards', 'backend-patterns', 'frontend-react-patterns', 'frontend-visual-design'];
+  for (const name of newSkillNames) {
+    const [portable, claude, antigravity] = await Promise.all([
+      readFile(`.agents/skills/${name}/SKILL.md`, 'utf8'),
+      readFile(`.claude/skills/${name}/SKILL.md`, 'utf8'),
+      readFile(`.agent/skills/${name}/SKILL.md`, 'utf8')
+    ]);
+    assert.equal(claude, portable, `.claude/skills/${name}/SKILL.md does not match .agents/`);
+    assert.equal(antigravity, portable, `.agent/skills/${name}/SKILL.md does not match .agents/`);
+  }
+});
+
+test('Developer Agent Skill Routing includes the 4 new skills in role-definitions and the Claude adapter', async () => {
+  const [roleDefinition, adapter] = await Promise.all([
+    readFile('docs/workflow/role-definitions.md', 'utf8'),
+    readFile('.claude/agents/developer-agent.md', 'utf8')
+  ]);
+
+  assert.match(roleDefinition, /^### Skill Routing$/m);
+  for (const skill of ['coding-standards', 'backend-patterns', 'frontend-react-patterns', 'frontend-visual-design']) {
+    assert.match(roleDefinition, new RegExp('`\\.agents/skills/' + skill + '/`'));
+    assert.match(adapter, new RegExp('`' + skill + '`'));
+  }
+});
+
+test('SKILL_CATALOG.md carries all 4 new Developer Agent skill entries', async () => {
+  const catalog = await readFile('docs/operating-model/SKILL_CATALOG.md', 'utf8');
+
+  for (const skill of ['coding-standards', 'backend-patterns', 'frontend-react-patterns', 'frontend-visual-design']) {
+    assert.match(catalog, new RegExp('^## ' + skill + '$', 'm'));
+  }
+});
+
+test('THIRD_PARTY_NOTICES.md attributes LambdaTest, ECC, and Anthropic sources', async () => {
+  const notices = await readFile('THIRD_PARTY_NOTICES.md', 'utf8');
+
+  assert.match(notices, /LambdaTest\/agent-skills/);
+  assert.match(notices, /affaan-m\/ECC/);
+  assert.match(notices, /anthropics\/skills\/skills\/frontend-design/);
+  assert.match(notices, /Apache License, Version 2\.0/);
 });
 
 test('testing-conventions.md exists and is linked from PROJECT_INDEX.md and the vault index', async () => {

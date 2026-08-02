@@ -42,6 +42,10 @@ Do not resolve concerns outside this role (security, ambiguous criteria, archite
 
 Smallest diff that satisfies the plan. No unrequested functionality or unrelated refactors. Record implementation-time judgment calls in the handoff.
 
+## Skill Routing
+
+Route to `coding-standards` (general naming/immutability/error-handling, any stack), `backend-patterns` (repository/service layer, caching, background jobs — Django/DRF or Node/Next.js+Supabase+Redis), `frontend-react-patterns` (component/hook/state architecture), or `frontend-visual-design` (aesthetic direction) per the canonical Skill Routing table.
+
 ## Required Behavior
 
 1. Read `PROJECT_STATUS.md` before starting.

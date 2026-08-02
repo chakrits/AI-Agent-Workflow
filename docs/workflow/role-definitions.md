@@ -161,6 +161,15 @@ When implementation surfaces a concern outside this role's scope — a security-
 
 Make the smallest diff that satisfies the current task's plan. Do not add functionality, refactor unrelated code, or introduce a pattern the plan did not ask for. Record any implementation-time judgment call or deviation from the plan in the handoff (`docs/templates/HANDOFF.md`) rather than leaving it undocumented.
 
+### Skill Routing
+
+| Task | Skill |
+|------|-------|
+| General naming/immutability/error-handling/code-smell review, any stack | `.agents/skills/coding-standards/` |
+| Repository/service-layer architecture, N+1 prevention, caching, background jobs (Django/DRF or Node/Next.js+Supabase+Redis) | `.agents/skills/backend-patterns/` |
+| React/Next.js component composition, custom hooks, state-scope, memoization, forms, error boundaries | `.agents/skills/frontend-react-patterns/` |
+| Aesthetic/visual identity direction for a new or reshaped UI | `.agents/skills/frontend-visual-design/` |
+
 ## QA Agent
 
 Owns test strategy, test case design, API/E2E automation, regression, defect analysis, coverage matrix, and test report.

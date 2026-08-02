@@ -314,6 +314,50 @@ Note: `api-contract-testing` validates an existing implementation against a publ
 | Do Not Use When | The target app is not Python — use `js-unit-testing` instead |
 | Next Skill / Agent | Developer Agent (failing/missing coverage), `mutation-testing` (verify test effectiveness) |
 
+## coding-standards
+
+| Field | Detail |
+|---|---|
+| Trigger | General code-quality review — naming, immutability, error handling, code smells — for any stack this project targets |
+| Primary Agent | Developer Agent |
+| Input | Code diff or module under review |
+| Output | Naming/immutability/error-handling findings, recorded in `CODE_REVIEW_FINDINGS.md` |
+| Do Not Use When | The question is stack-specific architecture (repository/service layer, React component design) — use `backend-patterns`/`frontend-react-patterns` instead |
+| Next Skill / Agent | `backend-patterns`, `frontend-react-patterns`, `code-review-gate` |
+
+## backend-patterns
+
+| Field | Detail |
+|---|---|
+| Trigger | Implementing/reviewing a repository/service layer, N+1 query, caching strategy, or background job — Django/DRF or Node/Next.js+Supabase+Redis |
+| Primary Agent | Developer Agent |
+| Input | Target endpoint/module, data-access pattern, stack (Django or Node/Next.js) |
+| Output | Repository/caching/background-job pattern applied, recorded in implementation notes |
+| Do Not Use When | The question is authN/authZ (`api-security-patterns`) or rate-limit verification (`performance-testing`) |
+| Next Skill / Agent | `api-security-patterns`, `performance-testing`, `api-observability-monitoring` |
+
+## frontend-react-patterns
+
+| Field | Detail |
+|---|---|
+| Trigger | Deciding component composition, custom hook design, state-scope, memoization, form handling, or error boundaries in React/Next.js |
+| Primary Agent | Developer Agent |
+| Input | Target component/feature, existing state-management convention |
+| Output | Component architecture decision applied, recorded in implementation notes |
+| Do Not Use When | The question is accessibility/responsive/design-system delivery (`frontend-ui-engineering`) or aesthetic direction (`frontend-visual-design`) |
+| Next Skill / Agent | `frontend-ui-engineering`, `frontend-visual-design`, `qa-playwright-testing` |
+
+## frontend-visual-design
+
+| Field | Detail |
+|---|---|
+| Trigger | A new UI/product needs a deliberate visual identity, or an existing one reads as templated/generic |
+| Primary Agent | Developer Agent |
+| Input | Design brief or product context, existing brand/design-system constraints if any |
+| Output | Color/type/layout token plan + signature element, applied via `frontend-react-patterns`/`frontend-ui-engineering` |
+| Do Not Use When | Visual direction is already fully specified by an existing design system — apply it via `frontend-ui-engineering` instead |
+| Next Skill / Agent | `frontend-react-patterns`, `frontend-ui-engineering` |
+
 ## documentation-closeout
 
 | Field | Detail |

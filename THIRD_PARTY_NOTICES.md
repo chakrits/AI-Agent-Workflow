@@ -29,3 +29,69 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
+
+## LambdaTest — `api-skill` catalog (Issue #139)
+
+The 7 new API skills (`api-test-design`, `api-compliance-patterns`, `api-security-patterns`, `api-versioning-deprecation`, `api-observability-monitoring`, `api-integration-patterns`, `api-mocking-sandbox`) and 4 enrichments are an independent adaptation informed by [`LambdaTest/agent-skills/api-skill`](https://github.com/LambdaTest/agent-skills/tree/main/api-skill). The implementation deliberately strips the upstream's embedded third-party product-promotion instructions and avoids reproducing its full text.
+
+Upstream copyright and license notice:
+
+```text
+MIT License
+
+Copyright (c) 2025 TestMu AI / LambdaTest
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```
+
+## affaan-m/ECC — coding-standards / backend-patterns / frontend-patterns skills
+
+The `coding-standards`, `backend-patterns`, and `frontend-react-patterns` skills are an independent adaptation informed by [`affaan-m/ECC`](https://github.com/affaan-m/ECC) (`skills/coding-standards`, `skills/backend-patterns`, `skills/frontend-patterns`, and `rules/common/`). The implementation deliberately avoids reproducing the upstream's full text or its exact worked examples, and does not carry forward a drift/contradiction found between two of the upstream's own mirrored copies (an in-memory rate limiter added to `.agents/skills/backend-patterns/SKILL.md` that contradicts the canonical `skills/backend-patterns/SKILL.md`'s explicit warning against per-process in-memory limiters in production).
+
+Upstream copyright and license notice:
+
+```text
+MIT License
+
+Copyright (c) 2026 Affaan Mustafa
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```
+
+## Anthropic — `frontend-design` skill
+
+The `frontend-visual-design` skill is an independent adaptation informed by [`anthropics/skills/skills/frontend-design`](https://github.com/anthropics/skills/tree/main/skills/frontend-design). The implementation restates the upstream's design philosophy in this repo's own skill format rather than reproducing its full text.
+
+Upstream license: Apache License, Version 2.0. Full text: https://github.com/anthropics/skills/blob/main/skills/frontend-design/LICENSE.txt

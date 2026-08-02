@@ -67,7 +67,7 @@ This is the entry point for browsing this repo as an Obsidian vault. The vault r
 
 ## Skills — three portable copies (`.agents/`, `.claude/`, `.agent/`)
 
-All 32 skills are mirrored across all three platforms (Claude Code, portable, Antigravity); none are role-specific-only anymore.
+All 36 skills are mirrored across all three platforms (Claude Code, portable, Antigravity); none are role-specific-only anymore.
 
 **Mirrored (all three platforms):**
 
@@ -103,6 +103,10 @@ All 32 skills are mirrored across all three platforms (Claude Code, portable, An
 - api-observability-monitoring — [[../../.agents/skills/api-observability-monitoring/SKILL.md|portable]] · [[../../.claude/skills/api-observability-monitoring/SKILL.md|claude]] · [[../../.agent/skills/api-observability-monitoring/SKILL.md|antigravity]]
 - api-integration-patterns — [[../../.agents/skills/api-integration-patterns/SKILL.md|portable]] · [[../../.claude/skills/api-integration-patterns/SKILL.md|claude]] · [[../../.agent/skills/api-integration-patterns/SKILL.md|antigravity]]
 - api-mocking-sandbox — [[../../.agents/skills/api-mocking-sandbox/SKILL.md|portable]] · [[../../.claude/skills/api-mocking-sandbox/SKILL.md|claude]] · [[../../.agent/skills/api-mocking-sandbox/SKILL.md|antigravity]]
+- coding-standards — [[../../.agents/skills/coding-standards/SKILL.md|portable]] · [[../../.claude/skills/coding-standards/SKILL.md|claude]] · [[../../.agent/skills/coding-standards/SKILL.md|antigravity]]
+- backend-patterns — [[../../.agents/skills/backend-patterns/SKILL.md|portable]] · [[../../.claude/skills/backend-patterns/SKILL.md|claude]] · [[../../.agent/skills/backend-patterns/SKILL.md|antigravity]]
+- frontend-react-patterns — [[../../.agents/skills/frontend-react-patterns/SKILL.md|portable]] · [[../../.claude/skills/frontend-react-patterns/SKILL.md|claude]] · [[../../.agent/skills/frontend-react-patterns/SKILL.md|antigravity]]
+- frontend-visual-design — [[../../.agents/skills/frontend-visual-design/SKILL.md|portable]] · [[../../.claude/skills/frontend-visual-design/SKILL.md|claude]] · [[../../.agent/skills/frontend-visual-design/SKILL.md|antigravity]]
 
 **Role-specific (portable only, `.agents/skills/`):**
 
