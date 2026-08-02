@@ -117,7 +117,21 @@ Non-trivial business logic belongs in a service layer, not in views, serializers
 
 Every new or changed REST endpoint requires a machine-readable schema (OpenAPI, e.g. via `drf-spectacular`) before Developer Agent implements it. The contract must define the request/response schema, error response format, pagination, versioning approach, and authentication requirement. The contract is the source of truth Documentation Agent uses to publish API docs — SA Agent does not itself write end-user documentation.
 
-Default to standard REST conventions when drafting a new contract: resource-plural nouns, HTTP methods for CRUD semantics, and one consistent pagination/error envelope reused across every endpoint rather than a bespoke shape per endpoint. State the endpoint's versioning approach and, if the change is breaking, its deprecation flow per `api-versioning-deprecation`. If the endpoint touches personal, health, or payment data, apply `api-compliance-patterns`' classification checklist before publishing the schema, and if it accepts an object identifier, confirm `api-security-patterns`' object-level authorization checklist is answerable from the contract as written. When the endpoint has its own SLA/SLO/health-check needs, apply `api-observability-monitoring`; when it's one app calling another app's API (webhooks, chained requests, async events), apply `api-integration-patterns`.
+Default to standard REST conventions when drafting a new contract: resource-plural nouns, HTTP methods for CRUD semantics, and one consistent pagination/error envelope reused across every endpoint rather than a bespoke shape per endpoint.
+
+### Skill Routing
+
+Unlike QA Agent's Skill Routing table (one request routes to exactly one skill), these apply as conditional sub-checks *within* drafting a single contract — more than one row can apply to the same endpoint.
+
+| Condition | Skill |
+|---|---|
+| Endpoint touches personal, health, or payment data | `.agents/skills/api-compliance-patterns/` |
+| Endpoint accepts an object identifier | `.agents/skills/api-security-patterns/` |
+| Change is breaking, or a version needs a deprecation flow | `.agents/skills/api-versioning-deprecation/` |
+| Endpoint has its own SLA/SLO/health-check needs | `.agents/skills/api-observability-monitoring/` |
+| One app calling another app's API (webhooks, chained requests, async events) | `.agents/skills/api-integration-patterns/` |
+
+State the endpoint's versioning approach regardless of which rows above apply, and confirm each applicable skill's checklist is answerable from the contract as written before publishing it.
 
 ### Data Migration Safety
 

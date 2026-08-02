@@ -23,6 +23,38 @@ description: Design and verify API-specific authN/authZ and OWASP API Security T
 - **Resource consumption** — an endpoint with no pagination limit, no request-size limit, or no rate limit on an expensive operation is a resource-exhaustion risk; hand off the throttling design itself to `performance-testing`'s rate-limiting guidance.
 - **Security misconfiguration** — verbose error responses that leak stack traces or internal identifiers to the client.
 
+## OWASP API Security Top 10 (2023) Reference
+
+| # | Risk | Mitigation |
+|---|---|---|
+| 1 | Broken Object Level Authorization | Check ownership/access on the specific object ID, every request |
+| 2 | Broken Authentication | Strong token validation, short expiry, no `alg: none` |
+| 3 | Broken Object Property Level Authorization | Allow-list returned/writable fields (see Excessive Data Exposure / Mass Assignment above) |
+| 4 | Unrestricted Resource Consumption | Pagination limits, request-size limits, rate limiting |
+| 5 | Broken Function Level Authorization | Enforce role/permission check on every route, not just sensitive ones |
+| 6 | Unrestricted Access to Sensitive Business Flows | Step-up auth or extra verification for high-value actions |
+| 7 | Server-Side Request Forgery (SSRF) | Allow-list outbound URLs the server will fetch on a client's behalf |
+| 8 | Security Misconfiguration | Disable debug output, enforce HTTPS, explicit CORS allowlist |
+| 9 | Improper Inventory Management | Version and deprecate old endpoints per `api-versioning-deprecation` |
+| 10 | Unsafe Consumption of APIs | Validate/sanitize data received from third-party APIs before trusting it |
+
+### Worked Example: JWT Claims Shape (wire format, language-agnostic)
+
+```json
+{
+  "sub": "user-uuid",
+  "iss": "https://auth.example.com",
+  "aud": "https://api.example.com",
+  "exp": 1799999999,
+  "iat": 1799996399,
+  "jti": "unique-token-id",
+  "roles": ["editor"],
+  "scope": "read:orders write:orders"
+}
+```
+
+Validate `iss`, `aud`, `exp`, and `nbf` on every request; reject a token whose header declares `alg: none`; check a revocation list for tokens invalidated before their natural expiry.
+
 ## Routing
 
 A finding here follows Security Reviewer's existing Severity Scale and Fix-Before-Merge vs Hardening Opportunity rule — BOLA and broken authentication are Critical/High by that scale, not judgment calls. Route implementation fixes to Developer Agent; route a missing/insufficient contract (e.g. no documented auth requirement at all) to SA Agent.

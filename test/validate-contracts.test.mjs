@@ -1186,14 +1186,22 @@ test('the seven new API skills carry their required content', async () => {
   assert.match(apiCompliance, /HIPAA/);
   assert.match(apiCompliance, /PCI-DSS/);
   assert.match(apiCompliance, /## Compliance Pattern Checklist/);
+  assert.match(apiCompliance, /### Worked Example: Audit Log Entry Shape/);
+  assert.match(apiCompliance, /"data_class": "PHI"/);
 
   assert.match(apiSecurity, /BOLA\/IDOR/);
   assert.match(apiSecurity, /Mass assignment/);
   assert.match(apiSecurity, /OWASP/);
+  assert.match(apiSecurity, /## OWASP API Security Top 10 \(2023\) Reference/);
+  assert.match(apiSecurity, /Broken Object Level Authorization/);
+  assert.match(apiSecurity, /### Worked Example: JWT Claims Shape/);
+  assert.match(apiSecurity, /alg: none/);
 
   assert.match(apiVersioning, /## Breaking vs Non-Breaking Classification/);
   assert.match(apiVersioning, /Sunset/);
   assert.match(apiVersioning, /RFC 8594/);
+  assert.match(apiVersioning, /### Worked Example \(wire format, language-agnostic\)/);
+  assert.match(apiVersioning, /HTTP\/1\.1 410 Gone/);
 
   assert.match(apiObservability, /Liveness/);
   assert.match(apiObservability, /Readiness/);
@@ -1253,14 +1261,15 @@ test('the new Postman collection template is byte-identical across all three pla
   assert.equal(antigravity, portable);
 });
 
-test('SA Agent API Contract Governance references the 4 new design-adjacent skills in role-definitions and the Claude adapter', async () => {
+test('SA Agent Skill Routing table references the 5 new design-adjacent skills in role-definitions and the Claude adapter', async () => {
   const [roleDefinition, adapter] = await Promise.all([
     readFile('docs/workflow/role-definitions.md', 'utf8'),
     readFile('.claude/agents/sa-agent.md', 'utf8')
   ]);
 
+  assert.match(roleDefinition, /^### Skill Routing$/m);
   for (const skill of ['api-versioning-deprecation', 'api-compliance-patterns', 'api-security-patterns', 'api-observability-monitoring', 'api-integration-patterns']) {
-    assert.match(roleDefinition, new RegExp('`' + skill + '`'));
+    assert.match(roleDefinition, new RegExp('`\\.agents/skills/' + skill + '/`'));
     assert.match(adapter, new RegExp('`' + skill + '`'));
   }
 });

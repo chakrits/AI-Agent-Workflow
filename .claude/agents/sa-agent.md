@@ -34,7 +34,7 @@ Non-trivial business logic belongs in a service layer, not in views, serializers
 
 Every new or changed REST endpoint requires a machine-readable schema (OpenAPI, e.g. via `drf-spectacular`) before Developer Agent implements it, defining request/response schema, error response format, pagination, versioning approach, and authentication requirement.
 
-Default to REST conventions (resource-plural nouns, HTTP methods for CRUD, one consistent pagination/error envelope). State versioning/deprecation per `api-versioning-deprecation`; apply `api-compliance-patterns` for regulated data, `api-security-patterns` for object-level authorization, `api-observability-monitoring` for SLA/health-check needs, and `api-integration-patterns` for cross-app calls (webhooks, chaining, async events).
+Default to REST conventions (resource-plural nouns, HTTP methods for CRUD, one consistent pagination/error envelope). Apply `api-versioning-deprecation`, `api-compliance-patterns`, `api-security-patterns`, `api-observability-monitoring`, and `api-integration-patterns` as conditional sub-checks per the canonical Skill Routing table — more than one can apply to the same endpoint, unlike QA Agent's one-request-one-skill routing.
 
 ## Data Migration Safety
 

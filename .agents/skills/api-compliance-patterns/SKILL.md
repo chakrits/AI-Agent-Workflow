@@ -27,6 +27,23 @@ Security Reviewer's Scan Checklist catches sensitive data reaching a log or URL;
 - **Consent** — if the data's use depends on user consent, the API must record which consent version was in effect at capture time, not just a boolean "consented" flag.
 - **Audit log** — every mutating request against regulated data records who, when, what changed, and the before/after values (or a reference to them) — this is the SOC2-style audit trail, separate from ordinary application logging.
 
+### Worked Example: Audit Log Entry Shape (wire format, language-agnostic)
+
+```json
+{
+  "event_id": "audit-uuid",
+  "timestamp": "2027-01-01T00:00:00Z",
+  "actor": { "user_id": "user-uuid", "role": "claims_reviewer" },
+  "action": "update",
+  "resource": { "type": "claim", "id": "claim-uuid" },
+  "data_class": "PHI",
+  "before": { "status": "pending" },
+  "after": { "status": "approved" }
+}
+```
+
+Store `before`/`after` only for the fields that changed, not a full record snapshot — a full snapshot on every regulated-data write multiplies storage and PII exposure surface for no added audit value.
+
 ## Routing
 
 A compliance gap found here is not self-approved — route to Security Reviewer before the endpoint ships (Security Reviewer's Scan Checklist already covers the mechanics of not leaking the data; this skill's job is to trigger that review with a concrete pattern, not replace it). If the data change itself (not the API surface) is in question, route to Data Agent's PII Routing rule instead.

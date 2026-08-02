@@ -40,6 +40,30 @@ Default to URI-path versioning (`/v1/...`, `/v2/...`) for this project's stack u
 - Publish a migration guide (old field/endpoint → new equivalent) before the old version is removed, not after.
 - Do not remove a version with active traffic; confirm via `api-observability-monitoring`'s request logging before retiring it.
 
+### Worked Example (wire format, language-agnostic)
+
+Response headers while the deprecated version is still live:
+
+```http
+Deprecation: true
+Sunset: Sat, 01 Jan 2027 00:00:00 GMT
+Link: <https://api.example.com/v2/users>; rel="successor-version"
+```
+
+Response after the sunset date has passed:
+
+```http
+HTTP/1.1 410 Gone
+Content-Type: application/json
+
+{
+  "error": "version_sunset",
+  "message": "API v1 was sunset on 2027-01-01. Please migrate to v2.",
+  "migration_guide": "https://docs.example.com/migrations/v1-to-v2",
+  "successor_endpoint": "https://api.example.com/v2/users"
+}
+```
+
 ## Canonical References
 
 - `docs/workflow/role-definitions.md` (SA Agent → API Contract Governance; Release Agent → Versioning and Changelog Contract)
