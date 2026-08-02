@@ -1,23 +1,24 @@
 # PROJECT_STATUS.md
 
 ## Current Work Item
-- ID: None (idle — awaiting next human-sponsored work item)
-- Title: N/A
-- Owner: N/A
-- Status: Idle
-- References: N/A
+- ID: GitHub Issue #132 with split child Issue #133
+- Title: Compatibility-first Progressive Context and Worktree-Scoped Status planning
+- Owner: Human Maintainer for the merged #132 first increment and bounded PR #135 review
+- Status: PR #134 merged the independently reviewed and QA-verified #132 context-contract increment as `9306466`. Issue #133 carries `status:spec-ready`, `status:development-done`, `status:verification-done`, and `phase:human-review`; PR #135 remains the bounded status-foundation review. Issue #133 remains open because B-03/B-04/B-06–B-08 are not authorized or complete; neither slice has authority-switch or Go approval.
+- References: https://github.com/chakrits/AI-Agent-Workflow/issues/132 · https://github.com/chakrits/AI-Agent-Workflow/issues/133
 
 ## Current Stage
-- Idle — last completed work was Issue #129 (reset-to-template history scrub), merged through PR #130 as `4243eb5`.
+- #132 first context-contract increment is merged; its future host activation/measurement work remains separately gated. #133 is at `phase:human-review` for bounded PR #135. GitHub consumed the Fresh QA evidence through https://github.com/chakrits/AI-Agent-Workflow/issues/133#issuecomment-5152551622. Historical Windows evidence remains unsupported/N/A, with whole-repository portability tracked at https://github.com/chakrits/AI-Agent-Workflow/issues/136. B-03/B-04/B-06–B-08, hosted writer/projection activation, authority switch, rollback activation, release, and Go remain unauthorized.
 
 ## Change Classification
-- Change Type: N/A (idle)
-- Risk Level: N/A
-- Code Change Required: No
-- Architecture Change Required: No
-- Security Review Required: No
+- Change Type: Framework / Meta Change
+- Risk Level: Medium
+- Code Change Required: Completed for #132's merged contract seam and #133's currently authorized bounded loader/runtime increment; all later increments require separate approval
+- Architecture Change Required: Yes
+- Security Review Required: Completed for the exact #133 loader and runtime-matrix implementations (`69afa7e`, `85f0d0d`); hosted activation and any later security-sensitive increment require separate review
 
 ## Completed
+- GitHub Issue #132 first context-contract increment is ready for Human pre-PR review. Implementation commit `1b632d58ab941977a34438886a107f6d6b9d0ffa` delivers only the `context-compatibility/v1` repository seam and 36 executable fixtures. Independent code review is recorded at `29431314bbd81579ad9848cbfa7a3a802bdd26ba`; fresh QA is recorded at `490613e29a5e4aa437090bcb0e3f67ee1b763ac5` and passed 332/332 tests plus the required validators. Review history included four corrective rounds after the initial review; the final exceptional review was Human-approved and closed the remaining CTX-D06 blocked-evidence finding. This evidence does not establish host activation, native token telemetry, 36 paired host observations, historical replay, live shadow, performance reduction, authority switch, release approval, or final Go/No-Go. Those remain separate future Issue #132 increments subject to their own gates; Issue #133 is not included in this handoff.
 - GitHub Issue #129 (reset-to-template history scrub) merged through PR #130 as `4243eb5`. The delivered reset is dry-run by default, preserves `docs/records/qa/`, requires explicit confirmation and clean contained targets for apply, and blocks destructive CI invocation. A repository-owned fail-closed harness is the only approved agent path for confirmed-reset verification: it proves standalone disposable-root ownership, canonical root/common-directory/script/`cwd` binding, exact commit and clean state, QA sentinel preservation, dirty refusal/no mutation, cleanup, primary integrity, and idempotency. Independent review closed CR-129-H01 through CR-129-H04 with 0 open findings; fresh QA passed AC-01 through AC-12, focused 68/68, normal/post-reset 316/316, and 11/11 validators in both environments. The two restored accidental primary-worktree invocations remain recorded as incident evidence; neither authorizes reset/history operations against the primary repository.
 - GitHub Issue #116 (framework gap closure — work item traceability, evidence-based label cleanup, dispatch-receipt anti-forgery controls, Config/Data contract expansion) closed through 4 source PRs (#122, #123, #124, #127) across 5 child work items (#117–#121). The original 4-fix combined plan was withdrawn after two review passes found factual errors in its own evidence (52 vs 7 stale labels — a `gh pr list --state merged --label` CLI bug; a dispatch-receipt CLI proposal covering 4 of 8 schema-required fields; a 115-TASK_LOG-row denominator vs 27 distinct issues) and process concerns (Fix 1 misclassified as Documentation-only despite being an executable script; Fix 2's age-only label removal risked erasing incomplete-closeout evidence; Fix 3 needed SA + Security design before any tooling; Fix 4 could not copy New Feature's contract shape). The corrected plan split into 5 independently-routed child issues, each Boss-approved individually before implementation:
   - **#117** (PR #122, `42d15fd`) — `scripts/backfill-work-item-records.mjs` groups TASK_LOG rows by distinct issue (not row), generating minimal work-item records with `Unknown — requires review` status unless explicit merge+closeout evidence exists, never overwriting existing records (issue-numbered or slug-based), idempotent. Independent QA found 5 of the original 10 pilot records were fabricated — `#78/#79/#80/#84/#89` are PR numbers misparsed as Issue numbers from `TASK_LOG` rows reading "PRs #78, #79, #80, #81" (plural/list, not the singular `PR #NN` the parser recognized) — root-caused, fixed, and the bad records regenerated correctly. `npm test` 223 → 247.
