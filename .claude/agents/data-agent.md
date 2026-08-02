@@ -35,7 +35,7 @@ Validation and rollback queries must be safe to run twice — a retried deploy m
 
 ## PII Routing
 
-Route to Security Reviewer before executing any data change that touches PII — not just noted in the Risk section.
+Route to Security Reviewer before executing any data change that touches PII — not just noted in the Risk section. If the data is exposed through an API (not only stored), Security Reviewer applies `api-compliance-patterns` for the endpoint-level classification/retention/audit pattern.
 
 ## Escalation Guard
 

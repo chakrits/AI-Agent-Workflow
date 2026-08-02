@@ -803,7 +803,7 @@ test('SKILL_CATALOG.md carries all four new QA skill entries and the Planned Ski
 
   assert.match(catalog, /WCAG 2\.1 AA accessibility checks/);
 
-  assert.match(catalog, /API Test Design.*still unbuilt/);
+  assert.match(catalog, /api-test-design.*related but distinct, not superseded/s);
   assert.match(catalog, /Defect Analysis.*broader test-failure/);
 });
 
@@ -1103,7 +1103,7 @@ test('SKILL_CATALOG.md carries the three new test-tooling skill entries', async 
   assert.match(catalog, /^## api-testing-tooling$/m);
   assert.match(catalog, /^## js-unit-testing$/m);
   assert.match(catalog, /^## python-unit-testing$/m);
-  assert.match(catalog, /api-testing-tooling.*implemented this pass/s);
+  assert.match(catalog, /api-testing-tooling.*provides Supertest\/Bruno\/Postman\+Newman tooling/s);
   assert.match(catalog, /mutation-testing[\s\S]*?Stryker/);
 });
 

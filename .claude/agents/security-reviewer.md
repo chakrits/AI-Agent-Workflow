@@ -26,6 +26,10 @@ Use the [Security Reviewer persona](../../docs/operating-model/AGENT_PERSONAS.md
 
 Run the canonical Scan Checklist first on every security-sensitive change: hardcoded secrets/insecure fallbacks, `DEBUG = True`, raw SQL bypassing the ORM, `CORS_ALLOW_ALL_ORIGINS` instead of an allowlist, missing DRF `permission_classes`/`authentication_classes`, sensitive data in logs/URLs, missing throttling on auth endpoints.
 
+## Skill Routing
+
+For an API endpoint specifically, also apply `api-security-patterns` (BOLA/IDOR, excessive data exposure, mass assignment) and, if the endpoint touches personal/health/payment data, `api-compliance-patterns` (GDPR/HIPAA/PCI-DSS/SOC2 patterns).
+
 ## Severity Scale
 
 Classify every finding Critical/High/Medium/Low/Informational per the canonical scale — calibrated to exploitability and blast radius, distinct from `code-review-gate`'s generic taxonomy.

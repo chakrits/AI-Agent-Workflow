@@ -21,6 +21,10 @@ Operationalize QA Agent's API Contract Validation rule for this project's Django
 3. Checks the fuzzer can't infer on its own: authentication requirement enforced (401/403 as declared), pagination envelope matches (`?page=` / `?cursor=` per schema), API version path/header matches, error response body shape matches the schema's declared error format.
 4. Record each check's result in `docs/templates/TEST_REPORT.md` with the schemathesis run output (or manual request/response) attached as evidence, per QA Agent's Evidence-Based Reporting rule.
 
+## Diagnosing a Mismatch
+
+When schemathesis (or a manual check) reports a failure, capture the actual request sent and response received (method, path, headers, status code, body) before deciding where the defect lies. Diff it field-by-field against the schema: a wrong `Content-Type`, a status code the schema doesn't declare for that operation, or a response field present/missing relative to the schema are the three most common causes. Attach the captured request/response pair as evidence — do not describe the mismatch from memory.
+
 ## Defect Routing
 
 A schema/implementation mismatch is a defect, not a QA judgment call to resolve — per the canonical API Contract Validation rule, route to Developer Agent if the code is wrong, or SA Agent if the schema itself is wrong or incomplete.

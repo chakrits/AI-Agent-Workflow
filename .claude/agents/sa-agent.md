@@ -34,6 +34,8 @@ Non-trivial business logic belongs in a service layer, not in views, serializers
 
 Every new or changed REST endpoint requires a machine-readable schema (OpenAPI, e.g. via `drf-spectacular`) before Developer Agent implements it, defining request/response schema, error response format, pagination, versioning approach, and authentication requirement.
 
+Default to REST conventions (resource-plural nouns, HTTP methods for CRUD, one consistent pagination/error envelope). State versioning/deprecation per `api-versioning-deprecation`; apply `api-compliance-patterns` for regulated data, `api-security-patterns` for object-level authorization, `api-observability-monitoring` for SLA/health-check needs, and `api-integration-patterns` for cross-app calls (webhooks, chaining, async events).
+
 ## Data Migration Safety
 
 Any PostgreSQL schema change affecting existing data must state its Django migration strategy in the SDD: expand/contract sequencing, backfill plan, and rollback plan. Data Agent still owns running non-destructive reference/seed data changes.

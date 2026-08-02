@@ -49,15 +49,14 @@ These are intentionally not implemented yet but reserved for Phase 2+.
 
 | Planned Skill | Purpose | Suggested Path |
 |---|---|---|
-| API Test Design | API contract, request/response, status codes, schema, negative API tests | `.agents/skills/api-test-design/` |
 | Regression Test Planning | Regression scope, impact matrix, smoke/sanity/regression set | `.agents/skills/regression-test-planning/` |
 | Defect Analysis | Analyze test failures, logs, screenshots, reproduce steps, severity | `.agents/skills/defect-analysis/` |
 | Robot Framework Automation | Convert test cases into Robot Framework scripts | `.agents/skills/robot-framework-automation/` |
 | Project Spec Bootstrap | One compact spec (Objective, Commands, Structure, Code Style, Testing, Boundaries) for a *new target application repo* — not this meta-repo. Deferred until a real target app exists; PM/BA/SA's existing artifacts already cover this repo's own needs. | `.agents/skills/project-spec-bootstrap/` |
 
-Superseded (removed from this table because a real skill already covers the purpose): Data Change Validation and Config Change Validation → `data-config-change`; Code Review → `code-review-gate`; System Design Review → `sa-architecture-design`.
+Superseded (removed from this table because a real skill already covers the purpose): Data Change Validation and Config Change Validation → `data-config-change`; Code Review → `code-review-gate`; System Design Review → `sa-architecture-design`; API Test Design → `api-test-design`.
 
-Note: `api-contract-testing` (implemented this pass) validates an existing implementation against a published schema; the Planned "API Test Design" skill (still unbuilt) is for designing API test *cases* from a contract — related but distinct, not superseded. Similarly, `test-quality-discipline`'s anti-pattern review and `TEST_REPORT.md`'s new Root Cause Analysis section do not close the Planned "Defect Analysis" skill, which covers broader test-failure/log/screenshot analysis. `api-testing-tooling` (implemented this pass) provides Supertest/Bruno tooling for *executing* hand-scripted API tests; it does not close the Planned "API Test Design" skill either, since that skill is about designing what those test cases should be, not running them.
+Note: `api-contract-testing` validates an existing implementation against a published schema; `api-test-design` (implemented this pass, closing the former Planned Skill of the same purpose) designs API test *cases* from a contract — related but distinct, not superseded. Similarly, `test-quality-discipline`'s anti-pattern review and `TEST_REPORT.md`'s new Root Cause Analysis section do not close the Planned "Defect Analysis" skill, which covers broader test-failure/log/screenshot analysis. `api-testing-tooling` provides Supertest/Bruno/Postman+Newman tooling for *executing* hand-scripted API tests; it does not close `api-test-design` either, since that skill is about designing what those test cases should be, not running them.
 
 
 ## ba-requirement-analysis
@@ -169,7 +168,7 @@ Note: `api-contract-testing` (implemented this pass) validates an existing imple
 | Primary Agent | QA Agent |
 | Input | OpenAPI schema (`drf-spectacular`), implemented endpoint, target environment |
 | Output | Contract validation evidence (schemathesis run output, checks) recorded in `TEST_REPORT.md` |
-| Do Not Use When | No OpenAPI schema exists yet — route to SA Agent's API Contract Governance rule first; or the task is designing API test *cases* rather than validating an existing implementation against a schema (that remains the still-unbuilt "API Test Design" Planned Skill) |
+| Do Not Use When | No OpenAPI schema exists yet — route to SA Agent's API Contract Governance rule first; or the task is designing API test *cases* rather than validating an existing implementation against a schema — use `api-test-design` instead |
 | Next Skill / Agent | Developer Agent (implementation mismatch), SA Agent (schema mismatch) |
 
 ## performance-testing
@@ -212,9 +211,86 @@ Note: `api-contract-testing` (implemented this pass) validates an existing imple
 | Trigger | Target app has HTTP endpoints needing hand-written functional test coverage or a versionable API request collection, distinct from schema-contract fuzzing |
 | Primary Agent | QA Agent |
 | Input | Target app's HTTP endpoints, auth requirements, target environment |
-| Output | Supertest test results or Bruno collection run output recorded in `TEST_REPORT.md` |
+| Output | Supertest test results, Bruno collection run output, or Newman (Postman collection) run output recorded in `TEST_REPORT.md` |
 | Do Not Use When | The task is schema-contract validation against a published OpenAPI schema — use `api-contract-testing` instead |
 | Next Skill / Agent | Developer Agent (implementation defect) |
+
+## api-test-design
+
+| Field | Detail |
+|---|---|
+| Trigger | An OpenAPI schema, collection, or endpoint description exists and QA Agent needs to decide the test case list before any script or fuzz run exists |
+| Primary Agent | QA Agent |
+| Input | OpenAPI schema, Postman/Bruno collection, or plain endpoint description |
+| Output | Test case table (IPO/BVA/EP per endpoint) recorded in `TEST_PLAN.md` / `TEST_REPORT.md` |
+| Do Not Use When | Validating an already-implemented endpoint against a published schema (`api-contract-testing`), or writing/running the actual scripts for a known case list (`api-testing-tooling`) |
+| Next Skill / Agent | `api-testing-tooling` or `api-contract-testing` (execution), SA Agent (schema ambiguity) |
+
+## api-compliance-patterns
+
+| Field | Detail |
+|---|---|
+| Trigger | An endpoint reads, writes, or returns personal (GDPR/CCPA), health (HIPAA-style), or payment (PCI-DSS) data, or needs a SOC2-style audit trail |
+| Primary Agent | Security Reviewer |
+| Input | Endpoint/field list, applicable regulation, existing data classification if any |
+| Output | Field classification, masking/retention/consent/audit-log pattern recorded in `SECURITY_REVIEW.md` |
+| Do Not Use When | No regulated data is involved — use the generic `security-review` Scan Checklist instead |
+| Next Skill / Agent | Data Agent (PII Routing), Developer Agent (pattern implementation) |
+
+## api-security-patterns
+
+| Field | Detail |
+|---|---|
+| Trigger | A new/changed endpoint accepts an object identifier and needs per-object authorization verification, or the user asks about OAuth/JWT/RBAC/API security checklist |
+| Primary Agent | Security Reviewer |
+| Input | Endpoint contract, auth requirement, object ownership model |
+| Output | BOLA/mass-assignment/data-exposure findings recorded in `SECURITY_REVIEW.md`, severity per the canonical Severity Scale |
+| Do Not Use When | No object-level authorization surface exists — the generic `security-review` Scan Checklist already covers project-wide auth config |
+| Next Skill / Agent | Developer Agent (fix), SA Agent (missing/insufficient contract) |
+
+## api-versioning-deprecation
+
+| Field | Detail |
+|---|---|
+| Trigger | An existing endpoint's request/response shape is changing, or a version needs a deprecation/sunset flow |
+| Primary Agent | SA Agent |
+| Input | Current contract, proposed change, known consumers |
+| Output | Breaking/non-breaking classification, versioning approach, deprecation timeline recorded in the SDD/ADR |
+| Do Not Use When | The question is about release-level SemVer, not an individual API surface — that's Release Agent's Versioning and Changelog Contract |
+| Next Skill / Agent | Developer Agent (implementation), Documentation Agent (migration guide) |
+
+## api-observability-monitoring
+
+| Field | Detail |
+|---|---|
+| Trigger | A new service/endpoint tier needs health checks or SLA/SLO/SLI targets defined, or the user asks how to monitor an API |
+| Primary Agent | SA Agent |
+| Input | Service/endpoint tier, criticality, existing NFR targets if any |
+| Output | Liveness/readiness check design, SLA/SLO/SLI table, logging/alerting fields recorded in the SDD |
+| Do Not Use When | Targets already exist and need executing under load — use `performance-testing` instead |
+| Next Skill / Agent | `performance-testing` (validate the defined targets), Developer Agent (implement logging) |
+
+## api-integration-patterns
+
+| Field | Detail |
+|---|---|
+| Trigger | One app's endpoint calls another app's API, or the change involves webhooks/async events between services |
+| Primary Agent | SA Agent |
+| Input | Both sides' contracts, retry/idempotency requirements, event flow |
+| Output | Webhook verification, retry/backoff policy, correlation-ID propagation, dead-letter handling recorded in the SDD |
+| Do Not Use When | The endpoint has no cross-app/cross-service integration surface — a single app's own contract is `sa-architecture-design`'s API Contract Governance instead |
+| Next Skill / Agent | `api-observability-monitoring` (correlation ID), `api-mocking-sandbox` (isolating one side for debugging) |
+
+## api-mocking-sandbox
+
+| Field | Detail |
+|---|---|
+| Trigger | A consumer needs to be developed/tested before the real provider endpoint is ready, or a dependency is too unstable/rate-limited to test against directly |
+| Primary Agent | Developer Agent / QA Agent |
+| Input | The dependency's OpenAPI schema (preferred) or a captured real request/response pair |
+| Output | Mock server/stub/fixture definition under `tests/api/fixtures/` |
+| Do Not Use When | The real endpoint is available and stable — use `api-testing-tooling` or `api-contract-testing` directly instead |
+| Next Skill / Agent | `api-contract-testing` (keep the mock honest against the schema) |
 
 ## js-unit-testing
 

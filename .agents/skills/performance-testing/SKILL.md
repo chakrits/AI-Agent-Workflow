@@ -27,6 +27,10 @@ No fixed tool is mandated by this skill — pick per the SDD or work item. Two o
 
 State the chosen tool and version in the test report.
 
+## Rate Limiting & Throttling (API targets)
+
+When the NFR target is API-specific, verify the throttling behavior itself, not just raw throughput: confirm a 429 response (with `Retry-After` where stated) is returned once the documented quota/burst limit is exceeded, and that the limit is enforced per the stated scope (per-user, per-API-key, or global) rather than accidentally shared across all callers. If the SDD states a retry/backoff expectation for callers, verify a client using exponential backoff eventually succeeds rather than being permanently throttled.
+
 ## Recording Results
 
 Record every validated NFR target in `docs/templates/TEST_PLAN.md`'s "NFR Targets Under Test" table (Target / SDD Reference / Validation Method) and the measured outcome in `docs/templates/TEST_REPORT.md`: measured value, method, pass/fail. If a target genuinely cannot be validated in the current QA workflow, record `Not validated — <reason>` per the canonical NFR Validation rule — this skill exists to make that the exception, not the default, not to remove the escape hatch.
