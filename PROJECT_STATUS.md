@@ -1,23 +1,24 @@
 # PROJECT_STATUS.md
 
 ## Current Work Item
-- ID: GitHub Issue #132 with split child Issue #133
-- Title: Compatibility-first Progressive Context and Worktree-Scoped Status planning
-- Owner: Human Maintainer for the merged #132 first increment and bounded PR #135 review
-- Status: PR #134 merged the independently reviewed and QA-verified #132 context-contract increment as `9306466`. Issue #133 carries `status:spec-ready`, `status:development-done`, `status:verification-done`, and `phase:human-review`; PR #135 remains the bounded status-foundation review. Issue #133 remains open because B-03/B-04/B-06–B-08 are not authorized or complete; neither slice has authority-switch or Go approval.
+- ID: None — idle after PR #137 bounded-increment integration
+- Title: No active implementation increment
+- Owner: Human Maintainer
+- Status: PR #137 merged the independently reviewed #132 context-contract and #133 bounded status-foundation increments to `main` as `afe8091`. Issues #132 and #133 remain open for separately authorized later increments; no authority switch or final Go is approved.
 - References: https://github.com/chakrits/AI-Agent-Workflow/issues/132 · https://github.com/chakrits/AI-Agent-Workflow/issues/133
 
 ## Current Stage
-- #132 first context-contract increment is merged; its future host activation/measurement work remains separately gated. #133 is at `phase:human-review` for bounded PR #135. GitHub consumed the Fresh QA evidence through https://github.com/chakrits/AI-Agent-Workflow/issues/133#issuecomment-5152551622. Historical Windows evidence remains unsupported/N/A, with whole-repository portability tracked at https://github.com/chakrits/AI-Agent-Workflow/issues/136. B-03/B-04/B-06–B-08, hosted writer/projection activation, authority switch, rollback activation, release, and Go remain unauthorized.
+- Idle / Human decision required before another increment starts. Issue #132 was reopened during closeout after GitHub auto-closed it on the PR #137 merge; evidence is https://github.com/chakrits/AI-Agent-Workflow/issues/132#issuecomment-5158198361. Host activation/measurement, historical/live shadow, status-consumer migration, hosted writer/projection activation, authority switch, rollback activation, release, and Go remain unauthorized. Windows portability remains separate at https://github.com/chakrits/AI-Agent-Workflow/issues/136.
 
 ## Change Classification
 - Change Type: Framework / Meta Change
 - Risk Level: Medium
-- Code Change Required: Completed for #132's merged contract seam and #133's currently authorized bounded loader/runtime increment; all later increments require separate approval
+- Code Change Required: No active implementation; all later increments require separate Human approval
 - Architecture Change Required: Yes
 - Security Review Required: Completed for the exact #133 loader and runtime-matrix implementations (`69afa7e`, `85f0d0d`); hosted activation and any later security-sensitive increment require separate review
 
 ## Completed
+- PR #137 merged the compatibility-first bounded foundations to `main` as `afe8091b0f2585c4472ff26c6f73a99b76d76869`: PR #134 supplied Issue #132's `context-compatibility/v1` seam and 36 executable scenarios; PR #135 supplied Issue #133's strict status parser, schema, bounded loader, deterministic JCS fixtures, and Ubuntu runtime gate. Independent QA passed 332/332 for #132, 31/31 focused plus 348/348 for #133, and the synchronized combined tree passed 364/364. The default-branch project-state audit passed and emitted the normal `post-merge-closeout` signal. GitHub auto-closed #132 through the PR linkage; closeout reopened it because host telemetry, historical/live shadow, reduction/fallback evidence, authority switch, rollback rehearsal, compatibility removal, release, and final Go/No-Go remain deferred. Issue #133 likewise remains open; Windows is unsupported/deferred under #136.
 - GitHub Issue #132 first context-contract increment is ready for Human pre-PR review. Implementation commit `1b632d58ab941977a34438886a107f6d6b9d0ffa` delivers only the `context-compatibility/v1` repository seam and 36 executable fixtures. Independent code review is recorded at `29431314bbd81579ad9848cbfa7a3a802bdd26ba`; fresh QA is recorded at `490613e29a5e4aa437090bcb0e3f67ee1b763ac5` and passed 332/332 tests plus the required validators. Review history included four corrective rounds after the initial review; the final exceptional review was Human-approved and closed the remaining CTX-D06 blocked-evidence finding. This evidence does not establish host activation, native token telemetry, 36 paired host observations, historical replay, live shadow, performance reduction, authority switch, release approval, or final Go/No-Go. Those remain separate future Issue #132 increments subject to their own gates; Issue #133 is not included in this handoff.
 - GitHub Issue #129 (reset-to-template history scrub) merged through PR #130 as `4243eb5`. The delivered reset is dry-run by default, preserves `docs/records/qa/`, requires explicit confirmation and clean contained targets for apply, and blocks destructive CI invocation. A repository-owned fail-closed harness is the only approved agent path for confirmed-reset verification: it proves standalone disposable-root ownership, canonical root/common-directory/script/`cwd` binding, exact commit and clean state, QA sentinel preservation, dirty refusal/no mutation, cleanup, primary integrity, and idempotency. Independent review closed CR-129-H01 through CR-129-H04 with 0 open findings; fresh QA passed AC-01 through AC-12, focused 68/68, normal/post-reset 316/316, and 11/11 validators in both environments. The two restored accidental primary-worktree invocations remain recorded as incident evidence; neither authorizes reset/history operations against the primary repository.
 - GitHub Issue #116 (framework gap closure — work item traceability, evidence-based label cleanup, dispatch-receipt anti-forgery controls, Config/Data contract expansion) closed through 4 source PRs (#122, #123, #124, #127) across 5 child work items (#117–#121). The original 4-fix combined plan was withdrawn after two review passes found factual errors in its own evidence (52 vs 7 stale labels — a `gh pr list --state merged --label` CLI bug; a dispatch-receipt CLI proposal covering 4 of 8 schema-required fields; a 115-TASK_LOG-row denominator vs 27 distinct issues) and process concerns (Fix 1 misclassified as Documentation-only despite being an executable script; Fix 2's age-only label removal risked erasing incomplete-closeout evidence; Fix 3 needed SA + Security design before any tooling; Fix 4 could not copy New Feature's contract shape). The corrected plan split into 5 independently-routed child issues, each Boss-approved individually before implementation:
@@ -71,10 +72,10 @@
 - GitHub Issue #68 (test-tooling readiness — reference-only config templates and skills for Playwright/Supertest/Bruno/Jest/Vitest/pytest/Stryker) merged through PR #70 as commit `0d65956`; Issue #68 closed. Delivered: `docs/workflow/testing-conventions.md` (test folder-structure convention) linked from `PROJECT_INDEX.md` and the vault index; a Playwright config template added to `qa-playwright-testing`; a JS/TS (Stryker) section and config template added to `mutation-testing`; three brand-new skills — `api-testing-tooling` (Supertest + Bruno), `js-unit-testing` (Jest + Vitest), `python-unit-testing` (pytest) — each mirrored byte-identically across `.agents/skills/`, `.claude/skills/`, and `.agent/skills/`; three new `SKILL_CATALOG.md` entries plus a Planned Skills clarifying note; three new QA Skill Routing rows in `docs/workflow/role-definitions.md`, mirrored in `.claude/agents/qa-agent.md`; a `docs/vault/00-Index.md` correction moving five pre-existing skills (`ba-requirement-analysis`, `sa-architecture-design`, `data-config-change`, `qa-playwright-testing`, `security-review`) from "portable only" to "Mirrored" now that all three platform copies are verified in sync, plus the two QA-flagged fixes (AC-06 `SKILL_CATALOG.md` `mutation-testing` Stryker mention; AC-09 vault index 23/23 mirrored-skill count); 6 new regression tests in `test/validate-contracts.test.mjs` (156 → 162 total tests). Zero live dependencies added: no `package.json`/`package-lock.json` change, no `pyproject.toml`/`requirements.txt` created. QA Agent independently verified all 10 Acceptance Criteria PASS at commit `017a34a` (prior AC-06/AC-09 FAILs fixed and re-verified). Default-branch audit passed on `0d65956` and GitHub applied the normal `post-merge-closeout` label to PR #70; no `documentation-sync` exception issue was created.
 
 ## In Progress
-- Issue #129 QA report records AC-01–AC-11 PASS, AC-12 FAIL; Draft PR #130 remains Draft.
+- None. Issues #132 and #133 are open, but no later implementation increment is currently authorized.
 
 ## Blockers / Open Questions
-- Issue #129 QA is BLOCKED at `docs/records/qa/2026-07-31-issue-129-qa-report.md`. AC-12 categorically forbids autonomous destructive reset/history commands, while AC-07/AC-08 and plan §8 require agents to run confirmed reset in a disposable clone. Human Maintainer must clarify the criterion and decide whether the recovered real-worktree invocation requires an explicit exception/ADR plus fresh QA.
+- Human Maintainer must decide whether and when to authorize the next #132/#133 migration increments. The PR #137 merge does not authorize host activation, authority switch, rollback activation, release, or Go.
 - R-002: `.gitlab-ci.yml` has not yet been validated on a live GitLab runner; this is an external verification follow-up, not an active implementation task.
 - Deferred and unscheduled: a Prototype/Spike workflow route and a shared cross-role template pattern.
 - Deferred and unscheduled housekeeping follow-up (Issue #41, Boss-approved, non-blocking): QA-1, QA-2, QA-4, QA-5 — see the Completed section entry for detail. No Issue is open for this yet; track it when the follow-up is scheduled.
@@ -82,15 +83,11 @@
 - `api-contract-testing`, `performance-testing`, and `mutation-testing` document tooling (`schemathesis`, `drf-spectacular`, Locust/k6, `mutmut`) that is not installed anywhere in this repo — intentional per the design spec, since this repo has no Django/Python target application yet. Wiring is deferred to whenever a real work item first needs to execute one of these skills.
 
 ## Required Artifacts
-- Revised `docs/records/implementation-plan/2026-07-28-reset-to-template-history-scrub.md`
-- ADR-0016 in `DECISIONS.md`
-- `docs/workflow/reset-to-template.md`
-- Independent code-review record (pending Reviewer)
-- AC-by-AC QA evidence (pending QA Agent)
+- None for the merged bounded increments. Any later #132/#133 increment requires its own approved scope, implementation evidence, independent review, and QA evidence.
 
 ## Next Quality Gate
-- Human Maintainer reviews PR #130 and decides whether to merge.
-- No agent may apply the reset to the primary repository or perform the optional history procedure.
+- Human Maintainer reviews and merges the dedicated PR #137 documentation closeout.
+- Any subsequent #132/#133 increment stops for separate Human scope authorization before implementation.
 
 ## Recommended Next Agent
 - Human Maintainer.
