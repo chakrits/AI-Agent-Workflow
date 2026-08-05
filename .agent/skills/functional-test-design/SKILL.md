@@ -1,6 +1,6 @@
 ---
 name: functional-test-design
-description: Use this skill when the task requires functional test analysis, business requirement coverage, function specification analysis, IPO matrix, happy/negative test cases, BVA/EP, risk-based testing, exploratory charters, API functional test cases, or traceability from requirements to test cases. Do not use this skill to implement automation scripts unless explicitly requested.
+description: Use this skill when the task requires functional test analysis, business requirement coverage, function specification analysis, IPO matrix, happy/negative test cases, BVA/EP, Decision Table Testing, State Transition Testing, risk-based testing, exploratory charters, API functional test cases, or traceability from requirements to test cases. Do not use this skill to implement automation scripts unless explicitly requested.
 ---
 
 # Functional Test Design Skill
@@ -70,7 +70,7 @@ Produce the full functional test report:
 7. High-Level Happy Case Scenarios
 8. Detailed Happy Case Test Cases
 9. Negative Test Coverage
-10. BVA / EP Analysis
+10. Test Design Techniques
 11. API Functional Test Cases, if applicable
 12. Risk-based Testing
 13. Exploratory Session Charter
@@ -150,6 +150,8 @@ Apply relevant test design techniques:
 - Negative case
 - Boundary Value Analysis
 - Equivalence Partitioning
+- Decision Table Testing
+- State Transition Testing
 - Risk-based testing
 - Exploratory testing
 - API functional testing, if API exists
@@ -203,6 +205,29 @@ Minimum set:
 
 Separate valid and invalid partitions. Pick representative values from each partition.
 
+### Decision Table Testing
+
+Use when a function's output depends on the combination of two or more independent conditions (multi-condition business rules), not a single input's boundaries or partitions — for example, claim-eligibility rules driven by policy status × claim type × membership tier × remaining limit.
+
+Structure:
+
+- Condition columns: each independent input condition, expressed as True/False or a small enumerated set of values.
+- Action columns: the resulting output/behavior for each combination of condition values.
+- Rule ID convention: label each row `Rule-<sequence>` (e.g. `Rule-01`, `Rule-02`) so it can be cited from a test case's source reference.
+
+Cover every rule that is reachable given the domain's actual constraints; mark logically impossible combinations `N/A — <reason>` rather than omitting the row.
+
+### State Transition Testing
+
+Use when an entity has a defined lifecycle of states and the behavior under test depends on which state the entity is currently in — for example, a claim-status lifecycle (submitted → under review → approved/rejected → paid → closed).
+
+Structure:
+
+- States: the full enumerated set of states the entity can be in.
+- Valid transitions: state pairs that are allowed, with the triggering event/action.
+- Invalid transitions: state pairs that must be rejected (e.g. `paid → submitted`), each backed by its own negative test case.
+- Guard conditions: any additional condition that must hold for a valid transition to actually be permitted (e.g. role, approval status, remaining balance).
+
 ### Risk-based Testing
 
 Risk score = Likelihood × Impact.
@@ -244,6 +269,20 @@ Examples:
 9. For security-sensitive flows, flag security review handoff.
 10. Review coverage before final output.
 
+### Worked Example: Determinism and Explicit Test Data (Rules #6 and #7)
+
+Bad (vague, not verifiable, not deterministic):
+
+- Expected Result: `"System displays an error"`
+- Test Data: `amount = bad_value`
+
+Good (specific, verifiable, deterministic):
+
+- Expected Result: `"HTTP 400 with INVALID_AMOUNT error code"`
+- Test Data: `amount = -500.00 THB`
+
+A tester or an automation script must be able to execute the test step and confirm pass/fail without interpretation. Avoid placeholder or ambiguous test data; state the exact value used.
+
 ## Naming Convention
 
 | Type | Format |
@@ -252,6 +291,8 @@ Examples:
 | Negative Case | `TC-NEG-xxx` |
 | Boundary Value | `TC-BVA-xxx` |
 | Equivalence Partition | `TC-EP-xxx` |
+| Decision Table | `TC-DT-xxx` |
+| State Transition | `TC-ST-xxx` |
 | API Functional | `TC-API-xxx` |
 | Regression | `TC-REG-xxx` |
 | Performance Baseline | `TC-PERF-xxx` |

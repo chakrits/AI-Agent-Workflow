@@ -1,11 +1,11 @@
 # PROJECT_STATUS.md
 
 ## Current Work Item
-- ID: None — idle after PR #137 bounded-increment integration
-- Title: No active implementation increment
-- Owner: Human Maintainer
-- Status: PR #137 merged the independently reviewed #132 context-contract and #133 bounded status-foundation increments to `main` as `afe8091`. Issues #132 and #133 remain open for separately authorized later increments; no authority switch or final Go is approved.
-- References: https://github.com/chakrits/AI-Agent-Workflow/issues/132 · https://github.com/chakrits/AI-Agent-Workflow/issues/133
+- ID: GitHub Issue #143
+- Title: Add Decision Table + State Transition testing techniques to `functional-test-design`
+- Owner: Documentation Agent (authoring) → Human Maintainer (merge)
+- Status: Requirements/plan stage. Boss supplied an external `skill.md` QA-agent-guide example; screened section by section against `functional-test-design`/`test-quality-discipline`/`qa-playwright-testing`. Adopted 3 items (Decision Table Testing, State Transition Testing — both absent from the whole catalog and directly relevant to this repo's e-claim/insurance domain's claim-eligibility matrices and claim-status lifecycles — plus a Determinism/Explicit Test Data worked example). Rejected the rest (Gherkin-as-default conflicts with `qa-playwright-testing`'s existing opt-in design; duplicate workflow diagram; weaker qualitative risk score; redundant Test Type column; Role/Identity persona section; "always be exhaustive" conflicts with this repo's anti-scope-creep principle). A related but separate gap — no skill/template cross-references a QA Test Case ID (`TC-*`) to an actual automated test — was deliberately deferred to a follow-up Issue (not yet opened) to avoid a Coverage Matrix merge collision with this one. Implementation plan and Issue #143 are written; code changes not yet started. Unrelated to the idle #132/#133 bounded-increment work below.
+- References: https://github.com/chakrits/AI-Agent-Workflow/issues/143 · `docs/records/implementation-plan/2026-08-05-functional-test-design-technique-expansion.md` · `docs/records/work-items/2026-08-05-issue-143.md`
 
 ## Current Stage
 - Idle / Human decision required before another increment starts. Issue #132 was reopened during closeout after GitHub auto-closed it on the PR #137 merge; evidence is https://github.com/chakrits/AI-Agent-Workflow/issues/132#issuecomment-5158198361. Host activation/measurement, historical/live shadow, status-consumer migration, hosted writer/projection activation, authority switch, rollback activation, release, and Go remain unauthorized. Windows portability remains separate at https://github.com/chakrits/AI-Agent-Workflow/issues/136.
@@ -73,7 +73,8 @@
 - GitHub Issue #68 (test-tooling readiness — reference-only config templates and skills for Playwright/Supertest/Bruno/Jest/Vitest/pytest/Stryker) merged through PR #70 as commit `0d65956`; Issue #68 closed. Delivered: `docs/workflow/testing-conventions.md` (test folder-structure convention) linked from `PROJECT_INDEX.md` and the vault index; a Playwright config template added to `qa-playwright-testing`; a JS/TS (Stryker) section and config template added to `mutation-testing`; three brand-new skills — `api-testing-tooling` (Supertest + Bruno), `js-unit-testing` (Jest + Vitest), `python-unit-testing` (pytest) — each mirrored byte-identically across `.agents/skills/`, `.claude/skills/`, and `.agent/skills/`; three new `SKILL_CATALOG.md` entries plus a Planned Skills clarifying note; three new QA Skill Routing rows in `docs/workflow/role-definitions.md`, mirrored in `.claude/agents/qa-agent.md`; a `docs/vault/00-Index.md` correction moving five pre-existing skills (`ba-requirement-analysis`, `sa-architecture-design`, `data-config-change`, `qa-playwright-testing`, `security-review`) from "portable only" to "Mirrored" now that all three platform copies are verified in sync, plus the two QA-flagged fixes (AC-06 `SKILL_CATALOG.md` `mutation-testing` Stryker mention; AC-09 vault index 23/23 mirrored-skill count); 6 new regression tests in `test/validate-contracts.test.mjs` (156 → 162 total tests). Zero live dependencies added: no `package.json`/`package-lock.json` change, no `pyproject.toml`/`requirements.txt` created. QA Agent independently verified all 10 Acceptance Criteria PASS at commit `017a34a` (prior AC-06/AC-09 FAILs fixed and re-verified). Default-branch audit passed on `0d65956` and GitHub applied the normal `post-merge-closeout` label to PR #70; no `documentation-sync` exception issue was created.
 
 ## In Progress
-- None. Issues #132 and #133 are open, but no later implementation increment is currently authorized.
+- GitHub Issue #143 (Decision Table + State Transition testing techniques for `functional-test-design`) — implementation plan and Issue opened on branch `feature/functional-test-design-technique-expansion`; code changes not yet started.
+- Issues #132 and #133 remain open, but no later implementation increment is currently authorized (unrelated to #143).
 
 ## Blockers / Open Questions
 - Human Maintainer must decide whether and when to authorize the next #132/#133 migration increments. The PR #137 merge does not authorize host activation, authority switch, rollback activation, release, or Go.

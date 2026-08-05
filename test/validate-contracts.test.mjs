@@ -1711,3 +1711,87 @@ test('Management Status Update remains Thai-first, evidence-bound, and portable'
     assert.match(roles, boundary);
   }
 });
+
+test('functional-test-design SKILL.md carries the Decision Table and State Transition techniques with naming convention rows and a determinism worked example (Issue #143)', async () => {
+  const skill = await readFile('.agents/skills/functional-test-design/SKILL.md', 'utf8');
+
+  assert.match(skill, /Decision Table Testing/);
+  assert.match(skill, /condition columns?/i);
+  assert.match(skill, /action columns?/i);
+  assert.match(skill, /rule ID/i);
+
+  assert.match(skill, /State Transition Testing/);
+  assert.match(skill, /Valid transitions?/i);
+  assert.match(skill, /Invalid transitions?/i);
+  assert.match(skill, /guard condition/i);
+
+  assert.match(skill, /`TC-DT-xxx`/);
+  assert.match(skill, /`TC-ST-xxx`/);
+
+  assert.match(skill, /System displays an error/);
+  assert.match(skill, /HTTP 400 with INVALID_AMOUNT error code/);
+  assert.match(skill, /amount = bad_value/);
+  assert.match(skill, /amount = -500\.00 THB/);
+});
+
+test('functional-test-design SKILL.md Full Mode outline item 10 is renamed to Test Design Techniques without renumbering items 11-18', async () => {
+  const skill = await readFile('.agents/skills/functional-test-design/SKILL.md', 'utf8');
+
+  assert.match(skill, /^10\. Test Design Techniques$/m);
+  assert.doesNotMatch(skill, /^10\. BVA \/ EP Analysis$/m);
+  assert.match(skill, /^11\. API Functional Test Cases, if applicable$/m);
+  assert.match(skill, /^18\. Self-review Checklist$/m);
+});
+
+test('functional-test-design template section 10 is renamed to Test Design Techniques with Decision Table and State Transition subsections, and sections 11-18 keep their numbers', async () => {
+  const template = await readFile('.agents/skills/functional-test-design/templates/function-test-report.md', 'utf8');
+
+  assert.match(template, /^## 10\. Test Design Techniques$/m);
+  assert.doesNotMatch(template, /^## 10\. BVA \/ EP Analysis$/m);
+  assert.match(template, /^### Decision Table Testing$/m);
+  assert.match(template, /^### State Transition Testing$/m);
+  assert.match(template, /TC-DT-001/);
+  assert.match(template, /TC-ST-001/);
+
+  for (const n of [11, 12, 13, 14, 15, 16, 17, 18]) {
+    assert.match(template, new RegExp(`^## ${n}\\. `, 'm'));
+  }
+});
+
+test('functional-test-design template Coverage Matrix (section 15) has Decision Table and State Transition columns, no Automated/Test Ref columns', async () => {
+  const template = await readFile('.agents/skills/functional-test-design/templates/function-test-report.md', 'utf8');
+
+  const section15Match = template.match(/^## 15\. Coverage Matrix\n([\s\S]*?)(?=\n## 16\.)/m);
+  assert.ok(section15Match, 'Coverage Matrix section 15 not found');
+  const section15 = section15Match[1];
+
+  assert.match(section15, /\| Decision Table \| State Transition \|/);
+  assert.doesNotMatch(section15, /Automated/);
+  assert.doesNotMatch(section15, /Test Ref/);
+
+  const headerLine = section15.split('\n').find((line) => line.startsWith('| Requirement / Function'));
+  const separatorLine = section15.split('\n').find((line) => /^\|[-\s|]+\|$/.test(line));
+  const dataLine = section15.split('\n').find((line) => line.startsWith('| N/A'));
+  assert.ok(headerLine && separatorLine && dataLine, 'Coverage Matrix table rows not found');
+  const headerCols = headerLine.split('|').length;
+  assert.equal(separatorLine.split('|').length, headerCols);
+  assert.equal(dataLine.split('|').length, headerCols);
+});
+
+test('functional-test-design SKILL.md is byte-identical across all three platforms after the Issue #143 technique expansion', async () => {
+  const [portable, claude, antigravity] = await Promise.all([
+    readFile('.agents/skills/functional-test-design/SKILL.md', 'utf8'),
+    readFile('.claude/skills/functional-test-design/SKILL.md', 'utf8'),
+    readFile('.agent/skills/functional-test-design/SKILL.md', 'utf8')
+  ]);
+  assert.equal(claude, portable, '.claude/skills/functional-test-design/SKILL.md does not match .agents/');
+  assert.equal(antigravity, portable, '.agent/skills/functional-test-design/SKILL.md does not match .agents/');
+});
+
+test('SKILL_CATALOG.md functional-test-design entry mentions Decision Table and State Transition techniques', async () => {
+  const catalog = await readFile('docs/operating-model/SKILL_CATALOG.md', 'utf8');
+  const line = catalog.split('\n').find((l) => l.startsWith('| Functional Test Design '));
+  assert.ok(line, 'Functional Test Design row not found in SKILL_CATALOG.md');
+  assert.match(line, /Decision Table/);
+  assert.match(line, /State Transition/);
+});
