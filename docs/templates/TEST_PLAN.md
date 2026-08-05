@@ -8,6 +8,16 @@
 - Date:
 - Status: Draft / Review / Approved
 
+## Scope
+
+### In-Scope
+
+- 
+
+### Out-of-Scope
+
+- 
+
 ## Test Types In Scope
 
 - [ ] Unit

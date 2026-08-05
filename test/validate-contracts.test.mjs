@@ -761,6 +761,38 @@ test('QA Agent canonical rule carries its policy and the new evidence, contract,
   assert.match(playwrightSkill, /axe-core\/playwright/);
 });
 
+test('TEST_PLAN.md carries a Scope section with In-Scope/Out-of-Scope, placed before Test Types In Scope', async () => {
+  const testPlan = await readFile('docs/templates/TEST_PLAN.md', 'utf8');
+
+  assert.match(testPlan, /## Scope/);
+  assert.match(testPlan, /### In-Scope/);
+  assert.match(testPlan, /### Out-of-Scope/);
+
+  const scopeIndex = testPlan.indexOf('## Scope');
+  const testTypesIndex = testPlan.indexOf('## Test Types In Scope');
+  assert.ok(scopeIndex > -1 && testTypesIndex > -1 && scopeIndex < testTypesIndex,
+    'Scope section must appear before Test Types In Scope');
+});
+
+test('TEST_REPORT.md carries a PR/Issue Comment Summary subsection and a defect-severity aggregate line', async () => {
+  const testReport = await readFile('docs/templates/TEST_REPORT.md', 'utf8');
+
+  assert.match(testReport, /## PR\/Issue Comment Summary/);
+  assert.match(testReport, /\*\*Overall Status:\*\*/);
+  assert.match(testReport, /\*\*Defect Severity Summary:\*\*/);
+  assert.match(testReport, /Tester's Note/);
+  assert.match(testReport, /\*\*Defect Severity Count:\*\*/);
+
+  const summaryIndex = testReport.indexOf('## PR/Issue Comment Summary');
+  const failedTestsIndex = testReport.indexOf('## Failed Tests / Defects');
+  assert.ok(summaryIndex > -1 && failedTestsIndex > -1 && summaryIndex < failedTestsIndex,
+    'PR/Issue Comment Summary subsection must appear before Failed Tests / Defects');
+
+  const severityCountIndex = testReport.indexOf('**Defect Severity Count:**');
+  assert.ok(severityCountIndex > -1 && severityCountIndex > failedTestsIndex,
+    'Defect Severity Count line must sit above the Failed Tests / Defects table, within that section');
+});
+
 test('the four new QA testing-discipline skills carry their required content', async () => {
   const [apiContract, performance, mutation, testQuality] = await Promise.all([
     readFile('.agents/skills/api-contract-testing/SKILL.md', 'utf8'),

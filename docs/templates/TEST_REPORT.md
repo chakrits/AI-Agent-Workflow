@@ -20,7 +20,26 @@
 | E2E |  |  |  |  |  |
 | Regression |  |  |  |  |  |
 
+## PR/Issue Comment Summary
+
+Copy this subsection directly into the PR/Issue comment as the QA Evidence comment (Cross-Platform Acceptance Criteria Gate).
+
+**Overall Status:** Pass / Fail / Conditional Pass
+
+| Type | Total | Passed | Failed | Blocked |
+|---|---:|---:|---:|---:|
+| Unit |  |  |  |  |
+| API |  |  |  |  |
+| E2E |  |  |  |  |
+| Regression |  |  |  |  |
+
+**Defect Severity Summary:** Critical: 0 · High: 0 · Medium: 0 · Low: 0 · Informational: 0
+
+**Tester's Note:**
+
 ## Failed Tests / Defects
+
+**Defect Severity Count:** Critical: 0 · High: 0 · Medium: 0 · Low: 0 · Informational: 0
 
 | ID | Scenario | Expected | Actual | Severity | Evidence |
 |---|---|---|---|---|---|
