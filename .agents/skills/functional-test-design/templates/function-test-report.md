@@ -64,7 +64,7 @@
 |--------------|----------------|---------------------------|---------------|------------|-----------------|----------|------------------|
 | TC-NEG-001 | N/A | N/A | N/A | N/A | N/A | High | N/A |
 
-## 10. BVA / EP Analysis
+## 10. Test Design Techniques
 
 ### Boundary Value Analysis
 
@@ -77,6 +77,18 @@
 | Field Name | Valid Partitions | Invalid Partitions | Representative Values | Test Case IDs | Applicability Notes |
 |------------|------------------|--------------------|-----------------------|---------------|---------------------|
 | N/A | N/A | N/A | N/A | N/A | N/A |
+
+### Decision Table Testing
+
+| Rule ID | Condition 1 | Condition 2 | Condition 3 | Action / Expected Output | Test Case IDs | Applicability Notes |
+|---------|-------------|-------------|-------------|--------------------------|---------------|---------------------|
+| Rule-01 | N/A | N/A | N/A | N/A | TC-DT-001 | N/A |
+
+### State Transition Testing
+
+| From State | To State | Trigger / Event | Guard Condition | Valid / Invalid | Test Case IDs | Applicability Notes |
+|------------|----------|-----------------|-----------------|------------------|---------------|---------------------|
+| N/A | N/A | N/A | N/A | Valid | TC-ST-001 | N/A |
 
 ## 11. API Functional Test Cases
 
@@ -104,9 +116,9 @@
 
 ## 15. Coverage Matrix
 
-| Requirement / Function | Happy | Negative | BVA | EP | API | Regression | Security Baseline | Performance Baseline | Status |
-|------------------------|-------|----------|-----|----|-----|------------|-------------------|----------------------|--------|
-| N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A |
+| Requirement / Function | Happy | Negative | BVA | EP | Decision Table | State Transition | API | Regression | Security Baseline | Performance Baseline | Status |
+|------------------------|-------|----------|-----|----|-----------------|-------------------|-----|------------|-------------------|----------------------|--------|
+| N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A |
 
 ## 16. Performance & Security Fundamentals
 
