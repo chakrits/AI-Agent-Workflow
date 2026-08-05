@@ -1,11 +1,11 @@
 # PROJECT_STATUS.md
 
 ## Current Work Item
-- ID: None — idle after PR #145 merge
-- Title: No active implementation increment
-- Owner: Human Maintainer
-- Status: PR #145 (Issue #143) merged to `main`. Issue #144 (small `TEST_PLAN.md`/`TEST_REPORT.md` template enrichment) remains open on its own branch, implementation not yet started. Issues #132/#133 remain open, no later increment authorized.
-- References: https://github.com/chakrits/AI-Agent-Workflow/issues/143 · https://github.com/chakrits/AI-Agent-Workflow/issues/144
+- ID: GitHub Issue #144
+- Title: Add Scope section to `TEST_PLAN.md` and PR/Issue comment summary to `TEST_REPORT.md`
+- Owner: Documentation Agent (authoring) → Human Maintainer (merge)
+- Status: Requirements/plan stage. Screened 3 external QA template examples Boss supplied (Test Approach, Test Report Summary, Defect Report) against `TEST_PLAN.md`/`TEST_REPORT.md`/`REPRO_STEPS.md`/`BUG_POSTMORTEM.md`. Two small genuine gaps found in `TEST_PLAN.md` (no explicit Scope In/Out section) and `TEST_REPORT.md` (no condensed PR/Issue-comment format, despite QA's Cross-Platform Acceptance Criteria Gate already requiring a QA Evidence comment with no defined shape) — kept as this Issue, deliberately not bundled with #143. The third example ("Defect Report") mapped to a larger, pre-existing gap — the long-Planned-but-never-built `defect-analysis` skill (`SKILL_CATALOG.md` Planned Skills table) — deferred to its own future Issue, queued after the also-deferred TC-ID traceability follow-up from Issue #143's discussion. Issue #143 merged as PR #145 (`bf6d0ff`), closed out through PR #146. Implementation plan and Issue #144 are written; template changes not yet started. Unrelated to the idle #132/#133 bounded-increment work below.
+- References: https://github.com/chakrits/AI-Agent-Workflow/issues/144 · `docs/records/implementation-plan/2026-08-05-qa-template-scope-and-evidence-comment.md` · `docs/records/work-items/2026-08-05-issue-144.md`
 
 ## Current Stage
 - Idle / Human decision required before another increment starts. Issue #132 was reopened during closeout after GitHub auto-closed it on the PR #137 merge; evidence is https://github.com/chakrits/AI-Agent-Workflow/issues/132#issuecomment-5158198361. Host activation/measurement, historical/live shadow, status-consumer migration, hosted writer/projection activation, authority switch, rollback activation, release, and Go remain unauthorized. Windows portability remains separate at https://github.com/chakrits/AI-Agent-Workflow/issues/136.
@@ -74,7 +74,7 @@
 - GitHub Issue #68 (test-tooling readiness — reference-only config templates and skills for Playwright/Supertest/Bruno/Jest/Vitest/pytest/Stryker) merged through PR #70 as commit `0d65956`; Issue #68 closed. Delivered: `docs/workflow/testing-conventions.md` (test folder-structure convention) linked from `PROJECT_INDEX.md` and the vault index; a Playwright config template added to `qa-playwright-testing`; a JS/TS (Stryker) section and config template added to `mutation-testing`; three brand-new skills — `api-testing-tooling` (Supertest + Bruno), `js-unit-testing` (Jest + Vitest), `python-unit-testing` (pytest) — each mirrored byte-identically across `.agents/skills/`, `.claude/skills/`, and `.agent/skills/`; three new `SKILL_CATALOG.md` entries plus a Planned Skills clarifying note; three new QA Skill Routing rows in `docs/workflow/role-definitions.md`, mirrored in `.claude/agents/qa-agent.md`; a `docs/vault/00-Index.md` correction moving five pre-existing skills (`ba-requirement-analysis`, `sa-architecture-design`, `data-config-change`, `qa-playwright-testing`, `security-review`) from "portable only" to "Mirrored" now that all three platform copies are verified in sync, plus the two QA-flagged fixes (AC-06 `SKILL_CATALOG.md` `mutation-testing` Stryker mention; AC-09 vault index 23/23 mirrored-skill count); 6 new regression tests in `test/validate-contracts.test.mjs` (156 → 162 total tests). Zero live dependencies added: no `package.json`/`package-lock.json` change, no `pyproject.toml`/`requirements.txt` created. QA Agent independently verified all 10 Acceptance Criteria PASS at commit `017a34a` (prior AC-06/AC-09 FAILs fixed and re-verified). Default-branch audit passed on `0d65956` and GitHub applied the normal `post-merge-closeout` label to PR #70; no `documentation-sync` exception issue was created.
 
 ## In Progress
-- GitHub Issue #144 (`TEST_PLAN.md` Scope section + `TEST_REPORT.md` PR/Issue comment summary) — implementation plan and Issue opened on branch `feature/qa-template-scope-and-evidence-comment`; template changes not yet started. Deliberately kept separate from #143 (no file overlap).
+- GitHub Issue #144 (`TEST_PLAN.md` Scope section + `TEST_REPORT.md` PR/Issue comment summary) — implementation plan and Issue opened on branch `feature/qa-template-scope-and-evidence-comment`; template changes not yet started. Deliberately kept separate from #143 (no file overlap; #143 merged as PR #145).
 - Issues #132 and #133 remain open, but no later implementation increment is currently authorized (unrelated to #143/#144).
 
 ## Blockers / Open Questions
