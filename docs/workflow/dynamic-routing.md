@@ -68,6 +68,10 @@ phase:verification or phase:human-review -> phase:development | phase:design | p
 
 When work routes backward, remove the superseded current `phase:` label, retain truthful evidence milestones, and record the reason and receiving owner in the handoff.
 
+### QA Static Logic Review Sub-check
+
+Select `static-logic-review` only when a production-logic diff changes a decision branch, validation rule, calculation/threshold, mapping/transformation, state/side effect, authorization decision, or error mapping **and** an approved AC/specification/contract exists. It is a QA-owned dry run, not a universal PR gate or substitute for runtime QA, security review, or human approval. Route a missing business source as `Potential Requirement Gap` to BA Agent, a missing API/design source to SA Agent, and a security-sensitive concern to Security Reviewer.
+
 ## Change Types
 
 | Change Type | Default Workflow | Can Skip |

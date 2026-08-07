@@ -230,6 +230,10 @@ Use `code-review-gate` before QA/release handoff when code changed.
 
 Do not skip code review for security-sensitive, auth, permission, data migration, production config, or payment/financial logic changes.
 
+### Static Logic Review Rule
+
+QA may use `static-logic-review` as a risk-triggered dry-run sub-check when changed production logic has an approved AC, specification, or contract and changes a decision branch, validation, calculation, mapping, state/side-effect, authorization decision, or error mapping. It is not a universal PR gate and cannot replace runtime QA, security review, or human approval.
+
 ### Git Workflow Rule
 
 Use `git-workflow-and-versioning` for every commit: atomic commits, the type-prefixed message convention, pre-commit hygiene, and the change-summary format for handoff.
@@ -241,6 +245,7 @@ Use `git-workflow-and-versioning` for every commit: atomic commits, the type-pre
 - Code behavior change → `tdd-implementation`
 - Before done/ready/fixed claim → `verification-before-completion`
 - Before QA/release/merge after code change → `code-review-gate`
+- Changed production decision logic with an approved behavioral source → `static-logic-review` (QA-owned dry run)
 - Every commit → `git-workflow-and-versioning`
 
 

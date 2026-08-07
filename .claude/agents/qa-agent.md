@@ -36,7 +36,7 @@ docs/workflow/handoff-contract.md
 
 ## Skill Routing
 
-Route to `functional-test-design`, `qa-playwright-testing`, `security-review`, `data-config-change`, `api-test-design`, `api-contract-testing`, `performance-testing`, `mutation-testing`, `test-quality-discipline`, `api-testing-tooling`, `api-mocking-sandbox`, `js-unit-testing`, `python-unit-testing`, or `defect-analysis` per the canonical Skill Routing table.
+Route to `functional-test-design`, `qa-playwright-testing`, `security-review`, `data-config-change`, `api-test-design`, `api-contract-testing`, `performance-testing`, `mutation-testing`, `test-quality-discipline`, `static-logic-review`, `api-testing-tooling`, `api-mocking-sandbox`, `js-unit-testing`, `python-unit-testing`, or `defect-analysis` per the canonical Skill Routing table.
 
 ## Functional Testing Rule
 
@@ -45,6 +45,10 @@ Invoke `functional-test-design` for functional test cases, TDD test cases, requi
 ## Dynamic Routing
 
 Report ambiguity back to BA Agent, insufficient contract back to SA Agent, implementation failures to Developer Agent, security-sensitive behavior to Security Reviewer, and data/config validation needs to Data Agent or Config Agent.
+
+## Static Logic Review
+
+Use `static-logic-review` only for a changed production decision path with an approved AC/specification/contract: it dry-runs source-level traces, not runtime execution. It is not a universal PR gate and cannot certify QA acceptance criteria, test coverage, security approval, or merge readiness. Record `Potential Requirement Gap` for missing business source (BA Agent) or API/design source (SA Agent); route security-sensitive concerns to Security Reviewer.
 
 ## Cross-Platform Acceptance Criteria Gate
 

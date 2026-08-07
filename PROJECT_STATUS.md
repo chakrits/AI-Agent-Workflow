@@ -1,21 +1,21 @@
 # PROJECT_STATUS.md
 
 ## Current Work Item
-- ID: None — idle after PR #153 merge
-- Title: No active implementation increment
-- Owner: Human Maintainer
-- Status: PR #153 (Issue #152) merged to `main` as `9bbcda4`. Independent QA verified all 8 Acceptance Criteria PASS and completed the full closeout sync itself (evidence comment, `status:verification-done`, `phase:human-review`, PR #153's QA checklist); the Orchestrator toggled the PR from Draft to ready-for-review afterward since QA's tools didn't cover that step. Issues #132/#133 remain open, no later increment authorized.
-- References: https://github.com/chakrits/AI-Agent-Workflow/issues/143 · https://github.com/chakrits/AI-Agent-Workflow/issues/144 · https://github.com/chakrits/AI-Agent-Workflow/issues/149 · https://github.com/chakrits/AI-Agent-Workflow/issues/152
+- ID: #155 — Static logic review skill and QA routing
+- Title: QA-owned, risk-triggered static dry-run skill and routing integration
+- Owner: Documentation Agent (implementation) → independent QA / Reviewer
+- Status: Approved `status:spec-ready`; implementation is on `feature/issue-155-static-logic-review` from `origin/main`. No PR or GitHub lifecycle mutation is included in this increment.
+- References: https://github.com/chakrits/AI-Agent-Workflow/issues/155 · `docs/records/work-items/2026-08-07-issue-155.md` · `docs/records/implementation-plan/2026-08-07-static-logic-review-skill.md`
 
 ## Current Stage
-- Idle / Human decision required before another increment starts. Issue #132 was reopened during closeout after GitHub auto-closed it on the PR #137 merge; evidence is https://github.com/chakrits/AI-Agent-Workflow/issues/132#issuecomment-5158198361. Host activation/measurement, historical/live shadow, status-consumer migration, hosted writer/projection activation, authority switch, rollback activation, release, and Go remain unauthorized. Windows portability remains separate at https://github.com/chakrits/AI-Agent-Workflow/issues/136.
+- Framework / Meta implementation in progress. Independent QA / Reviewer must verify AC-01..AC-07 against the exact implementation commit before any human merge decision. Issues #132/#133 and their deferred activation, migration, authority, rollback, release, and Go work remain unrelated and unauthorized here.
 
 ## Change Classification
 - Change Type: Framework / Meta Change
 - Risk Level: Medium
-- Code Change Required: No active implementation; all later increments require separate Human approval
-- Architecture Change Required: Yes
-- Security Review Required: Completed for the exact #133 loader and runtime-matrix implementations (`69afa7e`, `85f0d0d`); hosted activation and any later security-sensitive increment require separate review
+- Code Change Required: No target-application runtime code; policy/skill/test artifacts only
+- Architecture Change Required: No new architecture decision; approved routing integration only
+- Security Review Required: Conditional — static findings that touch security-sensitive concerns route to Security Reviewer; this skill change itself does not alter a security control
 
 ## Completed
 - GitHub Issue #152 (`defect-analysis` skill + `DEFECT_REPORT.md`) merged through PR #153 as commit `9bbcda4`. Closed a long-Planned `SKILL_CATALOG.md` entry ("Defect Analysis") that `qa-playwright-testing`'s own catalog row already routed to but had no content, found unbuilt during Issue #144's template screening. New `docs/templates/DEFECT_REPORT.md` gives QA an artifact distinct from Developer's `debugging-discipline`/`REPRO_STEPS.md` (used post-assignment) and `engineering-postmortem` (post-fix retrospective): Summary, structured Environment, Steps to Reproduce, severity classification, redacted Attachments/Logs. Screened `microsoft/skills`'s `github-issue-creator` (MIT) — adopted a `Summary` field, a severity-to-impact worked mapping translating Security Reviewer's existing Critical/High/Medium/Low/Informational scale into functional-defect terms (not a new taxonomy), and a PII-placeholder redaction note relevant to this repo's e-claim/insurance domain; rejected its "infer missing context" guidance (conflicts with Evidence-Based Reporting) and `/issues/`-directory output convention (conflicts with existing output-location patterns). `defect-analysis/SKILL.md` mirrored byte-identical (37/37). Self-review caught and fixed 3 real gaps before the PR: `TEST_REPORT.md` now points to `DEFECT_REPORT.md`, `docs/vault/00-Index.md`'s stale "36 skills" count corrected to 37, and — after the self-review's own first-pass claim about catalog-section convention turned out wrong on a second check against actual precedent (`api-compliance-patterns`, `coding-standards`, etc.) — a missing dedicated `## defect-analysis` catalog section was added. `npm test` 390 → 397; `validate:context-budget` 28516 → 28889/30000 (headroom now ~3.7%, flagged for the next skill-catalog batch). Independent QA (Packet v1) returned PASS on all 8 Acceptance Criteria, verified the self-review's own self-correction was actually applied (not just claimed), and completed the closeout sync itself; the Orchestrator then toggled the PR from Draft to ready-for-review, since QA's tools didn't cover that step, and fixed 2 cosmetic checkbox-drift items QA flagged in the Issue body. Plan: `docs/records/implementation-plan/2026-08-06-defect-analysis-skill.md`; code review: `docs/records/qa/2026-08-06-defect-analysis-skill-code-review.md`. Docs/skill-catalog only — no code or CI behavior change; unrelated to the #132/#133 bounded-increment work below.
