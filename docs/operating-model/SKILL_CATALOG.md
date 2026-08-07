@@ -24,8 +24,9 @@ Agents must consult this catalog before selecting a skill. The goal is to preven
 | Frontend UI Engineering | `.agents/skills/frontend-ui-engineering/` | Build or change user-facing UI, components, responsive layouts, visual/UX behavior, or accessibility | Target UI context, existing design system, acceptance criteria, supported breakpoints | Accessible, responsive, maintainable UI guidance and a QA handoff when browser automation is needed | Backend-only changes, requirement discovery without UI work, or generic test design | Developer Agent, then QA Agent / `qa-playwright-testing` |
 | Management Status Update | `.agents/skills/management-status-update/` | Boss status summary, team update, defect report, or GitHub/Slack/standup/email/meeting communication draft | Evidence-backed Issue/PR/work item, handoff, QA/test/RCA artifact, notes, or conversation context | Thai-first Boss, Leadership, team, or defect update draft with confirmed facts, unknowns, evidence, and next action | Posting externally, replacing a handoff/QA/RCA artifact, changing lifecycle/approval state, or making recommendation memos | User copies the print-only draft; QA Agent verifies implementation acceptance criteria |
 | Functional Test Design | `.agents/skills/functional-test-design/` | Need functional test cases from requirements, FS, business rules, IPO matrix, BVA/EP, Decision Table, State Transition, risk-based testing, traceability | URS/BRD, FS/TSD, user stories, AC, API/field rules | Function Test Report or Focused Functional Test Pack | Need automation script implementation only | Playwright/E2E skill, API test skill, regression planning, QA Agent |
-| Playwright QA | `.agents/skills/qa-playwright-testing/` | Need browser E2E automation, UI flow testing, screenshots/traces, or WCAG 2.1 AA accessibility checks | Test scenarios, target URL/app, credentials/test data, selectors/locators | Playwright specs, test run notes, screenshots/traces, accessibility violation reports | Need only functional test design without automation | QA Agent, Defect Analysis |
+| Playwright QA | `.agents/skills/qa-playwright-testing/` | Need browser E2E automation, UI flow testing, screenshots/traces, or WCAG 2.1 AA accessibility checks | Test scenarios, target URL/app, credentials/test data, selectors/locators | Playwright specs, test run notes, screenshots/traces, accessibility violation reports | Need only functional test design without automation | QA Agent, `defect-analysis` |
 | Security Review | `.agents/skills/security-review/` | Auth, authorization, secrets, sensitive data, input validation, dependency/security review | Code diff, architecture, API, data flow, threat context | Security review notes, findings, severity, recommended fixes | Pure functional happy path test design | Security Reviewer, SA, Developer |
+| Defect Analysis | `.agents/skills/defect-analysis/` | Test failure needs analysis of logs/screenshots/network payloads and severity classification before routing | Failing test case, log/screenshot/payload evidence, environment details | `docs/templates/DEFECT_REPORT.md` (redacted evidence, severity, reproduction steps) | Post-fix root-cause write-up (`engineering-postmortem`) or the `TEST_REPORT.md` roll-up summary itself | Developer Agent, Security Reviewer (Critical/security-relevant tier) |
 
 
 ## Engineering Discipline
@@ -50,13 +51,12 @@ These are intentionally not implemented yet but reserved for Phase 2+.
 | Planned Skill | Purpose | Suggested Path |
 |---|---|---|
 | Regression Test Planning | Regression scope, impact matrix, smoke/sanity/regression set | `.agents/skills/regression-test-planning/` |
-| Defect Analysis | Analyze test failures, logs, screenshots, reproduce steps, severity | `.agents/skills/defect-analysis/` |
 | Robot Framework Automation | Convert test cases into Robot Framework scripts | `.agents/skills/robot-framework-automation/` |
 | Project Spec Bootstrap | One compact spec (Objective, Commands, Structure, Code Style, Testing, Boundaries) for a *new target application repo* — not this meta-repo. Deferred until a real target app exists; PM/BA/SA's existing artifacts already cover this repo's own needs. | `.agents/skills/project-spec-bootstrap/` |
 
 Superseded (removed from this table because a real skill already covers the purpose): Data Change Validation and Config Change Validation → `data-config-change`; Code Review → `code-review-gate`; System Design Review → `sa-architecture-design`; API Test Design → `api-test-design`.
 
-Note: `api-contract-testing` validates an existing implementation against a published schema; `api-test-design` (implemented this pass, closing the former Planned Skill of the same purpose) designs API test *cases* from a contract — related but distinct, not superseded. Similarly, `test-quality-discipline`'s anti-pattern review and `TEST_REPORT.md`'s new Root Cause Analysis section do not close the Planned "Defect Analysis" skill, which covers broader test-failure/log/screenshot analysis. `api-testing-tooling` provides Supertest/Bruno/Postman+Newman tooling for *executing* hand-scripted API tests; it does not close `api-test-design` either, since that skill is about designing what those test cases should be, not running them.
+Note: `api-contract-testing` validates an existing implementation against a published schema; `api-test-design` (implemented this pass, closing the former Planned Skill of the same purpose) designs API test *cases* from a contract — related but distinct, not superseded. Similarly, `test-quality-discipline`'s anti-pattern review and `TEST_REPORT.md`'s Root Cause Analysis section are distinct from Defect Analysis (`defect-analysis`, implemented this pass, closing the former Planned Skill of the same purpose), which covers broader test-failure/log/screenshot analysis and produces the per-defect `docs/templates/DEFECT_REPORT.md`. `api-testing-tooling` provides Supertest/Bruno/Postman+Newman tooling for *executing* hand-scripted API tests; it does not close `api-test-design` either, since that skill is about designing what those test cases should be, not running them.
 
 
 ## ba-requirement-analysis
@@ -203,6 +203,17 @@ Note: `api-contract-testing` validates an existing implementation against a publ
 | Output | Anti-pattern findings recorded in `TEST_REPORT.md`, routed as defects |
 | Do Not Use When | Reviewing E2E/Playwright tests (use `qa-playwright-testing`'s own automation discipline instead) or designing new test cases (use `functional-test-design`) |
 | Next Skill / Agent | Developer Agent (test rewrite) |
+
+## defect-analysis
+
+| Field | Detail |
+|---|---|
+| Trigger | A test failure (manual, `qa-playwright-testing` E2E, or API) needs its evidence (logs, screenshots, network/API payloads, stack traces) turned into a severity-classified, reproducible defect report |
+| Primary Agent | QA Agent |
+| Input | Failing test case, log/screenshot/payload evidence, environment details |
+| Output | `docs/templates/DEFECT_REPORT.md` (redacted evidence, severity classification, reproduction steps) |
+| Do Not Use When | Writing a post-fix root-cause retrospective (use `engineering-postmortem`), actively investigating an already-assigned bug (use `debugging-discipline`), or recording the `TEST_REPORT.md` roll-up summary itself |
+| Next Skill / Agent | Developer Agent (root-cause investigation), Security Reviewer (Critical/security-relevant tier) |
 
 ## api-testing-tooling
 

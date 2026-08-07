@@ -67,11 +67,12 @@ This is the entry point for browsing this repo as an Obsidian vault. The vault r
 
 ## Skills — three portable copies (`.agents/`, `.claude/`, `.agent/`)
 
-All 36 skills are mirrored across all three platforms (Claude Code, portable, Antigravity); none are role-specific-only anymore.
+All 37 skills are mirrored across all three platforms (Claude Code, portable, Antigravity); none are role-specific-only anymore.
 
 **Mirrored (all three platforms):**
 
 - api-contract-testing — [[../../.agents/skills/api-contract-testing/SKILL.md|portable]] · [[../../.claude/skills/api-contract-testing/SKILL.md|claude]] · [[../../.agent/skills/api-contract-testing/SKILL.md|antigravity]]
+- defect-analysis — [[../../.agents/skills/defect-analysis/SKILL.md|portable]] · [[../../.claude/skills/defect-analysis/SKILL.md|claude]] · [[../../.agent/skills/defect-analysis/SKILL.md|antigravity]]
 - code-review-gate — [[../../.agents/skills/code-review-gate/SKILL.md|portable]] · [[../../.claude/skills/code-review-gate/SKILL.md|claude]] · [[../../.agent/skills/code-review-gate/SKILL.md|antigravity]]
 - debugging-discipline — [[../../.agents/skills/debugging-discipline/SKILL.md|portable]] · [[../../.claude/skills/debugging-discipline/SKILL.md|claude]] · [[../../.agent/skills/debugging-discipline/SKILL.md|antigravity]]
 - documentation-closeout — [[../../.agents/skills/documentation-closeout/SKILL.md|portable]] · [[../../.claude/skills/documentation-closeout/SKILL.md|claude]] · [[../../.agent/skills/documentation-closeout/SKILL.md|antigravity]]
