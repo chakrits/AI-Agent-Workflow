@@ -204,6 +204,17 @@ Note: `api-contract-testing` validates an existing implementation against a publ
 | Do Not Use When | Reviewing E2E/Playwright tests (use `qa-playwright-testing`'s own automation discipline instead) or designing new test cases (use `functional-test-design`) |
 | Next Skill / Agent | Developer Agent (test rewrite) |
 
+## defect-analysis
+
+| Field | Detail |
+|---|---|
+| Trigger | A test failure (manual, `qa-playwright-testing` E2E, or API) needs its evidence (logs, screenshots, network/API payloads, stack traces) turned into a severity-classified, reproducible defect report |
+| Primary Agent | QA Agent |
+| Input | Failing test case, log/screenshot/payload evidence, environment details |
+| Output | `docs/templates/DEFECT_REPORT.md` (redacted evidence, severity classification, reproduction steps) |
+| Do Not Use When | Writing a post-fix root-cause retrospective (use `engineering-postmortem`), actively investigating an already-assigned bug (use `debugging-discipline`), or recording the `TEST_REPORT.md` roll-up summary itself |
+| Next Skill / Agent | Developer Agent (root-cause investigation), Security Reviewer (Critical/security-relevant tier) |
+
 ## api-testing-tooling
 
 | Field | Detail |

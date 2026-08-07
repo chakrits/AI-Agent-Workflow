@@ -1907,6 +1907,7 @@ test('SKILL_CATALOG.md carries the real defect-analysis entry and no longer list
   assert.match(catalog, /\| Defect Analysis \| `\.agents\/skills\/defect-analysis\/` \|/);
   assert.doesNotMatch(catalog, /\| Defect Analysis \| Analyze test failures, logs, screenshots, reproduce steps, severity \|/);
   assert.match(catalog, /Playwright QA[^\n]*`defect-analysis`/);
+  assert.match(catalog, /^## defect-analysis$/m);
 });
 
 test('QA Agent Skill Routing includes defect-analysis in role-definitions and the Claude adapter (Issue #152)', async () => {
