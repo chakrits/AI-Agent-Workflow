@@ -1790,7 +1790,7 @@ test('functional-test-design template section 10 is renamed to Test Design Techn
   }
 });
 
-test('functional-test-design template Coverage Matrix (section 15) has Decision Table and State Transition columns, no Automated/Test Ref columns', async () => {
+test('functional-test-design template Coverage Matrix (section 15) has Decision Table and State Transition columns', async () => {
   const template = await readFile('.agents/skills/functional-test-design/templates/function-test-report.md', 'utf8');
 
   const section15Match = template.match(/^## 15\. Coverage Matrix\n([\s\S]*?)(?=\n## 16\.)/m);
@@ -1798,8 +1798,6 @@ test('functional-test-design template Coverage Matrix (section 15) has Decision 
   const section15 = section15Match[1];
 
   assert.match(section15, /\| Decision Table \| State Transition \|/);
-  assert.doesNotMatch(section15, /Automated/);
-  assert.doesNotMatch(section15, /Test Ref/);
 
   const headerLine = section15.split('\n').find((line) => line.startsWith('| Requirement / Function'));
   const separatorLine = section15.split('\n').find((line) => /^\|[-\s|]+\|$/.test(line));
@@ -1808,6 +1806,42 @@ test('functional-test-design template Coverage Matrix (section 15) has Decision 
   const headerCols = headerLine.split('|').length;
   assert.equal(separatorLine.split('|').length, headerCols);
   assert.equal(dataLine.split('|').length, headerCols);
+});
+
+test('functional-test-design template Coverage Matrix (section 15) has Automated (Y/N) and Test Ref columns after Status (Issue #149)', async () => {
+  const template = await readFile('.agents/skills/functional-test-design/templates/function-test-report.md', 'utf8');
+
+  const section15Match = template.match(/^## 15\. Coverage Matrix\n([\s\S]*?)(?=\n## 16\.)/m);
+  assert.ok(section15Match, 'Coverage Matrix section 15 not found');
+  const section15 = section15Match[1];
+
+  assert.match(section15, /\| Status \| Automated \(Y\/N\) \| Test Ref \(path\) or N\/A — reason \|/);
+
+  const headerLine = section15.split('\n').find((line) => line.startsWith('| Requirement / Function'));
+  const dataLine = section15.split('\n').find((line) => line.startsWith('| N/A'));
+  assert.ok(headerLine && dataLine, 'Coverage Matrix table rows not found');
+  const headerCols = headerLine.split('|').length;
+  assert.equal(dataLine.split('|').length, headerCols, 'data row must have a cell for each new column');
+});
+
+test('test-quality-discipline SKILL.md carries a checklist item for TC-ID to automated-test traceability (Issue #149)', async () => {
+  const skill = await readFile('.agents/skills/test-quality-discipline/SKILL.md', 'utf8');
+
+  assert.match(skill, /Untraced Test Case/);
+  assert.match(skill, /TC-HC-xxx|TC-NEG-xxx|TC-ID/);
+  assert.match(skill, /Coverage Matrix/);
+  assert.match(skill, /automated test/);
+  assert.match(skill, /defect routed to Developer Agent/);
+});
+
+test('test-quality-discipline SKILL.md is byte-identical across all three platforms after the Issue #149 TC-ID checklist addition', async () => {
+  const [portable, claude, antigravity] = await Promise.all([
+    readFile('.agents/skills/test-quality-discipline/SKILL.md', 'utf8'),
+    readFile('.claude/skills/test-quality-discipline/SKILL.md', 'utf8'),
+    readFile('.agent/skills/test-quality-discipline/SKILL.md', 'utf8')
+  ]);
+  assert.equal(claude, portable, '.claude/skills/test-quality-discipline/SKILL.md does not match .agents/');
+  assert.equal(antigravity, portable, '.agent/skills/test-quality-discipline/SKILL.md does not match .agents/');
 });
 
 test('functional-test-design SKILL.md is byte-identical across all three platforms after the Issue #143 technique expansion', async () => {
