@@ -911,6 +911,64 @@ const codeReviewGatePaths = [
   '.agent/skills/code-review-gate/SKILL.md'
 ];
 
+const staticLogicReviewPaths = [
+  '.agents/skills/static-logic-review/SKILL.md',
+  '.claude/skills/static-logic-review/SKILL.md',
+  '.agent/skills/static-logic-review/SKILL.md'
+];
+
+test('static-logic-review is byte-identical across skill trees and keeps dry-run evidence boundaries', async () => {
+  const skills = await Promise.all(staticLogicReviewPaths.map((path) => readFile(path, 'utf8')));
+
+  assert.equal(skills[1], skills[0]);
+  assert.equal(skills[2], skills[0]);
+
+  const skill = skills[0];
+  assert.match(skill, /decision branch|validation rule|calculation\/threshold|mapping\/transformation|state transition|side effect|authorization decision|error mapping/i);
+  assert.match(skill, /requirement\/AC\/contract|approved AC\/specification\/contract/i);
+  assert.match(skill, /file and lines|file \+ lines|exact file and lines/i);
+  assert.match(skill, /precondition\/input/i);
+  assert.match(skill, /inferred trace result/i);
+  assert.match(skill, /expected result/i);
+  assert.match(skill, /impact/i);
+  assert.match(skill, /confidence/i);
+  assert.match(skill, /next owner/i);
+  assert.match(skill, /Potential Requirement Gap/);
+  assert.match(skill, /cannot certify runtime behavior|does not certify runtime behavior/i);
+  assert.match(skill, /test coverage/i);
+  assert.match(skill, /QA acceptance criteria|QA AC/i);
+  assert.match(skill, /security approval/i);
+  assert.match(skill, /human merge approval/i);
+  assert.match(skill, /not a universal PR gate/i);
+});
+
+test('static-logic-review routing distinguishes adjacent QA skills and routes inferred gaps to the right owner', async () => {
+  const [catalog, roleDefinition, adapter, routing, agents] = await Promise.all([
+    readFile('docs/operating-model/SKILL_CATALOG.md', 'utf8'),
+    readFile('docs/workflow/role-definitions.md', 'utf8'),
+    readFile('.claude/agents/qa-agent.md', 'utf8'),
+    readFile('docs/workflow/dynamic-routing.md', 'utf8'),
+    readFile('AGENTS.md', 'utf8')
+  ]);
+
+  for (const content of [catalog, roleDefinition, adapter]) {
+    assert.match(content, /static-logic-review/);
+  }
+  assert.match(catalog, /code-review-gate/);
+  assert.match(catalog, /functional-test-design/);
+  assert.match(catalog, /test-quality-discipline/);
+  assert.match(catalog, /mutation-testing/);
+  assert.match(catalog, /runtime QA execution|runtime execution/i);
+  assert.match(roleDefinition, /observed or statically inferred behavior/i);
+  assert.match(roleDefinition, /Potential Requirement Gap/);
+  assert.match(roleDefinition, /BA Agent/);
+  assert.match(roleDefinition, /SA Agent/);
+  assert.match(roleDefinition, /Security Reviewer/);
+  assert.match(adapter, /static-logic-review/);
+  assert.match(routing, /static-logic-review/);
+  assert.match(agents, /static-logic-review/);
+});
+
 test('code-review-gate adapters all carry structural remedies, dead code hygiene, and dependency discipline', async () => {
   for (const path of codeReviewGatePaths) {
     const content = await readFile(path, 'utf8');

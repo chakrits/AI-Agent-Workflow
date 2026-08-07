@@ -187,6 +187,7 @@ Owns test strategy, test case design, API/E2E automation, regression, defect ana
 | Execute Performance/Reliability/Scalability NFR targets (load, stress, spike, soak) | `.agents/skills/performance-testing/` |
 | Validate test effectiveness via mutation testing | `.agents/skills/mutation-testing/` |
 | Review Developer Agent's unit/component tests for quality and anti-patterns | `.agents/skills/test-quality-discipline/` |
+| Dry-run changed production decision logic against an approved AC/specification/contract | `.agents/skills/static-logic-review/` |
 | Hand-scripted API tests (Supertest), versionable API collections (Bruno), or Postman/Newman | `.agents/skills/api-testing-tooling/` |
 | Mock server/sandbox/fixtures for a dependency not yet available or too unstable to test against directly | `.agents/skills/api-mocking-sandbox/` |
 | JS/TS unit/component testing (Jest or Vitest) | `.agents/skills/js-unit-testing/` |
@@ -203,9 +204,13 @@ QA work is bidirectional:
 
 - If acceptance criteria are unclear, route back to BA Agent.
 - If function spec or API contract is insufficient, route back to SA Agent.
-- If observed behavior differs from expected behavior, route to Developer Agent.
+- If observed or statically inferred behavior differs from an approved expectation, route to Developer Agent.
 - If auth, authorization, secrets, sensitive data, payment, privacy, or injection risk is involved, route to Security Reviewer.
 - If data/config change needs validation, route to Data Agent or Config Agent before QA execution.
+
+### Static Logic Review Rule
+
+Invoke `static-logic-review` as a QA sub-check only when changed production logic affects a decision branch, validation rule, calculation/threshold, mapping/transformation, state transition/side effect, authorization decision, or error mapping and an approved AC/specification/contract exists. It is distinct from `code-review-gate` (broad review), `functional-test-design` (test design), `test-quality-discipline`/`mutation-testing` (test effectiveness), and runtime QA execution. It is not a universal PR gate. If the behavioral source is missing, record `Potential Requirement Gap` and route business-rule ambiguity to BA Agent or API/error/design insufficiency to SA Agent; route security-sensitive concerns to Security Reviewer. A static trace does not certify runtime behavior, test coverage, QA acceptance criteria, security approval, or merge readiness.
 
 ### Cross-Platform Acceptance Criteria Gate
 
