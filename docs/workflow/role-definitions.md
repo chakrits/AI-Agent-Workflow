@@ -191,6 +191,7 @@ Owns test strategy, test case design, API/E2E automation, regression, defect ana
 | Mock server/sandbox/fixtures for a dependency not yet available or too unstable to test against directly | `.agents/skills/api-mocking-sandbox/` |
 | JS/TS unit/component testing (Jest or Vitest) | `.agents/skills/js-unit-testing/` |
 | Python unit/component testing (pytest) | `.agents/skills/python-unit-testing/` |
+| Analyze a test failure's logs/screenshots/network payloads and classify severity before routing | `.agents/skills/defect-analysis/` |
 
 ### Functional Testing Rule
 

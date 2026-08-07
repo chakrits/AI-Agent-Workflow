@@ -39,6 +39,8 @@ Copy this subsection directly into the PR/Issue comment as the QA Evidence comme
 
 ## Failed Tests / Defects
 
+This table stays the one-row-per-defect roll-up summary. For a defect that needs a full reproduction writeup, use the `defect-analysis` skill to produce a `docs/templates/DEFECT_REPORT.md` and link it from the Evidence column.
+
 **Defect Severity Count:** Critical: 0 · High: 0 · Medium: 0 · Low: 0 · Informational: 0
 
 | ID | Scenario | Expected | Actual | Severity | Evidence |

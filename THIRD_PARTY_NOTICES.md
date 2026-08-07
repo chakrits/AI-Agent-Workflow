@@ -90,6 +90,36 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
+## Microsoft — `github-issue-creator` skill
+
+The `defect-analysis` skill is an independent adaptation informed by [`microsoft/skills`'s `github-issue-creator`](https://github.com/microsoft/skills/blob/main/.github/skills/github-issue-creator/SKILL.md). Three elements were adopted: a `Summary` field at the top of the report, a concrete severity-to-impact worked mapping (translating this repo's existing Critical/High/Medium/Low/Informational scale into functional-defect terms rather than inventing a new taxonomy), and a note to placeholder/redact sensitive data before attaching logs/screenshots. The upstream's "infer missing context" guidance and its `/issues/`-directory output convention were deliberately not carried forward, since both conflict with this repo's Evidence-Based Reporting rule and existing output-location conventions.
+
+Upstream copyright and license notice:
+
+```text
+MIT License
+
+Copyright (c) Microsoft Corporation.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```
+
 ## Anthropic — `frontend-design` skill
 
 The `frontend-visual-design` skill is an independent adaptation informed by [`anthropics/skills/skills/frontend-design`](https://github.com/anthropics/skills/tree/main/skills/frontend-design). The implementation restates the upstream's design philosophy in this repo's own skill format rather than reproducing its full text.

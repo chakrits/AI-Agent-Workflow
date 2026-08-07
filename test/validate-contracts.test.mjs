@@ -1354,7 +1354,7 @@ test('SKILL_CATALOG.md carries all 7 new API skill entries', async () => {
 test('docs/vault/00-Index.md links all 7 new API skills and the mirrored-skill count is 36', async () => {
   const vaultIndex = await readFile('docs/vault/00-Index.md', 'utf8');
 
-  assert.match(vaultIndex, /All 36 skills are mirrored/);
+  assert.match(vaultIndex, /All 37 skills are mirrored/);
   for (const skill of [
     'api-test-design',
     'api-compliance-patterns',
@@ -1860,4 +1860,78 @@ test('SKILL_CATALOG.md functional-test-design entry mentions Decision Table and 
   assert.ok(line, 'Functional Test Design row not found in SKILL_CATALOG.md');
   assert.match(line, /Decision Table/);
   assert.match(line, /State Transition/);
+});
+
+test('defect-analysis SKILL.md carries Summary field, severity-to-impact worked mapping, and PII-placeholder note (Issue #152)', async () => {
+  const skill = await readFile('.agents/skills/defect-analysis/SKILL.md', 'utf8');
+
+  assert.match(skill, /^---\nname: defect-analysis\n/);
+  assert.match(skill, /Critical \| Service down, data loss, or a security-relevant defect/);
+  assert.match(skill, /High \| Major feature broken, no workaround/);
+  assert.match(skill, /Medium \| Feature impaired, workaround exists/);
+  assert.match(skill, /Low \| Cosmetic, no functional impact/);
+  assert.match(skill, /\[USER_ID\]/);
+  assert.match(skill, /\[POLICY_NUMBER\]/);
+
+  // The plan's rejected elements must not be carried forward.
+  assert.doesNotMatch(skill, /infer missing context/i);
+  assert.doesNotMatch(skill, /\/issues\//);
+});
+
+test('defect-analysis SKILL.md is byte-identical across all three platforms (Issue #152)', async () => {
+  const [portable, claude, antigravity] = await Promise.all([
+    readFile('.agents/skills/defect-analysis/SKILL.md', 'utf8'),
+    readFile('.claude/skills/defect-analysis/SKILL.md', 'utf8'),
+    readFile('.agent/skills/defect-analysis/SKILL.md', 'utf8')
+  ]);
+  assert.equal(claude, portable, '.claude/skills/defect-analysis/SKILL.md does not match .agents/');
+  assert.equal(antigravity, portable, '.agent/skills/defect-analysis/SKILL.md does not match .agents/');
+});
+
+test('docs/templates/DEFECT_REPORT.md carries Summary, Environment, severity mapping, and a worked JSON payload example (Issue #152)', async () => {
+  const template = await readFile('docs/templates/DEFECT_REPORT.md', 'utf8');
+
+  assert.match(template, /^## Summary$/m);
+  assert.match(template, /^## Environment$/m);
+  assert.match(template, /^## Steps to Reproduce$/m);
+  assert.match(template, /^## Expected Result$/m);
+  assert.match(template, /^## Actual Result$/m);
+  assert.match(template, /Critical \| Service down, data loss, or a security-relevant defect/);
+  assert.match(template, /```json/);
+  assert.match(template, /\[CLAIM_ID\]/);
+});
+
+test('SKILL_CATALOG.md carries the real defect-analysis entry and no longer lists it as Planned (Issue #152)', async () => {
+  const catalog = await readFile('docs/operating-model/SKILL_CATALOG.md', 'utf8');
+
+  assert.match(catalog, /\| Defect Analysis \| `\.agents\/skills\/defect-analysis\/` \|/);
+  assert.doesNotMatch(catalog, /\| Defect Analysis \| Analyze test failures, logs, screenshots, reproduce steps, severity \|/);
+  assert.match(catalog, /Playwright QA[^\n]*`defect-analysis`/);
+});
+
+test('QA Agent Skill Routing includes defect-analysis in role-definitions and the Claude adapter (Issue #152)', async () => {
+  const [roleDefinition, adapter] = await Promise.all([
+    readFile('docs/workflow/role-definitions.md', 'utf8'),
+    readFile('.claude/agents/qa-agent.md', 'utf8')
+  ]);
+
+  assert.match(roleDefinition, /`\.agents\/skills\/defect-analysis\/`/);
+  assert.match(adapter, /`defect-analysis`/);
+});
+
+test('docs/vault/00-Index.md links defect-analysis and TEST_REPORT.md points to DEFECT_REPORT.md (Issue #152)', async () => {
+  const [vaultIndex, testReportTemplate] = await Promise.all([
+    readFile('docs/vault/00-Index.md', 'utf8'),
+    readFile('docs/templates/TEST_REPORT.md', 'utf8')
+  ]);
+
+  assert.match(vaultIndex, /^- defect-analysis —/m);
+  assert.match(testReportTemplate, /DEFECT_REPORT\.md/);
+});
+
+test('THIRD_PARTY_NOTICES.md attributes microsoft/skills (Issue #152)', async () => {
+  const notices = await readFile('THIRD_PARTY_NOTICES.md', 'utf8');
+
+  assert.match(notices, /microsoft\/skills/);
+  assert.match(notices, /github-issue-creator/);
 });
