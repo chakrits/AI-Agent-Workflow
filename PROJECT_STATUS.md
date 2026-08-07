@@ -1,11 +1,11 @@
 # PROJECT_STATUS.md
 
 ## Current Work Item
-- ID: None — idle after PR #147 merge
-- Title: No active implementation increment
-- Owner: Human Maintainer
-- Status: PR #147 (Issue #144) merged to `main` as `3a75979`. Boss merged directly without dispatching an independent QA verification pass for this batch — Issue #144 remains labeled `phase:verification`/`status:development-done`/`status:spec-ready` with no `status:verification-done`/`phase:human-review`, reflecting that QA sign-off was deliberately skipped, not forgotten. Issues #132/#133 remain open, no later increment authorized.
-- References: https://github.com/chakrits/AI-Agent-Workflow/issues/143 · https://github.com/chakrits/AI-Agent-Workflow/issues/144
+- ID: GitHub Issue #149
+- Title: Add TC-ID to automated-test traceability (Coverage Matrix + `test-quality-discipline`)
+- Owner: Documentation Agent (authoring) → Human Maintainer (merge)
+- Status: Requirements/plan stage. This is the deferred follow-up from Issue #143's screening discussion: no skill/template cross-references a QA Test Case ID (`TC-*`) to an actual automated test. An initial proposal (Developer cites TC-ID in `tdd-implementation`'s RED step) was rejected as incoherent given Developer Agent's Definition-of-Done Restatement rule and no canonical phase-ordering guarantee; the corrected design is QA-only (Coverage Matrix `Automated`/`Test Ref` columns, filled in during verification). Deferred until Issue #143 merged to avoid a Coverage Matrix collision — #143 merged (PR #145/#146) and added `Decision Table`/`State Transition` columns to that same table; this Issue's 2 new columns append after those, confirmed by reading the current table before drafting the plan. Implementation plan and Issue #149 are written; code changes not yet started. Unrelated to the idle #132/#133 bounded-increment work below.
+- References: https://github.com/chakrits/AI-Agent-Workflow/issues/149 · `docs/records/implementation-plan/2026-08-06-tc-id-automated-test-traceability.md` · `docs/records/work-items/2026-08-06-issue-149.md`
 
 ## Current Stage
 - Idle / Human decision required before another increment starts. Issue #132 was reopened during closeout after GitHub auto-closed it on the PR #137 merge; evidence is https://github.com/chakrits/AI-Agent-Workflow/issues/132#issuecomment-5158198361. Host activation/measurement, historical/live shadow, status-consumer migration, hosted writer/projection activation, authority switch, rollback activation, release, and Go remain unauthorized. Windows portability remains separate at https://github.com/chakrits/AI-Agent-Workflow/issues/136.
@@ -75,7 +75,8 @@
 - GitHub Issue #68 (test-tooling readiness — reference-only config templates and skills for Playwright/Supertest/Bruno/Jest/Vitest/pytest/Stryker) merged through PR #70 as commit `0d65956`; Issue #68 closed. Delivered: `docs/workflow/testing-conventions.md` (test folder-structure convention) linked from `PROJECT_INDEX.md` and the vault index; a Playwright config template added to `qa-playwright-testing`; a JS/TS (Stryker) section and config template added to `mutation-testing`; three brand-new skills — `api-testing-tooling` (Supertest + Bruno), `js-unit-testing` (Jest + Vitest), `python-unit-testing` (pytest) — each mirrored byte-identically across `.agents/skills/`, `.claude/skills/`, and `.agent/skills/`; three new `SKILL_CATALOG.md` entries plus a Planned Skills clarifying note; three new QA Skill Routing rows in `docs/workflow/role-definitions.md`, mirrored in `.claude/agents/qa-agent.md`; a `docs/vault/00-Index.md` correction moving five pre-existing skills (`ba-requirement-analysis`, `sa-architecture-design`, `data-config-change`, `qa-playwright-testing`, `security-review`) from "portable only" to "Mirrored" now that all three platform copies are verified in sync, plus the two QA-flagged fixes (AC-06 `SKILL_CATALOG.md` `mutation-testing` Stryker mention; AC-09 vault index 23/23 mirrored-skill count); 6 new regression tests in `test/validate-contracts.test.mjs` (156 → 162 total tests). Zero live dependencies added: no `package.json`/`package-lock.json` change, no `pyproject.toml`/`requirements.txt` created. QA Agent independently verified all 10 Acceptance Criteria PASS at commit `017a34a` (prior AC-06/AC-09 FAILs fixed and re-verified). Default-branch audit passed on `0d65956` and GitHub applied the normal `post-merge-closeout` label to PR #70; no `documentation-sync` exception issue was created.
 
 ## In Progress
-- None. Issues #132 and #133 remain open, but no later implementation increment is currently authorized.
+- GitHub Issue #149 (TC-ID → automated-test traceability) — implementation plan and Issue opened on branch `feature/tc-id-automated-test-traceability`; code changes not yet started.
+- Issues #132 and #133 remain open, but no later implementation increment is currently authorized (unrelated to #149).
 
 ## Blockers / Open Questions
 - Human Maintainer must decide whether and when to authorize the next #132/#133 migration increments. The PR #137 merge does not authorize host activation, authority switch, rollback activation, release, or Go.

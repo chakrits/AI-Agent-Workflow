@@ -116,9 +116,9 @@
 
 ## 15. Coverage Matrix
 
-| Requirement / Function | Happy | Negative | BVA | EP | Decision Table | State Transition | API | Regression | Security Baseline | Performance Baseline | Status |
-|------------------------|-------|----------|-----|----|-----------------|-------------------|-----|------------|-------------------|----------------------|--------|
-| N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A |
+| Requirement / Function | Happy | Negative | BVA | EP | Decision Table | State Transition | API | Regression | Security Baseline | Performance Baseline | Status | Automated (Y/N) | Test Ref (path) or N/A — reason |
+|------------------------|-------|----------|-----|----|-----------------|-------------------|-----|------------|-------------------|----------------------|--------|------------------|----------------------------------|
+| N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A |
 
 ## 16. Performance & Security Fundamentals
 

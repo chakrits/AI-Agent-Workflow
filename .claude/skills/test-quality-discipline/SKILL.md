@@ -37,6 +37,7 @@ A unit or component test must not hit a live database, filesystem, or network â€
 | Poor/Weak Assertions | e.g. `assertIsNotNone(result)` where a specific value is knowable | Assert the specific expected value |
 | Test-Only Production Methods | Production code has `_reset_for_test()` or similar test-only hooks | Instantiate a fresh instance per test instead |
 | Incomplete Mocks | Stub returns a trivial shape (e.g. `{"success": True}`) that doesn't match real payload complexity | Use a factory that mirrors real production payload shape |
+| Untraced Test Case | Coverage Matrix marks a TC-ID (e.g. `TC-HC-xxx`, `TC-NEG-xxx`) as covered, but no automated test in the codebase actually exercises it | Not a merge-blocking gate by itself â€” flag as a defect routed to Developer Agent (QA Agent does not edit Developer Agent's test files) and record the gap in `TEST_REPORT.md`'s Coverage section |
 
 ## Reporting
 
