@@ -1,11 +1,11 @@
 # PROJECT_STATUS.md
 
 ## Current Work Item
-- ID: None — idle after PR #150 merge
-- Title: No active implementation increment
-- Owner: Human Maintainer
-- Status: PR #150 (Issue #149) merged to `main` as `1ed69bd`. Independent QA verified all 5 Acceptance Criteria PASS and completed the full 4-location closeout sync itself (Issue evidence comment, `status:verification-done`, `phase:human-review`, PR #150's QA checklist) — unlike Issue #143's QA dispatch, this one had permission to edit the Issue/PR bodies directly. Issues #132/#133 remain open, no later increment authorized.
-- References: https://github.com/chakrits/AI-Agent-Workflow/issues/143 · https://github.com/chakrits/AI-Agent-Workflow/issues/144 · https://github.com/chakrits/AI-Agent-Workflow/issues/149
+- ID: GitHub Issue #152
+- Title: Build `defect-analysis` skill + `DEFECT_REPORT.md` (close long-Planned skill)
+- Owner: Documentation Agent (authoring) → Human Maintainer (merge)
+- Status: Requirements/plan stage. Closes a long-Planned `SKILL_CATALOG.md` entry ("Defect Analysis") already referenced by `qa-playwright-testing`'s own catalog row, found unbuilt during Issue #144's template screening. Explored `microsoft/skills`'s `github-issue-creator` (MIT) per Boss's request; adopted a `Summary` field, a severity-to-impact worked mapping (translating Security Reviewer's existing scale into functional-defect terms, not a new taxonomy), and a PII-placeholder note for logs/screenshots (relevant to this repo's e-claim/insurance domain); rejected its "infer missing context" guidance (conflicts with this repo's Evidence-Based Reporting rule) and its `/issues/`-directory output convention (conflicts with existing output-location patterns). Implementation plan and Issue #152 are written; code changes not yet started. Unrelated to the idle #132/#133 bounded-increment work below.
+- References: https://github.com/chakrits/AI-Agent-Workflow/issues/152 · `docs/records/implementation-plan/2026-08-06-defect-analysis-skill.md` · `docs/records/work-items/2026-08-06-issue-152.md`
 
 ## Current Stage
 - Idle / Human decision required before another increment starts. Issue #132 was reopened during closeout after GitHub auto-closed it on the PR #137 merge; evidence is https://github.com/chakrits/AI-Agent-Workflow/issues/132#issuecomment-5158198361. Host activation/measurement, historical/live shadow, status-consumer migration, hosted writer/projection activation, authority switch, rollback activation, release, and Go remain unauthorized. Windows portability remains separate at https://github.com/chakrits/AI-Agent-Workflow/issues/136.
@@ -76,7 +76,8 @@
 - GitHub Issue #68 (test-tooling readiness — reference-only config templates and skills for Playwright/Supertest/Bruno/Jest/Vitest/pytest/Stryker) merged through PR #70 as commit `0d65956`; Issue #68 closed. Delivered: `docs/workflow/testing-conventions.md` (test folder-structure convention) linked from `PROJECT_INDEX.md` and the vault index; a Playwright config template added to `qa-playwright-testing`; a JS/TS (Stryker) section and config template added to `mutation-testing`; three brand-new skills — `api-testing-tooling` (Supertest + Bruno), `js-unit-testing` (Jest + Vitest), `python-unit-testing` (pytest) — each mirrored byte-identically across `.agents/skills/`, `.claude/skills/`, and `.agent/skills/`; three new `SKILL_CATALOG.md` entries plus a Planned Skills clarifying note; three new QA Skill Routing rows in `docs/workflow/role-definitions.md`, mirrored in `.claude/agents/qa-agent.md`; a `docs/vault/00-Index.md` correction moving five pre-existing skills (`ba-requirement-analysis`, `sa-architecture-design`, `data-config-change`, `qa-playwright-testing`, `security-review`) from "portable only" to "Mirrored" now that all three platform copies are verified in sync, plus the two QA-flagged fixes (AC-06 `SKILL_CATALOG.md` `mutation-testing` Stryker mention; AC-09 vault index 23/23 mirrored-skill count); 6 new regression tests in `test/validate-contracts.test.mjs` (156 → 162 total tests). Zero live dependencies added: no `package.json`/`package-lock.json` change, no `pyproject.toml`/`requirements.txt` created. QA Agent independently verified all 10 Acceptance Criteria PASS at commit `017a34a` (prior AC-06/AC-09 FAILs fixed and re-verified). Default-branch audit passed on `0d65956` and GitHub applied the normal `post-merge-closeout` label to PR #70; no `documentation-sync` exception issue was created.
 
 ## In Progress
-- None. Issues #132 and #133 remain open, but no later implementation increment is currently authorized.
+- GitHub Issue #152 (`defect-analysis` skill + `DEFECT_REPORT.md`) — implementation plan and Issue opened on branch `feature/defect-analysis-skill`; code changes not yet started.
+- Issues #132 and #133 remain open, but no later implementation increment is currently authorized (unrelated to #152).
 
 ## Blockers / Open Questions
 - Human Maintainer must decide whether and when to authorize the next #132/#133 migration increments. The PR #137 merge does not authorize host activation, authority switch, rollback activation, release, or Go.
