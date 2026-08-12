@@ -20,7 +20,7 @@
 - Issue #166 implementation is ready for independent QA: SUBAGENT-02 added templates and compact canonical pointers while retaining `phase:development` and `status:spec-ready` ([Issue comment 5263728633](https://github.com/chakrits/AI-Agent-Workflow/issues/166#issuecomment-5263728633)).
 
 ## Blockers / Open Questions
-- Codex native child supervision is unavailable for #166 planning after three bounded waits; all delayed terminal results were consumed as `BLOCKED`. Human approved the direct-parent fallback for SUBAGENT-01/01A. Durable async remains out of scope and is tracked as R-002.
+- Codex native child supervision is unavailable for #166 planning after three bounded waits; all delayed terminal results were consumed as `BLOCKED`. Human approved the direct-parent fallback for SUBAGENT-01/01A, but that fallback cannot replace independent QA. PR #167 therefore needs an external or host-capable QA path. Durable async remains out of scope and is tracked as R-002.
 - The task-review two-round rule is explicitly nested, context budget may not be raised in #166, and the existing lifecycle-contract discrepancy is out of scope. QA and Human merge approval remain required.
 
 ## Required Artifacts
@@ -30,10 +30,10 @@
 - Detailed lightweight specification: `docs/records/sdd/2026-08-12-issue-166-task-execution-mode-spec.md` — approved
 
 ## Next Quality Gate
-- QA Agent independently reviews the exact Issue #166 candidate diff and each AC before any human merge decision.
+- Independent QA review of draft PR #167 against AC-01–AC-10 before any human merge decision.
 
 ## Recommended Next Agent
-- QA Agent — independently review SUBAGENT-02 and the exact candidate diff.
+- Human Maintainer — select an external/host-capable QA Agent path for draft PR #167.
 
 ## Notes
 - Reset to template baseline by `npm run reset:template`.

@@ -19,7 +19,7 @@
 - Requirement: [Issue #166](https://github.com/chakrits/AI-Agent-Workflow/issues/166)
 - SDD: [[../sdd/2026-08-12-issue-166-task-execution-mode-spec]] — Human approved.
 - Implementation plan: [[../implementation-plan/2026-08-12-issue-166-subagent-execution-contract]]
-- PRs: N/A
+- PRs: #167 (Draft)
 - Closeout PR: N/A
 - Postmortem: N/A
 
@@ -29,7 +29,7 @@
 - SUBAGENT-01A: Completed directly by Orchestrator under approved `host_completion_unavailable` fallback — draft detailed specification produced; Human review pending.
 - SUBAGENT-02: Completed — added task execution templates and compact routing/role/catalog references; independent QA review pending.
 - SUBAGENT-03: Add proportionate validator/test coverage only when a normative rule has a machine-checkable seam — Developer Agent, conditional.
-- SUBAGENT-04: Independently verify the implementation diff and acceptance criteria — QA Agent.
+- SUBAGENT-04: Pending independent QA against PR #167; blocked locally by unavailable native child completion.
 - SUBAGENT-05: Approve merge and complete post-merge closeout — Human Maintainer → Documentation Agent.
 
 ## Lessons Learned
