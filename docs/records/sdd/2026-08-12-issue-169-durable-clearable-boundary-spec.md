@@ -70,17 +70,39 @@ were verified against the repo:
 
 1. Resolve the changed-file set against the PR base (`GITHUB_BASE_REF` → `origin/main` → `main`).
 2. For each changed file that is **content** (not `.js`/`.mjs`/`.yml`/`.yaml`, not under
-   `docs/records/`), scan for a reference to a **specific document** inside `CLEARED_DIRECTORIES`.
-3. A reference is flagged only when it names a **file path** (e.g. `docs/superpowers/specs/xxx.md`)
-   — a bare directory mention (`docs/records/work-items/`) is not flagged.
-4. **Fails** on any hit → a forward-facing file would introduce a cleared-document dependency.
-5. Does **not** scan unchanged files, so pre-existing historical references cannot fail the gate.
-6. `CLEARED_DIRECTORIES` imported from `reset-to-template.mjs` so the two cannot drift.
+   `docs/records/`), scan for a reference to a **specific document** inside `CLEARED_DIRECTORIES`
+   that the reader must consult for meaning.
+3. **Flagged** — a reference that makes the reader depend on the cleared document's *content*:
+   - `Authoritative source: <cleared-path>` (the reader must read it to understand the text)
+   - `Design: <cleared-path>` / `See <cleared-path>` / `(see <cleared-path>)` — a pointer whose
+     whole purpose is to fetch the referenced document's meaning
+   - A markdown link `[<label>](<cleared-path>)` used as a design/designation/authority pointer
+   - A backtick-quoted `<cleared-path.md>` whose surrounding prose requires reading it
+4. **NOT flagged** — a reference used as *instruction/metadata*, where the document itself is not
+   the source of meaning:
+   - A filename pattern stated as a location to create/write something
+     (`create a record at docs/records/work-items/YYYY-...md`), especially when paired with a
+     template name (`using the WORK_ITEM.md template`)
+   - A bare directory mention absent a specific document (`docs/records/work-items/`)
+   - A unit-test fixture or example path that exists only to name a shape
+5. **Fails** on any hit in step 3 → a forward-facing content file introduces a cleared-document
+   meaning dependency.
+6. Does **not** scan unchanged files, so pre-existing historical references cannot fail the gate.
+7. `CLEARED_DIRECTORIES` imported from `reset-to-template.mjs` so the two cannot drift.
 
-Regression tests:
-- passing: content file with no reference to a cleared document
-- failing: content file referencing `docs/superpowers/specs/<file>.md`
-- passing: content file mentioning a cleared **directory** as metadata (no file path)
+> **Rationale (from SA review finding):** the checkable distinction is *"does the reader have to
+> consult the cleared document's content to understand the referring text?"* — not merely "is a
+> cleared path mentioned". A template/instruction reference (`create a record at
+> docs/records/work-items/YYYY-...md using the WORK_ITEM.md template`) names a location and a shape
+> but carries no meaning dependency on the cleared document's content, so it must not be flagged.
+> This is what keeps README.md:188 and the mirrored SKILL.md:46 from false-positiving.
+
+Regression tests (five cases):
+- failing: content file reading `Authoritative source: docs/superpowers/specs/<file>.md`
+- failing: content file with a design/link pointer to a cleared document
+- passing: content file mentioning a cleared **directory** as metadata (no document)
+- passing: content file with an instruction/location reference
+  (`create a record at docs/records/work-items/YYYY-MM-DD-issue-NN.md using the WORK_ITEM.md template`)
 - passing: code file (`.mjs`) referencing a cleared document
 - passing: an unchanged historical file is not scanned
 
@@ -117,11 +139,13 @@ unchanged.
   cleared document for the meaning of a normative statement.
 - [ ] **AC-02:** The `consumed`-is-not-runtime-attested rationale is fully stated inline in the
   schema `$comment` and is obtainable from a location that survives `npm run reset:template`.
-- [ ] **AC-03:** `scripts/validate-clearable-refs.mjs` is diff-scoped and reference-specific: it
-  fails when a changed content file references a specific document inside `CLEARED_DIRECTORIES`;
-  passes when it does not; does not flag a bare directory mention; does not flag code/mechanism
-  files; and does not scan unchanged historical content. Regression tests cover all five cases.
-  **Required merge gate.**
+- [ ] **AC-03:** `scripts/validate-clearable-refs.mjs` is diff-scoped and meaning-aware: it fails
+  when a changed content file references a specific document inside `CLEARED_DIRECTORIES` that the
+  reader must consult for meaning (authority/design/see pointer); passes when the only cleared-path
+  appearance is a directory mention or an instruction/location reference (e.g. `create a record at
+  docs/records/work-items/YYYY-MM-DD-issue-NN.md using the WORK_ITEM.md template`); does not flag
+  code/mechanism files; and does not scan unchanged historical content. Regression tests cover all
+  six cases. **Required merge gate.**
 - [ ] **AC-04:** The check is wired into the existing CI validator job.
 - [ ] **AC-05:** `npm run validate:context-budget` still passes; `TARGET` unchanged.
 - [ ] **AC-06:** `npm test`, `npm run validate:contracts`, and the remaining validator suite pass.
