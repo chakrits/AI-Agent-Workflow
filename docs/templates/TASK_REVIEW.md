@@ -7,6 +7,7 @@
 | Head SHA |  |
 | Spec verdict | PASS / FAIL / CANNOT_VERIFY |
 | Quality verdict | APPROVED / NEEDS_FIX |
+| Task review rework count | 0 |
 
 ## Evidence and Findings
 
