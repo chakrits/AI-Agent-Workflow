@@ -9,6 +9,7 @@
 ### Changed
 
 ### Fixed
+- `scripts/validate-review-gate.mjs` diffed only `HEAD~1..HEAD`, so a multi-commit branch whose `.mjs` change landed before the final commit was reported as a docs-only PR and merged with no review record (Issue #168, PR #172, merged as `bd25b7c`). Now resolves the audit range via `git merge-base` against the PR base (`GITHUB_BASE_REF` → `origin/main` → `main`), falling back to `HEAD~1..HEAD` only when no base resolves — with an explicit WARNING when it does. Three regression tests build a real two-commit branch whose script change lands in the first commit. Suite 399 → 407.
 - `scripts/reset-to-template.mjs`'s `TASK_LOG.md` stub was missing its markdown table separator row, so every reset produced a `TASK_LOG.md` that never rendered as a table (Issue #164, PR #165, merged as `7679e21`). Added the separator plus a regression assertion covering both the `TASK_LOG.md` and `RISKS.md` stubs. Recorded here because PR #165's own closeout had not been performed.
 
 ### Security
