@@ -40,7 +40,8 @@ The native completion primitive only delivers the child receipt within the activ
 For a planned multi-task or risk-triggered change, use the Task Brief, Implementer Report, Task
 Review, and Re-review templates. They are not lifecycle handoffs. Pin reviews to `base_sha` and
 `head_sha`; use `task_review_rework_count` (maximum two), never lifecycle `rework_count`. See
-the approved Issue #166 specification for entry criteria and the receipt/runtime glossary.
+[`docs/workflow/task-execution-mode.md`](task-execution-mode.md) for entry/exit criteria, artifact
+contracts, the review loop, and the runtime-versus-receipt state glossary.
 
 ## Lifecycle Labels for Feature and Enhancement Work
 
