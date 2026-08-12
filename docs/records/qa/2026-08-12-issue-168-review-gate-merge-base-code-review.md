@@ -19,6 +19,23 @@ Scope: replaces `scripts/validate-review-gate.mjs`'s hardcoded `HEAD~1..HEAD` ra
 - `npm run validate:review-gate` on this branch: `Range: de6a98f..HEAD (merge-base with origin/main)` — the new output line, and this branch's own `.mjs` change is now correctly gated by this very record.
 - `npm run validate:contracts`, `validate:project-state`, `validate:skill-parity`, `adr:audit`, `validate:risk-register`, `validate:skill-usage`, `validate:metrics`, `validate:context-budget`, `git diff --check`: PASS.
 
+## Revision after independent QA (NEEDS_REVISION)
+
+Independent QA returned NEEDS_REVISION on the first candidate (`7ffb4fa`) with two Major findings. Both were **fail-open holes the first fix introduced** in the very gate it repairs. Both were independently reproduced before being accepted, and both are now fixed.
+
+| Finding ID | Severity | Finding | Fix | Evidence |
+|---|---|---|---|---|
+| CR-907 | Major | When HEAD is at or behind the resolved base, `git merge-base` returns HEAD, the range becomes empty, and `basis` was still `'merge-base'` — the honest-looking branch, so no warning printed and the gate emitted `PASS: no script changes detected` while auditing nothing. `.github/workflows/validate-contracts.yml:2` is `on: [push, pull_request]`, so **every push to `main` became a guaranteed vacuous pass**. The pre-fix script FAILed the same repository | Detect `mergeBase === HEAD` and return `basis:'fallback'` with `reason:'empty-range'`, restoring the last-commit audit and printing the warning | Repository on `main` whose last commit adds `scripts/a.mjs`: pre-fix FAIL/exit 1 → first-fix PASS/exit 0 → after revision FAIL/exit 1 |
+| CR-908 | Major | `candidateBaseRefs` appended `origin/main`/`main` unconditionally after `origin/${GITHUB_BASE_REF}`, so an unresolvable declared base silently degraded to `main` on the `'merge-base'` basis. Widening past the declared base makes `--diff-filter=A` harvest review records added on an intermediate branch, so a **stacked branch is credited with a record it never added**. `hasScriptChanges` tolerates a wider range; `hasReviewRecord` does not | Treat an explicit base signal as authoritative: `GITHUB_BASE_REF` yields only `origin/<ref>` and `<ref>`, with no fall-through to `main`. If neither resolves, degrade to `basis:'fallback'` with `reason:'declared-base-unresolvable'` and warn | `stacked` off `feature-x` (record on `feature-x`, script on `stacked`): pre-fix FAIL → first-fix PASS/exit 0 → after revision `merge-base with feature-x`, 0 records, FAIL/exit 1 |
+| CR-909 | Minor | `GITHUB_BASE_REF` was only tried as `origin/${ref}`, so a checkout with a local base branch and no remote-tracking ref could not resolve its own base | Try the bare ref as well | Fixed as part of CR-908; the CR-908 repro resolves `feature-x` with no `origin/` remote present |
+| CR-910 | Minor | The committed tests cannot demonstrate RED against the actual pre-fix artifact — they fail on a missing export. Prose alone is not re-derivable | Recorded the exact reproduction procedure below | This section |
+
+**Reproducible RED procedure**, since the stubbed seam is not present in the artifact: check out `de6a98f:scripts/validate-review-gate.mjs`, add `export function resolveDiffRange(cwd, { baseRef } = {}) { return { range: 'HEAD~1..HEAD', basis: 'fallback', baseRef }; }` and `export` on `gitDiffNameOnly`, then run `node --test test/validate-review-gate.test.mjs` → 13 pass / 2 fail, the failures being the two branch-wide tests.
+
+**Harness note.** The first attempt to reproduce QA's findings appeared to contradict them: the pre-fix script produced no output at all. The cause was the reproduction harness, not the finding — `mktemp -d` on macOS returns `/var/...`, a symlink to `/private/var/...`, so `import.meta.url === pathToFileURL(process.argv[1]).href` never matched and `main()` never ran. Re-running through `pwd -P` confirmed QA's results exactly. The test fixtures now call `realpathSync` for the same reason.
+
+Four regression tests were added for these findings (suite 402 → 406).
+
 ## Review Decision
 
 Approved. CR-901/CR-902 are the defect and its self-consistency consequence; CR-903 is the seam that makes the fix provable; CR-904 removes the most likely way for the fix to be cosmetic; CR-905 keeps the degraded path honest instead of silent; CR-906 marks what was deliberately not audited.

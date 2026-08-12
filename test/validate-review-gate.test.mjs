@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, rmSync, writeFileSync, mkdirSync } from 'node:fs';
+import { mkdtempSync, rmSync, writeFileSync, mkdirSync, realpathSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import {
@@ -17,7 +17,7 @@ import {
  * This is the shape that a `HEAD~1..HEAD` range cannot see.
  */
 function buildTwoCommitBranch() {
-  const dir = mkdtempSync(path.join(os.tmpdir(), 'review-gate-'));
+  const dir = realpathSync(mkdtempSync(path.join(os.tmpdir(), 'review-gate-')));
   const git = (...args) => execFileSync('git', args, { cwd: dir, stdio: ['ignore', 'pipe', 'ignore'] });
 
   git('init', '--quiet', '--initial-branch=main');
@@ -83,6 +83,125 @@ test('resolveDiffRange keeps --diff-filter=A honest across the whole branch', ()
     );
   } finally {
     rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+/**
+ * A repository sitting on the base branch itself — the shape CI sees on every
+ * `push` event to `main`. `git merge-base main HEAD` returns HEAD here, so a
+ * naive merge-base range is empty and audits nothing.
+ */
+function buildRepoOnBaseBranch() {
+  const dir = mkdtempSync(path.join(os.tmpdir(), 'review-gate-base-'));
+  const real = realpathSync(dir);
+  const git = (...args) => execFileSync('git', args, { cwd: real, stdio: ['ignore', 'pipe', 'ignore'] });
+
+  git('init', '--quiet', '--initial-branch=main');
+  git('config', 'user.email', 'test@example.com');
+  git('config', 'user.name', 'Test');
+
+  writeFileSync(path.join(real, 'README.md'), 'base\n');
+  git('add', '.');
+  git('commit', '--quiet', '-m', 'base');
+
+  mkdirSync(path.join(real, 'scripts'), { recursive: true });
+  writeFileSync(path.join(real, 'scripts/a.mjs'), 'export const a = 1;\n');
+  git('add', '.');
+  git('commit', '--quiet', '-m', 'script change on the base branch itself');
+
+  return real;
+}
+
+test('resolveDiffRange does not audit an empty range when HEAD is the base', () => {
+  const dir = buildRepoOnBaseBranch();
+  try {
+    const { range, basis } = resolveDiffRange(dir, { baseRef: 'main' });
+    assert.notEqual(basis, 'merge-base', 'an empty merge-base range must not be reported as a real audit');
+    assert.equal(range, 'HEAD~1..HEAD');
+
+    const changedFiles = gitDiffNameOnly(range, dir);
+    assert.equal(
+      hasScriptChanges(changedFiles),
+      true,
+      'a script change in the latest commit on the base branch must still require a review record'
+    );
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('an unresolvable GITHUB_BASE_REF degrades loudly instead of silently auditing against main', () => {
+  const dir = buildTwoCommitBranch();
+  const previous = process.env.GITHUB_BASE_REF;
+  process.env.GITHUB_BASE_REF = 'no-such-branch';
+  try {
+    const { basis } = resolveDiffRange(dir);
+    assert.equal(
+      basis,
+      'fallback',
+      'an explicit base signal that cannot be resolved must not fall through to main, which would widen the range and can credit a review record the branch never added'
+    );
+  } finally {
+    if (previous === undefined) delete process.env.GITHUB_BASE_REF;
+    else process.env.GITHUB_BASE_REF = previous;
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('GITHUB_BASE_REF resolves as a bare local ref when no remote-tracking ref exists', () => {
+  const dir = buildTwoCommitBranch();
+  const previous = process.env.GITHUB_BASE_REF;
+  process.env.GITHUB_BASE_REF = 'main';
+  try {
+    const { basis, baseRef } = resolveDiffRange(dir);
+    assert.equal(basis, 'merge-base');
+    assert.equal(baseRef, 'main', 'origin/main is absent in this clone, so the bare ref must be tried too');
+  } finally {
+    if (previous === undefined) delete process.env.GITHUB_BASE_REF;
+    else process.env.GITHUB_BASE_REF = previous;
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('a stacked branch is judged against its own base, not an ancestor that carries a review record', () => {
+  const dir = mkdtempSync(path.join(os.tmpdir(), 'review-gate-stacked-'));
+  const real = realpathSync(dir);
+  const git = (...args) => execFileSync('git', args, { cwd: real, stdio: ['ignore', 'pipe', 'ignore'] });
+  const previous = process.env.GITHUB_BASE_REF;
+  try {
+    git('init', '--quiet', '--initial-branch=main');
+    git('config', 'user.email', 'test@example.com');
+    git('config', 'user.name', 'Test');
+    writeFileSync(path.join(real, 'README.md'), 'base\n');
+    git('add', '.');
+    git('commit', '--quiet', '-m', 'base');
+
+    git('checkout', '--quiet', '-b', 'feature-x');
+    mkdirSync(path.join(real, 'docs/records/qa'), { recursive: true });
+    writeFileSync(path.join(real, 'docs/records/qa/2026-01-01-x-code-review.md'), 'record\n');
+    git('add', '.');
+    git('commit', '--quiet', '-m', 'review record on the intermediate base');
+
+    git('checkout', '--quiet', '-b', 'stacked');
+    mkdirSync(path.join(real, 'scripts'), { recursive: true });
+    writeFileSync(path.join(real, 'scripts/new.mjs'), 'export const n = 1;\n');
+    git('add', '.');
+    git('commit', '--quiet', '-m', 'script change with no record of its own');
+
+    process.env.GITHUB_BASE_REF = 'feature-x';
+    const { range } = resolveDiffRange(real);
+    const addedFiles = gitDiffNameOnly(range, real, { addedOnly: true });
+
+    assert.deepEqual(
+      addedFiles,
+      ['scripts/new.mjs'],
+      'widening past the declared base harvests the ancestor\'s review record and fails the gate open'
+    );
+    assert.equal(hasReviewRecord(addedFiles), false);
+  } finally {
+    if (previous === undefined) delete process.env.GITHUB_BASE_REF;
+    else process.env.GITHUB_BASE_REF = previous;
+    rmSync(real, { recursive: true, force: true });
   }
 });
 

@@ -34,15 +34,30 @@ export function hasReviewRecord(addedFiles) {
 }
 
 /**
- * Candidate base refs, most specific first. `GITHUB_BASE_REF` is set by GitHub
- * Actions on `pull_request` events and names the target branch.
+ * Candidate base refs, plus whether they came from an explicit signal.
+ *
+ * `GITHUB_BASE_REF` is set by GitHub Actions on `pull_request` events and names
+ * the target branch. When such a signal exists it is *authoritative*: if it does
+ * not resolve we must not quietly substitute `main`. Widening the range past the
+ * declared base makes `--diff-filter=A` harvest review records added on an
+ * intermediate branch, so a stacked branch could be credited with a record it
+ * never added — the gate would fail open, which is the failure mode it exists
+ * to prevent.
  */
-function candidateBaseRefs(explicitBaseRef) {
-  if (explicitBaseRef) return [explicitBaseRef];
-  const refs = [];
-  if (process.env.GITHUB_BASE_REF) refs.push(`origin/${process.env.GITHUB_BASE_REF}`);
-  refs.push('origin/main', 'main');
-  return refs;
+function baseRefCandidates(explicitBaseRef) {
+  if (explicitBaseRef) return { refs: [explicitBaseRef], authoritative: true };
+  const declared = process.env.GITHUB_BASE_REF;
+  if (declared) return { refs: [`origin/${declared}`, declared], authoritative: true };
+  return { refs: ['origin/main', 'main'], authoritative: false };
+}
+
+function gitCapture(cwd, args) {
+  try {
+    const out = execFileSync('git', args, { cwd, stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim();
+    return out || undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 /**
@@ -58,22 +73,29 @@ function candidateBaseRefs(explicitBaseRef) {
  * so the caller can report honestly which range it actually audited.
  */
 export function resolveDiffRange(cwd, { baseRef } = {}) {
-  for (const candidate of candidateBaseRefs(baseRef)) {
-    try {
-      const mergeBase = execFileSync('git', ['merge-base', candidate, 'HEAD'], {
-        cwd,
-        stdio: ['ignore', 'pipe', 'ignore']
-      })
-        .toString()
-        .trim();
-      if (mergeBase) {
-        return { range: `${mergeBase}..HEAD`, basis: 'merge-base', baseRef: candidate };
-      }
-    } catch {
-      // Candidate is not present in this clone; try the next one.
+  const { refs, authoritative } = baseRefCandidates(baseRef);
+  const head = gitCapture(cwd, ['rev-parse', 'HEAD']);
+
+  for (const candidate of refs) {
+    const mergeBase = gitCapture(cwd, ['merge-base', candidate, 'HEAD']);
+    if (!mergeBase) continue;
+
+    // HEAD is at or behind the base — every `push` to the base branch has this
+    // shape. `${mergeBase}..HEAD` would be empty and audit nothing, which the
+    // caller would otherwise print as a confident "docs-only" pass.
+    if (head && mergeBase === head) {
+      return { range: 'HEAD~1..HEAD', basis: 'fallback', baseRef: undefined, reason: 'empty-range' };
     }
+
+    return { range: `${mergeBase}..HEAD`, basis: 'merge-base', baseRef: candidate };
   }
-  return { range: 'HEAD~1..HEAD', basis: 'fallback', baseRef: undefined };
+
+  return {
+    range: 'HEAD~1..HEAD',
+    basis: 'fallback',
+    baseRef: undefined,
+    reason: authoritative ? 'declared-base-unresolvable' : 'no-base-ref'
+  };
 }
 
 export function gitDiffNameOnly(refspec, cwd, options = {}) {
@@ -94,7 +116,7 @@ export function gitDiffNameOnly(refspec, cwd, options = {}) {
 
 async function main() {
   const cwd = process.cwd();
-  const { range, basis, baseRef } = resolveDiffRange(cwd);
+  const { range, basis, baseRef, reason } = resolveDiffRange(cwd);
   const changedFiles = gitDiffNameOnly(range, cwd);
   const addedFiles = gitDiffNameOnly(range, cwd, { addedOnly: true });
   const scriptFiles = changedFiles.filter((file) => {
@@ -108,12 +130,19 @@ async function main() {
 
   console.log('Review gate audit');
   console.log('─────────────────────────────────────────────────────────');
+  const FALLBACK_REASONS = {
+    'empty-range': 'HEAD is at or behind the base branch, so there is no branch-wide range to audit',
+    'declared-base-unresolvable': `the declared base ref (${process.env.GITHUB_BASE_REF}) could not be resolved in this clone`,
+    'no-base-ref': 'no base ref could be resolved in this clone'
+  };
+
   if (basis === 'merge-base') {
     console.log(`Range: ${range} (merge-base with ${baseRef})`);
   } else {
     console.log(
-      `Range: ${range} — WARNING: no base ref resolved, so only the last commit was audited. ` +
-        'A script change in an earlier commit of this branch would not be seen.'
+      `Range: ${range} — WARNING: only the last commit was audited because ` +
+        `${FALLBACK_REASONS[reason] ?? 'no base ref could be resolved'}. ` +
+        'A script change in an earlier commit would not be seen.'
     );
   }
   console.log(`Changed files: ${changedFiles.length}`);
