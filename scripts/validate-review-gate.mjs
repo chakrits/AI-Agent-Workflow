@@ -33,7 +33,76 @@ export function hasReviewRecord(addedFiles) {
   );
 }
 
-function gitDiffNameOnly(refspec, cwd, options = {}) {
+/**
+ * Candidate base refs, plus whether they came from an explicit signal.
+ *
+ * `GITHUB_BASE_REF` is set by GitHub Actions on `pull_request` events and names
+ * the target branch. When such a signal exists it is *authoritative*: if it does
+ * not resolve we must not quietly substitute `main`. Widening the range past the
+ * declared base makes `--diff-filter=A` harvest review records added on an
+ * intermediate branch, so a stacked branch could be credited with a record it
+ * never added — the gate would fail open, which is the failure mode it exists
+ * to prevent.
+ */
+function baseRefCandidates(explicitBaseRef) {
+  if (explicitBaseRef) return { refs: [explicitBaseRef], authoritative: true };
+  const declared = process.env.GITHUB_BASE_REF;
+  if (declared) return { refs: [`origin/${declared}`, declared], authoritative: true };
+  return { refs: ['origin/main', 'main'], authoritative: false };
+}
+
+function gitCapture(cwd, args) {
+  try {
+    const out = execFileSync('git', args, { cwd, stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim();
+    return out || undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Resolves the range the gate should audit.
+ *
+ * The gate must see every commit on the branch, not just the last one: a branch
+ * whose script change lands in an earlier commit and whose final commit touches
+ * only docs would otherwise be waved through as "docs-only". `HEAD~1..HEAD` is
+ * therefore only a last resort — `docs/workflow/task-execution-mode.md` makes it
+ * normative that `HEAD~1` is never a substitute for a multi-commit range.
+ *
+ * Returns `basis: 'merge-base'` when a base ref resolved, `'fallback'` otherwise,
+ * so the caller can report honestly which range it actually audited.
+ */
+export function resolveDiffRange(cwd, { baseRef } = {}) {
+  const { refs, authoritative } = baseRefCandidates(baseRef);
+  const head = gitCapture(cwd, ['rev-parse', 'HEAD']);
+
+  for (const candidate of refs) {
+    const mergeBase = gitCapture(cwd, ['merge-base', candidate, 'HEAD']);
+    if (!mergeBase) continue;
+
+    // HEAD is at or behind the base — every `push` to the base branch has this
+    // shape. `${mergeBase}..HEAD` would be empty and audit nothing, which the
+    // caller would otherwise print as a confident "docs-only" pass.
+    if (head && mergeBase === head) {
+      return { range: 'HEAD~1..HEAD', basis: 'fallback', baseRef: undefined, reason: 'empty-range' };
+    }
+
+    return { range: `${mergeBase}..HEAD`, basis: 'merge-base', baseRef: candidate };
+  }
+
+  return {
+    range: 'HEAD~1..HEAD',
+    basis: 'fallback',
+    baseRef: undefined,
+    // The ref(s) that were declared but could not be resolved. Reported by the
+    // caller instead of re-reading the environment, which would print
+    // `(undefined)` when the declaration came from the `baseRef` argument.
+    declaredBaseRef: authoritative ? refs.join(' or ') : undefined,
+    reason: authoritative ? 'declared-base-unresolvable' : 'no-base-ref'
+  };
+}
+
+export function gitDiffNameOnly(refspec, cwd, options = {}) {
   const args = ['diff', '--name-only'];
   if (options.addedOnly) args.push('--diff-filter=A');
   args.push(refspec);
@@ -51,8 +120,9 @@ function gitDiffNameOnly(refspec, cwd, options = {}) {
 
 async function main() {
   const cwd = process.cwd();
-  const changedFiles = gitDiffNameOnly('HEAD~1..HEAD', cwd);
-  const addedFiles = gitDiffNameOnly('HEAD~1..HEAD', cwd, { addedOnly: true });
+  const { range, basis, baseRef, reason, declaredBaseRef } = resolveDiffRange(cwd);
+  const changedFiles = gitDiffNameOnly(range, cwd);
+  const addedFiles = gitDiffNameOnly(range, cwd, { addedOnly: true });
   const scriptFiles = changedFiles.filter((file) => {
     const ext = path.extname(file).toLowerCase();
     return SCRIPT_EXTENSIONS.includes(ext);
@@ -64,7 +134,22 @@ async function main() {
 
   console.log('Review gate audit');
   console.log('─────────────────────────────────────────────────────────');
-  console.log(`Changed files (HEAD~1..HEAD): ${changedFiles.length}`);
+  const FALLBACK_REASONS = {
+    'empty-range': 'HEAD is at or behind the base branch, so there is no branch-wide range to audit',
+    'declared-base-unresolvable': `the declared base ref (${declaredBaseRef}) could not be resolved in this clone`,
+    'no-base-ref': 'no base ref could be resolved in this clone'
+  };
+
+  if (basis === 'merge-base') {
+    console.log(`Range: ${range} (merge-base with ${baseRef})`);
+  } else {
+    console.log(
+      `Range: ${range} — WARNING: only the last commit was audited because ` +
+        `${FALLBACK_REASONS[reason] ?? 'no base ref could be resolved'}. ` +
+        'A script change in an earlier commit would not be seen.'
+    );
+  }
+  console.log(`Changed files: ${changedFiles.length}`);
   if (scriptFiles.length) {
     console.log(`Script files (.mjs/.js) changed: ${scriptFiles.length}`);
     for (const file of scriptFiles) console.log(`  - ${file}`);
