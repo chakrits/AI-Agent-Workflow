@@ -3,10 +3,16 @@
 ## obra/superpowers — task-execution concepts (Issue #166)
 
 Issue #166 is an independent, conceptual adaptation informed by
-[`obra/superpowers`](https://github.com/obra/superpowers), specifically its
+[`obra/superpowers` at commit `44c9b2d`](https://github.com/obra/superpowers/tree/44c9b2d6e889982ac18c27d05a19fefe335194e1), specifically its
 `subagent-driven-development` skill and implementer/reviewer/re-review prompt shapes. The
 repository does not reproduce the upstream prompts verbatim and retains its own dynamic routing,
 lifecycle contracts, QA ownership, and human gates as canonical policy.
+
+> **Pinning note:** the record of Issue #166 does not state which upstream commit was consulted
+> while adapting the `subagent-driven-development` concepts. Per the Issue #170 assumption, this
+> citation pins the upstream `HEAD` at the time of the fix (`44c9b2d`, 2026-08-12) and is
+> explicitly **not** claimed to be the revision that was read during #166. It makes the reference
+> reproducible, not historical.
 
 Upstream copyright and license notice:
 
