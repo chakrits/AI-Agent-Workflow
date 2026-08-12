@@ -7,6 +7,7 @@
 - Repository reset to template baseline (Issue #160, PR #162, merged as `93203e2`): stubbed `PROJECT_STATUS.md`, `TASK_LOG.md`, `CHANGELOG.md`, `RISKS.md`, `DECISIONS.md` and cleared 13 historical record directories, per Boss-approved run of `scripts/reset-to-template.mjs --apply --confirm-reset`. Working-tree content reset only — git history unchanged, all removed content recoverable via `git log`/`git show`.
 
 ### Changed
+- Pinned the `obra/superpowers` attribution in `THIRD_PARTY_NOTICES.md` to upstream commit `44c9b2d` (Issue #170, PR #174, merged as `0bed2ad`), matching the adjacent Addy Osmani entry's form; the pin is explicitly noted as fix-time upstream `HEAD`, not a claimed historical revision. Renamed the `TASK_BRIEF.md` human-decision field to `Human decision evidence (addressable URL)` so the template label matches the normative "addressable Human decision status" requirement in `docs/workflow/task-execution-mode.md:25`.
 
 ### Fixed
 - `scripts/validate-review-gate.mjs` diffed only `HEAD~1..HEAD`, so a multi-commit branch whose `.mjs` change landed before the final commit was reported as a docs-only PR and merged with no review record (Issue #168, PR #172, merged as `bd25b7c`). Now resolves the audit range via `git merge-base` against the PR base (`GITHUB_BASE_REF` → `origin/main` → `main`), falling back to `HEAD~1..HEAD` only when no base resolves — with an explicit WARNING when it does. Three regression tests build a real two-commit branch whose script change lands in the first commit. Suite 399 → 407.
