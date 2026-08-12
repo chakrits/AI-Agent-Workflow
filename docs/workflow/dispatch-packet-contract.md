@@ -8,8 +8,9 @@ the discipline rules that keep it single-sourced, and what each role's packet mu
 
 Read this before writing a dispatch. It binds the parent, not the child.
 
-Decision record: [Issue #102](https://github.com/chakrits/AI-Agent-Workflow/issues/102).
-Design: [`docs/superpowers/specs/2026-07-26-dispatch-packet-contract-102a-design.md`](../superpowers/specs/2026-07-26-dispatch-packet-contract-102a-design.md).
+Decision record: [Issue #102](https://github.com/chakrits/AI-Agent-Workflow/issues/102). This
+document is the canonical v1 definition of the dispatch packet; the design rationale that produced
+it is recorded in the Issue #102 history and is not required to read this document.
 
 ## Guiding Principle
 
@@ -148,7 +149,10 @@ Repo state: branch `docs/workflow-playbook-discoverability-spec`, 3 commits ahea
 
 Objective: Implement Issue #99's 5 approved fixes — one commit per fix, in spec order.
 
-Authoritative source: docs/superpowers/specs/2026-07-26-workflow-playbook-discoverability-design.md
+Authoritative source: the Issue #99 workflow-playbook-discoverability design, which specified
+  five fixes (wire `stabilize-core.md` as a change type, link `feature-discovery-to-plan.md`,
+  backlink `bug-debug-fix.md`, mirror four skill backlinks, and add a playbook inbound-reference
+  test). Its full text is recoverable from git history; the summary here is sufficient to apply them.
   Read completely first. It contains copy-pasteable diffs for every fix; apply them as written.
   If a diff does not apply cleanly, STOP and report. Do not improvise.
 Additional read: `gh issue view 99 --repo chakrits/AI-Agent-Workflow --comments` (scope and ACs)
@@ -187,7 +191,8 @@ Objective: Verify Issue #99's 9 Acceptance Criteria against HEAD; report pass or
 Authoritative source: `gh issue view 99 --repo chakrits/AI-Agent-Workflow --comments`
   — the 9 ACs are your checklist. Do not restate or reinterpret them.
 Additional read:
-- docs/superpowers/specs/2026-07-26-workflow-playbook-discoverability-design.md — what was specified
+- the Issue #99 workflow-playbook-discoverability design (five fixes enumerated in the
+  Documentation Agent example above) — what was specified
 - `git diff main...HEAD` — what was built
 
 Method:
