@@ -1,13 +1,21 @@
 # PROJECT_STATUS.md
 
 ## Current Work Item
-- None. Idle after Issue #155 / PR #156 closeout.
+- Reset-to-template execution — fixing a pre-existing gap before Boss verifies the harness.
+- Title: `docs/records/handoffs` (plural) was missing from `reset-to-template.mjs`'s `CLEARED_DIRECTORIES`
+- Owner: Documentation Agent / Developer Agent (TDD fix) → harness verification next
+- Status: Fix implemented and locally verified (`npm test` 399/399, `validate:contracts`/`validate:project-state`/`validate:skill-parity` PASS); PR not yet opened. Plan: `docs/records/implementation-plan/2026-08-12-reset-to-template-execution-plan.md`.
+- References: branch `fix/reset-template-handoffs-gap`; separate plan branch `docs/reset-to-template-execution-plan`
 
 ## Current Stage
-- Idle. Issues #132/#133 remain open; no later implementation increment is currently authorized.
+- Small TDD fix in progress ahead of running `verify-reset-template.mjs`'s disposable-clone harness, per Boss's decision to fix the gap first. Issues #132/#133 remain open; no later implementation increment is currently authorized.
 
 ## Change Classification
-- N/A — no active work item.
+- Change Type: Framework / Meta Change (tooling correctness fix, no target-application runtime code)
+- Risk Level: Low — corrects which directories a not-yet-applied reset tool clears; no behavior change to any already-shipped feature
+- Code Change Required: Yes — one array entry in `scripts/reset-to-template.mjs`, plus a regression assertion
+- Architecture Change Required: No
+- Security Review Required: No
 
 ## Completed
 - GitHub Issue #155 (QA-owned `static-logic-review` skill + routing) merged through PR #156 as commit `b5f1ef9`. Adds a risk-triggered static dry-run method for changed production logic (I/O trace + counterexamples against an approved AC/spec/contract), explicitly not a runtime test, coverage claim, security approval, or universal PR gate; owner is QA Agent, with Developer self-check advisory only — deliberately did not introduce an undefined "Static Logic Agent" role. Mirrored byte-identical across `.agents/`, `.claude/`, `.agent/` (38/38 parity). Added QA Agent routing/backward-routing rows in `role-definitions.md` and `.claude/agents/qa-agent.md` distinguishing this skill from `code-review-gate`, `functional-test-design`, `test-quality-discipline`, `mutation-testing`, and runtime QA execution; a finding-outcome table routes code-trace contradictions to Developer, missing/ambiguous requirements to BA, missing/insufficient contracts to SA, and auth/secrets/PII/injection concerns to Security Reviewer. Implementation dispatched via Orchestrator/`dispatch-packet-contract` Packet v1; both the implementation dispatch and the QA dispatch hit a `host_completion_unavailable` block on first attempt and required a Human-directed re-dispatch without a synchronous wait — recorded as dispatch-infrastructure friction, not a content defect. Independent QA verified commit `c29cb34` against parent `9026bd1`, PASS on all 7 Acceptance Criteria (evidence: https://github.com/chakrits/AI-Agent-Workflow/issues/155#issuecomment-5219522392). `npm test` 397 → 399; `validate:skill-parity` 38/38; `validate:context-budget` 28889 → 29776/30000 (headroom now ~0.7% — flagged as tight for the next skill-catalog batch). Plan: `docs/records/implementation-plan/2026-08-07-static-logic-review-skill.md`; code review: `docs/records/qa/2026-08-07-issue-155-static-logic-review-code-review.md`. Docs/skill-catalog only — no code or CI behavior change; unrelated to the #132/#133 bounded-increment work below.

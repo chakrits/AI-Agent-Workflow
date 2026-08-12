@@ -79,6 +79,7 @@ export const CLEARED_DIRECTORIES = [
   'docs/records/security-review',
   'docs/records/implementation-plan',
   'docs/records/handoff',
+  'docs/records/handoffs',
   'docs/records/work-items',
   'docs/records/lessons-learned',
   'docs/records/postmortem',

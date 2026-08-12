@@ -96,6 +96,11 @@ async function runCli(rootDir, args = []) {
 test('reset scope clears work-item and lessons history, stubs decisions, and excludes QA/navigation', () => {
   assert.ok(CLEARED_DIRECTORIES.includes('docs/records/work-items'));
   assert.ok(CLEARED_DIRECTORIES.includes('docs/records/lessons-learned'));
+  assert.ok(CLEARED_DIRECTORIES.includes('docs/records/handoff'));
+  assert.ok(
+    CLEARED_DIRECTORIES.includes('docs/records/handoffs'),
+    'docs/records/handoffs (plural) must be cleared alongside docs/records/handoff (singular) — both directories hold historical handoff records'
+  );
   assert.ok(!CLEARED_DIRECTORIES.includes('docs/records/qa'));
   assert.match(STUB_CONTENT['DECISIONS.md'], /^# DECISIONS\.md/m);
   assert.match(STUB_CONTENT['DECISIONS.md'], /## Decision Log/);
