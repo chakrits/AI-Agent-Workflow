@@ -10,6 +10,7 @@ This is the entry point for browsing this repo as an Obsidian vault. The vault r
 - [[../workflow/dynamic-routing.md|dynamic-routing.md]] — routing matrix and skip rules
 - [[../workflow/handoff-contract.md|handoff-contract.md]] — terminal handoff / dispatch-receipt contract
 - [[../workflow/quality-gates.md|quality-gates.md]] — required gates per stage
+- [[../workflow/task-execution-mode.md|task-execution-mode.md]] — optional task-execution mode: entry/exit criteria, task artifact contracts, bounded review loop, runtime-dispatch vs receipt-ledger glossary
 - [[../workflow/platform-readiness.md|platform-readiness.md]] — lifecycle labels and readiness gate
 - [[../workflow/testing-conventions.md|testing-conventions.md]] — test folder-structure convention for target apps
 
