@@ -27,7 +27,7 @@
 
 - SUBAGENT-01: Completed directly by Orchestrator under approved `host_completion_unavailable` fallback — ADR-0014 and third-party-notice decision recorded.
 - SUBAGENT-01A: Completed directly by Orchestrator under approved `host_completion_unavailable` fallback — draft detailed specification produced; Human review pending.
-- SUBAGENT-02: Add task execution templates and update canonical routing/role/catalog references — Documentation Agent.
+- SUBAGENT-02: Completed — added task execution templates and compact routing/role/catalog references; independent QA review pending.
 - SUBAGENT-03: Add proportionate validator/test coverage only when a normative rule has a machine-checkable seam — Developer Agent, conditional.
 - SUBAGENT-04: Independently verify the implementation diff and acceptance criteria — QA Agent.
 - SUBAGENT-05: Approve merge and complete post-merge closeout — Human Maintainer → Documentation Agent.

@@ -35,6 +35,13 @@ Every terminal handoff has a stable `Handoff Event ID`, `Parent Orchestrator ID`
 
 The native completion primitive only delivers the child receipt within the active turn; it cannot judge QA, merge, approve, alter a repository, or bypass a human gate. No host capability in this contract keeps and resumes a parent after it has ended or yielded its turn. If the parent cannot complete a required dispatch in-turn, it must record `Dispatch State: blocked` with `Stop Reason: host_completion_unavailable` and a Boss event in the current turn — it must not end or yield while claiming a later automatic continuation. A deadline expiry during an active in-turn wait records `timed_out`, and an explicit cancellation records `cancelled`; these are explicit Boss-visible outcomes, not a fallback to prose routing or polling. Cross-turn or event-driven orchestration that resumes a parent after it has ended its turn is explicitly deferred to a separately approved durable control-plane design (GitHub Issue #35) and is not acceptance evidence for this contract. A heartbeat/schedule mechanism may be used only as an operator-invoked emergency diagnostic after a block; it is never the happy path and can never route work or establish acceptance evidence.
 
+### Optional Task-Execution Mode
+
+For a planned multi-task or risk-triggered change, use the Task Brief, Implementer Report, Task
+Review, and Re-review templates. They are not lifecycle handoffs. Pin reviews to `base_sha` and
+`head_sha`; use `task_review_rework_count` (maximum two), never lifecycle `rework_count`. See
+the approved Issue #166 specification for entry criteria and the receipt/runtime glossary.
+
 ## Lifecycle Labels for Feature and Enhancement Work
 
 Keep the current lifecycle stage separate from evidence milestones.
