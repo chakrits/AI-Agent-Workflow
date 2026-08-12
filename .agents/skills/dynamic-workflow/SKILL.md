@@ -29,6 +29,10 @@ Read AGENTS.md, PROJECT_STATUS.md, and docs/workflow/*.md. Classify the request,
 
 For Feature and Enhancement work, require `status:spec-ready` before Developer implementation and keep exactly one current `phase:` label. Follow `docs/workflow/dynamic-routing.md` for the portable lifecycle contract and exceptions.
 
+## Optional Task-Execution Mode
+
+Select task-execution mode only when the approved plan has two or more dependent tasks, or one Medium/High-risk task that changes production decision logic, an integration/shared contract, or security/data behavior. It is optional for Low-risk documentation or mechanical work and is never universal ceremony. When selected, emit a Task Brief (`docs/templates/TASK_BRIEF.md`) per task, require an Implementer Report, and route review to the QA Agent in `task_review` mode with pinned `base_sha`/`head_sha`. Track `task_review_rework_count` (maximum two fix rounds, then stop for the Human Maintainer) separately from the lifecycle `rework_count`. These artifacts are not lifecycle handoffs. Follow `docs/workflow/task-execution-mode.md` for entry/exit criteria, artifact contracts, the bounded review loop, and the runtime-dispatch versus receipt-ledger state glossary; this adapter must not redefine it.
+
 ## Output Rules
 
 - Use the relevant template in `docs/templates/`.

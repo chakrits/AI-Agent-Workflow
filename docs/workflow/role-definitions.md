@@ -174,6 +174,8 @@ Make the smallest diff that satisfies the current task's plan. Do not add functi
 
 Owns test strategy, test case design, API/E2E automation, regression, defect analysis, coverage matrix, and test report.
 
+Task Review/Re-review is a QA mode with pinned SHAs, not a Reviewer role or lifecycle acceptance substitute.
+
 ### Skill Routing
 
 | Task | Skill |
