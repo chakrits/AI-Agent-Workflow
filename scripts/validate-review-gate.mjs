@@ -94,6 +94,10 @@ export function resolveDiffRange(cwd, { baseRef } = {}) {
     range: 'HEAD~1..HEAD',
     basis: 'fallback',
     baseRef: undefined,
+    // The ref(s) that were declared but could not be resolved. Reported by the
+    // caller instead of re-reading the environment, which would print
+    // `(undefined)` when the declaration came from the `baseRef` argument.
+    declaredBaseRef: authoritative ? refs.join(' or ') : undefined,
     reason: authoritative ? 'declared-base-unresolvable' : 'no-base-ref'
   };
 }
@@ -116,7 +120,7 @@ export function gitDiffNameOnly(refspec, cwd, options = {}) {
 
 async function main() {
   const cwd = process.cwd();
-  const { range, basis, baseRef, reason } = resolveDiffRange(cwd);
+  const { range, basis, baseRef, reason, declaredBaseRef } = resolveDiffRange(cwd);
   const changedFiles = gitDiffNameOnly(range, cwd);
   const addedFiles = gitDiffNameOnly(range, cwd, { addedOnly: true });
   const scriptFiles = changedFiles.filter((file) => {
@@ -132,7 +136,7 @@ async function main() {
   console.log('─────────────────────────────────────────────────────────');
   const FALLBACK_REASONS = {
     'empty-range': 'HEAD is at or behind the base branch, so there is no branch-wide range to audit',
-    'declared-base-unresolvable': `the declared base ref (${process.env.GITHUB_BASE_REF}) could not be resolved in this clone`,
+    'declared-base-unresolvable': `the declared base ref (${declaredBaseRef}) could not be resolved in this clone`,
     'no-base-ref': 'no base ref could be resolved in this clone'
   };
 

@@ -148,6 +148,24 @@ test('an unresolvable GITHUB_BASE_REF degrades loudly instead of silently auditi
   }
 });
 
+test('an unresolvable explicit baseRef names itself, not the unrelated environment variable', () => {
+  const dir = buildTwoCommitBranch();
+  const previous = process.env.GITHUB_BASE_REF;
+  delete process.env.GITHUB_BASE_REF;
+  try {
+    const { reason, declaredBaseRef } = resolveDiffRange(dir, { baseRef: 'release/9.9' });
+    assert.equal(reason, 'declared-base-unresolvable');
+    assert.equal(
+      declaredBaseRef,
+      'release/9.9',
+      'the warning must name the ref that was actually declared; reading GITHUB_BASE_REF here would print "(undefined)"'
+    );
+  } finally {
+    if (previous !== undefined) process.env.GITHUB_BASE_REF = previous;
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 test('GITHUB_BASE_REF resolves as a bare local ref when no remote-tracking ref exists', () => {
   const dir = buildTwoCommitBranch();
   const previous = process.env.GITHUB_BASE_REF;

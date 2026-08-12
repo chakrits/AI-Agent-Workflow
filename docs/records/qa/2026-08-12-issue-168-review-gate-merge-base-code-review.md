@@ -30,11 +30,34 @@ Independent QA returned NEEDS_REVISION on the first candidate (`7ffb4fa`) with t
 | CR-909 | Minor | `GITHUB_BASE_REF` was only tried as `origin/${ref}`, so a checkout with a local base branch and no remote-tracking ref could not resolve its own base | Try the bare ref as well | Fixed as part of CR-908; the CR-908 repro resolves `feature-x` with no `origin/` remote present |
 | CR-910 | Minor | The committed tests cannot demonstrate RED against the actual pre-fix artifact — they fail on a missing export. Prose alone is not re-derivable | Recorded the exact reproduction procedure below | This section |
 
-**Reproducible RED procedure**, since the stubbed seam is not present in the artifact: check out `de6a98f:scripts/validate-review-gate.mjs`, add `export function resolveDiffRange(cwd, { baseRef } = {}) { return { range: 'HEAD~1..HEAD', basis: 'fallback', baseRef }; }` and `export` on `gitDiffNameOnly`, then run `node --test test/validate-review-gate.test.mjs` → 13 pass / 2 fail, the failures being the two branch-wide tests.
+**Reproducible RED procedure**, since the stubbed seam is not present in the artifact. Take `de6a98f:scripts/validate-review-gate.mjs`, add `export function resolveDiffRange(cwd, { baseRef } = {}) { return { range: 'HEAD~1..HEAD', basis: 'fallback', baseRef }; }` and `export` on `gitDiffNameOnly`, then run `node --test` against the test file. The result depends on **which revision of the test file you use**, so pin it:
+
+| Test file revision | Result | Failing tests |
+|---|---|---|
+| `7ffb4fa:test/validate-review-gate.test.mjs` (15 tests — the original RED for CR-901–CR-903) | 13 pass / 2 fail | the two branch-wide tests |
+| `7fce943:test/validate-review-gate.test.mjs` (19 tests — after this revision added four more) | 16 pass / 3 fail | the two branch-wide tests, plus `GITHUB_BASE_REF resolves as a bare local ref…` |
+
+The unpinned earlier wording of this paragraph stated only the first row while the repository head already held the second, so a reader following it against the working tree could not reproduce the stated numbers. Both rows are independently re-derived.
 
 **Harness note.** The first attempt to reproduce QA's findings appeared to contradict them: the pre-fix script produced no output at all. The cause was the reproduction harness, not the finding — `mktemp -d` on macOS returns `/var/...`, a symlink to `/private/var/...`, so `import.meta.url === pathToFileURL(process.argv[1]).href` never matched and `main()` never ran. Re-running through `pwd -P` confirmed QA's results exactly. The test fixtures now call `realpathSync` for the same reason.
 
-Four regression tests were added for these findings (suite 402 → 406).
+## Second revision after independent re-review
+
+The re-review disposed of Major 1, Major 2, and Minor 1 as addressed, and raised two fix-caused items. Both were reproduced before being accepted.
+
+| Finding ID | Severity | Finding | Fix | Evidence |
+|---|---|---|---|---|
+| CR-911 | Minor | Minor 2's correction was itself not re-derivable. The RED procedure above stated "13 pass / 2 fail" without pinning the test-file revision, but the same commit that wrote the procedure added four tests — so following it against the repository head yields 16 pass / 3 fail, with a third failure the text never mentions | Pinned the procedure to both revisions and tabulated each result, and stated why the unpinned wording was wrong | Independently re-derived: stubbed `de6a98f` script + head test file → `# tests 19 / # pass 16 / # fail 3`, third failure `GITHUB_BASE_REF resolves as a bare local ref…` |
+| CR-912 | Minor | `FALLBACK_REASONS['declared-base-unresolvable']` interpolated `process.env.GITHUB_BASE_REF`, but that reason is also returned when the declaration came from the explicit `baseRef` argument with the environment variable unset — the warning would read `the declared base ref (undefined)`. Library-surface only; `main()` passes no `baseRef`, so the CLI path never reaches it | `resolveDiffRange` now returns `declaredBaseRef`, and the message reports that instead of re-reading the environment | New regression test `an unresolvable explicit baseRef names itself, not the unrelated environment variable` |
+
+Five regression tests total were added across both revisions (suite 402 → 407).
+
+Two out-of-scope observations were parked by the re-review rather than discarded, per `docs/workflow/task-execution-mode.md`:
+
+1. A repository whose only commit is its root gives `Changed files: 0` and passes, because `HEAD~1` does not resolve and `gitDiffNameOnly` swallows the error. **Not fix-caused** — identical at the pre-#168 baseline `de6a98f`. Owner: Developer Agent. Next action: open a follow-up to make an unresolvable range an explicit FAIL rather than a silent empty list.
+2. Context-budget headroom is 63 tokens. Not fix-caused; this diff touches no budgeted file. Owner: Documentation Agent. Next action: schedule a headroom review before the next canonical-file edit.
+
+`task_review_rework_count` is now **2 of a maximum 2**. Any further unresolved review result stops for the Human Maintainer rather than starting a third round.
 
 ## Review Decision
 
