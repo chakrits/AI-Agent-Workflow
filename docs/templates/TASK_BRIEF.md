@@ -7,7 +7,7 @@
 | Base SHA |  |
 | Dependencies |  |
 | Required reviewer mode |  |
-| Human decision evidence |  |
+| Human decision evidence (addressable URL) |  |
 
 ## Allowed Scope
 
