@@ -47,6 +47,7 @@ export const STUB_CONTENT = {
   'TASK_LOG.md': `# TASK_LOG.md
 
 | Date | Work Item | Agent | Action | Result | Next Agent | Notes |
+|---|---|---|---|---|---|---|
 `,
   'CHANGELOG.md': `# CHANGELOG.md
 
