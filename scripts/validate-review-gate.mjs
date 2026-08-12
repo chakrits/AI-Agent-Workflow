@@ -33,7 +33,50 @@ export function hasReviewRecord(addedFiles) {
   );
 }
 
-function gitDiffNameOnly(refspec, cwd, options = {}) {
+/**
+ * Candidate base refs, most specific first. `GITHUB_BASE_REF` is set by GitHub
+ * Actions on `pull_request` events and names the target branch.
+ */
+function candidateBaseRefs(explicitBaseRef) {
+  if (explicitBaseRef) return [explicitBaseRef];
+  const refs = [];
+  if (process.env.GITHUB_BASE_REF) refs.push(`origin/${process.env.GITHUB_BASE_REF}`);
+  refs.push('origin/main', 'main');
+  return refs;
+}
+
+/**
+ * Resolves the range the gate should audit.
+ *
+ * The gate must see every commit on the branch, not just the last one: a branch
+ * whose script change lands in an earlier commit and whose final commit touches
+ * only docs would otherwise be waved through as "docs-only". `HEAD~1..HEAD` is
+ * therefore only a last resort — `docs/workflow/task-execution-mode.md` makes it
+ * normative that `HEAD~1` is never a substitute for a multi-commit range.
+ *
+ * Returns `basis: 'merge-base'` when a base ref resolved, `'fallback'` otherwise,
+ * so the caller can report honestly which range it actually audited.
+ */
+export function resolveDiffRange(cwd, { baseRef } = {}) {
+  for (const candidate of candidateBaseRefs(baseRef)) {
+    try {
+      const mergeBase = execFileSync('git', ['merge-base', candidate, 'HEAD'], {
+        cwd,
+        stdio: ['ignore', 'pipe', 'ignore']
+      })
+        .toString()
+        .trim();
+      if (mergeBase) {
+        return { range: `${mergeBase}..HEAD`, basis: 'merge-base', baseRef: candidate };
+      }
+    } catch {
+      // Candidate is not present in this clone; try the next one.
+    }
+  }
+  return { range: 'HEAD~1..HEAD', basis: 'fallback', baseRef: undefined };
+}
+
+export function gitDiffNameOnly(refspec, cwd, options = {}) {
   const args = ['diff', '--name-only'];
   if (options.addedOnly) args.push('--diff-filter=A');
   args.push(refspec);
@@ -51,8 +94,9 @@ function gitDiffNameOnly(refspec, cwd, options = {}) {
 
 async function main() {
   const cwd = process.cwd();
-  const changedFiles = gitDiffNameOnly('HEAD~1..HEAD', cwd);
-  const addedFiles = gitDiffNameOnly('HEAD~1..HEAD', cwd, { addedOnly: true });
+  const { range, basis, baseRef } = resolveDiffRange(cwd);
+  const changedFiles = gitDiffNameOnly(range, cwd);
+  const addedFiles = gitDiffNameOnly(range, cwd, { addedOnly: true });
   const scriptFiles = changedFiles.filter((file) => {
     const ext = path.extname(file).toLowerCase();
     return SCRIPT_EXTENSIONS.includes(ext);
@@ -64,7 +108,15 @@ async function main() {
 
   console.log('Review gate audit');
   console.log('─────────────────────────────────────────────────────────');
-  console.log(`Changed files (HEAD~1..HEAD): ${changedFiles.length}`);
+  if (basis === 'merge-base') {
+    console.log(`Range: ${range} (merge-base with ${baseRef})`);
+  } else {
+    console.log(
+      `Range: ${range} — WARNING: no base ref resolved, so only the last commit was audited. ` +
+        'A script change in an earlier commit of this branch would not be seen.'
+    );
+  }
+  console.log(`Changed files: ${changedFiles.length}`);
   if (scriptFiles.length) {
     console.log(`Script files (.mjs/.js) changed: ${scriptFiles.length}`);
     for (const file of scriptFiles) console.log(`  - ${file}`);

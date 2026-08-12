@@ -1,6 +1,102 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { hasScriptChanges, hasReviewRecord } from '../scripts/validate-review-gate.mjs';
+import { execFileSync } from 'node:child_process';
+import { mkdtempSync, rmSync, writeFileSync, mkdirSync } from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import {
+  hasScriptChanges,
+  hasReviewRecord,
+  resolveDiffRange,
+  gitDiffNameOnly
+} from '../scripts/validate-review-gate.mjs';
+
+/**
+ * Builds a throwaway repository whose feature branch has two commits: the
+ * script change lands in the FIRST commit and the second touches docs only.
+ * This is the shape that a `HEAD~1..HEAD` range cannot see.
+ */
+function buildTwoCommitBranch() {
+  const dir = mkdtempSync(path.join(os.tmpdir(), 'review-gate-'));
+  const git = (...args) => execFileSync('git', args, { cwd: dir, stdio: ['ignore', 'pipe', 'ignore'] });
+
+  git('init', '--quiet', '--initial-branch=main');
+  git('config', 'user.email', 'test@example.com');
+  git('config', 'user.name', 'Test');
+
+  writeFileSync(path.join(dir, 'README.md'), 'base\n');
+  git('add', '.');
+  git('commit', '--quiet', '-m', 'base');
+
+  git('checkout', '--quiet', '-b', 'feature');
+
+  mkdirSync(path.join(dir, 'scripts'), { recursive: true });
+  writeFileSync(path.join(dir, 'scripts/thing.mjs'), 'export const x = 1;\n');
+  git('add', '.');
+  git('commit', '--quiet', '-m', 'first commit changes a script');
+
+  writeFileSync(path.join(dir, 'README.md'), 'base\nupdated\n');
+  git('add', '.');
+  git('commit', '--quiet', '-m', 'second commit touches docs only');
+
+  return dir;
+}
+
+test('resolveDiffRange spans the whole branch, so a script change in an earlier commit is still caught', () => {
+  const dir = buildTwoCommitBranch();
+  try {
+    const narrow = gitDiffNameOnly('HEAD~1..HEAD', dir);
+    assert.deepEqual(
+      narrow,
+      ['README.md'],
+      'precondition: the last commit alone looks docs-only, which is exactly how the gate was bypassed'
+    );
+
+    const { range, basis } = resolveDiffRange(dir, { baseRef: 'main' });
+    assert.equal(basis, 'merge-base');
+
+    const changedFiles = gitDiffNameOnly(range, dir);
+    assert.ok(
+      changedFiles.includes('scripts/thing.mjs'),
+      'the branch-wide range must see the script change made before the final commit'
+    );
+    assert.equal(
+      hasScriptChanges(changedFiles),
+      true,
+      'a multi-commit branch whose script change is not in the final commit must still require a review record'
+    );
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('resolveDiffRange keeps --diff-filter=A honest across the whole branch', () => {
+  const dir = buildTwoCommitBranch();
+  try {
+    const { range } = resolveDiffRange(dir, { baseRef: 'main' });
+    const addedFiles = gitDiffNameOnly(range, dir, { addedOnly: true });
+    assert.deepEqual(addedFiles, ['scripts/thing.mjs']);
+    assert.equal(
+      hasReviewRecord(addedFiles),
+      false,
+      'no review record was added anywhere on the branch, so the gate must fail'
+    );
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('resolveDiffRange falls back to HEAD~1..HEAD when no base ref can be resolved', () => {
+  const dir = buildTwoCommitBranch();
+  try {
+    const { range, basis } = resolveDiffRange(dir, { baseRef: 'origin/does-not-exist' });
+    assert.equal(basis, 'fallback');
+    assert.equal(range, 'HEAD~1..HEAD');
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 
 test('hasScriptChanges returns true when .mjs files are in the changed list', () => {
   const changed = ['scripts/validate-review-gate.mjs', 'package.json', 'README.md'];
