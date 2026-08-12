@@ -104,6 +104,19 @@ test('reset scope clears work-item and lessons history, stubs decisions, and exc
   assert.ok(!CLEARED_DIRECTORIES.includes('docs/records/qa'));
   assert.match(STUB_CONTENT['DECISIONS.md'], /^# DECISIONS\.md/m);
   assert.match(STUB_CONTENT['DECISIONS.md'], /## Decision Log/);
+  for (const [file, content] of [
+    ['TASK_LOG.md', STUB_CONTENT['TASK_LOG.md']],
+    ['RISKS.md', STUB_CONTENT['RISKS.md']]
+  ]) {
+    const lines = content.trim().split('\n');
+    const headerIndex = lines.findIndex((line) => line.startsWith('|'));
+    assert.ok(headerIndex !== -1, `${file} stub must contain a markdown table header`);
+    assert.match(
+      lines[headerIndex + 1] ?? '',
+      /^\|(?:\s*-{1,}\s*\|)+$/,
+      `${file} stub's table header must be followed by a separator row, or the table never renders`
+    );
+  }
   for (const preserved of ['README.md', 'PROJECT_INDEX.md', 'docs/vault/00-Index.md']) {
     assert.ok(!(preserved in STUB_CONTENT), `${preserved} must not be stubbed`);
   }
