@@ -44,3 +44,21 @@ cross-turn resumption are deferred to the separately approved control-plane desi
   or changed by this ADR.
 - This ADR records an independent conceptual adaptation of Superpowers material; the attribution
   and MIT notice are added to `THIRD_PARTY_NOTICES.md`.
+
+### Decision note: durable-vs-clearable reference boundary (Issue #169)
+
+- Date: 2026-08-12
+- Work Item: [Issue #169](https://github.com/chakrits/AI-Agent-Workflow/issues/169)
+- Status: Accepted.
+
+#### Decision
+
+A forward-facing file (canonical rule, contract, workflow, mirrored skill, or top-level project
+state) must not depend, for the meaning of any normative statement, on a document inside
+`CLEARED_DIRECTORIES` (`scripts/reset-to-template.mjs`). Historical records under `docs/records/`
+are excluded by rationale: they document what was true at the time and may reference a document a
+later reset cleared. `scripts/validate-clearable-refs.mjs` (diff-scoped, meaning-aware) enforces
+the boundary as a required merge gate; it flags only references that make the reader consult a
+cleared document's content, not directory mentions or instruction/location references. This is a
+decision note, not a full ADR, because it clarifies an existing boundary rather than setting new
+architecture.
