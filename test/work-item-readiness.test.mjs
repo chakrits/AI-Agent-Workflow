@@ -70,6 +70,54 @@ test('requires specification readiness for plan-only PRs', () => {
   );
 });
 
+test('rejects plan-only PRs that claim development or verification completion', () => {
+  assert.deepEqual(
+    validateReadiness({
+      body: planOnlyBody,
+      draft: false,
+      changedFiles: ['docs/records/implementation-plan/2026-08-15-example.md'],
+      workItem: {
+        labels: ['phase:development', 'status:spec-ready', 'status:development-done'],
+        isPullRequest: false,
+        isSameRepository: true
+      }
+    }),
+    ['plan-only cannot claim development or verification completion']
+  );
+});
+
+test('does not let a plan-only marker bypass Bug Fix governance', () => {
+  assert.deepEqual(
+    validateReadiness({
+      body: planOnlyBody,
+      draft: false,
+      changedFiles: ['docs/records/implementation-plan/2026-08-15-example.md'],
+      workItem: {
+        labels: ['bug', 'phase:planning', 'status:spec-ready'],
+        isPullRequest: false,
+        isSameRepository: true
+      }
+    }),
+    ['status:development-done', 'status:verification-done', 'QA evidence URL']
+  );
+});
+
+test('does not let a plan-only marker bypass declared Bug Fix QA evidence', () => {
+  assert.deepEqual(
+    validateReadiness({
+      body: `${planOnlyBody}\n\nGoverning workflow: Bug Fix`,
+      draft: false,
+      changedFiles: ['docs/records/implementation-plan/2026-08-15-example.md'],
+      workItem: {
+        labels: ['bug', 'phase:requirements'],
+        isPullRequest: false,
+        isSameRepository: true
+      }
+    }),
+    ['QA evidence URL']
+  );
+});
+
 test('requires specification readiness for drafts', () => {
   assert.deepEqual(
     validateReadiness({ draft: true, workItem: { labels: ['phase:development'], isPullRequest: false, isSameRepository: true } }),

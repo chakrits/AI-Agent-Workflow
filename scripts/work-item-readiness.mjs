@@ -34,20 +34,6 @@ export function validateReadiness({
 
   const labels = workItem.labels ?? [];
 
-  if (planOnlyMarker.test(body)) {
-    const phases = labels.filter((label) => label.startsWith('phase:'));
-    const errors = [];
-    if (phases.length !== 1) errors.push('exactly one current phase');
-    if (!['phase:planning', 'phase:development'].includes(phases[0])) {
-      errors.push('plan-only phase planning or development');
-    }
-    if (!labels.includes('status:spec-ready')) errors.push('status:spec-ready');
-    if (!changedFiles.length || !changedFiles.every((file) => planOnlyFile.test(file))) {
-      errors.push('plan-only implementation-plan files only');
-    }
-    return errors;
-  }
-
   // Bug Fix work items are governed by docs/contracts/bug-fix-workflow.yaml, not the
   // phase:/status: lifecycle label contract (AGENTS.md: "Bug Fix work continues to use
   // docs/contracts/bug-fix-workflow.yaml rather than this lifecycle label contract").
@@ -61,6 +47,22 @@ export function validateReadiness({
   // through to the strict Feature/Enhancement path below (the safe default).
   if (labels.includes('bug') && governingWorkflow.test(body)) {
     if (!draft && !qaEvidence.test(body)) errors.push('QA evidence URL');
+    return errors;
+  }
+
+  if (planOnlyMarker.test(body) && !labels.includes('bug')) {
+    const phases = labels.filter((label) => label.startsWith('phase:'));
+    if (phases.length !== 1) errors.push('exactly one current phase');
+    if (!['phase:planning', 'phase:development'].includes(phases[0])) {
+      errors.push('plan-only phase planning or development');
+    }
+    if (!labels.includes('status:spec-ready')) errors.push('status:spec-ready');
+    if (labels.includes('status:development-done') || labels.includes('status:verification-done')) {
+      errors.push('plan-only cannot claim development or verification completion');
+    }
+    if (!changedFiles.length || !changedFiles.every((file) => planOnlyFile.test(file))) {
+      errors.push('plan-only implementation-plan files only');
+    }
     return errors;
   }
 
