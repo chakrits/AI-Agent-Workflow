@@ -12,7 +12,7 @@
 
 ## Artifacts
 - Requirement: Issue #179 Acceptance Criteria
-- SDD: N/A — bounded measurement specification is the artifact; final doc-only shadow-correlation correction set applied, pending SA re-review #5
+- SDD: N/A — bounded measurement specification is the artifact; final doc-only correction set passed SA re-review #5 at `f1b0429`, pending Human approval
 - Implementation plan: `docs/superpowers/plans/2026-08-15-framework-improvement-roadmap.md` (commit `4f38db1`)
 - PRs: N/A
 - Closeout PR: N/A
@@ -28,12 +28,12 @@
 - Update `METRICS.md`, `CONTEXT_BUDGET.md`, and `RISKS.md` with the approved correction set.
 
 ## Lessons Learned
-- SA review returned `NEEDS_REVISION`: metric authority, context baseline, shadow correlation, risk coverage, three cross-section contract ambiguities, and then one shadow-correlation contradiction required bounded revisions.
+- SA review chain closed the metric authority, context baseline, shadow correlation, risk coverage, three cross-section contract ambiguities, and one shadow-correlation contradiction through bounded revisions; final SA re-review #5 returned `PASS`.
 
 ## Metrics
 - Tests before: 414 → Tests after: N/A — no implementation yet
 - Subagent timeouts: 0; SA terminal result consumed after wait slices that were not treated as timeout or cancellation
-- Rework cycles: 0; specification revision round: 4
+- Rework cycles: 0; specification revision round: 4; final SA re-review: PASS
 - Packet version: v1; SA review dispatch completed and consumed
 
-## Status: Planning — SA re-review #4 returned `NEEDS_REVISION`; final doc-only shadow-correlation correction set applied; awaiting SA re-review #5 (2026-08-15)
+## Status: Planning — SA re-review #5 returned `PASS`; awaiting Human approval before `status:spec-ready` (2026-08-15)
