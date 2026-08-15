@@ -1,5 +1,7 @@
 # Agent Handoff
 
+> Historical re-review handoff. Independent QA PASS was consumed at `414d0c493dae920d3c83829fe7a1992c9200a579`; the current authoritative next action is the Human Review handoff.
+
 ---
 
 ## From Agent

@@ -1,5 +1,7 @@
 # Agent Handoff
 
+> Historical orchestration handoff. The bounded package and QA rework completed; independent QA PASS is recorded in `2026-08-15-issue-179-qa-to-human-review.md`, and the current owner is Human Maintainer.
+
 > Historical dispatch record. The QA-observed pre-rework result and SHA in this record are not the final candidate after the bounded rework; see the current Documentation-to-QA re-review handoff.
 
 ---
