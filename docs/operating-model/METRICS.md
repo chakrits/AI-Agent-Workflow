@@ -1,6 +1,6 @@
 # Framework Metrics Dashboard
 
-Baseline metrics captured by `scripts/validate-metrics.mjs` and surfaced in CI via `npm run validate:metrics`.
+The dashboard is a compatibility projection captured by `scripts/validate-metrics.mjs` and surfaced in CI via `npm run validate:metrics`. Structured evidence defined by the IMP-001 measurement specification is the future authority; TASK_LOG parsing remains historical until that evidence exists.
 
 ## How to regenerate
 
@@ -10,7 +10,7 @@ npm run validate:metrics
 
 The script reads `TASK_LOG.md`, `package.json`, `test/`, `DECISIONS.md`, `RISKS.md`, `docs/contracts/`, and `.agents/skills/` and prints a framework health dashboard. No side effects; safe to run locally and in CI.
 
-## Baseline (2026-07-25)
+## Historical baseline (2026-07-25)
 
 | Metric | Baseline | Target | Notes |
 | --- | --- | --- | --- |
@@ -23,6 +23,26 @@ The script reads `TASK_LOG.md`, `package.json`, `test/`, `DECISIONS.md`, `RISKS.
 | Risks tracked | 7 (5 open, 2 closed) | track trend | Rows in `RISKS.md` starting with `| R-`. |
 | Contracts | 2 | 8 (one per workflow type) | `*.yaml` workflow contracts in `docs/contracts/`. |
 | Skills | 25 | track trend | Skill directories in `.agents/skills/`. |
+
+## Bound observed snapshot
+
+This snapshot is tied to commit `5d70f6e` and is not a floating current value.
+
+| Observation | Value |
+|---|---|
+| Observed at | 2026-08-15T12:12:14Z |
+| Command | `npm run validate:metrics` |
+| Total work items | 27 |
+| Keyword-derived timeout rate | 1 / 27 (3.7%) |
+| Keyword-derived rework rate | 1 / 27 (3.7%) |
+| Test files | 24 |
+| CI checks | 16 |
+| ADRs | 1 |
+| Risks tracked | 2 (2 open, 0 closed) |
+| Contracts | 4 |
+| Skills | 38 |
+
+The snapshot is historical compatibility evidence. It must not be used as authoritative telemetry or a pass/fail decision until structured event evidence is available.
 
 ## Targets rationale
 

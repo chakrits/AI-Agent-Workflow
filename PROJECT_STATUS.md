@@ -1,17 +1,17 @@
 # PROJECT_STATUS.md
 
 ## Current Work Item
-- Follow-up to Issue #169 — add `validate:clearable-refs` to `verify-reset-template.mjs`'s `VERIFY_COMMANDS` so the reset-clone harness enforces the new gate directly (QA finding from #169 verification).
+- Issue #179 — IMP-001: define evidence model and measurement baseline, under umbrella Issue #178.
 
 ## Current Stage
-- Follow-up — small, self-contained; not yet scheduled. No active lifecycle work item.
+- Human Review — Independent QA PASS is recorded for PR #180; `phase:human-review`, `status:development-done`, and `status:verification-done` are applied. PR is Ready for review but remains OPEN/unmerged; Human merge approval remains pending.
 
 ## Change Classification
-- Change Type: Framework / Meta (tooling hardening)
-- Risk Level: Low
-- Required Workflow Route: Orchestrator → Developer Agent → QA Agent → Human Approval
-- Code Change Required: Yes — `scripts/verify-reset-template.mjs` (add one validator to `VERIFY_COMMANDS`)
-- Architecture Change Required: No
+- Change Type: Framework / Meta (evidence and measurement foundation)
+- Risk Level: Medium
+- Required Workflow Route: Orchestrator → SA Agent → Human Approval → bounded implementation → independent QA
+- Code Change Required: No runtime code in IMP-001; approved docs-only implementation/package handoff only
+- Architecture Change Required: Yes — evidence ownership and source-of-truth boundaries
 - Security Review Required: No
 
 ## Completed
@@ -23,26 +23,32 @@
 - Issue #160 (reset repository to template baseline) merged through PR #162 as commit `93203e2`. Boss-approved run of `scripts/reset-to-template.mjs --apply --confirm-reset`: stubbed this file, `TASK_LOG.md`, `CHANGELOG.md`, `RISKS.md`, `DECISIONS.md` and cleared 13 historical record directories (109 entries — 104 deletions + 5 stub replacements), including `docs/records/handoffs` (fixed in #158/PR #159 ahead of this run). `docs/records/qa/`, `README.md`, `PROJECT_INDEX.md`, `docs/vault/00-Index.md`, and all canonical workflow/skill/template/CI content are untouched — this is a working-tree content reset only, not a history rewrite; every removed file remains recoverable via `git log`/`git show`. A first attempt (commit `f2c1375`, since-deleted branch) was correctly returned BLOCKED by independent QA because its own implementation-plan document had been left on an unmerged sibling branch, so the reset commit's history didn't actually contain the file it cited. Redone as a 2-commit branch — the plan doc landed as its own first commit (`ec2a7ca`), then the reset ran on top (`2754d45`) — so the plan is genuinely part of history before being cleared, same as every other `docs/records/` entry. Independent QA PASS on all 5 Acceptance Criteria at the corrected commit (evidence: https://github.com/chakrits/AI-Agent-Workflow/issues/160#issuecomment-5262083435). Plan: `docs/records/implementation-plan/2026-08-12-reset-to-template-execution-plan.md` (itself cleared by this same run, recoverable via `git show ec2a7ca:...`). Verified with the full command suite (`npm test` 399/399; `validate:contracts`, `validate:project-state`, `validate:skill-parity` 38/38, `adr:audit`, `validate:risk-register`, `validate:review-gate`, `validate:skill-usage`, `validate:metrics`, `validate:context-budget`, `git diff --check` — all PASS) and pre-confirmed via `scripts/verify-reset-template.mjs`'s disposable-clone harness.
 
 ## In Progress
-- Nothing — the #168/#170/#169 queue is closed. The only open item is the #169 follow-up (add `validate:clearable-refs` to the reset-clone harness), unscheduled.
+- Issue #179 — IMP-001 evidence model and measurement baseline; SA re-review #5 passed at `f1b0429`, Human approval recorded, bounded corrections applied, and independent QA PASS recorded for AC-01–AC-07 at observed head `414d0c493dae920d3c83829fe7a1992c9200a579`. Current labels are `phase:human-review` + `status:verification-done`; Human merge approval remains pending.
+- Umbrella Issue #178 — framework improvement roadmap; later IMP-002 through IMP-006 remain gated by evidence and separate approval.
 
 ## Blockers / Open Questions
-- No blocker. The #169 follow-up (harness `VERIFY_COMMANDS` should invoke `validate:clearable-refs`) is open and unscheduled.
+- QA PASS evidence is recorded at https://github.com/chakrits/AI-Agent-Workflow/issues/179#issuecomment-5302821976. AC-01–AC-07 pass; readiness and forbidden-path checks are green. Runtime implementation, authority activation, lifecycle/retry changes, and merge remain unauthorized until Human approval.
+- Earlier SA findings on metric authority, context baseline, shadow envelope, and risk coverage are closed by the recorded correction/review chain; the risk-validator semantic limitation remains a separate follow-up.
 - Not audited: whether any earlier multi-commit branch merged an unreviewed script change while Issue #168's defect was live. The fix corrects the mechanism only; PR #167 is verified clear by hand.
 - Risk R-002 stays open: Codex bounded-native child supervision timed out three times during the #166 planning work, and the Human-approved direct-parent fallback cannot substitute for independent QA. Durable async orchestration remains deferred to Issue #35.
 - Lesson from the #169 SA/QA dispatch cross-check: open-ended SA design reviews timed out at 600s three times; a bounded QA dispatch (packet v1) completed reliably. Design-review packets should carry an explicit bounded return checkpoint.
 
 ## Required Artifacts
-- Follow-up (current): optionally a one-line change to `scripts/verify-reset-template.mjs`'s `VERIFY_COMMANDS`.
+- Approved roadmap: `docs/superpowers/plans/2026-08-15-framework-improvement-roadmap.md` at commit `4f38db1`.
+- Umbrella Issue: https://github.com/chakrits/AI-Agent-Workflow/issues/178.
+- Current bounded Issue: https://github.com/chakrits/AI-Agent-Workflow/issues/179.
+- IMP-001 evidence/measurement specification and source-of-truth decision.
 - Issue #169's artifacts are merged: `scripts/validate-clearable-refs.mjs`, `test/validate-clearable-refs.test.mjs`, spec `docs/records/sdd/2026-08-12-issue-169-durable-clearable-boundary-spec.md`, code-review record `docs/records/qa/2026-08-12-issue-169-clearable-refs-code-review.md`, and the `DECISIONS.md` decision note.
 - Issue #170's artifacts are merged: the fix in `THIRD_PARTY_NOTICES.md` + `docs/templates/TASK_BRIEF.md`, QA evidence comment.
 - Issue #168's artifacts are merged: self-review record `docs/records/qa/2026-08-12-issue-168-review-gate-merge-base-code-review.md`, the fix in `scripts/validate-review-gate.mjs` + `test/validate-review-gate.test.mjs`.
 - Issue #166's artifacts are merged: canonical definition `docs/workflow/task-execution-mode.md`, specification of record `docs/records/sdd/2026-08-12-issue-166-task-execution-mode-spec.md`, `DECISIONS.md` ADR-0014.
 
 ## Next Quality Gate
-- Follow-up: none pending until scheduled. If executed, Developer → QA → Human merge.
+- Human Maintainer merge approval for Draft PR #180; QA and verification gates are complete, but merge/release remain unauthorized until explicit Human approval.
 
 ## Recommended Next Agent
-- Orchestrator — schedule the #169 follow-up, or mark the queue idle if the harness gap is accepted as-is.
+- Human Maintainer — review QA evidence and decide whether to merge PR #180; no automatic merge is performed.
 
 ## Notes
 - Reset to template baseline by `npm run reset:template`.
+- Human directive recorded 2026-08-15: future dispatches must remain awaiting terminal/consume evidence until the agent finishes; elapsed wait slices must not be treated as completion, cancellation, or grounds for successor dispatch. If the host cannot deliver a terminal result in the active turn, record `host_completion_unavailable` per `docs/workflow/handoff-contract.md`.
