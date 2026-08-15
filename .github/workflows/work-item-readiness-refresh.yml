@@ -65,6 +65,7 @@ jobs:
               let sourcePullRequest;
               let changedFiles = [];
               let resolutionError;
+              const planOnly = /^<!-- plan-only: true -->$/m.test(pull.body ?? '');
               try {
                 if (closeout) {
                   const { data: source } = await github.rest.issues.get({
@@ -86,6 +87,14 @@ jobs:
                     ...repository,
                     issue_number: issueNumber
                   }));
+                  if (planOnly) {
+                    const files = await github.paginate(github.rest.pulls.listFiles, {
+                      ...repository,
+                      pull_number: pull.number,
+                      per_page: 100
+                    });
+                    changedFiles = files.map((file) => file.filename);
+                  }
                 }
               } catch (error) {
                 resolutionError = `current work-item metadata could not be retrieved (${error.status ?? 'unknown error'})`;
