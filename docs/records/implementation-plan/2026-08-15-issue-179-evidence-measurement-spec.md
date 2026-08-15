@@ -1,6 +1,6 @@
-# Draft Measurement Specification: Issue #179 / IMP-001
+# Approved Measurement Specification: Issue #179 / IMP-001
 
-> Status: **Draft — Human correction set approved; pending SA re-review**
+> Status: **Approved — Human approval recorded; docs-only implementation/package handoff pending**
 
 ## Purpose
 
@@ -122,18 +122,18 @@ Each IMP-001 metric must identify owner, event source, numerator, denominator, c
 
 | Metric | Owner | Event source | Numerator | Denominator | Calculation / exclusion rule | `N/A` rule | Retention | Status |
 |---|---|---|---|---|---|---|---|---|
-| Route decision coverage | Orchestrator Agent | `route_selected` evidence | Classified items with a route event | Classified work items | Numerator / denominator | Only when classification is not required | Work-item lifetime + closeout | Draft |
-| Skipped-role reason completeness | Orchestrator Agent | `role_skipped` evidence | Skips with non-empty reason and owner | All skipped-role decisions | Numerator / denominator | No skipped role | Work-item lifetime + closeout | Draft |
-| Context source-manifest coverage | Developer Agent | `context_loaded` evidence | Loads with complete manifest | All context load runs | Numerator / denominator | Host loader genuinely unsupported | Work-item lifetime + measurement record | Draft |
-| Native token measurement availability | Developer Agent | Token evidence | Available native token measurements | Requests on hosts declaring native-token capability | Unsupported hosts excluded and counted separately | No token measurement requested | Measurement record | Draft |
-| Dispatch terminal-evidence rate | Orchestrator Agent | Dispatch attempt and terminal evidence | Attempts with one valid terminal result | All invocation attempts | Missing terminal is denominator with zero numerator; no attempt is excluded | None for required terminal evidence | Work-item lifetime + closeout | Draft |
-| Exact-once consumption compliance | Orchestrator Agent | Receipt and consumption events | Results consumed exactly once with duplicate/late handling | Terminal results delivered | Duplicate/late deliveries do not add denominator events | No terminal result delivered | Receipt retention policy | Draft |
-| Shadow semantic equivalence | QA Agent | Paired legacy/candidate evidence | Pairs with `match` | All shadow attempts | `mismatch` and `inconclusive` remain denominator observations | No shadow attempt | Experiment record | Draft |
-| Shadow fallback rate | QA Agent | Fallback evidence | Shadow attempts that fall back | All shadow attempts | Unsupported host is not a shadow attempt | No shadow attempt | Experiment record | Draft |
-| Rollback success | QA Agent | Rollback evidence | Required rehearsals with `succeeded` | Required rollback rehearsals | `not_run`, `failed`, and `inconclusive` are denominator failures | Rollback not applicable | Experiment record | Draft |
-| Rework cycle rate | QA Agent | Rework evidence | Verification events that route to rework | Verification events | Zero rework is a valid zero, not `N/A` | No verification event | Work-item lifetime + closeout | Draft |
-| Human intervention rate | Orchestrator Agent | Human decision evidence | Work items with an intervention | Work items requiring a decision | Zero intervention is a valid zero | No decision gate | Work-item lifetime + closeout | Draft |
-| Final outcome evidence completeness | Orchestrator Agent | Outcome evidence | Closed items with final outcome evidence | Closed work items | Missing required outcome is denominator failure | No closed item | Work-item lifetime + closeout | Draft |
+| Route decision coverage | Orchestrator Agent | `route_selected` evidence | Classified items with a route event | Classified work items | Numerator / denominator | Only when classification is not required | Work-item lifetime + closeout | Approved |
+| Skipped-role reason completeness | Orchestrator Agent | `role_skipped` evidence | Skips with non-empty reason and owner | All skipped-role decisions | Numerator / denominator | No skipped role | Work-item lifetime + closeout | Approved |
+| Context source-manifest coverage | Developer Agent | `context_loaded` evidence | Loads with complete manifest | All context load runs | Numerator / denominator | Host loader genuinely unsupported | Work-item lifetime + measurement record | Approved |
+| Native token measurement availability | Developer Agent | Token evidence | Available native token measurements | Requests on hosts declaring native-token capability | Unsupported hosts excluded and counted separately | No token measurement requested | Measurement record | Approved |
+| Dispatch terminal-evidence rate | Orchestrator Agent | Dispatch attempt and terminal evidence | Attempts with one valid terminal result | All invocation attempts | Missing terminal is denominator with zero numerator; no attempt is excluded | None for required terminal evidence | Work-item lifetime + closeout | Approved |
+| Exact-once consumption compliance | Orchestrator Agent | Receipt and consumption events | Results consumed exactly once with duplicate/late handling | Terminal results delivered | Duplicate/late deliveries do not add denominator events | No terminal result delivered | Receipt retention policy | Approved |
+| Shadow semantic equivalence | QA Agent | Paired legacy/candidate evidence | Pairs with `match` | All shadow attempts | `mismatch` and `inconclusive` remain denominator observations | No shadow attempt | Experiment record | Approved |
+| Shadow fallback rate | QA Agent | Fallback evidence | Shadow attempts that fall back | All shadow attempts | Unsupported host is not a shadow attempt | No shadow attempt | Experiment record | Approved |
+| Rollback success | QA Agent | Rollback evidence | Required rehearsals with `succeeded` | Required rollback rehearsals | `not_run`, `failed`, and `inconclusive` are denominator failures | Rollback not applicable | Experiment record | Approved |
+| Rework cycle rate | QA Agent | Rework evidence | Verification events that route to rework | Verification events | Zero rework is a valid zero, not `N/A` | No verification event | Work-item lifetime + closeout | Approved |
+| Human intervention rate | Orchestrator Agent | Human decision evidence | Work items with an intervention | Work items requiring a decision | Zero intervention is a valid zero | No decision gate | Work-item lifetime + closeout | Approved |
+| Final outcome evidence completeness | Orchestrator Agent | Outcome evidence | Closed items with final outcome evidence | Closed work items | Missing required outcome is denominator failure | No closed item | Work-item lifetime + closeout | Approved |
 
 Retention means at least through work-item closeout and the linked measurement record. Platform-specific event retention is not assumed; if a required host source cannot retain or provide evidence, record that limitation and do not use the affected metric as an authoritative trend.
 
@@ -165,7 +165,7 @@ All four rows now name owner, trigger, mitigation, status, and escalation condit
 - No modification of the existing receipt state machine merely to carry analytics.
 - No durable cross-turn orchestration or parent-resume mechanism.
 - No threshold becomes a CI pass/fail gate in IMP-001.
-- No implementation or QA sign-off is claimed by this draft.
+- No runtime implementation or QA sign-off is claimed by this specification.
 
 ## Approval decisions recorded
 
@@ -174,7 +174,7 @@ All four rows now name owner, trigger, mitigation, status, and escalation condit
 3. Human approved reconciliation of the context-budget snapshots at the bound observation above.
 4. Human approved operator-wait/no-timeout as a wait policy, not a removal of canonical timeout/unavailable outcomes.
 
-Final SA re-review is still required before `status:spec-ready`.
+Final SA re-review returned PASS and Human approval is recorded at https://github.com/chakrits/AI-Agent-Workflow/issues/179#issuecomment-5302513189. `status:spec-ready` is now applied; implementation remains bounded to the approved docs-only route.
 
 ## Required verification after approval
 
@@ -187,4 +187,4 @@ npm run validate:context-budget
 git diff --check
 ```
 
-Then obtain independent SA re-review before `status:spec-ready` or Developer dispatch.
+After the docs-only package handoff, obtain independent QA evidence before merge or any runtime/authority decision.
