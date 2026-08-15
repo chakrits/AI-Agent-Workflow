@@ -46,7 +46,7 @@ Development — Documentation Agent completed the approved docs-only package; in
 
 ## Task State
 
-The bounded documentation package was independently checked at QA-observed head `385479975c194b3439059639a4322e4532f5f721`; AC-01–AC-06 passed and AC-07 returned `NEEDS_REVISION`. One bounded rework cycle is pending; independent QA and Human merge gates remain required. `status:development-done` is deliberately not applied.
+The bounded documentation package was independently checked at the QA-observed pre-rework head `385479975c194b3439059639a4322e4532f5f721`; AC-01–AC-06 passed and AC-07 returned `NEEDS_REVISION`. One bounded rework cycle is pending; independent QA and Human merge gates remain required. `status:development-done` is deliberately not applied.
 
 ## Contract Version
 
@@ -135,7 +135,7 @@ Documentation Agent → QA Agent → Documentation Agent
 
 ## Dispatch Result
 
-DONE → NEEDS_REVISION — Documentation Agent prepared Draft PR #180; QA independently verified the package at `385479975c194b3439059639a4322e4532f5f721`, passed AC-01–AC-06, and returned AC-07 `NEEDS_REVISION`. Rework evidence is in `2026-08-15-issue-179-qa-to-documentation.md`.
+DONE → NEEDS_REVISION — Documentation Agent prepared Draft PR #180; QA independently verified the package at the pre-rework head `385479975c194b3439059639a4322e4532f5f721`, passed AC-01–AC-06, and returned AC-07 `NEEDS_REVISION`. Rework evidence is in `2026-08-15-issue-179-qa-to-documentation.md`.
 
 ## Acknowledgement Evidence
 

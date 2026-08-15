@@ -40,7 +40,7 @@ Medium; no runtime behavior, receipt schema, lifecycle/retry, authority, release
 
 ## Current Stage
 
-Independent QA completed against QA-observed PR head `385479975c194b3439059639a4322e4532f5f721` and returned `NEEDS_REVISION` on AC-07 only. AC-01 through AC-06 passed.
+Independent QA completed against the QA-observed pre-rework PR head `385479975c194b3439059639a4322e4532f5f721` and returned `NEEDS_REVISION` on AC-07 only. AC-01 through AC-06 passed.
 
 ## Task State
 
@@ -61,7 +61,7 @@ Packet v2 — bounded QA rework; Handoff Contract; Framework / Meta route; Bug F
 - AC-01 through AC-06: PASS
 - AC-07: NEEDS_REVISION
 - Major 1: PR #180 body uses `Work Item (Issue) URL:` without the required `Developer: Work Item (Issue) URL:` form. The live `work-item-readiness-freshness` check failed with `Linked Issue is missing: valid same-repository Issue.`
-- Major 2: current state/handoff records identify `e59557cae472abacdf49614b5a9c35856185e376`, while the QA-observed PR head was `385479975c194b3439059639a4322e4532f5f721`.
+- Major 2: current state/handoff records identify `e59557cae472abacdf49614b5a9c35856185e376`, while the QA-observed pre-rework PR head was `385479975c194b3439059639a4322e4532f5f721`.
 
 ## Required Rework
 
