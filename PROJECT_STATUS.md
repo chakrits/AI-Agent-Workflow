@@ -1,10 +1,10 @@
 # PROJECT_STATUS.md
 
 ## Current Work Item
-- No active work item — Issue #179 / IMP-001 completed and PR #180 merged; post-merge documentation closeout is prepared in this branch.
+- Issue #132 / IMP-002 — approved plan merged; implementation remains gated behind the merged workflow-evidence prerequisite and the approved shadow-only plan.
 
 ## Current Stage
-- Idle after merge — PR #180 merged to `main` as `7389e7811cbe950c874c7e6f7791ed6e239a5ad7`. Independent QA PASS is recorded for AC-01–AC-07; this closeout PR is the remaining documentation step before the source Issue is closed and the `post-merge-closeout` signal is cleared.
+- Development preparation — PR #182 merged to `main` as `d62b77e489fcbf5fd12014e87330fe6eb84f941c`; the approved IMP-002 plan is now canonical. PR #184 (`workflow-evidence/v1`) and PR #188 (plan-only readiness adapter) are also merged. No progressive loader, replay, live shadow, authority switch, or Go/No-Go decision has started.
 
 ## Change Classification
 - Change Type: Framework / Meta (evidence and measurement foundation)
@@ -15,6 +15,7 @@
 - Security Review Required: No
 
 ## Completed
+- Issue #132 / IMP-002 plan merged through PR #182 as commit `d62b77e489fcbf5fd12014e87330fe6eb84f941c`. The plan is a bounded, shadow-only compatibility migration: legacy context remains authoritative; host-native activation evidence, a frozen 36-case corpus, fail-closed manifests, paired measurements, fallback thresholds, rollback, and Human Go/No-Go gates are required before any migration claim. This closeout records the plan merge; implementation and live shadow remain separate approved steps. Prerequisite runtime evidence seam PR #184 and readiness adapter PR #188 are merged and referenced.
 - Issue #179 / IMP-001 (evidence model and measurement baseline) merged through PR #180 as commit `7389e7811cbe950c874c7e6f7791ed6e239a5ad7`. The package is documentation-only: evidence ownership, measurement baseline, context-budget baseline, risk coverage, and bounded implementation scope were recorded without runtime, receipt-schema, lifecycle/retry, authority, threshold, release, or label-policy changes. Independent QA returned PASS on AC-01–AC-07 at observed head `414d0c493dae920d3c83829fe7a1992c9200a579` (evidence: https://github.com/chakrits/AI-Agent-Workflow/issues/179#issuecomment-5302821976); the merged PR's seven required checks are green. This closeout records the merge and resets the active project state; Issue #179 closure and removal of the source PR's `post-merge-closeout` label remain tied to closeout completion.
 - Issue #169 (forward-facing files referenced documents that `reset:template` clears) merged through PR #176 as commit `abdd511`. Made the four real references self-contained (`docs/workflow/dispatch-packet-contract.md:12`, `:151`, `:190` and `docs/contracts/schemas/dispatch-receipt.schema.json:3` `$comment`), and added `scripts/validate-clearable-refs.mjs` — a diff-scoped, meaning-aware validator that flags a changed content file only when it references a cleared document the reader must consult for meaning (authority/design/see pointer), not directory mentions or instruction/location references, and does not flag code/mechanism files or historical `docs/records/`. Wired into CI as a required merge gate; recorded the durable-vs-clearable boundary in `DECISIONS.md` as a decision note. Scope decisions (4 refs only, no `docs/records/` edits, code excluded by extension, diff-scoped) were Human-approved. SA design review surfaced a §4 rule-granularity issue (false-positive risk on README/SKILL) which was fixed before implementation. Independent QA (packet v1) returned PASS on AC-01–AC-07 at `0e88593` (evidence: https://github.com/chakrits/AI-Agent-Workflow/issues/169#issuecomment-5269816866), including the negative check that README + mirrored SKILL are not false-positived. Verified with `npm test` 414/414, `validate:clearable-refs`, `validate:context-budget` 29,937/30,000, `validate:contracts`, `validate:review-gate`, `adr:audit` 6.00:1, `git diff --check` — all PASS. One QA-noted limitation parked as a follow-up: the reset-clone harness does not yet invoke `validate:clearable-refs`.
 - Issue #170 (two QA Minor findings from Issue #166: unpinned `obra/superpowers` attribution and `TASK_BRIEF.md`'s weaker "Human decision evidence" wording) merged through PR #174 as commit `0bed2ad`. Pinned the `obra/superpowers` entry in `THIRD_PARTY_NOTICES.md` to upstream commit `44c9b2d` in the same tree-URL form as the adjacent Addy Osmani entry, with an explicit pinning note that this is fix-time upstream `HEAD` (the #166 record does not state which commit was consulted) rather than a claimed historical revision — per the Issue #170 assumption. Renamed the `TASK_BRIEF.md:10` human-decision field to `Human decision evidence (addressable URL)`, consistent with the normative "addressable Human decision status" requirement in `docs/workflow/task-execution-mode.md:25-26`. Independent QA (packet v1) returned PASS on AC-01–AC-05 at `349c09d` (evidence: https://github.com/chakrits/AI-Agent-Workflow/issues/170#issuecomment-5269285662). Verified with `npm test` 407/407, `validate:context-budget` 29,937/30,000, `validate:contracts`, `validate:project-state`, `git diff --check` — all PASS.
@@ -24,16 +25,19 @@
 - Issue #160 (reset repository to template baseline) merged through PR #162 as commit `93203e2`. Boss-approved run of `scripts/reset-to-template.mjs --apply --confirm-reset`: stubbed this file, `TASK_LOG.md`, `CHANGELOG.md`, `RISKS.md`, `DECISIONS.md` and cleared 13 historical record directories (109 entries — 104 deletions + 5 stub replacements), including `docs/records/handoffs` (fixed in #158/PR #159 ahead of this run). `docs/records/qa/`, `README.md`, `PROJECT_INDEX.md`, `docs/vault/00-Index.md`, and all canonical workflow/skill/template/CI content are untouched — this is a working-tree content reset only, not a history rewrite; every removed file remains recoverable via `git log`/`git show`. A first attempt (commit `f2c1375`, since-deleted branch) was correctly returned BLOCKED by independent QA because its own implementation-plan document had been left on an unmerged sibling branch, so the reset commit's history didn't actually contain the file it cited. Redone as a 2-commit branch — the plan doc landed as its own first commit (`ec2a7ca`), then the reset ran on top (`2754d45`) — so the plan is genuinely part of history before being cleared, same as every other `docs/records/` entry. Independent QA PASS on all 5 Acceptance Criteria at the corrected commit (evidence: https://github.com/chakrits/AI-Agent-Workflow/issues/160#issuecomment-5262083435). Plan: `docs/records/implementation-plan/2026-08-12-reset-to-template-execution-plan.md` (itself cleared by this same run, recoverable via `git show ec2a7ca:...`). Verified with the full command suite (`npm test` 399/399; `validate:contracts`, `validate:project-state`, `validate:skill-parity` 38/38, `adr:audit`, `validate:risk-register`, `validate:review-gate`, `validate:skill-usage`, `validate:metrics`, `validate:context-budget`, `git diff --check` — all PASS) and pre-confirmed via `scripts/verify-reset-template.mjs`'s disposable-clone harness.
 
 ## In Progress
-- Nothing active. Umbrella Issue #178 remains the roadmap record; later IMP-002 through IMP-006 remain gated by evidence and separate approval.
+- Issue #132 / IMP-002 implementation preparation. The next owner is Developer Agent for the approved Task 1/2 scope; no host activation or live-shadow execution is authorized by this closeout.
 
 ## Blockers / Open Questions
-- Closeout PR merge is the only remaining Human action for this closeout. After it merges, close Issue #179, verify the source PR's `post-merge-closeout` label is removed, and run `npm run validate:project-state` on `main`.
+- Human approval remains required at the implementation, QA, and Go/No-Go gates defined by Issue #132. Issue #183 / PR #184 supplies the evidence seam; no replay/live-shadow run may begin before its merged evidence is consumed by Task 0.
 - Earlier SA findings on metric authority, context baseline, shadow envelope, and risk coverage are closed by the recorded correction/review chain; the risk-validator semantic limitation remains a separate follow-up.
 - Not audited: whether any earlier multi-commit branch merged an unreviewed script change while Issue #168's defect was live. The fix corrects the mechanism only; PR #167 is verified clear by hand.
 - Risk R-002 stays open: Codex bounded-native child supervision timed out three times during the #166 planning work, and the Human-approved direct-parent fallback cannot substitute for independent QA. Durable async orchestration remains deferred to Issue #35.
 - Lesson from the #169 SA/QA dispatch cross-check: open-ended SA design reviews timed out at 600s three times; a bounded QA dispatch (packet v1) completed reliably. Design-review packets should carry an explicit bounded return checkpoint.
 
 ## Required Artifacts
+- IMP-002 plan: `docs/records/implementation-plan/2026-08-15-issue-132-progressive-context-shadow-plan.md`, merged in PR #182.
+- Workflow evidence seam: Issue #183 / PR #184, merged as `292cac683b41b0c886839fdda07d04ae959586af`.
+- Plan-only readiness contract and adapter: Issue #185 / PR #186 and Issue #187 / PR #188, merged before this closeout.
 - Approved roadmap: `docs/superpowers/plans/2026-08-15-framework-improvement-roadmap.md` at commit `4f38db1`.
 - Umbrella Issue: https://github.com/chakrits/AI-Agent-Workflow/issues/178.
 - Current bounded Issue: https://github.com/chakrits/AI-Agent-Workflow/issues/179.
@@ -44,10 +48,10 @@
 - Issue #166's artifacts are merged: canonical definition `docs/workflow/task-execution-mode.md`, specification of record `docs/records/sdd/2026-08-12-issue-166-task-execution-mode-spec.md`, `DECISIONS.md` ADR-0014.
 
 ## Next Quality Gate
-- Human Maintainer merge approval for the post-merge closeout PR; source PR #180 is already merged and its QA/verification gates are complete.
+- Developer implementation under the approved IMP-002 plan, followed by independent review/QA; preserve legacy authority and stop before replay/live-shadow until all Task 0/Task 1 gates pass.
 
 ## Recommended Next Agent
-- Human Maintainer — review and merge the closeout PR, then close Issue #179 and verify the post-merge label cleanup.
+- Developer Agent — implement the next approved IMP-002 task with the merged workflow-evidence seam as a hard prerequisite.
 
 ## Notes
 - Reset to template baseline by `npm run reset:template`.
