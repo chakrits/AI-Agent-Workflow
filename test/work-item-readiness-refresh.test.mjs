@@ -1,6 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { shouldFetchPlanOnlyFiles } from '../scripts/work-item-readiness-refresh.mjs';
+import {
+  loadPlanOnlyChangedFiles,
+  shouldFetchPlanOnlyFiles
+} from '../scripts/work-item-readiness-refresh.mjs';
 
 test('fetches files for an exact plan-only marker on a linked Issue PR', () => {
   assert.equal(
@@ -54,4 +57,43 @@ test('requires the exact marker rather than a copied or wrapped phrase', () => {
       body
     );
   }
+});
+
+test('loads filenames only for the guarded plan-only path and returns them for changedFiles', async () => {
+  const calls = [];
+  const changedFiles = await loadPlanOnlyChangedFiles({
+    body: '<!-- plan-only: true -->',
+    issueNumber: 182,
+    pullNumber: 182,
+    listFiles: async (pullNumber) => {
+      calls.push(pullNumber);
+      return [
+        { filename: 'docs/records/implementation-plan/example.md' },
+        { filename: 'docs/records/implementation-plan/second.md' }
+      ];
+    }
+  });
+
+  assert.deepEqual(calls, [182]);
+  assert.deepEqual(changedFiles, [
+    'docs/records/implementation-plan/example.md',
+    'docs/records/implementation-plan/second.md'
+  ]);
+});
+
+test('does not call the file API for normal, unlinked, or closeout paths', async () => {
+  let calls = 0;
+  const listFiles = async () => {
+    calls += 1;
+    return [{ filename: 'unexpected.md' }];
+  };
+
+  for (const input of [
+    { body: 'normal', issueNumber: 182 },
+    { body: '<!-- plan-only: true -->' },
+    { body: '<!-- plan-only: true -->', issueNumber: 182, closeout: true }
+  ]) {
+    assert.deepEqual(await loadPlanOnlyChangedFiles({ ...input, listFiles }), []);
+  }
+  assert.equal(calls, 0);
 });
