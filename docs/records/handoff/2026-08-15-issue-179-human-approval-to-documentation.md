@@ -44,7 +44,7 @@ Development — Documentation Agent completed the approved docs-only package; in
 
 ## Task State
 
-The bounded documentation package is complete at candidate head `f6f17fac4b248a328f3c895657f3245c4135786c`; independent QA and Human merge gates remain required. `status:development-done` is deliberately not applied.
+The bounded documentation package is complete at candidate head `e59557cae472abacdf49614b5a9c35856185e376`; independent QA and Human merge gates remain required. `status:development-done` is deliberately not applied.
 
 ## Contract Version
 
@@ -59,7 +59,7 @@ Packet v1; Framework / Meta route; Bug Fix contract not applicable.
 - Final `workflow-evidence/v1` specification completed and SA-reviewed PASS.
 - Human approval recorded and GitHub readiness labels promoted.
 - Documentation Agent verified and packaged the approved specification, METRICS/CONTEXT/RISKS updates, state records, and review handoffs.
-- Draft PR #180 is open, unmerged, and scoped to approved documentation/state records; the exact candidate head is `f6f17fac4b248a328f3c895657f3245c4135786c`.
+- Draft PR #180 is open, unmerged, and scoped to approved documentation/state records; the exact candidate head is `e59557cae472abacdf49614b5a9c35856185e376`.
 - Documentation Agent terminal result was consumed by the parent Orchestrator after the child completed; QA remains the next independent verifier.
 
 ## Task for Documentation Agent
@@ -100,7 +100,7 @@ AC-01 through AC-07: approved specification PASS; Documentation Agent must verif
 
 ## Verified Commit SHA
 
-`f6f17fac4b248a328f3c895657f3245c4135786c` (Orchestrator evidence/state update after Documentation Agent terminal consumption; Draft PR #180 head).
+`e59557cae472abacdf49614b5a9c35856185e376` (Orchestrator evidence/state update after Documentation Agent terminal consumption; Draft PR #180 head).
 
 ## QA / Review Focus
 
@@ -132,7 +132,7 @@ Documentation Agent → QA Agent
 
 ## Dispatch Result
 
-DONE — Documentation Agent prepared Draft PR #180; the Orchestrator recorded terminal consumption and reran verification at `f6f17fac4b248a328f3c895657f3245c4135786c`; exact scope and AC evidence are recorded in `2026-08-15-issue-179-documentation-to-qa.md`.
+DONE — Documentation Agent prepared Draft PR #180; the Orchestrator recorded terminal consumption and reran verification at `e59557cae472abacdf49614b5a9c35856185e376`; exact scope and AC evidence are recorded in `2026-08-15-issue-179-documentation-to-qa.md`.
 
 ## Acknowledgement Evidence
 
