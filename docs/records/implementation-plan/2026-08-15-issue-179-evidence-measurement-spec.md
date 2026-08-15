@@ -1,6 +1,6 @@
 # Draft Measurement Specification: Issue #179 / IMP-001
 
-> Status: **Draft — pending SA re-review and Human Maintainer approval**
+> Status: **Draft — Human correction set approved; pending SA re-review**
 
 ## Purpose
 
@@ -19,7 +19,7 @@ Define the smallest evidence and measurement boundary needed before the framewor
 
 ## Minimum evidence envelope v1
 
-IMP-001 defines the envelope conceptually first. A JSON schema or runtime writer is deferred until SA confirms that the existing receipt/reference seams cannot carry the required references.
+IMP-001 selects a separate append-only `workflow-evidence/v1` envelope. The existing dispatch receipt remains a bookkeeping ledger and is referenced by `handoff_event_id` and `terminal_result_id`; its lifecycle schema is not extended with analytics fields. A JSON schema and runtime writer remain a later implementation task.
 
 Every evidence record must provide:
 
@@ -31,6 +31,19 @@ Every evidence record must provide:
 - an addressable evidence reference and a recorded-by identity.
 
 The envelope is append-only evidence. It must not duplicate lifecycle labels, receipt lifecycle states, or replace the existing human approval gates.
+
+### Typed outcomes
+
+The following values are frozen for this specification:
+
+```text
+token_measurement_status = available | unsupported | not_requested | unavailable
+comparison_result = match | mismatch | inconclusive
+rollback_result = not_applicable | not_run | succeeded | failed | inconclusive
+wait_policy = bounded_deadline | operator_wait | host_managed
+```
+
+`not_run` is not a successful rollback when rollback is required. `unavailable` is not equivalent to `unsupported`; it means the measurement was required or requested but the source did not provide it.
 
 ### Shadow compatibility fields
 
@@ -49,32 +62,34 @@ fallback_reason
 rollback_result
 ```
 
-Token fields are diagnostic evidence only. When a host cannot provide native token counts, the value is `N/A` with a reason; it is not silently treated as zero.
+Token fields are diagnostic evidence only. When a host cannot provide native token counts, record `token_measurement_status` and a reason; never silently treat the value as zero.
 
 ### Dispatch and wait-policy fields
 
 Dispatch evidence retains the existing distinction between runtime control and the durable receipt ledger. It records attempt, acknowledgement, terminal result, consumption, duplicate/late delivery, cancellation, and host-unavailable outcomes by event type or referenced evidence.
 
-The orchestrator may request an operator-wait/no-timeout mode. That preference does not remove the canonical `timed_out` or `host_completion_unavailable` states. Metrics must record `wait_policy` so timeout rate only uses dispatches with an actual configured deadline; operator-wait and unsupported callback cases are reported separately or as explicit `N/A`.
+The orchestrator may request an operator-wait/no-timeout mode. That preference does not remove the canonical `timed_out` or `host_completion_unavailable` states. Required terminal evidence that is missing remains `host_completion_unavailable`; it is never converted to `N/A`. Metrics must record `wait_policy` so timeout rate only uses dispatches with an actual configured deadline.
 
 ## Metric definition rules
 
-Each IMP-001 metric must identify owner, event source, numerator, denominator, `N/A` rule, retention, and approval status. The initial registry is intentionally small:
+Each IMP-001 metric must identify owner, event source, numerator, denominator, calculation/exclusion rule, `N/A` rule, retention, and approval status. `N/A` is excluded from numerator and denominator only when the measurement is not applicable or the host capability is genuinely unsupported. `inconclusive`, missing required terminal evidence, cancellation, and failed required rollback remain in the denominator and are not numerator successes. Duplicate/late results do not create a second denominator event.
 
-| Metric | Owner | Event source | Denominator | `N/A` rule | Retention | Status |
-|---|---|---|---|---|---|---|
-| Route decision coverage | Orchestrator | `route_selected` evidence | Classified work items | `N/A` only when classification is not required | Work-item lifetime + closeout | Draft |
-| Skipped-role reason completeness | Orchestrator | `role_skipped` evidence | Skipped-role decisions | `N/A` when no role was skipped | Work-item lifetime + closeout | Draft |
-| Context source-manifest coverage | Context loader/host | `context_loaded` evidence | Context load runs | Unsupported host loader is `N/A` with reason | Work-item lifetime + measurement record | Draft |
-| Native token measurement availability | Host adapter | Context token evidence | Context load runs with token request | Unsupported native token signal is `N/A` | Measurement record | Draft |
-| Dispatch terminal-evidence rate | Orchestrator/host adapter | Dispatch attempt and terminal evidence | Dispatches with an invocation attempt | No invocation attempt is excluded, not counted as failure | Work-item lifetime + closeout | Draft |
-| Exact-once consumption compliance | Orchestrator | Receipt and consumption events | Terminal results delivered | No terminal result is `N/A`, not consumed | Receipt retention policy | Draft |
-| Shadow semantic equivalence | Experiment owner | Paired legacy/candidate evidence | Paired runs with both comparable outputs | Missing candidate or legacy output is `inconclusive` | Experiment record | Draft |
-| Shadow fallback rate | Experiment owner | Fallback evidence | Shadow attempts | No shadow attempt is excluded | Experiment record | Draft |
-| Rollback success | Developer/QA | Rollback evidence | Rollback rehearsals | No rollback rehearsal is `N/A` | Experiment record | Draft |
-| Human intervention and outcome | Orchestrator | Human decision/outcome evidence | Work items requiring a decision | No intervention is zero, not `N/A` | Work-item lifetime + closeout | Draft |
+| Metric | Owner | Event source | Numerator | Denominator | Calculation / exclusion rule | `N/A` rule | Retention | Status |
+|---|---|---|---|---|---|---|---|---|
+| Route decision coverage | Orchestrator | `route_selected` evidence | Classified items with a route event | Classified work items | Numerator / denominator | Only when classification is not required | Work-item lifetime + closeout | Draft |
+| Skipped-role reason completeness | Orchestrator | `role_skipped` evidence | Skips with non-empty reason and owner | All skipped-role decisions | Numerator / denominator | No skipped role | Work-item lifetime + closeout | Draft |
+| Context source-manifest coverage | Context loader/host | `context_loaded` evidence | Loads with complete manifest | All context load runs | Numerator / denominator | Host loader genuinely unsupported | Work-item lifetime + measurement record | Draft |
+| Native token measurement availability | Host adapter | Token evidence | Available native token measurements | Requests on hosts declaring native-token capability | Unsupported hosts excluded and counted separately | No token measurement requested | Measurement record | Draft |
+| Dispatch terminal-evidence rate | Orchestrator/host adapter | Dispatch attempt and terminal evidence | Attempts with one valid terminal result | All invocation attempts | Missing terminal is denominator with zero numerator; no attempt is excluded | None for required terminal evidence | Work-item lifetime + closeout | Draft |
+| Exact-once consumption compliance | Orchestrator | Receipt and consumption events | Results consumed exactly once with duplicate/late handling | Terminal results delivered | Duplicate/late deliveries do not add denominator events | No terminal result delivered | Receipt retention policy | Draft |
+| Shadow semantic equivalence | Experiment owner | Paired legacy/candidate evidence | Pairs with `match` | All shadow attempts | `mismatch` and `inconclusive` remain denominator observations | No shadow attempt | Experiment record | Draft |
+| Shadow fallback rate | Experiment owner | Fallback evidence | Shadow attempts that fall back | All shadow attempts | Unsupported host is not a shadow attempt | No shadow attempt | Experiment record | Draft |
+| Rollback success | Developer/QA | Rollback evidence | Required rehearsals with `succeeded` | Required rollback rehearsals | `not_run`, `failed`, and `inconclusive` are denominator failures | Rollback not applicable | Experiment record | Draft |
+| Rework cycle rate | Orchestrator/QA | Rework evidence | Verification events that route to rework | Verification events | Zero rework is a valid zero, not `N/A` | No verification event | Work-item lifetime + closeout | Draft |
+| Human intervention rate | Orchestrator | Human decision evidence | Work items with an intervention | Work items requiring a decision | Zero intervention is a valid zero | No decision gate | Work-item lifetime + closeout | Draft |
+| Final outcome evidence completeness | Orchestrator | Outcome evidence | Closed items with final outcome evidence | Closed work items | Missing required outcome is denominator failure | No closed item | Work-item lifetime + closeout | Draft |
 
-Retention means at least through work-item closeout and the linked measurement record. Any platform-specific event-retention period remains a Human Maintainer decision and must not be invented by an adapter.
+Retention means at least through work-item closeout and the linked measurement record. Platform-specific event retention is not assumed; if a required host source cannot retain or provide evidence, record that limitation and do not use the affected metric as an authoritative trend.
 
 ## Baseline protocol
 
@@ -84,18 +99,18 @@ The current observed context baseline is the output of:
 npm run validate:context-budget
 ```
 
-Observed in the current repository state: `29,937 / 30,000` approximate tokens, status PASS. The `25,910 / 30,000` value in `docs/operating-model/CONTEXT_BUDGET.md` is retained as an older dated snapshot until the Human-approved reconciliation updates that document. The measurement record must include observation timestamp, commit SHA, command, canonical file list, character/token approximation, and result.
+Observed at `2026-08-15T12:12:14Z` on commit `5d70f6e`: `29,937 / 30,000` approximate tokens, status PASS. The measurement record includes the command, canonical file list, character/token approximation, target, and result. The previous `25,910 / 30,000` value is retained as a historical snapshot in `docs/operating-model/CONTEXT_BUDGET.md`.
 
-The current `npm run validate:metrics` output is also an observed projection, not an authoritative baseline: 25 work items, 4% keyword-derived timeout rate, 4% keyword-derived rework rate, and 38 skills. The older `METRICS.md` table remains historical until this specification is approved.
+Observed at `2026-08-15T12:12:14Z` on commit `5d70f6e`, `npm run validate:metrics` reports 27 work items, 1/27 (3.7%) keyword-derived timeout rate, 1/27 (3.7%) keyword-derived rework rate, and 38 skills. This is a bound historical compatibility snapshot, not authoritative telemetry. The older `METRICS.md` table remains historical.
 
-## Risk mapping proposal
+## Risk mapping applied
 
 - Re-scope existing R-001 to framework-wide canonical-context headroom, with trigger and escalation when the validator approaches or exceeds target.
 - Re-scope existing R-002 to host completion evidence, with escalation when a required terminal result cannot be delivered in-turn.
-- Add one metric-authority risk covering keyword-derived counts being mistaken for telemetry.
-- Add one project-state-reconciliation risk covering disagreement between local status, GitHub state, and records.
+- R-003 covers metric authority and prevents keyword-derived counts from being mistaken for telemetry.
+- R-004 covers project-state reconciliation and blocks status promotion when local, GitHub, and record state disagree.
 
-The risk rows must name owner, trigger, mitigation, status, and escalation condition. No lifecycle or retry contract changes are implied.
+All four rows now name owner, trigger, mitigation, status, and escalation condition. No lifecycle or retry contract changes are implied.
 
 ## Explicit non-goals
 
@@ -106,13 +121,14 @@ The risk rows must name owner, trigger, mitigation, status, and escalation condi
 - No threshold becomes a CI pass/fail gate in IMP-001.
 - No implementation or QA sign-off is claimed by this draft.
 
-## Approval decisions required
+## Approval decisions recorded
 
-1. Confirm the source-of-truth boundary above.
-2. Confirm denominator, retention, and `N/A` rules.
-3. Confirm the minimal append-only envelope and receipt reference boundary.
-4. Confirm reconciliation of the context-budget snapshots.
-5. Confirm that operator-wait/no-timeout is a wait policy and not a removal of canonical timeout/unavailable outcomes.
+1. Human approved the source-of-truth boundary and separate append-only envelope correction set for this revision.
+2. Human approved the numerator, denominator, retention, and `N/A` correction rules above.
+3. Human approved reconciliation of the context-budget snapshots at the bound observation above.
+4. Human approved operator-wait/no-timeout as a wait policy, not a removal of canonical timeout/unavailable outcomes.
+
+Final SA re-review is still required before `status:spec-ready`.
 
 ## Required verification after approval
 

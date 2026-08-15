@@ -29,7 +29,7 @@ The repository currently provides:
 - Packet v1 and a durable dispatch-receipt schema/validator;
 - 38 mirrored skills with passing parity across `.agents/`, `.claude/`, and `.agent/`;
 - 16 npm validators and 414 passing tests;
-- a current observed context budget of 29,937/30,000 approximate tokens, leaving 63 tokens of headroom; the older 25,910/30,000 document snapshot is explicitly pending reconciliation;
+- a current observed context budget of 29,937/30,000 approximate tokens, leaving 63 tokens of headroom, bound to the 2026-08-15 observation at commit `5d70f6e`; the older 25,910/30,000 document snapshot is historical;
 - a bounded `context-compatibility/v1` seam from Issue #132;
 - a bounded status parser/loader/JCS/CAS foundation from Issue #133;
 - a Codex-specific in-turn supervision contract, but no repository-owned child-agent runtime, queue, webhook, persistent worker, or parent-resume mechanism.

@@ -12,7 +12,7 @@
 
 ## Artifacts
 - Requirement: Issue #179 Acceptance Criteria
-- SDD: N/A — bounded measurement specification is the artifact; Draft pending SA re-review and Human approval
+- SDD: N/A — bounded measurement specification is the artifact; Human correction set approved, pending SA re-review
 - Implementation plan: `docs/superpowers/plans/2026-08-15-framework-improvement-roadmap.md` (commit `4f38db1`)
 - PRs: N/A
 - Closeout PR: N/A
@@ -24,7 +24,8 @@
 - Decide whether the existing dispatch receipt schema is sufficient or a bounded schema extension is required.
 - Keep the receipt lifecycle namespace separate from the append-only evidence envelope.
 - Reconcile the current context-budget observation against the older documented snapshot.
-- Update `METRICS.md`, `CONTEXT_BUDGET.md`, and `RISKS.md` only after the evidence design is approved.
+- Freeze numerator/calculation, typed outcome, `N/A`, retention, and operator-wait semantics.
+- Update `METRICS.md`, `CONTEXT_BUDGET.md`, and `RISKS.md` with the approved correction set.
 
 ## Lessons Learned
 - SA review returned `NEEDS_REVISION`: metric authority, context baseline, shadow correlation, and risk coverage need a bounded revision.
@@ -35,4 +36,4 @@
 - Rework cycles: 0; specification revision round: 1
 - Packet version: v1; SA review dispatch completed and consumed
 
-## Status: Planning — SA re-review #1 returned `NEEDS_REVISION`; awaiting Human decisions (2026-08-15)
+## Status: Planning — Human correction set applied; awaiting SA re-review #2 (2026-08-15)

@@ -13,30 +13,34 @@ This document tracks the approximate token cost of the canonical reading files t
 
 The approximation is deliberately coarse. The goal is not to track exact token counts for a specific model, but to detect budget drift early — before a change pushes the canonical reading set past a size where agents start dropping or ignoring context.
 
-## Baseline
+## Current observed baseline
 
 | Metric | Value |
 |---|---|
-| Date measured | 2026-07-25 |
+| Date measured | 2026-08-15T12:12:14Z |
+| Commit SHA | `5d70f6e` |
+| Command | `npm run validate:context-budget` |
 | Files measured | 8 |
-| Total characters | 103,641 |
-| Total tokens (approx.) | 25,910 |
+| Total characters | 119,763 |
+| Total tokens (approx.) | 29,937 |
 | Target | 30,000 |
-| Headroom | 4,090 tokens |
+| Headroom | 63 tokens |
 
 ## Per-File Breakdown
 
 | File | Chars | Tokens (approx.) |
 |---|---:|---:|
-| `AGENTS.md` | 15,344 | 3,836 |
-| `docs/workflow/role-definitions.md` | 33,725 | 8,431 |
-| `docs/operating-model/SKILL_CATALOG.md` | 18,663 | 4,665 |
+| `AGENTS.md` | 16,521 | 4,130 |
+| `docs/workflow/role-definitions.md` | 37,571 | 9,392 |
+| `docs/operating-model/SKILL_CATALOG.md` | 28,525 | 7,131 |
 | `docs/workflow/handoff-contract.md` | 5,016 | 1,254 |
 | `docs/workflow/quality-gates.md` | 6,803 | 1,700 |
-| `docs/workflow/dynamic-routing.md` | 8,077 | 2,019 |
-| `docs/operating-model/AGENT_OPERATING_MODEL.md` | 6,062 | 1,515 |
+| `docs/workflow/dynamic-routing.md` | 9,326 | 2,331 |
+| `docs/operating-model/AGENT_OPERATING_MODEL.md` | 6,050 | 1,512 |
 | `docs/operating-model/AGENT_EVALUATION_CHECKLIST.md` | 9,951 | 2,487 |
-| **Total** | **103,641** | **25,910** |
+| **Total** | **119,763** | **29,937** |
+
+The previous `2026-07-25` observation was `103,641` characters / `25,910` approximate tokens and is retained as historical context only.
 
 ## How to Recompute
 
