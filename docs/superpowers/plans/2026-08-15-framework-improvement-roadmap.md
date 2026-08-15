@@ -17,6 +17,7 @@
 - Keep progressive context and worktree-scoped status non-mutating until a later Human authority decision.
 - Do not raise the 30,000-token canonical-context target to make a check pass.
 - Use exact commit ranges and structured evidence; acknowledgement or receipt consumption never substitutes for terminal execution evidence.
+- Treat operator-requested no-timeout waiting as a wait-policy value for measurement; it does not remove canonical `timed_out` or `host_completion_unavailable` outcomes.
 - Use `implementation-planning`, `tdd-implementation` for behavior changes, `code-review-gate`, and independent QA verification at each implementation increment.
 - This is an umbrella roadmap; each implementation increment must become its own bounded Issue/PR.
 
@@ -28,7 +29,7 @@ The repository currently provides:
 - Packet v1 and a durable dispatch-receipt schema/validator;
 - 38 mirrored skills with passing parity across `.agents/`, `.claude/`, and `.agent/`;
 - 16 npm validators and 414 passing tests;
-- a context budget of 29,937/30,000 approximate tokens, leaving 63 tokens of headroom;
+- a current observed context budget of 29,937/30,000 approximate tokens, leaving 63 tokens of headroom; the older 25,910/30,000 document snapshot is explicitly pending reconciliation;
 - a bounded `context-compatibility/v1` seam from Issue #132;
 - a bounded status parser/loader/JCS/CAS foundation from Issue #133;
 - a Codex-specific in-turn supervision contract, but no repository-owned child-agent runtime, queue, webhook, persistent worker, or parent-resume mechanism.
@@ -82,16 +83,16 @@ IMP-001 Evidence schema and baseline
 **Risk:** Medium
 **Files / artifacts:**
 
-- Create the approved implementation-plan/measurement record under `docs/records/implementation-plan/`.
+- Create the implementation-plan/measurement record under `docs/records/implementation-plan/`; keep it Draft until SA re-review and Human approval.
 - Add or extend a structured evidence schema under `docs/contracts/schemas/` only if the existing dispatch schema cannot represent the fields.
 - Extend `docs/operating-model/METRICS.md` with definitions, denominators, source-of-truth rules, and approval status.
 - Update `RISKS.md` with context headroom, host completion, metric authority, and state-reconciliation risks.
 
-**Required measurements:** route/change type/risk/skipped roles; context mode/source manifest/tokens/fallback; dispatch attempt/acknowledgement/terminal result/timeout/cancellation/consumption/duplicate result; rework/human intervention/final outcome/rollback result.
+**Required measurements:** route/change type/risk/skipped roles; context mode/source manifest/tokens/fallback and measurement availability; dispatch attempt/acknowledgement/terminal result/wait policy/timeout/cancellation/consumption/duplicate result; rework/human intervention/final outcome/rollback result; source, owner, denominator, retention, and explicit `N/A` rule for every metric.
 
-**Verification:** `npm test`, `npm run validate:contracts`, `npm run validate:risk-register`, `npm run validate:metrics`, `npm run validate:context-budget`, plus independent SA review.
+**Verification:** `npm test`, `npm run validate:contracts`, `npm run validate:risk-register`, `npm run validate:metrics`, `npm run validate:context-budget`, `git diff --check`, plus independent SA re-review of the Draft measurement record.
 
-**Exit gate:** Every metric has an owner, event source, denominator, and explicit `N/A` rule. No threshold is a pass/fail gate until the Human Maintainer approves it.
+**Exit gate:** The Draft record defines the source-of-truth boundary, one minimal evidence envelope, baseline observation protocol, metric owner/source/denominator/retention/`N/A` rules, risk coverage, and non-goals. SA re-review finds no unresolved Major/High design gap, and the Human Maintainer approves the specification. No threshold is a pass/fail gate until that approval.
 
 ### IMP-002: Run progressive context loading as a shadow-only experiment
 

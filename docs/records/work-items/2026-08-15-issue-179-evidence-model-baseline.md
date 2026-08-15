@@ -12,7 +12,7 @@
 
 ## Artifacts
 - Requirement: Issue #179 Acceptance Criteria
-- SDD: N/A — SA evidence/measurement design is the next artifact
+- SDD: N/A — bounded measurement specification is the artifact; Draft pending SA re-review and Human approval
 - Implementation plan: `docs/superpowers/plans/2026-08-15-framework-improvement-roadmap.md` (commit `4f38db1`)
 - PRs: N/A
 - Closeout PR: N/A
@@ -22,15 +22,17 @@
 - Define route, context, dispatch, status, rework, human-intervention, outcome, and rollback evidence fields.
 - Define metric owner, source, denominator, retention, and explicit `N/A` rules.
 - Decide whether the existing dispatch receipt schema is sufficient or a bounded schema extension is required.
-- Update `METRICS.md` and `RISKS.md` only after the evidence design is approved.
+- Keep the receipt lifecycle namespace separate from the append-only evidence envelope.
+- Reconcile the current context-budget observation against the older documented snapshot.
+- Update `METRICS.md`, `CONTEXT_BUDGET.md`, and `RISKS.md` only after the evidence design is approved.
 
 ## Lessons Learned
-- N/A — planning not yet reviewed by SA
+- SA review returned `NEEDS_REVISION`: metric authority, context baseline, shadow correlation, and risk coverage need a bounded revision.
 
 ## Metrics
 - Tests before: 414 → Tests after: N/A — no implementation yet
-- Subagent timeouts: 0 for this item; no dispatch performed
-- Rework cycles: 0
-- Packet version: N/A — SA review dispatch not yet performed
+- Subagent timeouts: 0; SA terminal result consumed after wait slices that were not treated as timeout or cancellation
+- Rework cycles: 0; specification revision round: 1
+- Packet version: v1; SA review dispatch completed and consumed
 
-## Status: Open (2026-08-15)
+## Status: Planning — Draft measurement specification ready for SA re-review (2026-08-15)
