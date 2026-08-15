@@ -40,11 +40,11 @@ Medium
 
 ## Current Stage
 
-Development — approved docs-only implementation/package handoff.
+Development — Documentation Agent completed the approved docs-only package; independent QA is pending on Draft PR #180.
 
 ## Task State
 
-Implementation/package authorized within the bounded documentation scope; independent QA and Human merge gates remain required.
+The bounded documentation package is complete at candidate head `19b1199d00c668caf61ff9fbc93782f0446bcb6b`; independent QA and Human merge gates remain required. `status:development-done` is deliberately not applied.
 
 ## Contract Version
 
@@ -58,7 +58,9 @@ Packet v1; Framework / Meta route; Bug Fix contract not applicable.
 
 - Final `workflow-evidence/v1` specification completed and SA-reviewed PASS.
 - Human approval recorded and GitHub readiness labels promoted.
-- Repository branch contains the approved specification, METRICS/CONTEXT/RISKS updates, state records, and review handoffs.
+- Documentation Agent verified and packaged the approved specification, METRICS/CONTEXT/RISKS updates, state records, and review handoffs.
+- Draft PR #180 is open, unmerged, and scoped to approved documentation/state records; the exact candidate head is `19b1199d00c668caf61ff9fbc93782f0446bcb6b`.
+- Documentation Agent terminal result was consumed by the parent Orchestrator after the child completed; QA remains the next independent verifier.
 
 ## Task for Documentation Agent
 
@@ -98,7 +100,7 @@ AC-01 through AC-07: approved specification PASS; Documentation Agent must verif
 
 ## Verified Commit SHA
 
-`263bc16` (latest pushed state before this handoff; Documentation Agent must report its exact resulting head SHA).
+`19b1199d00c668caf61ff9fbc93782f0446bcb6b` (Documentation Agent terminal result; Draft PR #180 head).
 
 ## QA / Review Focus
 
@@ -106,11 +108,11 @@ Scope fidelity, exact approved spec preservation, METRICS/RISKS/context baseline
 
 ## Next Action
 
-Exactly one: `Dispatch`
+Exactly one: `Dispatch QA`
 
 ## Next Owner
 
-Documentation Agent
+QA Agent
 
 ## Boss Event Required
 
@@ -118,7 +120,7 @@ Yes — dispatch result and terminal consumption must be recorded before QA rout
 
 ## Dispatch State
 
-`pending`
+`completed` for Documentation Agent; QA dispatch is the next action.
 
 ## Source Agent
 
@@ -126,15 +128,15 @@ Orchestrator Agent
 
 ## Target Agent
 
-Documentation Agent
+Documentation Agent → QA Agent
 
 ## Dispatch Result
 
-Pending native child dispatch and terminal result.
+DONE — Documentation Agent prepared Draft PR #180 at `19b1199d00c668caf61ff9fbc93782f0446bcb6b`; exact scope and verification evidence are recorded in `2026-08-15-issue-179-documentation-to-qa.md`.
 
 ## Acknowledgement Evidence
 
-Pending.
+Acknowledged by child terminal result `terminal-01a005b0-3bf3-7770-a934-7f4d2c74daf8-20260815`.
 
 ## Handoff Event ID
 
@@ -146,20 +148,20 @@ Current Codex parent orchestrator — Issue #179
 
 ## Child Task ID
 
-Pending native child task ID.
+`01a005b0-3bf3-7770-a934-7f4d2c74daf8` (Carver)
 
 ## Terminal Result ID
 
-Pending terminal result.
+`terminal-01a005b0-3bf3-7770-a934-7f4d2c74daf8-20260815`
 
 ## Completion Event Evidence
 
-Pending native terminal notification.
+Documentation Agent returned `DONE`; parent consumed the terminal result and verified the child handoff before QA routing.
 
 ## Consumption Evidence
 
-Pending parent consumption of the Documentation Agent terminal result.
+Consumed in the parent turn; child handoff records exact head, PR #180, AC-01–AC-07 traceability, verification commands, and the QA next action.
 
 ## Timeout / Cancellation Reason
 
-N/A — dispatch has not started; parent will wait for terminal/consume evidence and will not treat elapsed wait as completion or cancellation.
+N/A — the Documentation Agent terminal was delivered and consumed; QA will be awaited until terminal/consume evidence is available, without treating elapsed wait slices as completion or cancellation.
