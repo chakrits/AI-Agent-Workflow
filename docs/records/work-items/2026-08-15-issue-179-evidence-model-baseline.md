@@ -14,7 +14,7 @@
 - Requirement: Issue #179 Acceptance Criteria
 - SDD: N/A — bounded measurement specification is the artifact; final doc-only correction set passed SA re-review #5 at `f1b0429`; Human approval recorded at https://github.com/chakrits/AI-Agent-Workflow/issues/179#issuecomment-5302513189
 - Implementation plan: `docs/superpowers/plans/2026-08-15-framework-improvement-roadmap.md` (commit `4f38db1`)
-- PRs: Draft PR pending creation from `codex/framework-improvement-plan`
+- PRs: Draft PR #180 — https://github.com/chakrits/AI-Agent-Workflow/pull/180
 - Closeout PR: N/A
 - Postmortem: N/A
 
@@ -31,7 +31,7 @@
 - SA review chain closed the metric authority, context baseline, shadow correlation, risk coverage, three cross-section contract ambiguities, and one shadow-correlation contradiction through bounded revisions; final SA re-review #5 returned `PASS`.
 
 ## Metrics
-- Tests before: 414 → Tests after: pending final package verification
+- Tests before: 414 → Tests after: 414 passing (docs-only package verification)
 - Subagent timeouts: 0; SA terminal result consumed after wait slices that were not treated as timeout or cancellation
 - Rework cycles: 0; specification revision round: 4; final SA re-review: PASS
 - Packet version: v1; SA review dispatch completed and consumed

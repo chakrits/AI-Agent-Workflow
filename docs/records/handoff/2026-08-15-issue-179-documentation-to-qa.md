@@ -20,7 +20,7 @@ https://github.com/chakrits/AI-Agent-Workflow/issues/179
 
 ## Change Request URL
 
-Issue #178 umbrella reference; Draft PR pending creation from `codex/framework-improvement-plan`
+Draft PR #180: https://github.com/chakrits/AI-Agent-Workflow/pull/180 (umbrella/change request Issue #178)
 
 ## Change Type
 
@@ -72,24 +72,24 @@ Packet v1; Handoff Contract; Framework / Meta route; Bug Fix contract not applic
 - Metrics/context/risk records: `docs/operating-model/METRICS.md`, `docs/operating-model/CONTEXT_BUDGET.md`, `RISKS.md`
 - Current state/work item: `PROJECT_STATUS.md`, `TASK_LOG.md`, `docs/records/work-items/2026-08-15-issue-179-evidence-model-baseline.md`
 - This Documentation-to-QA handoff
-- Draft PR: pending creation at handoff authoring time
+- Draft PR #180: https://github.com/chakrits/AI-Agent-Workflow/pull/180 (Draft; not merged)
 
 ## Files Changed
 
-Stage delta from approved base `bd1879a..HEAD`: this handoff, the current state/work-item/spec status corrections, and the package log entry. Full candidate package relative to `main` remains docs-only; exact names are in the final command evidence.
+Stage delta `bd1879a..HEAD` contains exactly: `PROJECT_STATUS.md`, `TASK_LOG.md`, `docs/records/implementation-plan/2026-08-15-issue-179-evidence-measurement-spec.md`, `docs/records/work-items/2026-08-15-issue-179-evidence-model-baseline.md`, and this handoff. Full candidate package `main...HEAD` contains only approved documentation/state records: `PROJECT_STATUS.md`, `RISKS.md`, `TASK_LOG.md`, `docs/operating-model/CONTEXT_BUDGET.md`, `docs/operating-model/METRICS.md`, the eight Issue #179 handoff records, the approved IMP-001 specification, the Issue #178/#179 work-item records, and the roadmap plan. Forbidden-path diff is empty.
 
 ## Verification Performed
 
-Required final verification evidence is to be filled with the final package head after the bounded state corrections:
+Fresh verification at exact head `6a4e60d6b2f4088c4b805fb73db9be4a380848bd`:
 
-- `npm test`
-- `npm run validate:contracts`
-- `npm run validate:risk-register`
-- `npm run validate:metrics`
-- `npm run validate:context-budget`
-- `npm run validate:skill-usage`
-- `git diff --check`
-- Exact `main...HEAD` scope inspection and forbidden-path negative check
+- `npm test` — PASS, 414/414
+- `npm run validate:contracts` — PASS
+- `npm run validate:risk-register` — PASS, 4 total / 4 open
+- `npm run validate:metrics` — PASS, informational projection: 35 work items, 29 PR references, 1 timeout, 1 rework, 4 risks, 38 skills
+- `npm run validate:context-budget` — PASS, 29,937/30,000
+- `npm run validate:skill-usage` — PASS, 35/35 entries
+- `git diff --check` — PASS
+- Exact `main...HEAD` scope inspection and forbidden-path negative check — PASS
 
 ## Evidence References
 
@@ -97,7 +97,7 @@ Required final verification evidence is to be filled with the final package head
 - Readiness transition: https://github.com/chakrits/AI-Agent-Workflow/issues/179#issuecomment-5302522691
 - Final SA PASS: https://github.com/chakrits/AI-Agent-Workflow/issues/179#issuecomment-5302487208
 - Approved specification: `docs/records/implementation-plan/2026-08-15-issue-179-evidence-measurement-spec.md`
-- Draft PR: pending creation at handoff authoring time
+- Draft PR #180 (Draft, not merged): https://github.com/chakrits/AI-Agent-Workflow/pull/180
 
 ## Acceptance Criteria Verification Status
 
@@ -111,7 +111,7 @@ Documentation Agent does not self-certify QA PASS. The approved specification an
 | AC-04 | Spec normative `workflow-evidence/v1` envelope, event mapping, typed outcomes, paired shadow correlation, fallback, and rollback rules preserve legacy authority and avoid receipt-schema changes. | Approved design evidence; QA verify |
 | AC-05 | `RISKS.md` contains R-001 context headroom, R-002 host completion, R-003 metric authority, and R-004 project-state reconciliation with owners, triggers, mitigations, escalation, and status. | Approved design evidence; QA verify |
 | AC-06 | Spec explicit non-goals preserve lifecycle/retry contracts, authority, release, threshold, and durable async boundaries; no forbidden path changed. | Approved design evidence; QA verify |
-| AC-07 | Repository checks are required below; specification is linked from Issue #179 and this package handoff. | Pending fresh command evidence and independent QA |
+| AC-07 | Required repository checks pass at exact head `6a4e60d6b2f4088c4b805fb73db9be4a380848bd`; specification is linked from Issue #179 and Draft PR #180. | Command evidence attached; independent QA verify |
 
 ## Acceptance Traceability Matrix URL
 
@@ -119,7 +119,7 @@ Issue #179 Acceptance Criteria: https://github.com/chakrits/AI-Agent-Workflow/is
 
 ## Verified Commit SHA
 
-Pending final package commit; report exact full SHA after verification.
+`6a4e60d6b2f4088c4b805fb73db9be4a380848bd`
 
 ## Platform Activation Record URL / Status
 
@@ -198,7 +198,7 @@ Pending — no QA callback has been received in this Documentation Agent turn.
 
 ## Boss Event
 
-Package prepared within scope; required checks and exact scope evidence will be attached at final head; next action is Dispatch to QA; no blocker or approval bypass requested.
+Package prepared within scope; Draft PR #180 is open; fresh required checks and exact scope evidence pass at the pinned head; next action is Dispatch to QA; no blocker or approval bypass requested.
 
 ## Handoff Event ID
 
