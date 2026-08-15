@@ -1,6 +1,6 @@
 # Approved Measurement Specification: Issue #179 / IMP-001
 
-> Status: **Approved — Human approval recorded; docs-only implementation/package handoff pending**
+> Status: **Approved — Human approval recorded; docs-only package prepared; independent QA pending**
 
 ## Purpose
 

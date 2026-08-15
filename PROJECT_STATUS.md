@@ -4,7 +4,7 @@
 - Issue #179 — IMP-001: define evidence model and measurement baseline, under umbrella Issue #178.
 
 ## Current Stage
-- Development — Human approval is recorded; `status:spec-ready` is applied; approved docs-only implementation/package handoff is awaiting Documentation Agent dispatch.
+- Development — Human approval is recorded; `status:spec-ready` is applied; approved docs-only package is prepared and awaiting independent QA.
 
 ## Change Classification
 - Change Type: Framework / Meta (evidence and measurement foundation)
@@ -27,7 +27,7 @@
 - Umbrella Issue #178 — framework improvement roadmap; later IMP-002 through IMP-006 remain gated by evidence and separate approval.
 
 ## Blockers / Open Questions
-- Documentation Agent must package the approved docs-only implementation and hand off for independent QA. Runtime implementation, authority activation, lifecycle/retry changes, and merge remain unauthorized.
+- Independent QA must verify the exact approved docs-only package. Runtime implementation, authority activation, lifecycle/retry changes, and merge remain unauthorized.
 - Earlier SA findings on metric authority, context baseline, shadow envelope, and risk coverage are closed by the recorded correction/review chain; the risk-validator semantic limitation remains a separate follow-up.
 - Not audited: whether any earlier multi-commit branch merged an unreviewed script change while Issue #168's defect was live. The fix corrects the mechanism only; PR #167 is verified clear by hand.
 - Risk R-002 stays open: Codex bounded-native child supervision timed out three times during the #166 planning work, and the Human-approved direct-parent fallback cannot substitute for independent QA. Durable async orchestration remains deferred to Issue #35.
@@ -44,10 +44,10 @@
 - Issue #166's artifacts are merged: canonical definition `docs/workflow/task-execution-mode.md`, specification of record `docs/records/sdd/2026-08-12-issue-166-task-execution-mode-spec.md`, `DECISIONS.md` ADR-0014.
 
 ## Next Quality Gate
-- Documentation Agent docs-only implementation/package handoff, followed by independent QA before any merge.
+- Independent QA of the exact docs-only package before any merge.
 
 ## Recommended Next Agent
-- Documentation Agent — package the approved IMP-001 docs-only implementation for independent QA.
+- QA Agent — independently verify the approved IMP-001 docs-only package.
 
 ## Notes
 - Reset to template baseline by `npm run reset:template`.
