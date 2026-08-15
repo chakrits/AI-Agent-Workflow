@@ -10,11 +10,63 @@ const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..'
 const body = 'QA: evidence comment or review URL: https://github.com/x/y/issues/1#comment';
 const labels = ['phase:verification', 'status:spec-ready', 'status:development-done', 'status:verification-done'];
 const bugFixBody = 'Governing workflow: Bug Fix\n\nQA: evidence comment or review URL: https://github.com/x/y/issues/1#comment';
+const planOnlyBody = '<!-- plan-only: true -->\n\nPlan-only approval artifact';
 
 test('accepts a ready same-repository work item', () => {
   assert.deepEqual(
     validateReadiness({ body, draft: false, workItem: { labels, isPullRequest: false, isSameRepository: true } }),
     []
+  );
+});
+
+test('accepts an approved plan-only PR with only an implementation-plan artifact', () => {
+  assert.deepEqual(
+    validateReadiness({
+      body: planOnlyBody,
+      draft: false,
+      changedFiles: ['docs/records/implementation-plan/2026-08-15-example.md'],
+      workItem: {
+        labels: ['phase:development', 'status:spec-ready'],
+        isPullRequest: false,
+        isSameRepository: true
+      }
+    }),
+    []
+  );
+});
+
+test('rejects plan-only PRs that change runtime or test files', () => {
+  assert.deepEqual(
+    validateReadiness({
+      body: planOnlyBody,
+      draft: false,
+      changedFiles: [
+        'docs/records/implementation-plan/2026-08-15-example.md',
+        'scripts/work-item-readiness.mjs'
+      ],
+      workItem: {
+        labels: ['phase:development', 'status:spec-ready'],
+        isPullRequest: false,
+        isSameRepository: true
+      }
+    }),
+    ['plan-only implementation-plan files only']
+  );
+});
+
+test('requires specification readiness for plan-only PRs', () => {
+  assert.deepEqual(
+    validateReadiness({
+      body: planOnlyBody,
+      draft: false,
+      changedFiles: ['docs/records/implementation-plan/2026-08-15-example.md'],
+      workItem: {
+        labels: ['phase:planning'],
+        isPullRequest: false,
+        isSameRepository: true
+      }
+    }),
+    ['status:spec-ready']
   );
 });
 

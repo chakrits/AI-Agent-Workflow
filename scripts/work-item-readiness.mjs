@@ -4,6 +4,8 @@ const qaEvidence = /QA: evidence comment or review URL:\s*https:\/\//i;
 // phrase — e.g. the PR template's own instructional text — cannot satisfy the check by
 // existing unedited. Only a line an author actually wrote as a declaration matches.
 const governingWorkflow = /^Governing workflow:\s*Bug Fix\b/im;
+const planOnlyMarker = /^<!-- plan-only: true -->$/m;
+const planOnlyFile = /^docs\/records\/implementation-plan\/[^/]+\.md$/;
 
 export function validateReadiness({
   body = '',
@@ -31,6 +33,20 @@ export function validateReadiness({
   }
 
   const labels = workItem.labels ?? [];
+
+  if (planOnlyMarker.test(body)) {
+    const phases = labels.filter((label) => label.startsWith('phase:'));
+    const errors = [];
+    if (phases.length !== 1) errors.push('exactly one current phase');
+    if (!['phase:planning', 'phase:development'].includes(phases[0])) {
+      errors.push('plan-only phase planning or development');
+    }
+    if (!labels.includes('status:spec-ready')) errors.push('status:spec-ready');
+    if (!changedFiles.length || !changedFiles.every((file) => planOnlyFile.test(file))) {
+      errors.push('plan-only implementation-plan files only');
+    }
+    return errors;
+  }
 
   // Bug Fix work items are governed by docs/contracts/bug-fix-workflow.yaml, not the
   // phase:/status: lifecycle label contract (AGENTS.md: "Bug Fix work continues to use
