@@ -127,6 +127,8 @@ test('GitHub re-evaluates readiness after linked Issue lifecycle-label changes',
   assert.match(workflow, /issues\.get/);
   assert.match(workflow, /work-item-readiness-check\.mjs/);
   assert.match(workflow, /pulls\.list/);
+  assert.match(workflow, /pulls\.listFiles/);
+  assert.match(workflow, /work-item-readiness-refresh\.mjs/);
   assert.match(workflow, /for \(const pull of pulls\)/);
   assert.match(workflow, /catch \(error\)/);
   assert.match(workflow, /resolutionError/);
