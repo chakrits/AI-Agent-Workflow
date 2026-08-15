@@ -79,9 +79,9 @@ Packet v5; Bug Fix contract not applicable.
 - `npm test` — 414/414 passing.
 - `npm run validate:contracts` — PASS.
 - `npm run validate:risk-register` — PASS, 4 total / 4 open.
-- `npm run validate:metrics` — PASS, 32 work items / 28 PR references / 4 risks.
+- `npm run validate:metrics` — PASS, 33 work items / 28 PR references / 4 risks (current post-closeout snapshot; the SA pre-closeout snapshot was 32 work items).
 - `npm run validate:context-budget` — PASS, 119,763 characters / 29,937 approximate tokens.
-- `npm run validate:skill-usage` — PASS, 32/32 entries.
+- `npm run validate:skill-usage` — PASS, 33/33 entries.
 - `git -c core.fsmonitor=false diff --check` — PASS.
 - SA confirmed target SHA, parent, diff scope, and no remaining normative statement requiring `pair_id` for `context_loaded` or every shadow event.
 
