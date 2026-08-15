@@ -17,6 +17,7 @@ jobs:
           # ADR-0013 Control 3.3: live-verifies GitHub-comment-URL terminal_result_id
           # evidence via the GitHub API. Read-only, same-repository comments only.
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - run: npm run validate:workflow-evidence
       - run: npm run housekeeping:worktrees
       - run: npm run validate:skill-parity
       - run: npm run adr:audit
