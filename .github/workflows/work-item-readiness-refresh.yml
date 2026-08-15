@@ -46,6 +46,9 @@ jobs:
             const { buildReadinessCheck, findLinkedIssueNumber } = await import(
               `${process.env.GITHUB_WORKSPACE}/scripts/work-item-readiness-check.mjs`
             );
+            const { loadPlanOnlyChangedFiles } = await import(
+              `${process.env.GITHUB_WORKSPACE}/scripts/work-item-readiness-refresh.mjs`
+            );
             const repository = {
               owner: context.repo.owner,
               repo: context.repo.repo
@@ -86,6 +89,17 @@ jobs:
                     ...repository,
                     issue_number: issueNumber
                   }));
+                  changedFiles = await loadPlanOnlyChangedFiles({
+                    body: pull.body ?? '',
+                    issueNumber,
+                    closeout: Boolean(closeout),
+                    pullNumber: pull.number,
+                    listFiles: (pullNumber) => github.paginate(github.rest.pulls.listFiles, {
+                      ...repository,
+                      pull_number: pullNumber,
+                      per_page: 100
+                    })
+                  });
                 }
               } catch (error) {
                 resolutionError = `current work-item metadata could not be retrieved (${error.status ?? 'unknown error'})`;

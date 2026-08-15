@@ -8,6 +8,7 @@
     "validate:contracts": "node scripts/validate-contracts.mjs",
     "validate:project-state": "node scripts/validate-project-state.mjs",
     "validate:dispatch-receipts": "node scripts/validate-dispatch-receipts.mjs",
+    "validate:workflow-evidence": "node scripts/validate-workflow-evidence.mjs",
     "housekeeping:worktrees": "node scripts/housekeeping-worktrees.mjs",
     "validate:skill-parity": "node scripts/validate-skill-parity.mjs",
     "adr:audit": "node scripts/adr-audit.mjs",
