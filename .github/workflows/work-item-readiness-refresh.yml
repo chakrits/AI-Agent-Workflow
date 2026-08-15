@@ -46,6 +46,9 @@ jobs:
             const { buildReadinessCheck, findLinkedIssueNumber } = await import(
               `${process.env.GITHUB_WORKSPACE}/scripts/work-item-readiness-check.mjs`
             );
+            const { shouldFetchPlanOnlyFiles } = await import(
+              `${process.env.GITHUB_WORKSPACE}/scripts/work-item-readiness-refresh.mjs`
+            );
             const repository = {
               owner: context.repo.owner,
               repo: context.repo.repo
@@ -65,7 +68,11 @@ jobs:
               let sourcePullRequest;
               let changedFiles = [];
               let resolutionError;
-              const planOnly = /^<!-- plan-only: true -->$/m.test(pull.body ?? '');
+              const planOnly = shouldFetchPlanOnlyFiles({
+                body: pull.body ?? '',
+                issueNumber,
+                closeout: Boolean(closeout)
+              });
               try {
                 if (closeout) {
                   const { data: source } = await github.rest.issues.get({
