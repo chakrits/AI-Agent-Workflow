@@ -12,7 +12,7 @@
 
 ## Artifacts
 - Requirement: Issue #179 Acceptance Criteria
-- SDD: N/A — bounded measurement specification is the artifact; Human correction set approved, pending SA re-review
+- SDD: N/A — bounded measurement specification is the artifact; final doc-only normative correction set applied, pending SA re-review #3
 - Implementation plan: `docs/superpowers/plans/2026-08-15-framework-improvement-roadmap.md` (commit `4f38db1`)
 - PRs: N/A
 - Closeout PR: N/A
@@ -36,4 +36,4 @@
 - Rework cycles: 0; specification revision round: 1
 - Packet version: v1; SA review dispatch completed and consumed
 
-## Status: Planning — SA re-review #2 returned `NEEDS_REVISION`; awaiting final Human correction approval (2026-08-15)
+## Status: Planning — final doc-only normative correction set applied; awaiting SA re-review #3 (2026-08-15)

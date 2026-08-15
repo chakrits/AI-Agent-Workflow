@@ -32,6 +32,56 @@ Every evidence record must provide:
 
 The envelope is append-only evidence. It must not duplicate lifecycle labels, receipt lifecycle states, or replace the existing human approval gates.
 
+### Normative envelope field contract
+
+The following fields and rules are normative for `workflow-evidence/v1`. A future JSON schema may encode them, but implementation must not invent a different shape without an SA-approved revision.
+
+| Field | Type / allowed values | Requiredness | Conditional rule |
+|---|---|---|---|
+| `schema_version` | string, exact value `workflow-evidence/v1` | Required for every record | No other version is valid for this work item |
+| `evidence_id` | non-empty string, stable and unique | Required | Identifies this evidence record, not the work item |
+| `work_item_id` | non-empty string | Required | Same work item across all correlated events |
+| `run_id` | non-empty string | Required | One execution, measurement, or shadow run correlation key |
+| `event_id` | non-empty string, stable and unique | Required | Parent event references use this value |
+| `event_type` | enum listed in the event mapping below | Required | Unknown event types are invalid, not warnings |
+| `observed_at` | RFC 3339 UTC timestamp string | Required | Time the source observed the event, not commit time |
+| `source` | `orchestrator` \| `host_telemetry` \| `validator` \| `workflow_record` \| `human_record` | Required | Identifies where the observation came from |
+| `authority` | `legacy` \| `shadow` \| `host_telemetry` \| `human_approval` | Required | `shadow` never authorizes a state or consumer switch |
+| `correlation` | object with typed IDs | Required for correlated events | Must contain only the ID required by the event mapping; all IDs are non-empty strings |
+| `outcome_status` | `recorded` \| `acknowledged` \| `success` \| `failure` \| `inconclusive` \| `consumed` \| `ignored` \| `cancelled` \| `timed_out` \| `host_completion_unavailable` \| `not_applicable` \| `not_run` | Conditional | Required for terminal, comparison, fallback, rollback, cancellation, outcome, and approval events |
+| `reason` | non-empty string | Conditional | Required for failure, inconclusive, ignored, cancelled, timed-out, host-unavailable, `not_applicable`, `not_run`, and any metric recorded as `N/A` |
+| `attributes` | closed JSON object constrained by event mapping | Required | Event-specific fields must match the mapping and type profile below; arbitrary analytics keys are not allowed |
+| `digest_ref` | non-empty digest reference string | Conditional | Required for context manifest, shadow comparison, and any result whose integrity depends on a digest |
+| `evidence_ref` | addressable URL or repository path string | Required | Must identify the source artifact or human decision evidence |
+| `recorded_by` | non-empty string | Required | Agent, host, validator, or Human Maintainer identity that recorded the evidence |
+
+The `correlation` object may contain only these typed fields: `handoff_event_id`, `terminal_result_id`, `pair_id`, `measurement_id`, and `parent_event_id`. Each value is a non-empty string. `handoff_event_id` uses the existing receipt identifier shape; `terminal_result_id` is required only when a terminal result exists; `pair_id` is required for shadow events; `measurement_id` is required for validator/baseline observations; `parent_event_id` is required for a child event in an event chain. Extra correlation keys are invalid.
+
+The `attributes` object is also closed. Unless a row below gives an enum, identifiers, references, roles, reasons, paths, capabilities, digests, and sources are non-empty strings. The following types are fixed: `skipped_roles` is an array of non-empty strings and may be empty; `approximate_tokens` is a non-negative integer and is present only when `token_measurement_status=available`; `consumption_count` is the integer `1`; `rework_count` is a positive integer; `decision` is `approved | rejected | deferred`; `terminal_status` is `success | failure | inconclusive | cancelled | timed_out | host_completion_unavailable`; `delivery_class` is `duplicate_or_late`; `fallback_used` is boolean when present; and `rollback_result`, `comparison_result`, `token_measurement_status`, and `wait_policy` use the frozen values below. No additional attribute is valid.
+
+### Normative event mapping
+
+| Event type | `source` | `authority` | Required correlation | Required attributes | Required outcome / reason |
+|---|---|---|---|---|---|
+| `route_selected` | `orchestrator` | `legacy` | `measurement_id` | `change_type`, `risk_level`, `selected_route`, `skipped_roles` | `recorded`; `reason` when a role is skipped |
+| `role_skipped` | `orchestrator` | `legacy` | `parent_event_id` | `role`, `skip_reason`, `next_owner` | `recorded`; `reason` required |
+| `context_loaded` | `workflow_record` | `legacy` or `shadow` | `measurement_id` | `context_mode`, `source_manifest_digest`, `token_measurement_status`, `digest_ref`; `approximate_tokens` when available | `success`, `failure`, or `inconclusive`; reason for non-success |
+| `dispatch_attempted` | `orchestrator` | `legacy` | `handoff_event_id` | `target_agent`, `wait_policy` | `recorded` |
+| `dispatch_acknowledged` | `host_telemetry` | `host_telemetry` | `handoff_event_id` | `acknowledgement_source` | `acknowledged` |
+| `dispatch_terminal` | `host_telemetry` or `orchestrator` | `host_telemetry` or `legacy` | `handoff_event_id`, `terminal_result_id` when one exists | `terminal_status` | Same value as `terminal_status`; reason for non-success |
+| `dispatch_consumed` | `orchestrator` | `legacy` | `handoff_event_id`, `terminal_result_id` | `consumption_count` exact value `1` | `consumed` |
+| `dispatch_duplicate` | `orchestrator` | `legacy` | `handoff_event_id`, `terminal_result_id`, `parent_event_id` | `first_terminal_result_id`, `delivery_class` exact value `duplicate_or_late` | `ignored`; reason required |
+| `dispatch_cancelled` | `host_telemetry` or `orchestrator` | `host_telemetry` or `legacy` | `handoff_event_id` | `cancellation_source` | `cancelled`; reason required |
+| `dispatch_host_unavailable` | `host_telemetry` or `orchestrator` | `host_telemetry` or `legacy` | `handoff_event_id` | `capability`, `wait_policy` | `host_completion_unavailable`; reason required |
+| `human_approval` | `human_record` | `human_approval` | `measurement_id` | `decision` enum `approved` \| `rejected` \| `deferred`, `approver` | `success` for approved; `failure` for rejected; `inconclusive` for deferred; reason for rejected/deferred |
+| `shadow_compared` | `workflow_record` | `shadow` | `pair_id` | `legacy_result_digest`, `candidate_result_digest`, `comparison_result`, `digest_ref` | `success` for `match`; `failure` for `mismatch`; `inconclusive` for `inconclusive`; reason for non-success |
+| `shadow_fallback` | `workflow_record` | `shadow` | `pair_id` | `fallback_reason`, `legacy_path` | `failure`; reason required |
+| `rollback_completed` | `workflow_record` | `shadow` | `pair_id` | `rollback_result`, `rollback_target` | `success` only for `succeeded`; `failure` for `failed`; `inconclusive` for `not_run` or `inconclusive`; `not_applicable` for `not_applicable`; reason for every non-success |
+| `rework_started` | `workflow_record` | `legacy` | `parent_event_id` | `rework_count`, `finding_ref`, `next_owner` | `recorded` |
+| `outcome_recorded` | `orchestrator` | `legacy` | `measurement_id` | `final_outcome` enum `completed` \| `blocked` \| `cancelled` \| `failed` | `success` for `completed`; `failure` for `blocked`, `cancelled`, or `failed`; reason for non-completed |
+
+Acknowledgement never implies terminal completion. Receipt consumption never implies execution proof. Human approval is evidence of a decision only and cannot be emitted by an agent on the Human's behalf.
+
 ### Typed outcomes
 
 The following values are frozen for this specification:
@@ -76,18 +126,18 @@ Each IMP-001 metric must identify owner, event source, numerator, denominator, c
 
 | Metric | Owner | Event source | Numerator | Denominator | Calculation / exclusion rule | `N/A` rule | Retention | Status |
 |---|---|---|---|---|---|---|---|---|
-| Route decision coverage | Orchestrator | `route_selected` evidence | Classified items with a route event | Classified work items | Numerator / denominator | Only when classification is not required | Work-item lifetime + closeout | Draft |
-| Skipped-role reason completeness | Orchestrator | `role_skipped` evidence | Skips with non-empty reason and owner | All skipped-role decisions | Numerator / denominator | No skipped role | Work-item lifetime + closeout | Draft |
-| Context source-manifest coverage | Context loader/host | `context_loaded` evidence | Loads with complete manifest | All context load runs | Numerator / denominator | Host loader genuinely unsupported | Work-item lifetime + measurement record | Draft |
-| Native token measurement availability | Host adapter | Token evidence | Available native token measurements | Requests on hosts declaring native-token capability | Unsupported hosts excluded and counted separately | No token measurement requested | Measurement record | Draft |
-| Dispatch terminal-evidence rate | Orchestrator/host adapter | Dispatch attempt and terminal evidence | Attempts with one valid terminal result | All invocation attempts | Missing terminal is denominator with zero numerator; no attempt is excluded | None for required terminal evidence | Work-item lifetime + closeout | Draft |
-| Exact-once consumption compliance | Orchestrator | Receipt and consumption events | Results consumed exactly once with duplicate/late handling | Terminal results delivered | Duplicate/late deliveries do not add denominator events | No terminal result delivered | Receipt retention policy | Draft |
-| Shadow semantic equivalence | Experiment owner | Paired legacy/candidate evidence | Pairs with `match` | All shadow attempts | `mismatch` and `inconclusive` remain denominator observations | No shadow attempt | Experiment record | Draft |
-| Shadow fallback rate | Experiment owner | Fallback evidence | Shadow attempts that fall back | All shadow attempts | Unsupported host is not a shadow attempt | No shadow attempt | Experiment record | Draft |
-| Rollback success | Developer/QA | Rollback evidence | Required rehearsals with `succeeded` | Required rollback rehearsals | `not_run`, `failed`, and `inconclusive` are denominator failures | Rollback not applicable | Experiment record | Draft |
-| Rework cycle rate | Orchestrator/QA | Rework evidence | Verification events that route to rework | Verification events | Zero rework is a valid zero, not `N/A` | No verification event | Work-item lifetime + closeout | Draft |
-| Human intervention rate | Orchestrator | Human decision evidence | Work items with an intervention | Work items requiring a decision | Zero intervention is a valid zero | No decision gate | Work-item lifetime + closeout | Draft |
-| Final outcome evidence completeness | Orchestrator | Outcome evidence | Closed items with final outcome evidence | Closed work items | Missing required outcome is denominator failure | No closed item | Work-item lifetime + closeout | Draft |
+| Route decision coverage | Orchestrator Agent | `route_selected` evidence | Classified items with a route event | Classified work items | Numerator / denominator | Only when classification is not required | Work-item lifetime + closeout | Draft |
+| Skipped-role reason completeness | Orchestrator Agent | `role_skipped` evidence | Skips with non-empty reason and owner | All skipped-role decisions | Numerator / denominator | No skipped role | Work-item lifetime + closeout | Draft |
+| Context source-manifest coverage | Developer Agent | `context_loaded` evidence | Loads with complete manifest | All context load runs | Numerator / denominator | Host loader genuinely unsupported | Work-item lifetime + measurement record | Draft |
+| Native token measurement availability | Developer Agent | Token evidence | Available native token measurements | Requests on hosts declaring native-token capability | Unsupported hosts excluded and counted separately | No token measurement requested | Measurement record | Draft |
+| Dispatch terminal-evidence rate | Orchestrator Agent | Dispatch attempt and terminal evidence | Attempts with one valid terminal result | All invocation attempts | Missing terminal is denominator with zero numerator; no attempt is excluded | None for required terminal evidence | Work-item lifetime + closeout | Draft |
+| Exact-once consumption compliance | Orchestrator Agent | Receipt and consumption events | Results consumed exactly once with duplicate/late handling | Terminal results delivered | Duplicate/late deliveries do not add denominator events | No terminal result delivered | Receipt retention policy | Draft |
+| Shadow semantic equivalence | QA Agent | Paired legacy/candidate evidence | Pairs with `match` | All shadow attempts | `mismatch` and `inconclusive` remain denominator observations | No shadow attempt | Experiment record | Draft |
+| Shadow fallback rate | QA Agent | Fallback evidence | Shadow attempts that fall back | All shadow attempts | Unsupported host is not a shadow attempt | No shadow attempt | Experiment record | Draft |
+| Rollback success | QA Agent | Rollback evidence | Required rehearsals with `succeeded` | Required rollback rehearsals | `not_run`, `failed`, and `inconclusive` are denominator failures | Rollback not applicable | Experiment record | Draft |
+| Rework cycle rate | QA Agent | Rework evidence | Verification events that route to rework | Verification events | Zero rework is a valid zero, not `N/A` | No verification event | Work-item lifetime + closeout | Draft |
+| Human intervention rate | Orchestrator Agent | Human decision evidence | Work items with an intervention | Work items requiring a decision | Zero intervention is a valid zero | No decision gate | Work-item lifetime + closeout | Draft |
+| Final outcome evidence completeness | Orchestrator Agent | Outcome evidence | Closed items with final outcome evidence | Closed work items | Missing required outcome is denominator failure | No closed item | Work-item lifetime + closeout | Draft |
 
 Retention means at least through work-item closeout and the linked measurement record. Platform-specific event retention is not assumed; if a required host source cannot retain or provide evidence, record that limitation and do not use the affected metric as an authoritative trend.
 
