@@ -14,7 +14,7 @@
 - Requirement: Issue #179 Acceptance Criteria
 - SDD: N/A — bounded measurement specification is the artifact; final doc-only correction set passed SA re-review #5 at `f1b0429`; Human approval recorded at https://github.com/chakrits/AI-Agent-Workflow/issues/179#issuecomment-5302513189
 - Implementation plan: `docs/superpowers/plans/2026-08-15-framework-improvement-roadmap.md` (commit `4f38db1`)
-- PRs: Draft PR #180 — https://github.com/chakrits/AI-Agent-Workflow/pull/180 (QA PASS observed at head `414d0c493dae920d3c83829fe7a1992c9200a579`; PR remains OPEN/Draft/unmerged; Human merge approval pending)
+- PRs: PR #180 — https://github.com/chakrits/AI-Agent-Workflow/pull/180 (OPEN/Ready for review/unmerged; QA PASS observed at head `414d0c493dae920d3c83829fe7a1992c9200a579`; Human merge approval pending)
 - Closeout PR: N/A
 - Postmortem: N/A
 
@@ -36,4 +36,4 @@
 - Rework cycles: 1 QA bounded metadata/readiness rework; specification revision round: 4; final SA re-review: PASS
 - Packet version: v1; SA review dispatch completed and consumed
 
-## Status: Human Review — Human approval recorded; `phase:human-review` and `status:verification-done` applied; independent QA PASS on AC-01–AC-07 observed at `414d0c493dae920d3c83829fe7a1992c9200a579`; PR #180 remains Draft/Open/unmerged and Human merge approval is pending (2026-08-15)
+## Status: Human Review — Human approval recorded; `phase:human-review`, `status:development-done`, and `status:verification-done` applied; independent QA PASS on AC-01–AC-07 observed at `414d0c493dae920d3c83829fe7a1992c9200a579`; PR #180 is OPEN/Ready for review/unmerged and Human merge approval is pending (2026-08-15)

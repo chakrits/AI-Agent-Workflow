@@ -4,7 +4,7 @@
 - Issue #179 — IMP-001: define evidence model and measurement baseline, under umbrella Issue #178.
 
 ## Current Stage
-- Human Review — Independent QA PASS is recorded for the live PR #180 candidate; `phase:human-review` and `status:verification-done` are applied. Human merge approval remains pending; no merge or release action is authorized.
+- Human Review — Independent QA PASS is recorded for PR #180; `phase:human-review`, `status:development-done`, and `status:verification-done` are applied. PR is Ready for review but remains OPEN/unmerged; Human merge approval remains pending.
 
 ## Change Classification
 - Change Type: Framework / Meta (evidence and measurement foundation)
