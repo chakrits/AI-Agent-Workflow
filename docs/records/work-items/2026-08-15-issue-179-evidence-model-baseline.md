@@ -12,7 +12,7 @@
 
 ## Artifacts
 - Requirement: Issue #179 Acceptance Criteria
-- SDD: N/A — bounded measurement specification is the artifact; final doc-only normative correction set applied, pending SA re-review #3
+- SDD: N/A — bounded measurement specification is the artifact; final doc-only cross-section correction set applied, pending SA re-review #4
 - Implementation plan: `docs/superpowers/plans/2026-08-15-framework-improvement-roadmap.md` (commit `4f38db1`)
 - PRs: N/A
 - Closeout PR: N/A
@@ -28,12 +28,12 @@
 - Update `METRICS.md`, `CONTEXT_BUDGET.md`, and `RISKS.md` with the approved correction set.
 
 ## Lessons Learned
-- SA review returned `NEEDS_REVISION`: metric authority, context baseline, shadow correlation, and risk coverage need a bounded revision.
+- SA review returned `NEEDS_REVISION`: metric authority, context baseline, shadow correlation, risk coverage, and then three cross-section contract ambiguities required bounded revisions.
 
 ## Metrics
 - Tests before: 414 → Tests after: N/A — no implementation yet
 - Subagent timeouts: 0; SA terminal result consumed after wait slices that were not treated as timeout or cancellation
-- Rework cycles: 0; specification revision round: 1
+- Rework cycles: 0; specification revision round: 3
 - Packet version: v1; SA review dispatch completed and consumed
 
-## Status: Planning — final doc-only normative correction set applied; awaiting SA re-review #3 (2026-08-15)
+## Status: Planning — SA re-review #3 returned `NEEDS_REVISION`; final doc-only cross-section correction set applied; awaiting SA re-review #4 (2026-08-15)

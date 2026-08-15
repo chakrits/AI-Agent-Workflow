@@ -51,13 +51,13 @@ The following fields and rules are normative for `workflow-evidence/v1`. A futur
 | `outcome_status` | `recorded` \| `acknowledged` \| `success` \| `failure` \| `inconclusive` \| `consumed` \| `ignored` \| `cancelled` \| `timed_out` \| `host_completion_unavailable` \| `not_applicable` \| `not_run` | Conditional | Required for terminal, comparison, fallback, rollback, cancellation, outcome, and approval events |
 | `reason` | non-empty string | Conditional | Required for failure, inconclusive, ignored, cancelled, timed-out, host-unavailable, `not_applicable`, `not_run`, and any metric recorded as `N/A` |
 | `attributes` | closed JSON object constrained by event mapping | Required | Event-specific fields must match the mapping and type profile below; arbitrary analytics keys are not allowed |
-| `digest_ref` | non-empty digest reference string | Conditional | Required for context manifest, shadow comparison, and any result whose integrity depends on a digest |
+| `digest_ref` | non-empty digest reference string | Conditional | Required as a top-level field for `context_loaded`, `context_baseline_observed`, and `shadow_compared`; absent for other v1 event types; it is never nested in `attributes` |
 | `evidence_ref` | addressable URL or repository path string | Required | Must identify the source artifact or human decision evidence |
 | `recorded_by` | non-empty string | Required | Agent, host, validator, or Human Maintainer identity that recorded the evidence |
 
 The `correlation` object may contain only these typed fields: `handoff_event_id`, `terminal_result_id`, `pair_id`, `measurement_id`, and `parent_event_id`. Each value is a non-empty string. `handoff_event_id` uses the existing receipt identifier shape; `terminal_result_id` is required only when a terminal result exists; `pair_id` is required for shadow events; `measurement_id` is required for validator/baseline observations; `parent_event_id` is required for a child event in an event chain. Extra correlation keys are invalid.
 
-The `attributes` object is also closed. Unless a row below gives an enum, identifiers, references, roles, reasons, paths, capabilities, digests, and sources are non-empty strings. The following types are fixed: `skipped_roles` is an array of non-empty strings and may be empty; `approximate_tokens` is a non-negative integer and is present only when `token_measurement_status=available`; `consumption_count` is the integer `1`; `rework_count` is a positive integer; `decision` is `approved | rejected | deferred`; `terminal_status` is `success | failure | inconclusive | cancelled | timed_out | host_completion_unavailable`; `delivery_class` is `duplicate_or_late`; `fallback_used` is boolean when present; and `rollback_result`, `comparison_result`, `token_measurement_status`, and `wait_policy` use the frozen values below. No additional attribute is valid.
+The `attributes` object is also closed. Unless a row below gives an enum, identifiers, references, roles, reasons, paths, capabilities, digests, and sources are non-empty strings. The following types are fixed: `skipped_roles` is an array of non-empty strings and may be empty; `approximate_tokens` is a non-negative integer and is present only when `token_measurement_status=available`; `character_count` is a non-negative integer; `target_tokens` is a positive integer; `consumption_count` is the integer `1`; `rework_count` is a positive integer; `decision` is `approved | rejected | deferred`; `terminal_status` is `success | failure | inconclusive | cancelled | timed_out | host_completion_unavailable`; `delivery_class` is `duplicate_or_late`; `fallback_used` is boolean when present; and `rollback_result`, `comparison_result`, `token_measurement_status`, and `wait_policy` use the frozen values below. No additional attribute is valid. The top-level `digest_ref` is the only envelope digest reference; event-specific digest values such as `source_manifest_digest` and `legacy_result_digest` remain attributes and never replace it.
 
 ### Normative event mapping
 
@@ -65,7 +65,8 @@ The `attributes` object is also closed. Unless a row below gives an enum, identi
 |---|---|---|---|---|---|
 | `route_selected` | `orchestrator` | `legacy` | `measurement_id` | `change_type`, `risk_level`, `selected_route`, `skipped_roles` | `recorded`; `reason` when a role is skipped |
 | `role_skipped` | `orchestrator` | `legacy` | `parent_event_id` | `role`, `skip_reason`, `next_owner` | `recorded`; `reason` required |
-| `context_loaded` | `workflow_record` | `legacy` or `shadow` | `measurement_id` | `context_mode`, `source_manifest_digest`, `token_measurement_status`, `digest_ref`; `approximate_tokens` when available | `success`, `failure`, or `inconclusive`; reason for non-success |
+| `context_loaded` | `workflow_record` | `legacy` or `shadow` | `measurement_id` | `context_mode`, `source_manifest_digest`, `token_measurement_status`; `approximate_tokens` when available | `success`, `failure`, or `inconclusive`; reason for non-success; top-level `digest_ref` required |
+| `context_baseline_observed` | `validator` | `legacy` | `measurement_id` | `validator_name`, `command`, `source_manifest_digest`, `character_count`, `target_tokens`, `token_measurement_status`; `approximate_tokens` when available | `success` when `token_measurement_status=available` and `approximate_tokens` is within target; `failure` when available measurement exceeds target or required evidence is missing; `inconclusive` when measurement is unsupported/unavailable/not requested; reason for non-success; top-level `digest_ref` required |
 | `dispatch_attempted` | `orchestrator` | `legacy` | `handoff_event_id` | `target_agent`, `wait_policy` | `recorded` |
 | `dispatch_acknowledged` | `host_telemetry` | `host_telemetry` | `handoff_event_id` | `acknowledgement_source` | `acknowledged` |
 | `dispatch_terminal` | `host_telemetry` or `orchestrator` | `host_telemetry` or `legacy` | `handoff_event_id`, `terminal_result_id` when one exists | `terminal_status` | Same value as `terminal_status`; reason for non-success |
@@ -74,8 +75,8 @@ The `attributes` object is also closed. Unless a row below gives an enum, identi
 | `dispatch_cancelled` | `host_telemetry` or `orchestrator` | `host_telemetry` or `legacy` | `handoff_event_id` | `cancellation_source` | `cancelled`; reason required |
 | `dispatch_host_unavailable` | `host_telemetry` or `orchestrator` | `host_telemetry` or `legacy` | `handoff_event_id` | `capability`, `wait_policy` | `host_completion_unavailable`; reason required |
 | `human_approval` | `human_record` | `human_approval` | `measurement_id` | `decision` enum `approved` \| `rejected` \| `deferred`, `approver` | `success` for approved; `failure` for rejected; `inconclusive` for deferred; reason for rejected/deferred |
-| `shadow_compared` | `workflow_record` | `shadow` | `pair_id` | `legacy_result_digest`, `candidate_result_digest`, `comparison_result`, `digest_ref` | `success` for `match`; `failure` for `mismatch`; `inconclusive` for `inconclusive`; reason for non-success |
-| `shadow_fallback` | `workflow_record` | `shadow` | `pair_id` | `fallback_reason`, `legacy_path` | `failure`; reason required |
+| `shadow_compared` | `workflow_record` | `shadow` | `pair_id` | `input_digest`, `legacy_result_digest`, `candidate_result_digest`, `comparison_result` | `success` for `match`; `failure` for `mismatch`; `inconclusive` for `inconclusive`; reason for non-success; top-level `digest_ref` required |
+| `shadow_fallback` | `workflow_record` | `shadow` | `pair_id` | `fallback_used` exact value `true`, `fallback_reason`, `legacy_path` | `failure`; reason required |
 | `rollback_completed` | `workflow_record` | `shadow` | `pair_id` | `rollback_result`, `rollback_target` | `success` only for `succeeded`; `failure` for `failed`; `inconclusive` for `not_run` or `inconclusive`; `not_applicable` for `not_applicable`; reason for every non-success |
 | `rework_started` | `workflow_record` | `legacy` | `parent_event_id` | `rework_count`, `finding_ref`, `next_owner` | `recorded` |
 | `outcome_recorded` | `orchestrator` | `legacy` | `measurement_id` | `final_outcome` enum `completed` \| `blocked` \| `cancelled` \| `failed` | `success` for `completed`; `failure` for `blocked`, `cancelled`, or `failed`; reason for non-completed |
@@ -97,20 +98,15 @@ wait_policy = bounded_deadline | operator_wait | host_managed
 
 ### Shadow compatibility fields
 
-Context and status shadow observations use one paired-input correlation shape:
+Shadow observations use the same envelope; they are not a second record shape. For every shadow event, `authority=shadow`, `correlation.pair_id` is the required pair identifier, and all event-specific values are under `attributes`. The value `legacy_result_digest` identifies the legacy observation being compared; it does not change the envelope authority to `legacy`. The top-level `digest_ref` is required for `shadow_compared` only in this v1 mapping and must not be copied into `attributes`.
 
-```text
-pair_id
-input_digest
-source_manifest_digest
-authority = legacy
-legacy_result_digest
-candidate_result_digest
-comparison_result = match | mismatch | inconclusive
-fallback_used
-fallback_reason
-rollback_result
-```
+| Shadow event | `correlation` | Required `attributes` | Outcome mapping |
+|---|---|---|---|
+| `shadow_compared` | `pair_id` | `input_digest`, `legacy_result_digest`, `candidate_result_digest`, `comparison_result` | `success` for `match`; `failure` for `mismatch`; `inconclusive` for `inconclusive` |
+| `shadow_fallback` | `pair_id` | `fallback_used` exact value `true`, `fallback_reason`, `legacy_path` | `failure`; reason required |
+| `rollback_completed` | `pair_id` | `rollback_result`, `rollback_target` | `success` only for `succeeded`; `failure` for `failed`; `inconclusive` for `not_run` or `inconclusive`; `not_applicable` for `not_applicable` |
+
+`source_manifest_digest` is an attribute of `context_loaded` or `context_baseline_observed`, not a correlation ID. `fallback_used`, `fallback_reason`, and rollback fields are attributes of their named events only. Token fields are diagnostic evidence only; when a host cannot provide native token counts, record `token_measurement_status` and a reason, never silently treat the value as zero.
 
 Token fields are diagnostic evidence only. When a host cannot provide native token counts, record `token_measurement_status` and a reason; never silently treat the value as zero.
 
