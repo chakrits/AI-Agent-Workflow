@@ -48,7 +48,7 @@ One bounded QA rework cycle is pending. Correct only the PR readiness body line 
 
 ## Contract Version
 
-Packet v1; Handoff Contract; Framework / Meta route; Bug Fix contract not applicable.
+Packet v2 — bounded QA rework; Handoff Contract; Framework / Meta route; Bug Fix contract not applicable.
 
 ## Rework Count
 

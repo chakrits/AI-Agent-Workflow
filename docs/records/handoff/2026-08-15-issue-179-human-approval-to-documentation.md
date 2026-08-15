@@ -1,5 +1,7 @@
 # Agent Handoff
 
+> Historical dispatch record. The QA-observed pre-rework result and SHA in this record are not the final candidate after the bounded rework; see the current Documentation-to-QA re-review handoff.
+
 ---
 
 ## From Agent
