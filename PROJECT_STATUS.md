@@ -4,7 +4,7 @@
 - Issue #179 — IMP-001: define evidence model and measurement baseline, under umbrella Issue #178.
 
 ## Current Stage
-- Planning — SA re-review #3 returned `NEEDS_REVISION`; final doc-only cross-section corrections applied; SA re-review #4 is pending.
+- Planning — SA re-review #4 returned `NEEDS_REVISION`; final doc-only shadow-correlation correction applied; SA re-review #5 is pending.
 
 ## Change Classification
 - Change Type: Framework / Meta (evidence and measurement foundation)
@@ -23,11 +23,11 @@
 - Issue #160 (reset repository to template baseline) merged through PR #162 as commit `93203e2`. Boss-approved run of `scripts/reset-to-template.mjs --apply --confirm-reset`: stubbed this file, `TASK_LOG.md`, `CHANGELOG.md`, `RISKS.md`, `DECISIONS.md` and cleared 13 historical record directories (109 entries — 104 deletions + 5 stub replacements), including `docs/records/handoffs` (fixed in #158/PR #159 ahead of this run). `docs/records/qa/`, `README.md`, `PROJECT_INDEX.md`, `docs/vault/00-Index.md`, and all canonical workflow/skill/template/CI content are untouched — this is a working-tree content reset only, not a history rewrite; every removed file remains recoverable via `git log`/`git show`. A first attempt (commit `f2c1375`, since-deleted branch) was correctly returned BLOCKED by independent QA because its own implementation-plan document had been left on an unmerged sibling branch, so the reset commit's history didn't actually contain the file it cited. Redone as a 2-commit branch — the plan doc landed as its own first commit (`ec2a7ca`), then the reset ran on top (`2754d45`) — so the plan is genuinely part of history before being cleared, same as every other `docs/records/` entry. Independent QA PASS on all 5 Acceptance Criteria at the corrected commit (evidence: https://github.com/chakrits/AI-Agent-Workflow/issues/160#issuecomment-5262083435). Plan: `docs/records/implementation-plan/2026-08-12-reset-to-template-execution-plan.md` (itself cleared by this same run, recoverable via `git show ec2a7ca:...`). Verified with the full command suite (`npm test` 399/399; `validate:contracts`, `validate:project-state`, `validate:skill-parity` 38/38, `adr:audit`, `validate:risk-register`, `validate:review-gate`, `validate:skill-usage`, `validate:metrics`, `validate:context-budget`, `git diff --check` — all PASS) and pre-confirmed via `scripts/verify-reset-template.mjs`'s disposable-clone harness.
 
 ## In Progress
-- Issue #179 — IMP-001 evidence model and measurement baseline; final cross-section correction commit is awaiting SA re-review #4, no Developer dispatch.
+- Issue #179 — IMP-001 evidence model and measurement baseline; final shadow-correlation correction commit is awaiting SA re-review #5, no Developer dispatch.
 - Umbrella Issue #178 — framework improvement roadmap; later IMP-002 through IMP-006 remain gated by evidence and separate approval.
 
 ## Blockers / Open Questions
-- SA re-review #4 is required for the normative `workflow-evidence/v1` field/event contract cross-section corrections. No Developer dispatch is authorized.
+- SA re-review #5 is required for the final normative `workflow-evidence/v1` shadow-correlation rule. No Developer dispatch is authorized.
 - SA review found no authoritative metric-definition model, conflicting context-budget baselines, an underspecified shadow evidence envelope, and missing risk-register rows. Evidence: `docs/records/handoff/2026-08-15-issue-179-orchestrator-to-human-sa-review.md` and Issue #179.
 - Not audited: whether any earlier multi-commit branch merged an unreviewed script change while Issue #168's defect was live. The fix corrects the mechanism only; PR #167 is verified clear by hand.
 - Risk R-002 stays open: Codex bounded-native child supervision timed out three times during the #166 planning work, and the Human-approved direct-parent fallback cannot substitute for independent QA. Durable async orchestration remains deferred to Issue #35.
@@ -44,7 +44,7 @@
 - Issue #166's artifacts are merged: canonical definition `docs/workflow/task-execution-mode.md`, specification of record `docs/records/sdd/2026-08-12-issue-166-task-execution-mode-spec.md`, `DECISIONS.md` ADR-0014.
 
 ## Next Quality Gate
-- Independent SA re-review #4 of the exact correction commit before any implementation or status label promotion.
+- Independent SA re-review #5 of the exact correction commit before any implementation or status label promotion.
 
 ## Recommended Next Agent
 - SA Agent — independently verify the exact `workflow-evidence/v1` cross-section field/event mapping.
