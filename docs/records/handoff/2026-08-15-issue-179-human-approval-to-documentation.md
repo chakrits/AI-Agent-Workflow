@@ -40,11 +40,11 @@ Medium
 
 ## Current Stage
 
-Development — Documentation Agent completed the approved docs-only package; independent QA is pending on Draft PR #180.
+Development — Documentation Agent completed the approved docs-only package; independent QA returned `NEEDS_REVISION` on AC-07 and bounded documentation/readiness rework is pending.
 
 ## Task State
 
-The bounded documentation package is complete at candidate head `e59557cae472abacdf49614b5a9c35856185e376`; independent QA and Human merge gates remain required. `status:development-done` is deliberately not applied.
+The bounded documentation package was independently checked at QA-observed head `385479975c194b3439059639a4322e4532f5f721`; AC-01–AC-06 passed and AC-07 returned `NEEDS_REVISION`. One bounded rework cycle is pending; independent QA and Human merge gates remain required. `status:development-done` is deliberately not applied.
 
 ## Contract Version
 
@@ -61,6 +61,7 @@ Packet v1; Framework / Meta route; Bug Fix contract not applicable.
 - Documentation Agent verified and packaged the approved specification, METRICS/CONTEXT/RISKS updates, state records, and review handoffs.
 - Draft PR #180 is open, unmerged, and scoped to approved documentation/state records; the exact candidate head is `e59557cae472abacdf49614b5a9c35856185e376`.
 - Documentation Agent terminal result was consumed by the parent Orchestrator after the child completed; QA remains the next independent verifier.
+- QA Agent independently verified AC-01–AC-06 and returned `NEEDS_REVISION` for AC-07: the PR body lacks the required `Developer: Work Item (Issue) URL:` form and current state records cite a prior SHA. Evidence: https://github.com/chakrits/AI-Agent-Workflow/issues/179#issuecomment-5302693345.
 
 ## Task for Documentation Agent
 
@@ -100,7 +101,7 @@ AC-01 through AC-07: approved specification PASS; Documentation Agent must verif
 
 ## Verified Commit SHA
 
-`e59557cae472abacdf49614b5a9c35856185e376` (Orchestrator evidence/state update after Documentation Agent terminal consumption; Draft PR #180 head).
+`385479975c194b3439059639a4322e4532f5f721` (QA-observed PR #180 head; QA returned `NEEDS_REVISION` on AC-07).
 
 ## QA / Review Focus
 
@@ -108,11 +109,11 @@ Scope fidelity, exact approved spec preservation, METRICS/RISKS/context baseline
 
 ## Next Action
 
-Exactly one: `Dispatch QA`
+Exactly one: `Dispatch Documentation Agent for bounded QA rework`
 
 ## Next Owner
 
-QA Agent
+Documentation Agent
 
 ## Boss Event Required
 
@@ -120,7 +121,7 @@ Yes — dispatch result and terminal consumption must be recorded before QA rout
 
 ## Dispatch State
 
-`completed` for Documentation Agent; QA dispatch is the next action.
+`completed` for Documentation Agent; QA returned `NEEDS_REVISION`; bounded rework dispatch is the next action.
 
 ## Source Agent
 
@@ -128,15 +129,15 @@ Orchestrator Agent
 
 ## Target Agent
 
-Documentation Agent → QA Agent
+Documentation Agent → QA Agent → Documentation Agent
 
 ## Dispatch Result
 
-DONE — Documentation Agent prepared Draft PR #180; the Orchestrator recorded terminal consumption and reran verification at `e59557cae472abacdf49614b5a9c35856185e376`; exact scope and AC evidence are recorded in `2026-08-15-issue-179-documentation-to-qa.md`.
+DONE → NEEDS_REVISION — Documentation Agent prepared Draft PR #180; QA independently verified the package at `385479975c194b3439059639a4322e4532f5f721`, passed AC-01–AC-06, and returned AC-07 `NEEDS_REVISION`. Rework evidence is in `2026-08-15-issue-179-qa-to-documentation.md`.
 
 ## Acknowledgement Evidence
 
-Acknowledged by child terminal result `terminal-01a005b0-3bf3-7770-a934-7f4d2c74daf8-20260815`.
+Acknowledged by Documentation Agent terminal `terminal-01a005b0-3bf3-7770-a934-7f4d2c74daf8-20260815`; QA result consumed from child `01a005cc-03a7-7643-920e-ea3332ff8a39`.
 
 ## Handoff Event ID
 
@@ -148,19 +149,19 @@ Current Codex parent orchestrator — Issue #179
 
 ## Child Task ID
 
-`01a005b0-3bf3-7770-a934-7f4d2c74daf8` (Carver)
+`01a005b0-3bf3-7770-a934-7f4d2c74daf8` (Carver); QA child `01a005cc-03a7-7643-920e-ea3332ff8a39` (Herschel)
 
 ## Terminal Result ID
 
-`terminal-01a005b0-3bf3-7770-a934-7f4d2c74daf8-20260815`
+`terminal-01a005b0-3bf3-7770-a934-7f4d2c74daf8-20260815`; QA terminal consumed in parent turn.
 
 ## Completion Event Evidence
 
-Documentation Agent returned `DONE`; parent consumed the terminal result and verified the child handoff before QA routing.
+Documentation Agent returned `DONE`; QA returned `NEEDS_REVISION`; parent consumed both terminal results and recorded the bounded rework route.
 
 ## Consumption Evidence
 
-Consumed in the parent turn; child handoff records exact head, PR #180, AC-01–AC-07 traceability, verification commands, and the QA next action.
+Consumed in the parent turn; QA evidence records exact head/base, AC matrix, commands, Major findings, and the bounded Documentation Agent next action.
 
 ## Timeout / Cancellation Reason
 
