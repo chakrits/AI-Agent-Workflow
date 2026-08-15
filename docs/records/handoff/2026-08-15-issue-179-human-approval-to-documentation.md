@@ -59,7 +59,7 @@ Packet v1; Framework / Meta route; Bug Fix contract not applicable.
 - Final `workflow-evidence/v1` specification completed and SA-reviewed PASS.
 - Human approval recorded and GitHub readiness labels promoted.
 - Documentation Agent verified and packaged the approved specification, METRICS/CONTEXT/RISKS updates, state records, and review handoffs.
-- Draft PR #180 is open, unmerged, and scoped to approved documentation/state records; the exact candidate head is `e59557cae472abacdf49614b5a9c35856185e376`.
+- Draft PR #180 is open, unmerged, and scoped to approved documentation/state records. The earlier package verification point `e59557cae472abacdf49614b5a9c35856185e376` is historical and was superseded before QA observed the pre-rework head; this handoff does not identify a final candidate head. QA must resolve the live PR/branch head independently at dispatch.
 - Documentation Agent terminal result was consumed by the parent Orchestrator after the child completed; QA remains the next independent verifier.
 - QA Agent independently verified AC-01–AC-06 and returned `NEEDS_REVISION` for AC-07: the PR body lacks the required `Developer: Work Item (Issue) URL:` form and current state records cite a prior SHA. Evidence: https://github.com/chakrits/AI-Agent-Workflow/issues/179#issuecomment-5302693345.
 
@@ -101,7 +101,7 @@ AC-01 through AC-07: approved specification PASS; Documentation Agent must verif
 
 ## Verified Commit SHA
 
-`385479975c194b3439059639a4322e4532f5f721` (QA-observed PR #180 head; QA returned `NEEDS_REVISION` on AC-07).
+QA-observed pre-rework PR #180 head: `385479975c194b3439059639a4322e4532f5f721` (QA returned `NEEDS_REVISION` on AC-07). This is a historical verification point, not the final candidate after bounded rework; resolve the live PR head independently.
 
 ## QA / Review Focus
 

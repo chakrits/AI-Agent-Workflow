@@ -14,7 +14,7 @@
 - Requirement: Issue #179 Acceptance Criteria
 - SDD: N/A — bounded measurement specification is the artifact; final doc-only correction set passed SA re-review #5 at `f1b0429`; Human approval recorded at https://github.com/chakrits/AI-Agent-Workflow/issues/179#issuecomment-5302513189
 - Implementation plan: `docs/superpowers/plans/2026-08-15-framework-improvement-roadmap.md` (commit `4f38db1`)
-- PRs: Draft PR #180 — https://github.com/chakrits/AI-Agent-Workflow/pull/180 (QA-observed head `385479975c194b3439059639a4322e4532f5f721`; bounded rework pending)
+- PRs: Draft PR #180 — https://github.com/chakrits/AI-Agent-Workflow/pull/180 (QA-observed pre-rework head `385479975c194b3439059639a4322e4532f5f721`; historical only; bounded rework applied; QA must resolve the live head from the current PR/branch at dispatch)
 - Closeout PR: N/A
 - Postmortem: N/A
 
@@ -36,4 +36,4 @@
 - Rework cycles: 1 QA bounded metadata/readiness rework; specification revision round: 4; final SA re-review: PASS
 - Packet version: v1; SA review dispatch completed and consumed
 
-## Status: Development — Human approval recorded; `phase:development` and `status:spec-ready` applied; independent QA passed AC-01–AC-06 but returned `NEEDS_REVISION` on AC-07 at `385479975c194b3439059639a4322e4532f5f721`; bounded Documentation Agent rework pending (2026-08-15)
+## Status: Development — Human approval recorded; `phase:development` and `status:spec-ready` applied; independent QA passed AC-01–AC-06 but returned `NEEDS_REVISION` on AC-07 at the QA-observed pre-rework head `385479975c194b3439059639a4322e4532f5f721`; both bounded corrections are applied, and independent QA re-review is pending. The live PR #180 head is not statically pinned here and must be resolved at dispatch (2026-08-15)

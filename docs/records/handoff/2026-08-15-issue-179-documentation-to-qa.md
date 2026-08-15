@@ -1,5 +1,7 @@
 # Agent Handoff
 
+> Historical package handoff. This record is superseded by the bounded QA rework and the Documentation-to-QA re-review handoff. Its SHA is a prior verification point only; QA must resolve the live PR #180 head independently.
+
 ---
 
 ## From Agent
@@ -43,7 +45,7 @@ Evidence and approval reference: Human approval at https://github.com/chakrits/A
 
 ## Current Stage
 
-Approved docs-only package prepared; independent QA is pending. `status:development-done` is deliberately not applied.
+Approved docs-only package prepared; this historical handoff preceded the bounded QA rework. `status:development-done` is deliberately not applied. The prior package verification point is not the final candidate.
 
 ## Task State
 
@@ -80,7 +82,7 @@ Stage delta `bd1879a..HEAD` contains exactly: `PROJECT_STATUS.md`, `TASK_LOG.md`
 
 ## Verification Performed
 
-Orchestrator reran verification at exact published head `e59557cae472abacdf49614b5a9c35856185e376` after recording Documentation Agent terminal consumption:
+Orchestrator reran verification at prior package verification point `e59557cae472abacdf49614b5a9c35856185e376` after recording Documentation Agent terminal consumption. This point is historical and was superseded before the QA-observed pre-rework head; it is not the final candidate:
 
 - `npm test` — PASS, 414/414
 - `npm run validate:contracts` — PASS
@@ -111,7 +113,7 @@ Documentation Agent does not self-certify QA PASS. The approved specification an
 | AC-04 | Spec normative `workflow-evidence/v1` envelope, event mapping, typed outcomes, paired shadow correlation, fallback, and rollback rules preserve legacy authority and avoid receipt-schema changes. | Approved design evidence; QA verify |
 | AC-05 | `RISKS.md` contains R-001 context headroom, R-002 host completion, R-003 metric authority, and R-004 project-state reconciliation with owners, triggers, mitigations, escalation, and status. | Approved design evidence; QA verify |
 | AC-06 | Spec explicit non-goals preserve lifecycle/retry contracts, authority, release, threshold, and durable async boundaries; no forbidden path changed. | Approved design evidence; QA verify |
-| AC-07 | Required repository checks pass at exact head `e59557cae472abacdf49614b5a9c35856185e376`; specification is linked from Issue #179 and Draft PR #180. | Command evidence attached; independent QA verify |
+| AC-07 | Required repository checks passed at prior package verification point `e59557cae472abacdf49614b5a9c35856185e376`; specification is linked from Issue #179 and Draft PR #180. Final QA must resolve the live PR head. | Historical command evidence; independent QA re-review required |
 
 ## Acceptance Traceability Matrix URL
 
@@ -119,7 +121,7 @@ Issue #179 Acceptance Criteria: https://github.com/chakrits/AI-Agent-Workflow/is
 
 ## Verified Commit SHA
 
-`e59557cae472abacdf49614b5a9c35856185e376`
+Prior package verification point: `e59557cae472abacdf49614b5a9c35856185e376` (historical; not the final candidate).
 
 ## Platform Activation Record URL / Status
 
@@ -198,7 +200,7 @@ Pending — no QA callback has been received in this Documentation Agent turn.
 
 ## Boss Event
 
-Package prepared within scope; Draft PR #180 is open; fresh required checks and exact scope evidence pass at the pinned head; next action is Dispatch to QA; no blocker or approval bypass requested.
+Historical package handoff was within scope; its verification point is superseded. The bounded QA rework is now recorded separately; next action is independent QA re-review of the live PR head; no blocker or approval bypass requested.
 
 ## Handoff Event ID
 
