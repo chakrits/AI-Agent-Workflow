@@ -4,7 +4,7 @@
 - Issue #179 — IMP-001: define evidence model and measurement baseline, under umbrella Issue #178.
 
 ## Current Stage
-- Planning — Human-approved correction set applied; IMP-001 is awaiting SA re-review #2.
+- Planning — SA re-review #2 completed with `NEEDS_REVISION`; IMP-001 is awaiting Human approval of the final doc-only corrections.
 
 ## Change Classification
 - Change Type: Framework / Meta (evidence and measurement foundation)
@@ -27,7 +27,7 @@
 - Umbrella Issue #178 — framework improvement roadmap; later IMP-002 through IMP-006 remain gated by evidence and separate approval.
 
 ## Blockers / Open Questions
-- SA re-review #2 is the next gate for the applied numerator/denominator rules, separate envelope decision, risk coverage, baseline snapshot, and completion-evidence semantics. No Developer dispatch is authorized.
+- Human review is required for the normative `workflow-evidence/v1` field/event contract and accountable metric-owner assignments before SA re-review #3. No Developer dispatch is authorized.
 - SA review found no authoritative metric-definition model, conflicting context-budget baselines, an underspecified shadow evidence envelope, and missing risk-register rows. Evidence: `docs/records/handoff/2026-08-15-issue-179-orchestrator-to-human-sa-review.md` and Issue #179.
 - Not audited: whether any earlier multi-commit branch merged an unreviewed script change while Issue #168's defect was live. The fix corrects the mechanism only; PR #167 is verified clear by hand.
 - Risk R-002 stays open: Codex bounded-native child supervision timed out three times during the #166 planning work, and the Human-approved direct-parent fallback cannot substitute for independent QA. Durable async orchestration remains deferred to Issue #35.
@@ -44,10 +44,10 @@
 - Issue #166's artifacts are merged: canonical definition `docs/workflow/task-execution-mode.md`, specification of record `docs/records/sdd/2026-08-12-issue-166-task-execution-mode-spec.md`, `DECISIONS.md` ADR-0014.
 
 ## Next Quality Gate
-- Independent SA re-review #2 of `docs/records/implementation-plan/2026-08-15-issue-179-evidence-measurement-spec.md` and the updated metric/context/risk records before any implementation or status label promotion.
+- Human approval of the final doc-only envelope and owner corrections, followed by independent SA re-review #3 before any implementation or status label promotion.
 
 ## Recommended Next Agent
-- SA Agent — re-review the applied evidence envelope, executable metric rules, typed outcomes, risk rows, and bound baseline.
+- Human Maintainer — approve the exact `workflow-evidence/v1` field/event mapping and accountable metric owners.
 
 ## Notes
 - Reset to template baseline by `npm run reset:template`.

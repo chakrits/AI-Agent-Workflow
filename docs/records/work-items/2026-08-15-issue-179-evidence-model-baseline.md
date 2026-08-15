@@ -36,4 +36,4 @@
 - Rework cycles: 0; specification revision round: 1
 - Packet version: v1; SA review dispatch completed and consumed
 
-## Status: Planning — Human correction set applied; awaiting SA re-review #2 (2026-08-15)
+## Status: Planning — SA re-review #2 returned `NEEDS_REVISION`; awaiting final Human correction approval (2026-08-15)
