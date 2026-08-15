@@ -80,7 +80,7 @@ Stage delta `bd1879a..HEAD` contains exactly: `PROJECT_STATUS.md`, `TASK_LOG.md`
 
 ## Verification Performed
 
-Fresh verification at exact head `6a4e60d6b2f4088c4b805fb73db9be4a380848bd`:
+Fresh verification at exact head `c3ab000c17c21608eea3739753d6503f0f629d5e`:
 
 - `npm test` — PASS, 414/414
 - `npm run validate:contracts` — PASS
@@ -111,7 +111,7 @@ Documentation Agent does not self-certify QA PASS. The approved specification an
 | AC-04 | Spec normative `workflow-evidence/v1` envelope, event mapping, typed outcomes, paired shadow correlation, fallback, and rollback rules preserve legacy authority and avoid receipt-schema changes. | Approved design evidence; QA verify |
 | AC-05 | `RISKS.md` contains R-001 context headroom, R-002 host completion, R-003 metric authority, and R-004 project-state reconciliation with owners, triggers, mitigations, escalation, and status. | Approved design evidence; QA verify |
 | AC-06 | Spec explicit non-goals preserve lifecycle/retry contracts, authority, release, threshold, and durable async boundaries; no forbidden path changed. | Approved design evidence; QA verify |
-| AC-07 | Required repository checks pass at exact head `6a4e60d6b2f4088c4b805fb73db9be4a380848bd`; specification is linked from Issue #179 and Draft PR #180. | Command evidence attached; independent QA verify |
+| AC-07 | Required repository checks pass at exact head `c3ab000c17c21608eea3739753d6503f0f629d5e`; specification is linked from Issue #179 and Draft PR #180. | Command evidence attached; independent QA verify |
 
 ## Acceptance Traceability Matrix URL
 
@@ -119,7 +119,7 @@ Issue #179 Acceptance Criteria: https://github.com/chakrits/AI-Agent-Workflow/is
 
 ## Verified Commit SHA
 
-`6a4e60d6b2f4088c4b805fb73db9be4a380848bd`
+`c3ab000c17c21608eea3739753d6503f0f629d5e`
 
 ## Platform Activation Record URL / Status
 
