@@ -25,7 +25,7 @@ activated and no host support claim was produced by this macOS run.
 - this same-change review record
 
 The adapter validates the frozen capability fields, closed host/status/decision values, named
-ownership, immutable adapter version, addressable activation/token evidence, UTC timestamps,
+ownership, immutable adapter version, canonical/resolvable activation/token evidence, UTC timestamps,
 measurement identity, host/configuration alignment, terminal-result identity/timestamps, and
 existing approved `human_approval` evidence. Invalid input returns structured legacy-authority
 fallback. `operator_wait` is retained as policy metadata and does not rewrite `timed_out` or
@@ -36,11 +36,21 @@ fallback. `operator_wait` is retained as policy metadata and does not rewrite `t
 | Finding ID | Severity | File / Area | Finding | Recommendation | Blocks Progress? |
 |---|---|---|---|---|---|
 | CR-IMP002-T4-001 | None | Capability boundary | No in-scope implementation defect identified. | Continue to independent QA with exact changed range. | No |
+| CR-IMP002-T4-002 | Resolved | Evidence references | QA identified that arbitrary strings and caller-only evidence classes could promote `supported`. | Require canonical resolvable `docs/records/...#fragment` references and native evidence objects; fail closed to `unknown` with legacy authority. | No |
+
+## Corrective rework
+
+The QA Major finding on `f9eab66` was reproduced before implementation. The corrective change
+removes caller-only class metadata as proof, requires both activation and token evidence objects
+for `supported`, checks that each evidence ID matches its reference fragment, resolves the
+reference under `docs/records/`, rejects traversal/simulation/unresolvable references, and
+sanitizes invalid support claims to `capabilityDecision: unknown` with a structured reason.
+Legacy authority and `mutationAttempted: false` remain unchanged.
 
 ## Verification performed
 
-- `node --test test/host-capability-adapter.test.mjs` — **10/10 passed**.
-- `npm test` — **463/463 passed**.
+- `node --test test/host-capability-adapter.test.mjs` — **12/12 passed**.
+- `npm test` — **465/465 passed**.
 - The remaining repository validators and final `git diff --check` are recorded in the developer
   handoff after the review record is included in the final change.
 

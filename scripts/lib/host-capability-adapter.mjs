@@ -1,3 +1,6 @@
+import { existsSync, readFileSync } from 'node:fs';
+import path from 'node:path';
+
 import { validateEvidenceRecord } from './workflow-evidence.mjs';
 
 const HOSTS = Object.freeze(['Codex', 'Claude', 'Gemini', 'Cursor', 'Antigravity']);
@@ -36,6 +39,7 @@ const MEASUREMENT_FIELDS = Object.freeze([
 const TERMINAL_FIELDS = Object.freeze(['status', 'resultId', 'observedAt']);
 const FORBIDDEN_OWNER_VALUES = new Set(['anonymous', 'unknown', 'n/a', 'N/A']);
 const MUTABLE_VERSION_VALUES = new Set(['current', 'latest', 'main', 'head']);
+const CANONICAL_EVIDENCE_REFERENCE = /^docs\/records\/[A-Za-z0-9][A-Za-z0-9._/-]*#[A-Za-z0-9][A-Za-z0-9._:-]*$/;
 
 const isPlainObject = (value) => value !== null
   && typeof value === 'object'
@@ -76,6 +80,29 @@ function isSimulationReference(ref) {
     || normalized.includes('simulation');
 }
 
+function resolveEvidenceReference(ref, rootDir = process.cwd()) {
+  if (typeof rootDir !== 'string' || !nonEmptyString(ref) || !CANONICAL_EVIDENCE_REFERENCE.test(ref)) return false;
+  const [relativePath, fragment] = ref.split('#');
+  const pathSegments = relativePath.split('/');
+  if (pathSegments.some((segment) => segment === '.' || segment === '..')) return false;
+  const recordsRoot = path.resolve(rootDir, 'docs/records');
+  const absolutePath = path.resolve(rootDir, relativePath);
+  if (absolutePath !== recordsRoot && !absolutePath.startsWith(`${recordsRoot}${path.sep}`)) return false;
+  if (!existsSync(absolutePath) || fragment.length === 0) return false;
+  let content;
+  try {
+    content = readFileSync(absolutePath, 'utf8');
+  } catch {
+    return false;
+  }
+  const headings = [...content.matchAll(/^#{1,6}\s+(.+)$/gm)].map(([, heading]) => heading
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, ''));
+  return headings.includes(fragment.toLowerCase());
+}
+
 function evidenceClassFor(evidence) {
   if (typeof evidence === 'string') return null;
   return isPlainObject(evidence) ? evidence.class ?? evidence.source : null;
@@ -86,12 +113,16 @@ function evidenceRefFor(evidence) {
   return isPlainObject(evidence) ? evidence.ref : null;
 }
 
-function validateEvidenceReference(ref, label, errors) {
+function validateEvidenceReference(ref, label, errors, rootDir = process.cwd()) {
   if (!nonEmptyString(ref)) {
     errors.push(`${label} must be a non-empty addressable evidence reference`);
     return;
   }
-  if (isSimulationReference(ref)) errors.push(`${label} cannot be fixture or simulation evidence`);
+  if (isSimulationReference(ref)) {
+    errors.push(`${label} cannot be fixture or simulation evidence`);
+  } else if (!resolveEvidenceReference(ref, rootDir)) {
+    errors.push(`${label} must be a canonical, resolvable docs/records reference`);
+  }
 }
 
 function validateEvidenceClass(evidence, label, errors) {
@@ -110,6 +141,27 @@ function validateEvidenceBinding(evidence, expectedRef, label, errors) {
   }
 }
 
+function validateNativeEvidenceObject(evidence, expectedRef, label, errors, rootDir, expectedStatus = null) {
+  if (!isPlainObject(evidence)) {
+    errors.push(`${label} evidence object is required for native verification`);
+    return;
+  }
+  if (!nonEmptyString(evidence.evidenceId)) errors.push(`${label} evidenceId is required`);
+  if (evidence.class !== 'host_native') errors.push(`${label} must be host_native evidence`);
+  if (evidence.ref !== expectedRef) errors.push(`${label} reference does not match the capability record`);
+  validateEvidenceReference(evidence.ref, `${label}.ref`, errors, rootDir);
+  const fragment = evidence.ref?.split('#')[1];
+  if (nonEmptyString(evidence.evidenceId) && evidence.evidenceId !== fragment) {
+    errors.push(`${label} evidenceId must match the reference fragment`);
+  }
+  if (evidence.valid === false || evidence.stale === true || evidence.addressable === false) {
+    errors.push(`${label} is stale or not addressable`);
+  }
+  if (expectedStatus !== null && evidence.status !== undefined && evidence.status !== expectedStatus) {
+    errors.push(`${label} status must match tokenMeasurementStatus`);
+  }
+}
+
 function exactFields(value, fields, label, optional = []) {
   const actual = Object.keys(value ?? {});
   const expected = new Set([...fields, ...optional]);
@@ -122,6 +174,7 @@ function exactFields(value, fields, label, optional = []) {
 function validateCapabilityShape(record, options = {}) {
   const errors = [];
   if (!isPlainObject(record)) return ['$ capability record must be a plain JSON object'];
+  const rootDir = options.rootDir ?? process.cwd();
   errors.push(...exactFields(record, CAPABILITY_FIELDS, 'capability record', ['reason']));
   if (!HOSTS.includes(record.host)) errors.push('capability record: host must be one of the closed host identities');
   if (!nonEmptyString(record.hostOwner) || FORBIDDEN_OWNER_VALUES.has(record.hostOwner)) {
@@ -130,8 +183,8 @@ function validateCapabilityShape(record, options = {}) {
   if (!nonEmptyString(record.adapterVersion) || MUTABLE_VERSION_VALUES.has(record.adapterVersion.toLowerCase())) {
     errors.push('capability record: adapterVersion must be an immutable non-empty version');
   }
-  validateEvidenceReference(record.activationEvidenceRef, 'capability record: activationEvidenceRef', errors);
-  validateEvidenceReference(record.tokenEvidenceRef, 'capability record: tokenEvidenceRef', errors);
+  validateEvidenceReference(record.activationEvidenceRef, 'capability record: activationEvidenceRef', errors, rootDir);
+  validateEvidenceReference(record.tokenEvidenceRef, 'capability record: tokenEvidenceRef', errors, rootDir);
   if (!TOKEN_MEASUREMENT_STATUSES.includes(record.tokenMeasurementStatus)) {
     errors.push('capability record: tokenMeasurementStatus is invalid');
   }
@@ -144,12 +197,11 @@ function validateCapabilityShape(record, options = {}) {
   }
   if (record.capabilityDecision === 'supported') {
     if (record.tokenMeasurementStatus !== 'available') errors.push('capability record: supported requires available token measurement');
-    if (options.activationEvidenceClass && options.activationEvidenceClass !== 'host_native') {
-      errors.push('capability record: supported requires native activation evidence');
-    }
-    if (options.tokenEvidenceClass && options.tokenEvidenceClass !== 'host_native') {
-      errors.push('capability record: supported requires native token evidence');
-    }
+    validateNativeEvidenceObject(options.activationEvidence, record.activationEvidenceRef, 'capability record: activationEvidence', errors, rootDir);
+    validateNativeEvidenceObject(options.tokenEvidence, record.tokenEvidenceRef, 'capability record: tokenEvidence', errors, rootDir, 'available');
+  } else {
+    if (options.activationEvidence) validateNativeEvidenceObject(options.activationEvidence, record.activationEvidenceRef, 'capability record: activationEvidence', errors, rootDir);
+    if (options.tokenEvidence) validateNativeEvidenceObject(options.tokenEvidence, record.tokenEvidenceRef, 'capability record: tokenEvidence', errors, rootDir, record.tokenMeasurementStatus);
   }
   validateEvidenceClass(options.activationEvidence, 'capability record: activationEvidence', errors);
   validateEvidenceClass(options.tokenEvidence, 'capability record: tokenEvidence', errors);
@@ -194,11 +246,17 @@ function capabilityFromInput(input) {
 
 function fallback(capabilityRecord, errors, legacyResult = undefined) {
   const reason = errors.join('; ');
+  const safeCapabilityRecord = isPlainObject(capabilityRecord)
+    ? { ...clone(capabilityRecord, 'capability record'), capabilityDecision: capabilityRecord.capabilityDecision === 'supported' ? 'unknown' : capabilityRecord.capabilityDecision }
+    : clone(capabilityRecord, 'capability record');
+  if (safeCapabilityRecord.capabilityDecision === 'unknown' && !nonEmptyString(safeCapabilityRecord.reason)) {
+    safeCapabilityRecord.reason = reason;
+  }
   return {
     status: 'fallback',
     authority: 'legacy',
     mutationAttempted: false,
-    capabilityRecord: clone(capabilityRecord, 'capability record'),
+    capabilityRecord: safeCapabilityRecord,
     result: legacyResult === undefined ? null : clone(legacyResult, 'legacy result'),
     legacyResult: legacyResult === undefined ? null : clone(legacyResult, 'legacy result'),
     reason,
@@ -224,9 +282,10 @@ export function evaluateHostCapability(input) {
   const errors = validateCapabilityShape(capabilityRecord, {
     activationEvidence: input.activationEvidence,
     tokenEvidence: input.tokenEvidence,
-    activationEvidenceClass: activationClass,
-    tokenEvidenceClass: tokenClass,
+    rootDir: input.rootDir,
   });
+  if (activationClass && activationClass !== 'host_native') errors.push('capability record: activation evidence must be host_native');
+  if (tokenClass && tokenClass !== 'host_native') errors.push('capability record: token evidence must be host_native');
   if (capabilityRecord.capabilityDecision === 'supported'
     && (!input.activationEvidence || !input.tokenEvidence)) {
     errors.push('capability record: caller-provided supported flag is not native evidence');
@@ -296,8 +355,7 @@ export function recordHostMeasurement({
   const capabilityErrors = validateCapabilityRecord(capabilityRecord, {
     activationEvidence,
     tokenEvidence,
-    activationEvidenceClass: evidenceClassFor(activationEvidence),
-    tokenEvidenceClass: evidenceClassFor(tokenEvidence),
+    rootDir: process.cwd(),
   });
   if (capabilityRecord?.capabilityDecision === 'supported' && (!activationEvidence || !tokenEvidence)) {
     capabilityErrors.push('capability record: native activation and token evidence are required before measurement');

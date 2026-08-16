@@ -10,9 +10,17 @@ import {
   validateHostMeasurement,
 } from '../scripts/lib/host-capability-adapter.mjs';
 
-const capabilityRef = 'docs/records/host-capability/issue-132-codex.json';
-const nativeActivationRef = 'host://codex/activation/observation-001';
-const nativeTokenRef = 'host://codex/tokens/observation-001';
+const capabilityRef = 'docs/records/qa/2026-08-16-issue-132-imp002-task4-code-review.md#corrective-rework';
+const nativeActivationRef = 'docs/records/qa/2026-08-16-issue-132-imp002-task4-code-review.md#scope-reviewed';
+const nativeTokenRef = 'docs/records/qa/2026-08-16-issue-132-imp002-task4-code-review.md#verification-performed';
+
+function nativeEvidence(ref, evidenceId = ref.split('#')[1]) {
+  return {
+    evidenceId,
+    ref,
+    class: 'host_native',
+  };
+}
 
 function validCapability(overrides = {}) {
   return {
@@ -71,8 +79,8 @@ function validApproval(overrides = {}) {
 
 test('accepts a native supported capability record with the frozen fields', () => {
   assert.deepEqual(validateCapabilityRecord(validCapability(), {
-    activationEvidenceClass: 'host_native',
-    tokenEvidenceClass: 'host_native',
+    activationEvidence: nativeEvidence(nativeActivationRef),
+    tokenEvidence: nativeEvidence(nativeTokenRef),
   }), []);
 });
 
@@ -82,8 +90,8 @@ test('keeps all initial hosts unknown until native evidence is supplied', () => 
       host,
       hostOwner: 'Human Maintainer',
       adapterVersion: 'host-adapter/v1.0.0',
-      activationEvidence: { ref: `host://${host.toLowerCase()}/activation/pending`, class: 'host_native' },
-      tokenEvidence: { ref: `host://${host.toLowerCase()}/tokens/pending`, class: 'host_native', status: 'unavailable' },
+      activationEvidence: nativeEvidence(nativeActivationRef),
+      tokenEvidence: { ...nativeEvidence(nativeTokenRef), status: 'unavailable' },
       observedAt: '2026-08-16T10:00:00Z',
       reason: 'Native activation and token evidence are not available in this run',
     });
@@ -100,8 +108,8 @@ test('records explicit unsupported and N/A token paths without promoting support
       host: 'Codex',
       hostOwner: 'Human Maintainer',
       adapterVersion: 'host-adapter/v1.0.0',
-      activationEvidence: { ref: nativeActivationRef, class: 'host_native' },
-      tokenEvidence: { ref: nativeTokenRef, class: 'host_native', status },
+      activationEvidence: nativeEvidence(nativeActivationRef),
+      tokenEvidence: { ...nativeEvidence(nativeTokenRef), status },
       observedAt: '2026-08-16T10:00:00Z',
       reason: `Token measurement is ${status}`,
     });
@@ -111,10 +119,42 @@ test('records explicit unsupported and N/A token paths without promoting support
   }
 });
 
-test('does not accept a caller-provided supported flag without native evidence', () => {
-  const outcome = evaluateHostCapability({ capabilityRecord: validCapability() });
+test('does not accept arbitrary evidence references as native support', () => {
+  const record = validCapability({
+    activationEvidenceRef: 'garbage',
+    tokenEvidenceRef: 'garbage2',
+  });
+  const outcome = evaluateHostCapability({
+    capabilityRecord: record,
+    activationEvidence: nativeEvidence('garbage'),
+    tokenEvidence: nativeEvidence('garbage2'),
+  });
   assert.equal(outcome.status, 'fallback');
-  assert.match(outcome.reason, /supported flag|native evidence/i);
+  assert.equal(outcome.capabilityRecord.capabilityDecision, 'unknown');
+  assert.match(outcome.reason, /addressable|canonical|resolv|reference/i);
+});
+
+test('does not accept a supported record from caller-only evidence classes', () => {
+  const missingEvidenceErrors = validateCapabilityRecord(validCapability());
+  assert.ok(missingEvidenceErrors.length > 0);
+  const errors = validateCapabilityRecord(validCapability(), {
+    activationEvidenceClass: 'host_native',
+    tokenEvidenceClass: 'host_native',
+  });
+  assert.ok(errors.length > 0);
+  assert.match(errors.join('\n'), /evidence object|verif|native/i);
+});
+
+test('rejects native evidence objects with unverifiable references', () => {
+  const errors = validateCapabilityRecord(validCapability({
+    activationEvidenceRef: 'garbage',
+    tokenEvidenceRef: 'garbage2',
+  }), {
+    activationEvidence: nativeEvidence('garbage'),
+    tokenEvidence: nativeEvidence('garbage2'),
+  });
+  assert.ok(errors.length > 0);
+  assert.match(errors.join('\n'), /addressable|canonical|resolv|reference/i);
 });
 
 test('fails closed for missing owner or activation/token evidence', () => {
@@ -127,7 +167,7 @@ test('fails closed for missing owner or activation/token evidence', () => {
     assert.ok(validateCapabilityRecord(validCapability(overrides)).length > 0);
   }
   assert.ok(validateCapabilityRecord(validCapability(), {
-    activationEvidence: { ref: 'host://codex/activation/stale', class: 'host_native', stale: true },
+    activationEvidence: { ...nativeEvidence('garbage'), stale: true },
   }).some((error) => /stale|match/i.test(error)));
 });
 
@@ -152,8 +192,8 @@ test('preserves measurement identity and timestamps while validating host alignm
     capabilityRecord: validCapability(),
     measurement,
     legacyResult: legacy,
-    activationEvidence: { ref: nativeActivationRef, class: 'host_native' },
-    tokenEvidence: { ref: nativeTokenRef, class: 'host_native', status: 'available' },
+    activationEvidence: nativeEvidence(nativeActivationRef),
+    tokenEvidence: { ...nativeEvidence(nativeTokenRef), status: 'available' },
   });
 
   assert.equal(outcome.status, 'measured');
