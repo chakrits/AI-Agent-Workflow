@@ -15,6 +15,24 @@ const MEASUREMENT_STATUSES = ['available', 'unsupported', 'unavailable', 'not_re
 const LOAD_RESULTS = ['loaded', 'fallback', 'rejected'];
 const BOOT_SOURCES = ['AGENTS.md', 'docs/operating-model/AGENT_OPERATING_MODEL.md', 'docs/workflow/dynamic-routing.md'];
 const ON_DEMAND_BASE_SOURCES = ['docs/workflow/role-definitions.md', 'docs/workflow/quality-gates.md', 'docs/workflow/handoff-contract.md', 'docs/operating-model/AGENT_EVALUATION_CHECKLIST.md', 'docs/operating-model/SKILL_CATALOG.md'];
+const ROLE_SOURCE_CONTRACT = {
+  'Orchestrator Agent': ['docs/workflow/dispatch-packet-contract.md', 'dynamic-workflow'],
+  'PM Agent': ['docs/contracts/new-feature-workflow.yaml', 'requirement-brainstorming'],
+  'BA Agent': ['docs/contracts/new-feature-workflow.yaml', 'ba-requirement-analysis'],
+  'SA Agent': ['docs/workflow/testing-conventions.md', 'sa-architecture-design'],
+  'Developer Agent': ['docs/workflow/task-execution-mode.md', 'tdd-implementation'],
+  'QA Agent': ['docs/workflow/testing-conventions.md', 'qa-playwright-testing'],
+  'Security Reviewer': ['docs/contracts/new-feature-workflow.yaml', 'security-review'],
+  'Config Agent': ['docs/contracts/config-change-workflow.yaml', 'data-config-change'],
+  'Data Agent': ['docs/contracts/data-change-workflow.yaml', 'data-config-change'],
+  'Release Agent': ['docs/workflow/platform-readiness.md', 'documentation-closeout'],
+  'Documentation Agent': ['docs/workflow/reset-to-template.md', 'documentation-closeout'],
+};
+const CANONICAL_SOURCE_PATHS = new Set([
+  ...BOOT_SOURCES,
+  ...ON_DEMAND_BASE_SOURCES,
+  ...Object.values(ROLE_SOURCE_CONTRACT).flatMap(([routePath, skillId]) => [routePath, `.agents/skills/${skillId}/SKILL.md`]),
+]);
 const HEX64 = /^[0-9a-f]{64}$/;
 const HEX40 = /^[0-9a-f]{40}$/;
 
@@ -106,18 +124,29 @@ export async function validateSourceMatrix(rootDir, matrix) {
     seen.add(key);
     if (!ROLES.includes(row.role) || !LOAD_MODES.includes(row.loadMode)) { errors.push(`source matrix: invalid row ${key}`); continue; }
     const paths = row.requiredSources?.map(({ path: sourcePath }) => sourcePath) ?? [];
-    const expected = row.loadMode === 'boot' ? BOOT_SOURCES : [...BOOT_SOURCES, ...ON_DEMAND_BASE_SOURCES];
-    if (row.loadMode === 'boot' && JSON.stringify(paths) !== JSON.stringify(expected)) errors.push(`source matrix: boot set mismatch for ${row.role}`);
-    if (row.loadMode === 'on-demand' && expected.some((sourcePath) => !paths.includes(sourcePath))) errors.push(`source matrix: on-demand set omits cumulative source for ${row.role}`);
+    const roleContract = ROLE_SOURCE_CONTRACT[row.role];
+    const expectedPaths = row.loadMode === 'on-demand'
+      ? [...BOOT_SOURCES, ...ON_DEMAND_BASE_SOURCES, roleContract?.[0], `.agents/skills/${roleContract?.[1] ?? ''}/SKILL.md`]
+      : BOOT_SOURCES;
+    if (JSON.stringify(paths) !== JSON.stringify(expectedPaths)) errors.push(`source matrix: exact source set mismatch for ${key}`);
+    for (const sourcePath of paths) if (!CANONICAL_SOURCE_PATHS.has(sourcePath)) errors.push(`source matrix: unknown source path: ${sourcePath}`);
     if (new Set(paths).size !== paths.length) errors.push(`source matrix: duplicate source for ${key}`);
     for (const source of row.requiredSources ?? []) {
       if (!HEX64.test(source.sha256 ?? '')) errors.push(`source matrix: invalid hash for ${source.path}`);
       try { if (sha256(await readFile(path.join(rootDir, source.path))) !== source.sha256) errors.push(`source matrix: stale hash for ${source.path}`); }
       catch { errors.push(`source matrix: missing source ${source.path}`); }
     }
+    const expectedSkills = row.loadMode === 'on-demand' && roleContract ? [roleContract[1]] : [];
+    if (JSON.stringify(row.allowedSkillIds ?? []) !== JSON.stringify(expectedSkills)) errors.push(`source matrix: skill set mismatch for ${key}`);
     for (const skillId of row.allowedSkillIds ?? []) {
-      if (!skillId || typeof skillId !== 'string') errors.push(`source matrix: invalid skill id for ${key}`);
-      else if (!skillCatalog.includes(skillId)) errors.push(`source matrix: skill is not registered: ${skillId}`);
+      const skillPath = `.agents/skills/${skillId}/SKILL.md`;
+      if (!skillId || typeof skillId !== 'string' || !CANONICAL_SOURCE_PATHS.has(skillPath)) errors.push(`source matrix: skill/path mismatch for ${key}`);
+      else {
+        try { await readFile(path.join(rootDir, skillPath)); }
+        catch { errors.push(`source matrix: registered skill path is missing: ${skillPath}`); }
+        const tokenPattern = new RegExp(`(^|[^A-Za-z0-9_-])${skillId.replaceAll('-', '\\-')}([^A-Za-z0-9_-]|$)`);
+        if (!tokenPattern.test(skillCatalog)) errors.push(`source matrix: skill is not registered: ${skillId}`);
+      }
     }
   }
   return { valid: errors.length === 0, errors };

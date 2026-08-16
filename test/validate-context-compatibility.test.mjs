@@ -86,6 +86,29 @@ test('source matrix rejects duplicate rows and stale source hashes', async () =>
   assert.equal((await validateSourceMatrix(rootDir, stale)).valid, false);
 });
 
+test('source matrix rejects arbitrary paths, skill/path swaps, and row-set drift', async () => {
+  const arbitraryPath = structuredClone(matrix);
+  const orchestrator = arbitraryPath.rows.find((row) => row.role === 'Orchestrator Agent' && row.loadMode === 'on-demand');
+  orchestrator.requiredSources.push({ path: 'CHANGELOG.md', sha256: '0'.repeat(64) });
+  const arbitraryResult = await validateSourceMatrix(rootDir, arbitraryPath);
+  assert.equal(arbitraryResult.valid, false);
+  assert.match(arbitraryResult.errors.join('\n'), /unknown source path|exact source set mismatch/);
+
+  const skillSwap = structuredClone(matrix);
+  const developer = skillSwap.rows.find((row) => row.role === 'Developer Agent' && row.loadMode === 'on-demand');
+  developer.allowedSkillIds = ['static-logic-review'];
+  const skillSwapResult = await validateSourceMatrix(rootDir, skillSwap);
+  assert.equal(skillSwapResult.valid, false);
+  assert.match(skillSwapResult.errors.join('\n'), /skill set mismatch|skill\/path mismatch/);
+
+  const rowDrift = structuredClone(matrix);
+  const qa = rowDrift.rows.find((row) => row.role === 'QA Agent' && row.loadMode === 'on-demand');
+  qa.requiredSources = qa.requiredSources.filter(({ path: sourcePath }) => !sourcePath.endsWith('/SKILL.md'));
+  const rowDriftResult = await validateSourceMatrix(rootDir, rowDrift);
+  assert.equal(rowDriftResult.valid, false);
+  assert.match(rowDriftResult.errors.join('\n'), /exact source set mismatch/);
+});
+
 test('context-pack/v1 fails closed for authority, source-set, stale-hash, and fallback errors', async () => {
   const valid = packFor('SA Agent', 'on-demand');
   const cases = [
