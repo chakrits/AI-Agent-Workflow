@@ -12,7 +12,7 @@ Scope: Documentation Agent implementation of the SA-frozen IMP-002 Task 1/2 corp
 ## Verification
 
 - Focused compatibility and contract tests: **24/24 passed**.
-- Full `npm test`: **415/415 passed** after `npm ci`; baseline before this change was **407 tests**, so the change adds 8 tests.
+- Full `npm test`: **445/445 passed** after `npm ci`; baseline on the rebased `origin/main` tip was **437 tests**, so the change adds 8 tests.
 - `npm run validate:context-compatibility`: PASS; real corpus manifest and all 22 matrix rows validate.
 - `npm run validate:contracts`: PASS.
 - `npm run validate:project-state`: PASS.
