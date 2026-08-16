@@ -1,0 +1,48 @@
+{
+  "schemaVersion": "status-audit/v1",
+  "eventId": "audit-0123456789abcdef0123456789abcdef",
+  "eventType": "status_updated",
+  "workItem": {
+    "repository": "chakrits/AI-Agent-Workflow",
+    "issueNumber": 133,
+    "issueKey": "chakrits/AI-Agent-Workflow#133",
+    "issueUrl": "https://github.com/chakrits/AI-Agent-Workflow/issues/133"
+  },
+  "transaction": {
+    "transactionId": "tx-0123456789abcdef0123456789abcdef",
+    "operation": "update",
+    "expected": {
+      "commitSha": "cccccccccccccccccccccccccccccccccccccccc",
+      "manifestDigest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "setDigest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "headDigest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    "result": {
+      "contentTreeDigest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "manifestDigest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "setDigest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "headDigest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "projectionDigest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    }
+  },
+  "writer": {
+    "kind": "local-cli",
+    "identity": "maintainer@example.com",
+    "toolVersion": "1.2.3"
+  },
+  "approval": {
+    "decision": "approved",
+    "identity": "maintainer@example.com",
+    "approvedAt": "2026-08-16T07:39:28Z",
+    "independent": false,
+    "evidence": "https://github.com/chakrits/AI-Agent-Workflow/issues/133#issuecomment-5306360102"
+  },
+  "changedPaths": [
+    "PROJECT_STATUS.md",
+    "docs/status/active/issue-133.yaml",
+    "docs/status/manifest.yaml"
+  ],
+  "reason": "Record the approved status update.",
+  "createdAt": "2026-08-16T07:40:28Z",
+  "auditDigest": "9cd30e3d938ae46960dcf8e2ed499f243bd301a0f4667a6d75f9dd22ec71e529"
+}

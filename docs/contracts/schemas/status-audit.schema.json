@@ -1,0 +1,128 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/chakrits/AI-Agent-Workflow/docs/contracts/schemas/status-audit.schema.json",
+  "title": "Status Audit v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "eventId",
+    "eventType",
+    "workItem",
+    "transaction",
+    "writer",
+    "approval",
+    "changedPaths",
+    "reason",
+    "createdAt",
+    "auditDigest"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "status-audit/v1" },
+    "eventId": { "type": "string", "pattern": "^audit-[a-f0-9]{32}$" },
+    "eventType": {
+      "enum": ["status_created", "status_updated", "status_archived", "rollback_requested"]
+    },
+    "workItem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["repository", "issueNumber", "issueKey", "issueUrl"],
+      "properties": {
+        "repository": { "const": "chakrits/AI-Agent-Workflow" },
+        "issueNumber": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 },
+        "issueKey": { "type": "string", "pattern": "^chakrits/AI-Agent-Workflow#[1-9][0-9]*$" },
+        "issueUrl": { "type": "string", "pattern": "^https://github\\.com/chakrits/AI-Agent-Workflow/issues/[1-9][0-9]*$" }
+      }
+    },
+    "transaction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["transactionId", "operation", "expected", "result"],
+      "properties": {
+        "transactionId": { "type": "string", "pattern": "^tx-[a-f0-9]{32}$" },
+        "operation": { "enum": ["create", "update", "archive", "rollback"] },
+        "expected": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["commitSha", "manifestDigest", "setDigest", "headDigest"],
+          "properties": {
+            "commitSha": { "type": "string", "pattern": "^[a-f0-9]{40}$" },
+            "manifestDigest": { "$ref": "#/$defs/digest" },
+            "setDigest": { "$ref": "#/$defs/digest" },
+            "headDigest": { "$ref": "#/$defs/digest" }
+          }
+        },
+        "result": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["contentTreeDigest", "manifestDigest", "setDigest", "headDigest", "projectionDigest"],
+          "properties": {
+            "contentTreeDigest": { "$ref": "#/$defs/digest" },
+            "manifestDigest": { "$ref": "#/$defs/digest" },
+            "setDigest": { "$ref": "#/$defs/digest" },
+            "headDigest": { "$ref": "#/$defs/digest" },
+            "projectionDigest": { "$ref": "#/$defs/digest" }
+          }
+        }
+      }
+    },
+    "writer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "identity", "toolVersion"],
+      "properties": {
+        "kind": { "const": "local-cli" },
+        "identity": { "$ref": "#/$defs/identity" },
+        "toolVersion": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(?:-[0-9A-Za-z.-]+)?(?:\\+[0-9A-Za-z.-]+)?$", "maxLength": 64 }
+      }
+    },
+    "approval": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["decision", "identity", "approvedAt", "independent", "evidence"],
+      "properties": {
+        "decision": { "const": "approved" },
+        "identity": { "$ref": "#/$defs/identity" },
+        "approvedAt": { "$ref": "#/$defs/timestamp" },
+        "independent": { "const": false },
+        "evidence": { "type": "string", "pattern": "^https://\\S+$" }
+      }
+    },
+    "changedPaths": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1, "pattern": "^(?!/)(?!.*//)(?!.*(?:^|/)(?:\\.|\\.\\.)(?:/|$))(?!.*\\\\)(?!.*\\u0000)(?!.*\\/$).+$" }
+    },
+    "reason": { "type": "string", "minLength": 1 },
+    "createdAt": { "$ref": "#/$defs/timestamp" },
+    "auditDigest": { "$ref": "#/$defs/digest" }
+  },
+  "allOf": [
+    {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": { "eventType": { "const": "status_created" }, "transaction": { "type": "object", "properties": { "operation": { "const": "create" } } } }
+        },
+        {
+          "type": "object",
+          "properties": { "eventType": { "const": "status_updated" }, "transaction": { "type": "object", "properties": { "operation": { "const": "update" } } } }
+        },
+        {
+          "type": "object",
+          "properties": { "eventType": { "const": "status_archived" }, "transaction": { "type": "object", "properties": { "operation": { "const": "archive" } } } }
+        },
+        {
+          "type": "object",
+          "properties": { "eventType": { "const": "rollback_requested" }, "transaction": { "type": "object", "properties": { "operation": { "const": "rollback" } } } }
+        }
+      ]
+    }
+  ],
+  "$defs": {
+    "digest": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "identity": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/-]*$" },
+    "timestamp": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]+)?Z$" }
+  }
+}
