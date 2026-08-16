@@ -19,6 +19,7 @@
     "validate:skill-usage": "node scripts/validate-skill-usage.mjs",
     "validate:metrics": "node scripts/validate-metrics.mjs",
     "validate:context-budget": "node scripts/validate-context-budget.mjs",
+    "validate:context-compatibility": "node scripts/validate-context-compatibility.mjs",
     "cleanup:closeout-labels": "node scripts/cleanup-stale-closeout-labels.mjs",
     "backfill:work-items": "node scripts/backfill-work-item-records.mjs"
   },
