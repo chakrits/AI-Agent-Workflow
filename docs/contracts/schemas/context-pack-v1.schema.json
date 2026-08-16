@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-agent-workflow.dev/schemas/context-pack-v1.schema.json",
+  "title": "Context Pack v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "packId", "authority", "role", "loadMode", "measurementStatus", "fallbackReason", "sources"],
+  "properties": {
+    "schemaVersion": { "const": "context-pack/v1" },
+    "packId": { "type": "string", "minLength": 1 },
+    "authority": { "const": "legacy" },
+    "role": {
+      "enum": ["Orchestrator Agent", "PM Agent", "BA Agent", "SA Agent", "Developer Agent", "QA Agent", "Security Reviewer", "Config Agent", "Data Agent", "Release Agent", "Documentation Agent"]
+    },
+    "loadMode": { "enum": ["boot", "on-demand"] },
+    "measurementStatus": { "enum": ["available", "unsupported", "unavailable", "not_requested"] },
+    "fallbackReason": { "type": ["string", "null"] },
+    "sources": {
+      "type": "array",
+      "minItems": 3,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "sha256", "triggerReason", "loadResult", "fallbackReason"],
+        "properties": {
+          "path": { "type": "string", "minLength": 1 },
+          "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+          "triggerReason": { "type": "string", "minLength": 1 },
+          "loadResult": { "enum": ["loaded", "fallback", "rejected"] },
+          "fallbackReason": { "type": ["string", "null"] }
+        }
+      }
+    }
+  }
+}

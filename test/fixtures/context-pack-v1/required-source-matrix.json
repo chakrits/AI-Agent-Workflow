@@ -1,0 +1,843 @@
+{
+  "schemaVersion": "context-source-matrix/v1",
+  "roles": [
+    "Orchestrator Agent",
+    "PM Agent",
+    "BA Agent",
+    "SA Agent",
+    "Developer Agent",
+    "QA Agent",
+    "Security Reviewer",
+    "Config Agent",
+    "Data Agent",
+    "Release Agent",
+    "Documentation Agent"
+  ],
+  "rows": [
+    {
+      "role": "Orchestrator Agent",
+      "loadMode": "boot",
+      "requiredSources": [
+        {
+          "path": "AGENTS.md",
+          "sha256": "34d4fb559873f95c8985744018656432c4f0f4f15718a478bbdd9493e8d208fc"
+        },
+        {
+          "path": "docs/operating-model/AGENT_OPERATING_MODEL.md",
+          "sha256": "1f9f980e30ca62047e8b0f0f2e56cce6582d7734c0e3bdf5cb807fec786a8995"
+        },
+        {
+          "path": "docs/workflow/dynamic-routing.md",
+          "sha256": "4d95654fdecd5d45da811800f6b9fdfb6d84bb33577100129e696239a418152d"
+        }
+      ],
+      "allowedTriggerReasons": [
+        "boot"
+      ],
+      "allowedSkillIds": []
+    },
+    {
+      "role": "PM Agent",
+      "loadMode": "boot",
+      "requiredSources": [
+        {
+          "path": "AGENTS.md",
+          "sha256": "34d4fb559873f95c8985744018656432c4f0f4f15718a478bbdd9493e8d208fc"
+        },
+        {
+          "path": "docs/operating-model/AGENT_OPERATING_MODEL.md",
+          "sha256": "1f9f980e30ca62047e8b0f0f2e56cce6582d7734c0e3bdf5cb807fec786a8995"
+        },
+        {
+          "path": "docs/workflow/dynamic-routing.md",
+          "sha256": "4d95654fdecd5d45da811800f6b9fdfb6d84bb33577100129e696239a418152d"
+        }
+      ],
+      "allowedTriggerReasons": [
+        "boot"
+      ],
+      "allowedSkillIds": []
+    },
+    {
+      "role": "BA Agent",
+      "loadMode": "boot",
+      "requiredSources": [
+        {
+          "path": "AGENTS.md",
+          "sha256": "34d4fb559873f95c8985744018656432c4f0f4f15718a478bbdd9493e8d208fc"
+        },
+        {
+          "path": "docs/operating-model/AGENT_OPERATING_MODEL.md",
+          "sha256": "1f9f980e30ca62047e8b0f0f2e56cce6582d7734c0e3bdf5cb807fec786a8995"
+        },
+        {
+          "path": "docs/workflow/dynamic-routing.md",
+          "sha256": "4d95654fdecd5d45da811800f6b9fdfb6d84bb33577100129e696239a418152d"
+        }
+      ],
+      "allowedTriggerReasons": [
+        "boot"
+      ],
+      "allowedSkillIds": []
+    },
+    {
+      "role": "SA Agent",
+      "loadMode": "boot",
+      "requiredSources": [
+        {
+          "path": "AGENTS.md",
+          "sha256": "34d4fb559873f95c8985744018656432c4f0f4f15718a478bbdd9493e8d208fc"
+        },
+        {
+          "path": "docs/operating-model/AGENT_OPERATING_MODEL.md",
+          "sha256": "1f9f980e30ca62047e8b0f0f2e56cce6582d7734c0e3bdf5cb807fec786a8995"
+        },
+        {
+          "path": "docs/workflow/dynamic-routing.md",
+          "sha256": "4d95654fdecd5d45da811800f6b9fdfb6d84bb33577100129e696239a418152d"
+        }
+      ],
+      "allowedTriggerReasons": [
+        "boot"
+      ],
+      "allowedSkillIds": []
+    },
+    {
+      "role": "Developer Agent",
+      "loadMode": "boot",
+      "requiredSources": [
+        {
+          "path": "AGENTS.md",
+          "sha256": "34d4fb559873f95c8985744018656432c4f0f4f15718a478bbdd9493e8d208fc"
+        },
+        {
+          "path": "docs/operating-model/AGENT_OPERATING_MODEL.md",
+          "sha256": "1f9f980e30ca62047e8b0f0f2e56cce6582d7734c0e3bdf5cb807fec786a8995"
+        },
+        {
+          "path": "docs/workflow/dynamic-routing.md",
+          "sha256": "4d95654fdecd5d45da811800f6b9fdfb6d84bb33577100129e696239a418152d"
+        }
+      ],
+      "allowedTriggerReasons": [
+        "boot"
+      ],
+      "allowedSkillIds": []
+    },
+    {
+      "role": "QA Agent",
+      "loadMode": "boot",
+      "requiredSources": [
+        {
+          "path": "AGENTS.md",
+          "sha256": "34d4fb559873f95c8985744018656432c4f0f4f15718a478bbdd9493e8d208fc"
+        },
+        {
+          "path": "docs/operating-model/AGENT_OPERATING_MODEL.md",
+          "sha256": "1f9f980e30ca62047e8b0f0f2e56cce6582d7734c0e3bdf5cb807fec786a8995"
+        },
+        {
+          "path": "docs/workflow/dynamic-routing.md",
+          "sha256": "4d95654fdecd5d45da811800f6b9fdfb6d84bb33577100129e696239a418152d"
+        }
+      ],
+      "allowedTriggerReasons": [
+        "boot"
+      ],
+      "allowedSkillIds": []
+    },
+    {
+      "role": "Security Reviewer",
+      "loadMode": "boot",
+      "requiredSources": [
+        {
+          "path": "AGENTS.md",
+          "sha256": "34d4fb559873f95c8985744018656432c4f0f4f15718a478bbdd9493e8d208fc"
+        },
+        {
+          "path": "docs/operating-model/AGENT_OPERATING_MODEL.md",
+          "sha256": "1f9f980e30ca62047e8b0f0f2e56cce6582d7734c0e3bdf5cb807fec786a8995"
+        },
+        {
+          "path": "docs/workflow/dynamic-routing.md",
+          "sha256": "4d95654fdecd5d45da811800f6b9fdfb6d84bb33577100129e696239a418152d"
+        }
+      ],
+      "allowedTriggerReasons": [
+        "boot"
+      ],
+      "allowedSkillIds": []
+    },
+    {
+      "role": "Config Agent",
+      "loadMode": "boot",
+      "requiredSources": [
+        {
+          "path": "AGENTS.md",
+          "sha256": "34d4fb559873f95c8985744018656432c4f0f4f15718a478bbdd9493e8d208fc"
+        },
+        {
+          "path": "docs/operating-model/AGENT_OPERATING_MODEL.md",
+          "sha256": "1f9f980e30ca62047e8b0f0f2e56cce6582d7734c0e3bdf5cb807fec786a8995"
+        },
+        {
+          "path": "docs/workflow/dynamic-routing.md",
+          "sha256": "4d95654fdecd5d45da811800f6b9fdfb6d84bb33577100129e696239a418152d"
+        }
+      ],
+      "allowedTriggerReasons": [
+        "boot"
+      ],
+      "allowedSkillIds": []
+    },
+    {
+      "role": "Data Agent",
+      "loadMode": "boot",
+      "requiredSources": [
+        {
+          "path": "AGENTS.md",
+          "sha256": "34d4fb559873f95c8985744018656432c4f0f4f15718a478bbdd9493e8d208fc"
+        },
+        {
+          "path": "docs/operating-model/AGENT_OPERATING_MODEL.md",
+          "sha256": "1f9f980e30ca62047e8b0f0f2e56cce6582d7734c0e3bdf5cb807fec786a8995"
+        },
+        {
+          "path": "docs/workflow/dynamic-routing.md",
+          "sha256": "4d95654fdecd5d45da811800f6b9fdfb6d84bb33577100129e696239a418152d"
+        }
+      ],
+      "allowedTriggerReasons": [
+        "boot"
+      ],
+      "allowedSkillIds": []
+    },
+    {
+      "role": "Release Agent",
+      "loadMode": "boot",
+      "requiredSources": [
+        {
+          "path": "AGENTS.md",
+          "sha256": "34d4fb559873f95c8985744018656432c4f0f4f15718a478bbdd9493e8d208fc"
+        },
+        {
+          "path": "docs/operating-model/AGENT_OPERATING_MODEL.md",
+          "sha256": "1f9f980e30ca62047e8b0f0f2e56cce6582d7734c0e3bdf5cb807fec786a8995"
+        },
+        {
+          "path": "docs/workflow/dynamic-routing.md",
+          "sha256": "4d95654fdecd5d45da811800f6b9fdfb6d84bb33577100129e696239a418152d"
+        }
+      ],
+      "allowedTriggerReasons": [
+        "boot"
+      ],
+      "allowedSkillIds": []
+    },
+    {
+      "role": "Documentation Agent",
+      "loadMode": "boot",
+      "requiredSources": [
+        {
+          "path": "AGENTS.md",
+          "sha256": "34d4fb559873f95c8985744018656432c4f0f4f15718a478bbdd9493e8d208fc"
+        },
+        {
+          "path": "docs/operating-model/AGENT_OPERATING_MODEL.md",
+          "sha256": "1f9f980e30ca62047e8b0f0f2e56cce6582d7734c0e3bdf5cb807fec786a8995"
+        },
+        {
+          "path": "docs/workflow/dynamic-routing.md",
+          "sha256": "4d95654fdecd5d45da811800f6b9fdfb6d84bb33577100129e696239a418152d"
+        }
+      ],
+      "allowedTriggerReasons": [
+        "boot"
+      ],
+      "allowedSkillIds": []
+    },
+    {
+      "role": "Orchestrator Agent",
+      "loadMode": "on-demand",
+      "requiredSources": [
+        {
+          "path": "AGENTS.md",
+          "sha256": "34d4fb559873f95c8985744018656432c4f0f4f15718a478bbdd9493e8d208fc"
+        },
+        {
+          "path": "docs/operating-model/AGENT_OPERATING_MODEL.md",
+          "sha256": "1f9f980e30ca62047e8b0f0f2e56cce6582d7734c0e3bdf5cb807fec786a8995"
+        },
+        {
+          "path": "docs/workflow/dynamic-routing.md",
+          "sha256": "4d95654fdecd5d45da811800f6b9fdfb6d84bb33577100129e696239a418152d"
+        },
+        {
+          "path": "docs/workflow/role-definitions.md",
+          "sha256": "318d9f0b11c418490dd942e6e90556c42220e94b4ac36297a124b70612d00688"
+        },
+        {
+          "path": "docs/workflow/quality-gates.md",
+          "sha256": "5b50942ae6e760e169c4fcb2bbed8aa314b49d3a8a68c643c6ef63433e8c2927"
+        },
+        {
+          "path": "docs/workflow/handoff-contract.md",
+          "sha256": "8f4a90da8c2cd30a9187209f423a9a40bd676597864632885636b471b9da7752"
+        },
+        {
+          "path": "docs/operating-model/AGENT_EVALUATION_CHECKLIST.md",
+          "sha256": "d8b2eaa56aaaf2a5d9cb4f0b8e277821c527ccc9607a7fe07642f4dac22157af"
+        },
+        {
+          "path": "docs/operating-model/SKILL_CATALOG.md",
+          "sha256": "720acbd0baaea396b9c30212c24a082acfb57113ba50d738d708f7845dcbb9dd"
+        },
+        {
+          "path": "docs/workflow/dispatch-packet-contract.md",
+          "sha256": "6fa02674d516a03ed883bd0b87830c9825ef608836ab76f1e9cfb494c67ac31d"
+        },
+        {
+          "path": ".agents/skills/dynamic-workflow/SKILL.md",
+          "sha256": "c363da3d9e314f6d03befda73fd69f03c103494f8ba54037f26cdc20be963562"
+        }
+      ],
+      "allowedTriggerReasons": [
+        "role-selected",
+        "dispatch routing"
+      ],
+      "allowedSkillIds": [
+        "dynamic-workflow"
+      ]
+    },
+    {
+      "role": "PM Agent",
+      "loadMode": "on-demand",
+      "requiredSources": [
+        {
+          "path": "AGENTS.md",
+          "sha256": "34d4fb559873f95c8985744018656432c4f0f4f15718a478bbdd9493e8d208fc"
+        },
+        {
+          "path": "docs/operating-model/AGENT_OPERATING_MODEL.md",
+          "sha256": "1f9f980e30ca62047e8b0f0f2e56cce6582d7734c0e3bdf5cb807fec786a8995"
+        },
+        {
+          "path": "docs/workflow/dynamic-routing.md",
+          "sha256": "4d95654fdecd5d45da811800f6b9fdfb6d84bb33577100129e696239a418152d"
+        },
+        {
+          "path": "docs/workflow/role-definitions.md",
+          "sha256": "318d9f0b11c418490dd942e6e90556c42220e94b4ac36297a124b70612d00688"
+        },
+        {
+          "path": "docs/workflow/quality-gates.md",
+          "sha256": "5b50942ae6e760e169c4fcb2bbed8aa314b49d3a8a68c643c6ef63433e8c2927"
+        },
+        {
+          "path": "docs/workflow/handoff-contract.md",
+          "sha256": "8f4a90da8c2cd30a9187209f423a9a40bd676597864632885636b471b9da7752"
+        },
+        {
+          "path": "docs/operating-model/AGENT_EVALUATION_CHECKLIST.md",
+          "sha256": "d8b2eaa56aaaf2a5d9cb4f0b8e277821c527ccc9607a7fe07642f4dac22157af"
+        },
+        {
+          "path": "docs/operating-model/SKILL_CATALOG.md",
+          "sha256": "720acbd0baaea396b9c30212c24a082acfb57113ba50d738d708f7845dcbb9dd"
+        },
+        {
+          "path": "docs/contracts/new-feature-workflow.yaml",
+          "sha256": "cec45cec7b799e17a62ee462129a4fba321aeb300cd39209a6f8b8f0a93cc036"
+        },
+        {
+          "path": ".agents/skills/requirement-brainstorming/SKILL.md",
+          "sha256": "33864ea567486999eaed95c8820c4a6c83c2572f740e87eb7362cb584c67227b"
+        }
+      ],
+      "allowedTriggerReasons": [
+        "role-selected",
+        "requirements discovery"
+      ],
+      "allowedSkillIds": [
+        "requirement-brainstorming"
+      ]
+    },
+    {
+      "role": "BA Agent",
+      "loadMode": "on-demand",
+      "requiredSources": [
+        {
+          "path": "AGENTS.md",
+          "sha256": "34d4fb559873f95c8985744018656432c4f0f4f15718a478bbdd9493e8d208fc"
+        },
+        {
+          "path": "docs/operating-model/AGENT_OPERATING_MODEL.md",
+          "sha256": "1f9f980e30ca62047e8b0f0f2e56cce6582d7734c0e3bdf5cb807fec786a8995"
+        },
+        {
+          "path": "docs/workflow/dynamic-routing.md",
+          "sha256": "4d95654fdecd5d45da811800f6b9fdfb6d84bb33577100129e696239a418152d"
+        },
+        {
+          "path": "docs/workflow/role-definitions.md",
+          "sha256": "318d9f0b11c418490dd942e6e90556c42220e94b4ac36297a124b70612d00688"
+        },
+        {
+          "path": "docs/workflow/quality-gates.md",
+          "sha256": "5b50942ae6e760e169c4fcb2bbed8aa314b49d3a8a68c643c6ef63433e8c2927"
+        },
+        {
+          "path": "docs/workflow/handoff-contract.md",
+          "sha256": "8f4a90da8c2cd30a9187209f423a9a40bd676597864632885636b471b9da7752"
+        },
+        {
+          "path": "docs/operating-model/AGENT_EVALUATION_CHECKLIST.md",
+          "sha256": "d8b2eaa56aaaf2a5d9cb4f0b8e277821c527ccc9607a7fe07642f4dac22157af"
+        },
+        {
+          "path": "docs/operating-model/SKILL_CATALOG.md",
+          "sha256": "720acbd0baaea396b9c30212c24a082acfb57113ba50d738d708f7845dcbb9dd"
+        },
+        {
+          "path": "docs/contracts/new-feature-workflow.yaml",
+          "sha256": "cec45cec7b799e17a62ee462129a4fba321aeb300cd39209a6f8b8f0a93cc036"
+        },
+        {
+          "path": ".agents/skills/ba-requirement-analysis/SKILL.md",
+          "sha256": "9766e58f71b8d7ccabbda6a414921c26c461341032d2e277ae759fc3bf731624"
+        }
+      ],
+      "allowedTriggerReasons": [
+        "role-selected",
+        "requirements analysis"
+      ],
+      "allowedSkillIds": [
+        "ba-requirement-analysis"
+      ]
+    },
+    {
+      "role": "SA Agent",
+      "loadMode": "on-demand",
+      "requiredSources": [
+        {
+          "path": "AGENTS.md",
+          "sha256": "34d4fb559873f95c8985744018656432c4f0f4f15718a478bbdd9493e8d208fc"
+        },
+        {
+          "path": "docs/operating-model/AGENT_OPERATING_MODEL.md",
+          "sha256": "1f9f980e30ca62047e8b0f0f2e56cce6582d7734c0e3bdf5cb807fec786a8995"
+        },
+        {
+          "path": "docs/workflow/dynamic-routing.md",
+          "sha256": "4d95654fdecd5d45da811800f6b9fdfb6d84bb33577100129e696239a418152d"
+        },
+        {
+          "path": "docs/workflow/role-definitions.md",
+          "sha256": "318d9f0b11c418490dd942e6e90556c42220e94b4ac36297a124b70612d00688"
+        },
+        {
+          "path": "docs/workflow/quality-gates.md",
+          "sha256": "5b50942ae6e760e169c4fcb2bbed8aa314b49d3a8a68c643c6ef63433e8c2927"
+        },
+        {
+          "path": "docs/workflow/handoff-contract.md",
+          "sha256": "8f4a90da8c2cd30a9187209f423a9a40bd676597864632885636b471b9da7752"
+        },
+        {
+          "path": "docs/operating-model/AGENT_EVALUATION_CHECKLIST.md",
+          "sha256": "d8b2eaa56aaaf2a5d9cb4f0b8e277821c527ccc9607a7fe07642f4dac22157af"
+        },
+        {
+          "path": "docs/operating-model/SKILL_CATALOG.md",
+          "sha256": "720acbd0baaea396b9c30212c24a082acfb57113ba50d738d708f7845dcbb9dd"
+        },
+        {
+          "path": "docs/workflow/testing-conventions.md",
+          "sha256": "b8970b3f42b8eb27219fe7a27125402745361a559e0c3416d8b8eab617cdcae9"
+        },
+        {
+          "path": ".agents/skills/sa-architecture-design/SKILL.md",
+          "sha256": "4a28a4b255591bee78eaf7139a74bf05a3f76fd97441d39099fcfc73a9ecf2d4"
+        }
+      ],
+      "allowedTriggerReasons": [
+        "role-selected",
+        "architecture design"
+      ],
+      "allowedSkillIds": [
+        "sa-architecture-design"
+      ]
+    },
+    {
+      "role": "Developer Agent",
+      "loadMode": "on-demand",
+      "requiredSources": [
+        {
+          "path": "AGENTS.md",
+          "sha256": "34d4fb559873f95c8985744018656432c4f0f4f15718a478bbdd9493e8d208fc"
+        },
+        {
+          "path": "docs/operating-model/AGENT_OPERATING_MODEL.md",
+          "sha256": "1f9f980e30ca62047e8b0f0f2e56cce6582d7734c0e3bdf5cb807fec786a8995"
+        },
+        {
+          "path": "docs/workflow/dynamic-routing.md",
+          "sha256": "4d95654fdecd5d45da811800f6b9fdfb6d84bb33577100129e696239a418152d"
+        },
+        {
+          "path": "docs/workflow/role-definitions.md",
+          "sha256": "318d9f0b11c418490dd942e6e90556c42220e94b4ac36297a124b70612d00688"
+        },
+        {
+          "path": "docs/workflow/quality-gates.md",
+          "sha256": "5b50942ae6e760e169c4fcb2bbed8aa314b49d3a8a68c643c6ef63433e8c2927"
+        },
+        {
+          "path": "docs/workflow/handoff-contract.md",
+          "sha256": "8f4a90da8c2cd30a9187209f423a9a40bd676597864632885636b471b9da7752"
+        },
+        {
+          "path": "docs/operating-model/AGENT_EVALUATION_CHECKLIST.md",
+          "sha256": "d8b2eaa56aaaf2a5d9cb4f0b8e277821c527ccc9607a7fe07642f4dac22157af"
+        },
+        {
+          "path": "docs/operating-model/SKILL_CATALOG.md",
+          "sha256": "720acbd0baaea396b9c30212c24a082acfb57113ba50d738d708f7845dcbb9dd"
+        },
+        {
+          "path": "docs/workflow/task-execution-mode.md",
+          "sha256": "c3f710591cf94f226051c54de5e5791ff8889d1ca3b1dd7b62f7fd751987c4ef"
+        },
+        {
+          "path": ".agents/skills/tdd-implementation/SKILL.md",
+          "sha256": "81fee7f13d913bbff16ac61df71991b13ca5cbb0db84593c3992f5b36f3b07bd"
+        }
+      ],
+      "allowedTriggerReasons": [
+        "role-selected",
+        "implementation"
+      ],
+      "allowedSkillIds": [
+        "tdd-implementation"
+      ]
+    },
+    {
+      "role": "QA Agent",
+      "loadMode": "on-demand",
+      "requiredSources": [
+        {
+          "path": "AGENTS.md",
+          "sha256": "34d4fb559873f95c8985744018656432c4f0f4f15718a478bbdd9493e8d208fc"
+        },
+        {
+          "path": "docs/operating-model/AGENT_OPERATING_MODEL.md",
+          "sha256": "1f9f980e30ca62047e8b0f0f2e56cce6582d7734c0e3bdf5cb807fec786a8995"
+        },
+        {
+          "path": "docs/workflow/dynamic-routing.md",
+          "sha256": "4d95654fdecd5d45da811800f6b9fdfb6d84bb33577100129e696239a418152d"
+        },
+        {
+          "path": "docs/workflow/role-definitions.md",
+          "sha256": "318d9f0b11c418490dd942e6e90556c42220e94b4ac36297a124b70612d00688"
+        },
+        {
+          "path": "docs/workflow/quality-gates.md",
+          "sha256": "5b50942ae6e760e169c4fcb2bbed8aa314b49d3a8a68c643c6ef63433e8c2927"
+        },
+        {
+          "path": "docs/workflow/handoff-contract.md",
+          "sha256": "8f4a90da8c2cd30a9187209f423a9a40bd676597864632885636b471b9da7752"
+        },
+        {
+          "path": "docs/operating-model/AGENT_EVALUATION_CHECKLIST.md",
+          "sha256": "d8b2eaa56aaaf2a5d9cb4f0b8e277821c527ccc9607a7fe07642f4dac22157af"
+        },
+        {
+          "path": "docs/operating-model/SKILL_CATALOG.md",
+          "sha256": "720acbd0baaea396b9c30212c24a082acfb57113ba50d738d708f7845dcbb9dd"
+        },
+        {
+          "path": "docs/workflow/testing-conventions.md",
+          "sha256": "b8970b3f42b8eb27219fe7a27125402745361a559e0c3416d8b8eab617cdcae9"
+        },
+        {
+          "path": ".agents/skills/qa-playwright-testing/SKILL.md",
+          "sha256": "ee12cceb017b7562187d0b690e41d9dd1903631836a89b15b67878af9f361971"
+        }
+      ],
+      "allowedTriggerReasons": [
+        "role-selected",
+        "verification"
+      ],
+      "allowedSkillIds": [
+        "qa-playwright-testing"
+      ]
+    },
+    {
+      "role": "Security Reviewer",
+      "loadMode": "on-demand",
+      "requiredSources": [
+        {
+          "path": "AGENTS.md",
+          "sha256": "34d4fb559873f95c8985744018656432c4f0f4f15718a478bbdd9493e8d208fc"
+        },
+        {
+          "path": "docs/operating-model/AGENT_OPERATING_MODEL.md",
+          "sha256": "1f9f980e30ca62047e8b0f0f2e56cce6582d7734c0e3bdf5cb807fec786a8995"
+        },
+        {
+          "path": "docs/workflow/dynamic-routing.md",
+          "sha256": "4d95654fdecd5d45da811800f6b9fdfb6d84bb33577100129e696239a418152d"
+        },
+        {
+          "path": "docs/workflow/role-definitions.md",
+          "sha256": "318d9f0b11c418490dd942e6e90556c42220e94b4ac36297a124b70612d00688"
+        },
+        {
+          "path": "docs/workflow/quality-gates.md",
+          "sha256": "5b50942ae6e760e169c4fcb2bbed8aa314b49d3a8a68c643c6ef63433e8c2927"
+        },
+        {
+          "path": "docs/workflow/handoff-contract.md",
+          "sha256": "8f4a90da8c2cd30a9187209f423a9a40bd676597864632885636b471b9da7752"
+        },
+        {
+          "path": "docs/operating-model/AGENT_EVALUATION_CHECKLIST.md",
+          "sha256": "d8b2eaa56aaaf2a5d9cb4f0b8e277821c527ccc9607a7fe07642f4dac22157af"
+        },
+        {
+          "path": "docs/operating-model/SKILL_CATALOG.md",
+          "sha256": "720acbd0baaea396b9c30212c24a082acfb57113ba50d738d708f7845dcbb9dd"
+        },
+        {
+          "path": "docs/contracts/new-feature-workflow.yaml",
+          "sha256": "cec45cec7b799e17a62ee462129a4fba321aeb300cd39209a6f8b8f0a93cc036"
+        },
+        {
+          "path": ".agents/skills/security-review/SKILL.md",
+          "sha256": "077ccaed7bc7955ac298f9221282465329363645871363df93a422f961b30853"
+        }
+      ],
+      "allowedTriggerReasons": [
+        "role-selected",
+        "security review"
+      ],
+      "allowedSkillIds": [
+        "security-review"
+      ]
+    },
+    {
+      "role": "Config Agent",
+      "loadMode": "on-demand",
+      "requiredSources": [
+        {
+          "path": "AGENTS.md",
+          "sha256": "34d4fb559873f95c8985744018656432c4f0f4f15718a478bbdd9493e8d208fc"
+        },
+        {
+          "path": "docs/operating-model/AGENT_OPERATING_MODEL.md",
+          "sha256": "1f9f980e30ca62047e8b0f0f2e56cce6582d7734c0e3bdf5cb807fec786a8995"
+        },
+        {
+          "path": "docs/workflow/dynamic-routing.md",
+          "sha256": "4d95654fdecd5d45da811800f6b9fdfb6d84bb33577100129e696239a418152d"
+        },
+        {
+          "path": "docs/workflow/role-definitions.md",
+          "sha256": "318d9f0b11c418490dd942e6e90556c42220e94b4ac36297a124b70612d00688"
+        },
+        {
+          "path": "docs/workflow/quality-gates.md",
+          "sha256": "5b50942ae6e760e169c4fcb2bbed8aa314b49d3a8a68c643c6ef63433e8c2927"
+        },
+        {
+          "path": "docs/workflow/handoff-contract.md",
+          "sha256": "8f4a90da8c2cd30a9187209f423a9a40bd676597864632885636b471b9da7752"
+        },
+        {
+          "path": "docs/operating-model/AGENT_EVALUATION_CHECKLIST.md",
+          "sha256": "d8b2eaa56aaaf2a5d9cb4f0b8e277821c527ccc9607a7fe07642f4dac22157af"
+        },
+        {
+          "path": "docs/operating-model/SKILL_CATALOG.md",
+          "sha256": "720acbd0baaea396b9c30212c24a082acfb57113ba50d738d708f7845dcbb9dd"
+        },
+        {
+          "path": "docs/contracts/config-change-workflow.yaml",
+          "sha256": "32b48b5e4d538a72801b0889b8deed09780f345e640cefbaa2a213df462a7c45"
+        },
+        {
+          "path": ".agents/skills/data-config-change/SKILL.md",
+          "sha256": "fab52f35ac347094440c6f0a36a7213623998bd5728f0f84b17b48b1f5676d37"
+        }
+      ],
+      "allowedTriggerReasons": [
+        "role-selected",
+        "config change"
+      ],
+      "allowedSkillIds": [
+        "data-config-change"
+      ]
+    },
+    {
+      "role": "Data Agent",
+      "loadMode": "on-demand",
+      "requiredSources": [
+        {
+          "path": "AGENTS.md",
+          "sha256": "34d4fb559873f95c8985744018656432c4f0f4f15718a478bbdd9493e8d208fc"
+        },
+        {
+          "path": "docs/operating-model/AGENT_OPERATING_MODEL.md",
+          "sha256": "1f9f980e30ca62047e8b0f0f2e56cce6582d7734c0e3bdf5cb807fec786a8995"
+        },
+        {
+          "path": "docs/workflow/dynamic-routing.md",
+          "sha256": "4d95654fdecd5d45da811800f6b9fdfb6d84bb33577100129e696239a418152d"
+        },
+        {
+          "path": "docs/workflow/role-definitions.md",
+          "sha256": "318d9f0b11c418490dd942e6e90556c42220e94b4ac36297a124b70612d00688"
+        },
+        {
+          "path": "docs/workflow/quality-gates.md",
+          "sha256": "5b50942ae6e760e169c4fcb2bbed8aa314b49d3a8a68c643c6ef63433e8c2927"
+        },
+        {
+          "path": "docs/workflow/handoff-contract.md",
+          "sha256": "8f4a90da8c2cd30a9187209f423a9a40bd676597864632885636b471b9da7752"
+        },
+        {
+          "path": "docs/operating-model/AGENT_EVALUATION_CHECKLIST.md",
+          "sha256": "d8b2eaa56aaaf2a5d9cb4f0b8e277821c527ccc9607a7fe07642f4dac22157af"
+        },
+        {
+          "path": "docs/operating-model/SKILL_CATALOG.md",
+          "sha256": "720acbd0baaea396b9c30212c24a082acfb57113ba50d738d708f7845dcbb9dd"
+        },
+        {
+          "path": "docs/contracts/data-change-workflow.yaml",
+          "sha256": "b7468a92646e3df452e95264f8b2d252ab06041dbd5704ece4e4085bba0d4856"
+        },
+        {
+          "path": ".agents/skills/data-config-change/SKILL.md",
+          "sha256": "fab52f35ac347094440c6f0a36a7213623998bd5728f0f84b17b48b1f5676d37"
+        }
+      ],
+      "allowedTriggerReasons": [
+        "role-selected",
+        "data change"
+      ],
+      "allowedSkillIds": [
+        "data-config-change"
+      ]
+    },
+    {
+      "role": "Release Agent",
+      "loadMode": "on-demand",
+      "requiredSources": [
+        {
+          "path": "AGENTS.md",
+          "sha256": "34d4fb559873f95c8985744018656432c4f0f4f15718a478bbdd9493e8d208fc"
+        },
+        {
+          "path": "docs/operating-model/AGENT_OPERATING_MODEL.md",
+          "sha256": "1f9f980e30ca62047e8b0f0f2e56cce6582d7734c0e3bdf5cb807fec786a8995"
+        },
+        {
+          "path": "docs/workflow/dynamic-routing.md",
+          "sha256": "4d95654fdecd5d45da811800f6b9fdfb6d84bb33577100129e696239a418152d"
+        },
+        {
+          "path": "docs/workflow/role-definitions.md",
+          "sha256": "318d9f0b11c418490dd942e6e90556c42220e94b4ac36297a124b70612d00688"
+        },
+        {
+          "path": "docs/workflow/quality-gates.md",
+          "sha256": "5b50942ae6e760e169c4fcb2bbed8aa314b49d3a8a68c643c6ef63433e8c2927"
+        },
+        {
+          "path": "docs/workflow/handoff-contract.md",
+          "sha256": "8f4a90da8c2cd30a9187209f423a9a40bd676597864632885636b471b9da7752"
+        },
+        {
+          "path": "docs/operating-model/AGENT_EVALUATION_CHECKLIST.md",
+          "sha256": "d8b2eaa56aaaf2a5d9cb4f0b8e277821c527ccc9607a7fe07642f4dac22157af"
+        },
+        {
+          "path": "docs/operating-model/SKILL_CATALOG.md",
+          "sha256": "720acbd0baaea396b9c30212c24a082acfb57113ba50d738d708f7845dcbb9dd"
+        },
+        {
+          "path": "docs/workflow/platform-readiness.md",
+          "sha256": "92fe5452e1a1f54f18ccca046118ccc493df31e502d39be93de24809ae019263"
+        },
+        {
+          "path": ".agents/skills/documentation-closeout/SKILL.md",
+          "sha256": "ace74566693ac71784426670630757ef8172ccd687930ab4ce919fff817a8693"
+        }
+      ],
+      "allowedTriggerReasons": [
+        "role-selected",
+        "release readiness"
+      ],
+      "allowedSkillIds": [
+        "documentation-closeout"
+      ]
+    },
+    {
+      "role": "Documentation Agent",
+      "loadMode": "on-demand",
+      "requiredSources": [
+        {
+          "path": "AGENTS.md",
+          "sha256": "34d4fb559873f95c8985744018656432c4f0f4f15718a478bbdd9493e8d208fc"
+        },
+        {
+          "path": "docs/operating-model/AGENT_OPERATING_MODEL.md",
+          "sha256": "1f9f980e30ca62047e8b0f0f2e56cce6582d7734c0e3bdf5cb807fec786a8995"
+        },
+        {
+          "path": "docs/workflow/dynamic-routing.md",
+          "sha256": "4d95654fdecd5d45da811800f6b9fdfb6d84bb33577100129e696239a418152d"
+        },
+        {
+          "path": "docs/workflow/role-definitions.md",
+          "sha256": "318d9f0b11c418490dd942e6e90556c42220e94b4ac36297a124b70612d00688"
+        },
+        {
+          "path": "docs/workflow/quality-gates.md",
+          "sha256": "5b50942ae6e760e169c4fcb2bbed8aa314b49d3a8a68c643c6ef63433e8c2927"
+        },
+        {
+          "path": "docs/workflow/handoff-contract.md",
+          "sha256": "8f4a90da8c2cd30a9187209f423a9a40bd676597864632885636b471b9da7752"
+        },
+        {
+          "path": "docs/operating-model/AGENT_EVALUATION_CHECKLIST.md",
+          "sha256": "d8b2eaa56aaaf2a5d9cb4f0b8e277821c527ccc9607a7fe07642f4dac22157af"
+        },
+        {
+          "path": "docs/operating-model/SKILL_CATALOG.md",
+          "sha256": "720acbd0baaea396b9c30212c24a082acfb57113ba50d738d708f7845dcbb9dd"
+        },
+        {
+          "path": "docs/workflow/reset-to-template.md",
+          "sha256": "c7831fc5f348dee3890bc503cf594c9eeee60adb9f34982a0abe50b95ab8ed36"
+        },
+        {
+          "path": ".agents/skills/documentation-closeout/SKILL.md",
+          "sha256": "ace74566693ac71784426670630757ef8172ccd687930ab4ce919fff817a8693"
+        }
+      ],
+      "allowedTriggerReasons": [
+        "role-selected",
+        "documentation closeout"
+      ],
+      "allowedSkillIds": [
+        "documentation-closeout"
+      ]
+    }
+  ]
+}

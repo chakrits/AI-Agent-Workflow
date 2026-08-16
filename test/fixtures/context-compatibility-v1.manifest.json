@@ -1,0 +1,14 @@
+{
+  "schemaVersion": "context-corpus/v1",
+  "fixturePath": "test/fixtures/context-compatibility-v1.json",
+  "fixtureSha256": "48762ed40e2d8857c68fc7147e49390ff93158db2799dd7c8b979d555d9198e3",
+  "fixtureCount": 36,
+  "groupCounts": {
+    "routing": 12,
+    "dispatch": 10,
+    "stopBackwardRework": 8,
+    "fallbackError": 6
+  },
+  "sourceCommit": "b5ee9690ad00df63a7e4e8f84805c717ffb1600e",
+  "canonicalization": "sha256-exact-utf8-bytes-v1"
+}
