@@ -1,10 +1,10 @@
 # PROJECT_STATUS.md
 
 ## Current Work Item
-- Issue #132 / IMP-002 Task 4 — host activation/measurement adapter implemented at `3258f6f`; awaiting Human review and merge decision.
+- Issue #132 / IMP-002 — Task 4 is merged; the remaining Issue scope requires a fresh increment plan and Human approval before Task 5 or replay/live-shadow work.
 
 ## Current Stage
-- Human review / merge decision — Task 4 implementation at `3258f6f` and fresh independent QA `PASS_WITH_CONCERNS` are complete. Legacy context remains the sole authority. No native host support claim, Go/No-Go decision, Task 5, replay/live-shadow execution, or authority switch has been made.
+- Post-merge closeout / next-increment planning — PR #190 merged as `81f8e65defe477b41d9b2f9b0db4f6f4dddfbd08`. Legacy context remains the sole authority. No native host support claim, Go/No-Go decision, Task 5, replay/live-shadow execution, or authority switch has been made.
 
 ## Change Classification
 - Change Type: Framework / Meta (evidence and measurement foundation)
@@ -15,6 +15,7 @@
 - Security Review Required: No
 
 ## Completed
+- Issue #132 / IMP-002 Task 4 merged through PR #190 as commit `81f8e65defe477b41d9b2f9b0db4f6f4dddfbd08` (implementation `3258f6f`). The host activation/measurement adapter validates canonical `host-native-evidence/v1` evidence, fails closed to `unknown`, and preserves legacy authority. Independent QA returned `PASS_WITH_CONCERNS` with focused Task 4 tests 15/15, full suite 468/468, validators and review gate passing, and `git diff --check` passing with fsmonitor disabled only for the environment IPC error. Synthetic fixtures do not prove native host compatibility. No Task 5, replay/live-shadow, native support claim, routing, dispatch, lifecycle, retry, credentials, telemetry, authority switch, or Go/No-Go decision was made.
 - Issue #132 / IMP-002 Task 4 implementation is complete at commit `3258f6f`. The adapter validates canonical `host-native-evidence/v1` content binding, rejects arbitrary or generic evidence, fails closed to `unknown`, and preserves legacy as the sole authority. Fresh independent QA returned `PASS_WITH_CONCERNS`: focused Task 4 tests 15/15, full suite 468/468, compatibility, contracts, project-state, context-budget, review-gate, and `git diff --check` passed (fsmonitor was disabled only for the diff check because of an environment IPC error). Residual limitation: synthetic fixtures validate adapter behavior but do not prove native support for Codex, Claude, Gemini, Cursor, or Antigravity. No Task 5, replay/live-shadow, routing, dispatch, lifecycle, retry, credentials, telemetry, native support claim, or Go/No-Go decision was performed.
 - Issue #132 / IMP-002 Task 3 implemented at commit `3d937a4`. The adapter preserves legacy context as the sole authority, applies fail-closed behavior, and emits structured owner-visible fallback. Independent QA passed the focused Task 3 tests (7/7), compatibility tests (16/16), full suite (453/453), validators, review gate, and `git diff --check`. The only QA concerns are this project-state housekeeping and the pre-existing high-severity dependency audit finding; neither was introduced by this change. No runtime compatibility, replay/live-shadow, host activation, routing, dispatch, lifecycle, retry, Task 4, or Go/No-Go decision was performed.
 - Issue #132 / IMP-002 Task 1/2 contract artifacts and independent QA are complete. The frozen corpus/evidence contract, `context-pack/v1` schema, source matrix, JCS vectors, fail-closed validators, and regression tests are recorded in the Task 1/2 contract-freeze artifact and passed independent re-review. These artifacts remain prerequisites for later shadow measurement; they do not establish runtime compatibility or a Go/No-Go result.
@@ -28,7 +29,7 @@
 - Issue #160 (reset repository to template baseline) merged through PR #162 as commit `93203e2`. Boss-approved run of `scripts/reset-to-template.mjs --apply --confirm-reset`: stubbed this file, `TASK_LOG.md`, `CHANGELOG.md`, `RISKS.md`, `DECISIONS.md` and cleared 13 historical record directories (109 entries — 104 deletions + 5 stub replacements), including `docs/records/handoffs` (fixed in #158/PR #159 ahead of this run). `docs/records/qa/`, `README.md`, `PROJECT_INDEX.md`, `docs/vault/00-Index.md`, and all canonical workflow/skill/template/CI content are untouched — this is a working-tree content reset only, not a history rewrite; every removed file remains recoverable via `git log`/`git show`. A first attempt (commit `f2c1375`, since-deleted branch) was correctly returned BLOCKED by independent QA because its own implementation-plan document had been left on an unmerged sibling branch, so the reset commit's history didn't actually contain the file it cited. Redone as a 2-commit branch — the plan doc landed as its own first commit (`ec2a7ca`), then the reset ran on top (`2754d45`) — so the plan is genuinely part of history before being cleared, same as every other `docs/records/` entry. Independent QA PASS on all 5 Acceptance Criteria at the corrected commit (evidence: https://github.com/chakrits/AI-Agent-Workflow/issues/160#issuecomment-5262083435). Plan: `docs/records/implementation-plan/2026-08-12-reset-to-template-execution-plan.md` (itself cleared by this same run, recoverable via `git show ec2a7ca:...`). Verified with the full command suite (`npm test` 399/399; `validate:contracts`, `validate:project-state`, `validate:skill-parity` 38/38, `adr:audit`, `validate:risk-register`, `validate:review-gate`, `validate:skill-usage`, `validate:metrics`, `validate:context-budget`, `git diff --check` — all PASS) and pre-confirmed via `scripts/verify-reset-template.mjs`'s disposable-clone harness.
 
 ## In Progress
-- Issue #132 / IMP-002 Task 4 human review preparation. Technical implementation and independent QA are complete; merge approval is pending. Task 5, replay/live-shadow execution, native support claims, and Go/No-Go remain gated.
+- Issue #132 / IMP-002 next-increment planning. Task 4 is merged and recorded; Task 5, replay/live-shadow execution, native support claims, and Go/No-Go remain gated behind a fresh scope/specification and Human approval.
 
 ## Blockers / Open Questions
 - Human approval remains required at the Task 4 merge, later QA, and Go/No-Go gates defined by Issue #132. The pre-existing high-severity dependency audit finding remains documented and unchanged; no dependency was modified by Task 4. Synthetic fixtures do not establish native host support. Issue #183 / PR #184 supplies the evidence seam, but no replay/live-shadow run may begin before its later gates are explicitly approved.
@@ -55,10 +56,10 @@
 - Issue #166's artifacts are merged: canonical definition `docs/workflow/task-execution-mode.md`, specification of record `docs/records/sdd/2026-08-12-issue-166-task-execution-mode-spec.md`, `DECISIONS.md` ADR-0014.
 
 ## Next Quality Gate
-- Human review / merge decision for Task 4. If approved, the next task must still pass its own gates before Task 5; preserve legacy authority and do not claim native host support, runtime compatibility, replay/live-shadow readiness, or Go/No-Go.
+- Fresh Human-approved scope/specification for the next Issue #132 increment. After approval, route the selected task through its own implementation, independent review, QA, and Human gates; preserve legacy authority and do not claim native host support, replay/live-shadow readiness, or Go/No-Go.
 
 ## Recommended Next Agent
-- Human Maintainer — review the Task 4 implementation/QA evidence and decide whether to merge; Task 5 remains gated.
+- Orchestrator / Human Maintainer — define and approve the next bounded Issue #132 increment; do not dispatch Task 5 or replay/live-shadow work yet.
 
 ## Notes
 - Reset to template baseline by `npm run reset:template`.
