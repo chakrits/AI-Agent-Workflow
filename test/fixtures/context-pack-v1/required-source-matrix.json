@@ -294,7 +294,7 @@
         },
         {
           "path": "docs/workflow/dispatch-packet-contract.md",
-          "sha256": "6fa02674d516a03ed883bd0b87830c9825ef608836ab76f1e9cfb494c67ac31d"
+          "sha256": "3c1ff20835b1cec9fd5b959837f1e8aa34db6f2ebf3d158fd88b569cc074aee1"
         },
         {
           "path": ".agents/skills/dynamic-workflow/SKILL.md",
