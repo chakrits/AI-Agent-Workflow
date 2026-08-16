@@ -39,7 +39,24 @@ const MEASUREMENT_FIELDS = Object.freeze([
 const TERMINAL_FIELDS = Object.freeze(['status', 'resultId', 'observedAt']);
 const FORBIDDEN_OWNER_VALUES = new Set(['anonymous', 'unknown', 'n/a', 'N/A']);
 const MUTABLE_VERSION_VALUES = new Set(['current', 'latest', 'main', 'head']);
-const CANONICAL_EVIDENCE_REFERENCE = /^docs\/records\/[A-Za-z0-9][A-Za-z0-9._/-]*#[A-Za-z0-9][A-Za-z0-9._:-]*$/;
+const HOST_NATIVE_EVIDENCE_SCHEMA = 'host-native-evidence/v1';
+const HOST_NATIVE_EVIDENCE_TYPES = Object.freeze(['native_activation', 'native_token_measurement']);
+const HOST_NATIVE_EVIDENCE_FIELDS = Object.freeze([
+  'schema_version',
+  'evidence_id',
+  'evidence_type',
+  'host',
+  'host_owner',
+  'adapter_version',
+  'measurement_id',
+  'observed_at',
+  'measurement_status',
+  'evidence_ref',
+  'source',
+  'authority',
+  'recorded_by',
+]);
+const CANONICAL_EVIDENCE_REFERENCE = /^docs\/records\/evidence\/host-native\/[A-Za-z0-9][A-Za-z0-9._-]*\.json#[A-Za-z0-9][A-Za-z0-9._:-]*$/;
 
 const isPlainObject = (value) => value !== null
   && typeof value === 'object'
@@ -81,26 +98,28 @@ function isSimulationReference(ref) {
 }
 
 function resolveEvidenceReference(ref, rootDir = process.cwd()) {
-  if (typeof rootDir !== 'string' || !nonEmptyString(ref) || !CANONICAL_EVIDENCE_REFERENCE.test(ref)) return false;
+  if (typeof rootDir !== 'string' || !nonEmptyString(ref) || !CANONICAL_EVIDENCE_REFERENCE.test(ref)) return null;
   const [relativePath, fragment] = ref.split('#');
   const pathSegments = relativePath.split('/');
-  if (pathSegments.some((segment) => segment === '.' || segment === '..')) return false;
-  const recordsRoot = path.resolve(rootDir, 'docs/records');
+  if (pathSegments.some((segment) => segment === '.' || segment === '..')) return null;
+  const evidenceRoot = path.resolve(rootDir, 'docs/records/evidence/host-native');
   const absolutePath = path.resolve(rootDir, relativePath);
-  if (absolutePath !== recordsRoot && !absolutePath.startsWith(`${recordsRoot}${path.sep}`)) return false;
-  if (!existsSync(absolutePath) || fragment.length === 0) return false;
+  if (absolutePath !== evidenceRoot && !absolutePath.startsWith(`${evidenceRoot}${path.sep}`)) return null;
+  if (!existsSync(absolutePath) || fragment.length === 0) return null;
   let content;
   try {
     content = readFileSync(absolutePath, 'utf8');
   } catch {
-    return false;
+    return null;
   }
-  const headings = [...content.matchAll(/^#{1,6}\s+(.+)$/gm)].map(([, heading]) => heading
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, ''));
-  return headings.includes(fragment.toLowerCase());
+  let record;
+  try {
+    record = JSON.parse(content);
+  } catch {
+    return null;
+  }
+  if (!isPlainObject(record) || record.evidence_id !== fragment) return null;
+  return record;
 }
 
 function evidenceClassFor(evidence) {
@@ -121,7 +140,7 @@ function validateEvidenceReference(ref, label, errors, rootDir = process.cwd()) 
   if (isSimulationReference(ref)) {
     errors.push(`${label} cannot be fixture or simulation evidence`);
   } else if (!resolveEvidenceReference(ref, rootDir)) {
-    errors.push(`${label} must be a canonical, resolvable docs/records reference`);
+    errors.push(`${label} must be a canonical, resolvable host-native evidence reference`);
   }
 }
 
@@ -141,7 +160,16 @@ function validateEvidenceBinding(evidence, expectedRef, label, errors) {
   }
 }
 
-function validateNativeEvidenceObject(evidence, expectedRef, label, errors, rootDir, expectedStatus = null) {
+function validateNativeEvidenceObject(
+  evidence,
+  expectedRef,
+  label,
+  errors,
+  rootDir,
+  expectedStatus = null,
+  expectedType = null,
+  expectedContext = {},
+) {
   if (!isPlainObject(evidence)) {
     errors.push(`${label} evidence object is required for native verification`);
     return;
@@ -150,7 +178,7 @@ function validateNativeEvidenceObject(evidence, expectedRef, label, errors, root
   if (evidence.class !== 'host_native') errors.push(`${label} must be host_native evidence`);
   if (evidence.ref !== expectedRef) errors.push(`${label} reference does not match the capability record`);
   validateEvidenceReference(evidence.ref, `${label}.ref`, errors, rootDir);
-  const fragment = evidence.ref?.split('#')[1];
+  const fragment = typeof evidence.ref === 'string' ? evidence.ref.split('#')[1] : undefined;
   if (nonEmptyString(evidence.evidenceId) && evidence.evidenceId !== fragment) {
     errors.push(`${label} evidenceId must match the reference fragment`);
   }
@@ -160,6 +188,52 @@ function validateNativeEvidenceObject(evidence, expectedRef, label, errors, root
   if (expectedStatus !== null && evidence.status !== undefined && evidence.status !== expectedStatus) {
     errors.push(`${label} status must match tokenMeasurementStatus`);
   }
+  const canonical = resolveEvidenceReference(evidence.ref, rootDir);
+  if (!canonical) return;
+  const canonicalErrors = exactFields(canonical, HOST_NATIVE_EVIDENCE_FIELDS, `${label} canonical evidence`);
+  if (canonicalErrors.length) {
+    errors.push(...canonicalErrors);
+    return;
+  }
+  if (canonical.schema_version !== HOST_NATIVE_EVIDENCE_SCHEMA) {
+    errors.push(`${label} canonical evidence schema is invalid`);
+  }
+  if (expectedType !== null && canonical.evidence_type !== expectedType) {
+    errors.push(`${label} canonical evidence type must be ${expectedType}`);
+  }
+  if (!HOST_NATIVE_EVIDENCE_TYPES.includes(canonical.evidence_type)) {
+    errors.push(`${label} canonical evidence type is not a supported native type`);
+  }
+  if (canonical.evidence_id !== evidence.evidenceId) errors.push(`${label} evidenceId is not bound to canonical content`);
+  if (canonical.evidence_ref !== evidence.ref) errors.push(`${label} reference is not bound to canonical content`);
+  if (!HOSTS.includes(canonical.host)) errors.push(`${label} canonical host is invalid`);
+  if (!nonEmptyString(canonical.host_owner) || FORBIDDEN_OWNER_VALUES.has(canonical.host_owner)) {
+    errors.push(`${label} canonical host owner is invalid`);
+  }
+  if (!nonEmptyString(canonical.adapter_version) || MUTABLE_VERSION_VALUES.has(canonical.adapter_version.toLowerCase())) {
+    errors.push(`${label} canonical adapter version is invalid`);
+  }
+  if (!nonEmptyString(canonical.measurement_id)) errors.push(`${label} canonical measurement identity is required`);
+  if (!isUtcTimestamp(canonical.observed_at)) errors.push(`${label} canonical observed_at is invalid`);
+  if (!TOKEN_MEASUREMENT_STATUSES.includes(canonical.measurement_status)) {
+    errors.push(`${label} canonical measurement status is invalid`);
+  }
+  if (canonical.source !== 'host_telemetry' || canonical.authority !== 'host_telemetry') {
+    errors.push(`${label} canonical evidence must be host telemetry`);
+  }
+  if (canonical.recorded_by !== canonical.host_owner) errors.push(`${label} canonical owner binding is invalid`);
+  if (expectedStatus !== null && canonical.measurement_status !== expectedStatus) {
+    errors.push(`${label} canonical measurement status must match tokenMeasurementStatus`);
+  }
+  for (const [field, expected] of Object.entries(expectedContext)) {
+    if (expected !== undefined && canonical[field] !== expected) {
+      errors.push(`${label} canonical ${field} does not match the observed identity`);
+    }
+  }
+  if (evidence.status !== undefined && evidence.status !== canonical.measurement_status) {
+    errors.push(`${label} status is not bound to canonical content`);
+  }
+  return canonical;
 }
 
 function exactFields(value, fields, label, optional = []) {
@@ -195,13 +269,64 @@ function validateCapabilityShape(record, options = {}) {
   if (record.capabilityDecision !== 'supported' && !nonEmptyString(record.reason)) {
     errors.push('capability record: reason is required for a non-supported decision');
   }
+  const evidenceContext = {
+    host: record.host,
+    host_owner: record.hostOwner,
+    adapter_version: record.adapterVersion,
+    observed_at: record.observedAt,
+  };
+  let activationCanonical;
+  let tokenCanonical;
   if (record.capabilityDecision === 'supported') {
     if (record.tokenMeasurementStatus !== 'available') errors.push('capability record: supported requires available token measurement');
-    validateNativeEvidenceObject(options.activationEvidence, record.activationEvidenceRef, 'capability record: activationEvidence', errors, rootDir);
-    validateNativeEvidenceObject(options.tokenEvidence, record.tokenEvidenceRef, 'capability record: tokenEvidence', errors, rootDir, 'available');
+    activationCanonical = validateNativeEvidenceObject(
+      options.activationEvidence,
+      record.activationEvidenceRef,
+      'capability record: activationEvidence',
+      errors,
+      rootDir,
+      'available',
+      'native_activation',
+      evidenceContext,
+    );
+    tokenCanonical = validateNativeEvidenceObject(
+      options.tokenEvidence,
+      record.tokenEvidenceRef,
+      'capability record: tokenEvidence',
+      errors,
+      rootDir,
+      'available',
+      'native_token_measurement',
+      evidenceContext,
+    );
   } else {
-    if (options.activationEvidence) validateNativeEvidenceObject(options.activationEvidence, record.activationEvidenceRef, 'capability record: activationEvidence', errors, rootDir);
-    if (options.tokenEvidence) validateNativeEvidenceObject(options.tokenEvidence, record.tokenEvidenceRef, 'capability record: tokenEvidence', errors, rootDir, record.tokenMeasurementStatus);
+    if (options.activationEvidence) {
+      activationCanonical = validateNativeEvidenceObject(
+        options.activationEvidence,
+        record.activationEvidenceRef,
+        'capability record: activationEvidence',
+        errors,
+        rootDir,
+        'available',
+        'native_activation',
+        evidenceContext,
+      );
+    }
+    if (options.tokenEvidence) {
+      tokenCanonical = validateNativeEvidenceObject(
+        options.tokenEvidence,
+        record.tokenEvidenceRef,
+        'capability record: tokenEvidence',
+        errors,
+        rootDir,
+        record.tokenMeasurementStatus,
+        'native_token_measurement',
+        evidenceContext,
+      );
+    }
+  }
+  if (activationCanonical && tokenCanonical && activationCanonical.measurement_id !== tokenCanonical.measurement_id) {
+    errors.push('capability record: activation and token evidence measurement identities must match');
   }
   validateEvidenceClass(options.activationEvidence, 'capability record: activationEvidence', errors);
   validateEvidenceClass(options.tokenEvidence, 'capability record: tokenEvidence', errors);
@@ -317,16 +442,39 @@ function validateTerminalOutcome(outcome) {
   return errors;
 }
 
-export function validateHostMeasurement(measurement, capabilityRecord) {
+export function validateHostMeasurement(measurement, capabilityRecord, options = {}) {
   const errors = [];
   if (!isPlainObject(measurement)) return ['$ measurement must be a plain JSON object'];
+  const rootDir = options.rootDir ?? process.cwd();
   errors.push(...exactFields(measurement, MEASUREMENT_FIELDS, 'measurement'));
   if (!nonEmptyString(measurement.measurementId)) errors.push('measurement: measurementId is required');
   if (!HOSTS.includes(measurement.host)) errors.push('measurement: host is invalid');
   if (!nonEmptyString(measurement.adapterVersion)) errors.push('measurement: adapterVersion is required');
   if (!isUtcTimestamp(measurement.observedAt)) errors.push('measurement: observedAt must be a valid UTC ISO-8601 timestamp');
   if (!TOKEN_MEASUREMENT_STATUSES.includes(measurement.tokenMeasurementStatus)) errors.push('measurement: tokenMeasurementStatus is invalid');
-  validateEvidenceReference(measurement.tokenEvidenceRef, 'measurement: tokenEvidenceRef', errors);
+  validateEvidenceReference(measurement.tokenEvidenceRef, 'measurement: tokenEvidenceRef', errors, rootDir);
+  const canonicalTokenEvidence = resolveEvidenceReference(measurement.tokenEvidenceRef, rootDir);
+  if (canonicalTokenEvidence) {
+    validateNativeEvidenceObject(
+      {
+        evidenceId: canonicalTokenEvidence.evidence_id,
+        ref: measurement.tokenEvidenceRef,
+        class: 'host_native',
+        status: measurement.tokenMeasurementStatus,
+      },
+      measurement.tokenEvidenceRef,
+      'measurement: tokenEvidence',
+      errors,
+      rootDir,
+      measurement.tokenMeasurementStatus,
+      'native_token_measurement',
+      {
+        host: measurement.host,
+        adapter_version: measurement.adapterVersion,
+        measurement_id: measurement.measurementId,
+      },
+    );
+  }
   if (!WAIT_POLICIES.includes(measurement.waitPolicy)) errors.push('measurement: waitPolicy is invalid');
   errors.push(...validateTerminalOutcome(measurement.terminalOutcome));
   if (isPlainObject(capabilityRecord)) {
@@ -351,16 +499,17 @@ export function recordHostMeasurement({
   legacyResult,
   activationEvidence,
   tokenEvidence,
+  rootDir = process.cwd(),
 }) {
   const capabilityErrors = validateCapabilityRecord(capabilityRecord, {
     activationEvidence,
     tokenEvidence,
-    rootDir: process.cwd(),
+    rootDir,
   });
   if (capabilityRecord?.capabilityDecision === 'supported' && (!activationEvidence || !tokenEvidence)) {
     capabilityErrors.push('capability record: native activation and token evidence are required before measurement');
   }
-  const measurementErrors = validateHostMeasurement(measurement, capabilityRecord);
+  const measurementErrors = validateHostMeasurement(measurement, capabilityRecord, { rootDir });
   const errors = [...capabilityErrors, ...measurementErrors];
   if (errors.length) return fallback(capabilityRecord, errors, legacyResult);
   return {

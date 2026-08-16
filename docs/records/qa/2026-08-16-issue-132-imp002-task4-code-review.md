@@ -37,6 +37,7 @@ fallback. `operator_wait` is retained as policy metadata and does not rewrite `t
 |---|---|---|---|---|---|
 | CR-IMP002-T4-001 | None | Capability boundary | No in-scope implementation defect identified. | Continue to independent QA with exact changed range. | No |
 | CR-IMP002-T4-002 | Resolved | Evidence references | QA identified that arbitrary strings and caller-only evidence classes could promote `supported`. | Require canonical resolvable `docs/records/...#fragment` references and native evidence objects; fail closed to `unknown` with legacy authority. | No |
+| CR-IMP002-T4-003 | Resolved | Evidence content binding | Independent QA identified that a generic code-review record could still be marked `host_native` and promote `supported` because only path, file, and heading addressability were checked. | Require canonical `host-native-evidence/v1` JSON content under `docs/records/evidence/host-native/`, with fixed evidence type, host, owner, adapter, measurement, status, timestamp, source, authority, and reference bindings. | No |
 
 ## Corrective rework
 
@@ -47,12 +48,28 @@ reference under `docs/records/`, rejects traversal/simulation/unresolvable refer
 sanitizes invalid support claims to `capabilityDecision: unknown` with a structured reason.
 Legacy authority and `mutationAttempted: false` remain unchanged.
 
+The second QA Major finding on `0fa36f9` was also reproduced before implementation: a generic
+code-review record with caller-supplied `class: host_native` was accepted as native evidence. The
+corrective rework now parses only canonical JSON evidence references matching
+`docs/records/evidence/host-native/*.json#<evidence_id>`. Each record must use
+`schema_version: host-native-evidence/v1`, identify `native_activation` or
+`native_token_measurement`, and bind `host`, `host_owner`, `adapter_version`, `measurement_id`,
+`measurement_status`, `observed_at`, `evidence_ref`, `source: host_telemetry`,
+`authority: host_telemetry`, and `recorded_by`. Activation and token records must share the
+capability host/owner/adapter/timestamp and measurement identity; measurement validation also
+binds the token record to the measurement identity. Generic QA/contract records, missing content,
+wrong evidence types, and mismatched identities fail closed to `unknown` with legacy authority.
+
 ## Verification performed
 
-- `node --test test/host-capability-adapter.test.mjs` — **12/12 passed**.
-- `npm test` — **465/465 passed**.
-- The remaining repository validators and final `git diff --check` are recorded in the developer
-  handoff after the review record is included in the final change.
+- `node --test test/host-capability-adapter.test.mjs` — **15/15 passed**.
+- `npm test` — **468/468 passed**.
+- `npm run validate:context-compatibility` — **passed**; corpus and matrix valid.
+- `npm run validate:contracts` — **passed**.
+- `npm run validate:project-state` — **passed**.
+- `npm run validate:context-budget` — **passed**, 29,937/30,000 tokens.
+- `npm run validate:review-gate` — **passed**.
+- `git diff --check HEAD^ HEAD` and `git show --check --oneline HEAD` — **passed**.
 
 ## CHANGES MADE
 
