@@ -41,3 +41,14 @@ NOTICED BUT NOT TOUCHING:
 
 CONCERNS:
 - None blocking within Task 1/2. Independent QA remains required before any Developer/Task 3 handoff.
+
+## Rework after independent QA
+
+Independent QA returned **FAIL / Major** because `validateSourceMatrix` accepted arbitrary paths and did not bind each skill ID to its canonical path/role row. The finding is addressed in commit `fabe969`:
+
+- Added an explicit canonical role → route source → skill ID/path contract.
+- Required exact source-set equality for every role/mode row and rejected unknown paths such as `CHANGELOG.md`.
+- Required exact skill set/path mapping and checked the registered skill file plus catalog token.
+- Added one regression test covering arbitrary path, skill/path swap, and row-set drift.
+
+Implementer verification after rework: focused suite **9/9 PASS**, full suite **446/446 PASS**, compatibility validator, contracts, project state, review gate, context budget, and diff checks **PASS**. This section does not claim independent QA completion or Human checkpoint readiness; QA must re-review the exact final commit.
