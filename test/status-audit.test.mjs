@@ -6,12 +6,17 @@ import Ajv2020 from 'ajv/dist/2020.js';
 
 import {
   auditDigest,
+  canonicalJcsBytes,
   contentTreeDigest,
   contentTreePreimage,
   headDigest,
+  headDigestPreimage,
   manifestDigest,
+  manifestDigestPreimage,
   projectionDigest,
+  projectionDigestPreimage,
   setDigest,
+  setDigestPreimage,
   validateStatusAudit,
 } from '../scripts/lib/status-audit.mjs';
 
@@ -119,6 +124,26 @@ test('status-audit rejects malformed identity, digest, and timestamp values', ()
   }
 });
 
+test('status-audit schema rejects impossible timestamps at the schema boundary', () => {
+  for (const createdAt of [
+    '2026-02-29T07:40:28Z',
+    '2026-02-30T07:40:28Z',
+    '2026-04-31T07:40:28Z',
+    '2026-08-16T07:40:60Z',
+    '2026-13-01T00:00:00Z',
+    '2026-08-16T24:00:00Z',
+  ]) {
+    const candidate = audit({ createdAt });
+    assert.equal(validateSchema(candidate), false, createdAt);
+  }
+
+  const leapDay = audit({
+    approval: { ...audit().approval, approvedAt: '2024-02-29T07:39:28Z' },
+    createdAt: '2024-02-29T07:40:28Z',
+  });
+  assert.equal(validateSchema(leapDay), true, JSON.stringify(validateSchema.errors));
+});
+
 test('status-audit requires the exact event and operation mapping', () => {
   const mappings = [
     ['status_created', 'create'],
@@ -177,6 +202,11 @@ test('auditDigest is dedicated, excludes only top-level auditDigest, and does no
   assert.deepEqual(candidate, before);
 });
 
+test('canonical JCS rejects invalid object-member keys', () => {
+  assert.throws(() => canonicalJcsBytes({ ['\ud800']: 'x' }), /AUDIT_JCS_DOMAIN/);
+  assert.throws(() => canonicalJcsBytes({ ['\udc00']: 'x' }), /AUDIT_JCS_DOMAIN/);
+});
+
 test('status-audit detects an audit preimage mismatch', () => {
   const candidate = audit({ auditDigest: 'f'.repeat(64) });
   assert.match(validateStatusAudit(candidate).join('\n'), /AUDIT_PREIMAGE_MISMATCH/);
@@ -211,16 +241,25 @@ test('contentTreeDigest rejects audit-only and empty input, while rejecting dupl
   ]), /DUPLICATE_PATH/);
 });
 
-test('status-audit digest preimages use the approved set, head, projection, and manifest rules', () => {
+test('status-audit digest preimages use fixed approved set, head, projection, and manifest vectors', () => {
   const descriptors = [
     { issueKey: 'chakrits/AI-Agent-Workflow#2', path: 'docs/status/active/issue-2.yaml', recordDigest: 'b'.repeat(64) },
     { issueKey: 'chakrits/AI-Agent-Workflow#1', path: 'docs/status/active/issue-1.yaml', recordDigest: 'a'.repeat(64) },
   ];
-  const sortedDescriptors = [...descriptors].sort((left, right) => left.issueKey.localeCompare(right.issueKey));
-  assert.equal(setDigest(descriptors), setDigest(sortedDescriptors));
+  const expectedSetPreimage = '[{"issueKey":"chakrits/AI-Agent-Workflow#1","path":"docs/status/active/issue-1.yaml","recordDigest":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},{"issueKey":"chakrits/AI-Agent-Workflow#2","path":"docs/status/active/issue-2.yaml","recordDigest":"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"}]';
+  assert.equal(setDigestPreimage(descriptors).toString('utf8'), expectedSetPreimage);
+  assert.equal(setDigest(descriptors), '9bea80eaae94dfd06301903d9b5f3d7740221794495160800edac7cbb137f600');
+
   const head = { schemaVersion: 'work-item-status/v1', activeIssueKeys: ['chakrits/AI-Agent-Workflow#1', 'chakrits/AI-Agent-Workflow#2'], setDigest: setDigest(descriptors) };
-  assert.equal(headDigest(head), headDigest({ ...head, activeIssueKeys: [...head.activeIssueKeys] }));
-  assert.equal(projectionDigest('a\r\nb\r\n'), projectionDigest('a\nb\n'));
+  const expectedHeadPreimage = '{"activeIssueKeys":["chakrits/AI-Agent-Workflow#1","chakrits/AI-Agent-Workflow#2"],"schemaVersion":"work-item-status/v1","setDigest":"9bea80eaae94dfd06301903d9b5f3d7740221794495160800edac7cbb137f600"}';
+  assert.equal(headDigestPreimage(head).toString('utf8'), expectedHeadPreimage);
+  assert.equal(headDigest(head), 'a37343194a1ac035cdfb7fb1c3d94a1abd55b1237777dec27ac702518ebefe8d');
+
+  assert.equal(projectionDigestPreimage('a\r\nb\r\n').toString('utf8'), 'a\nb\n');
+  assert.equal(projectionDigest('a\r\nb\r\n'), '911169ddaaf146aff539f58c26c489af3b892dff0fe283c1c264c65ae5aa59a2');
+
   const manifest = { schemaVersion: 'status-manifest/v1', manifestDigest: 'f'.repeat(64), nested: { manifestDigest: 'keep-me' }, setDigest: head.setDigest };
-  assert.equal(manifestDigest(manifest), manifestDigest({ ...manifest, manifestDigest: '0'.repeat(64) }));
+  const expectedManifestPreimage = '{"nested":{"manifestDigest":"keep-me"},"schemaVersion":"status-manifest/v1","setDigest":"9bea80eaae94dfd06301903d9b5f3d7740221794495160800edac7cbb137f600"}';
+  assert.equal(manifestDigestPreimage(manifest).toString('utf8'), expectedManifestPreimage);
+  assert.equal(manifestDigest(manifest), '11ee19ff51b96ea45af5080ba14d8b4513772d95219ae21086781f4c58b4c88c');
 });

@@ -186,18 +186,22 @@ export function validateStatusAudit(value) {
   return errors;
 }
 
+function assertJcsString(value) {
+  for (let index = 0; index < value.length; index += 1) {
+    const code = value.charCodeAt(index);
+    if (code >= 0xd800 && code <= 0xdbff) {
+      const next = value.charCodeAt(index + 1);
+      if (Number.isNaN(next) || next < 0xdc00 || next > 0xdfff) throw new TypeError('AUDIT_JCS_DOMAIN');
+      index += 1;
+    } else if (code >= 0xdc00 && code <= 0xdfff) {
+      throw new TypeError('AUDIT_JCS_DOMAIN');
+    }
+  }
+}
+
 function assertJcsDomain(value, seen = new WeakSet(), depth = 0) {
   if (typeof value === 'string') {
-    for (let index = 0; index < value.length; index += 1) {
-      const code = value.charCodeAt(index);
-      if (code >= 0xd800 && code <= 0xdbff) {
-        const next = value.charCodeAt(index + 1);
-        if (Number.isNaN(next) || next < 0xdc00 || next > 0xdfff) throw new TypeError('AUDIT_JCS_DOMAIN');
-        index += 1;
-      } else if (code >= 0xdc00 && code <= 0xdfff) {
-        throw new TypeError('AUDIT_JCS_DOMAIN');
-      }
-    }
+    assertJcsString(value);
     return;
   }
   if (typeof value === 'boolean' || value === null) return;
@@ -210,7 +214,10 @@ function assertJcsDomain(value, seen = new WeakSet(), depth = 0) {
   if (Array.isArray(value)) {
     for (const item of value) assertJcsDomain(item, seen, depth + 1);
   } else {
-    for (const item of Object.values(value)) assertJcsDomain(item, seen, depth + 1);
+    for (const key of Object.keys(value)) {
+      assertJcsString(key);
+      assertJcsDomain(value[key], seen, depth + 1);
+    }
   }
 }
 
@@ -311,13 +318,13 @@ export function headDigest(value) {
   return createHash('sha256').update(headDigestPreimage(value)).digest('hex');
 }
 
-function normalizedProjectionBytes(value) {
+export function projectionDigestPreimage(value) {
   if (typeof value !== 'string') throw new TypeError('INVALID_PROJECTION_BYTES');
   return Buffer.from(`${value.replace(/\r\n?/g, '\n').replace(/\n*$/, '')}\n`, 'utf8');
 }
 
 export function projectionDigest(value) {
-  return createHash('sha256').update(normalizedProjectionBytes(value)).digest('hex');
+  return createHash('sha256').update(projectionDigestPreimage(value)).digest('hex');
 }
 
 export function manifestDigestPreimage(value) {
