@@ -1,0 +1,9 @@
+{
+  "fixtureManifestVersion": "status-cas-fixtures/v1",
+  "cases": [
+    { "id": "valid-complete-tuple", "kind": "cas", "expectedOutcome": "accepted" },
+    { "id": "all-four-mismatch-members", "kind": "cas", "expectedOutcome": "fail-closed" },
+    { "id": "competing-writers-one-winner", "kind": "harness", "expectedOutcome": "one-publication" },
+    { "id": "interrupted-publication-no-partial-state", "kind": "harness", "expectedOutcome": "unchanged" }
+  ]
+}
