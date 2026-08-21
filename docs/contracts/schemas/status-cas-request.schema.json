@@ -43,7 +43,7 @@
       "properties": {
         "manifest": { "type": "object", "additionalProperties": false, "required": ["schemaVersion", "manifestDigest", "setDigest"], "properties": { "schemaVersion": { "type": "string" }, "manifestDigest": { "$ref": "#/$defs/digest" }, "setDigest": { "$ref": "#/$defs/digest" } } },
         "set": { "type": "array", "items": { "type": "object", "additionalProperties": false, "required": ["issueKey", "path", "recordDigest"], "properties": { "issueKey": { "type": "string" }, "path": { "type": "string" }, "recordDigest": { "$ref": "#/$defs/digest" } } } },
-        "head": { "type": "object", "additionalProperties": false, "required": ["schemaVersion", "activeIssueKeys", "setDigest"], "properties": { "schemaVersion": { "type": "string" }, "activeIssueKeys": { "type": "array" }, "setDigest": { "$ref": "#/$defs/digest" } } },
+        "head": { "type": "object", "additionalProperties": false, "required": ["schemaVersion", "activeIssueKeys", "setDigest"], "properties": { "schemaVersion": { "type": "string" }, "activeIssueKeys": { "type": "array", "items": { "type": "string" } }, "setDigest": { "$ref": "#/$defs/digest" } } },
         "projection": { "type": "string" },
         "contentTree": { "type": "array", "items": { "type": "object", "additionalProperties": false, "required": ["path", "bytes"], "properties": { "path": { "type": "string" }, "bytes": { "type": "string" } } } }
       }

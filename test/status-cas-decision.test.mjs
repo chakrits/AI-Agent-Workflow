@@ -189,6 +189,34 @@ test('CAS request schema is closed and matches the runtime request boundary', as
   assert.deepEqual(evaluateCasDecision({ ...request, extra: true }), { accepted: false, error: { code: 'UNKNOWN_FIELD' } });
 });
 
+test('resultData nested containers have exact schema/runtime parity', async () => {
+  const schema = JSON.parse(await readFile(path.join('docs/contracts/schemas', 'status-cas-request.schema.json'), 'utf8'));
+  const validate = new Ajv2020({ strict: true }).compile(schema);
+  const request = { expected: tuple, observed: tuple, result: deriveResultDigests(resultData), resultData };
+  const malformed = [
+    ['manifest-empty', { ...resultData, manifest: {} }, 'INVALID_DIGEST_INPUT'],
+    ['manifest-unknown', { ...resultData, manifest: { ...resultData.manifest, unknown: true } }, 'UNKNOWN_FIELD'],
+    ['manifest-wrong-container', { ...resultData, manifest: [] }, 'INVALID_DIGEST_INPUT'],
+    ['set-wrong-container', { ...resultData, set: {} }, 'INVALID_DIGEST_INPUT'],
+    ['set-entry-missing', { ...resultData, set: [{}] }, 'INVALID_DIGEST_INPUT'],
+    ['set-entry-unknown', { ...resultData, set: [{ ...resultData.set[0], unknown: true }] }, 'UNKNOWN_FIELD'],
+    ['head-wrong-container', { ...resultData, head: [] }, 'INVALID_DIGEST_INPUT'],
+    ['head-missing-member', { ...resultData, head: { schemaVersion: 'work-item-status/v1', setDigest: digest } }, 'INVALID_DIGEST_INPUT'],
+    ['head-active-keys-wrong-container', { ...resultData, head: { ...resultData.head, activeIssueKeys: {} } }, 'INVALID_DIGEST_INPUT'],
+    ['content-tree-entry-missing', { ...resultData, contentTree: [{}] }, 'INVALID_DIGEST_INPUT'],
+    ['content-tree-entry-unknown', { ...resultData, contentTree: [{ ...resultData.contentTree[0], unknown: true }] }, 'UNKNOWN_FIELD'],
+    ['content-tree-wrong-container', { ...resultData, contentTree: {} }, 'INVALID_DIGEST_INPUT'],
+    ['projection-wrong-type', { ...resultData, projection: 1 }, 'INVALID_DIGEST_INPUT'],
+  ];
+  for (const [name, malformedResultData, code] of malformed) {
+    const input = { ...request, resultData: malformedResultData };
+    const runtime = evaluateCasDecision(input);
+    assert.equal(validate(input), false, `${name}: schema accepted malformed resultData: ${JSON.stringify(validate.errors)}`);
+    assert.deepEqual(runtime, { accepted: false, error: { code } }, name);
+    assert.ok(validate.errors?.length > 0, `${name}: AJV did not expose a deterministic error`);
+  }
+});
+
 test('result digest vectors are fixed and derived through T1 helpers', async () => {
   const values = {
     manifest: { schemaVersion: 'status-manifest/v1', manifestDigest: 'f'.repeat(64), setDigest: digest },
@@ -266,58 +294,62 @@ async function readFixtureReference(reference, seen = new Set()) {
   return target;
 }
 
+function resolveManifestReference(value) {
+  if (value && typeof value === 'object' && !Array.isArray(value)) {
+    if (Array.isArray(value.manifestCaseIds)) {
+      const sorted = [...value.manifestCaseIds].sort((left, right) => Buffer.compare(Buffer.from(left), Buffer.from(right)));
+      if (new Set(value.manifestCaseIds).size !== value.manifestCaseIds.length) return { accepted: false, error: { code: 'DUPLICATE_CASE_ID' } };
+      if (JSON.stringify(sorted) !== JSON.stringify(value.manifestCaseIds)) return { accepted: false, error: { code: 'UNSORTED_CASE_ID' } };
+    }
+    if (Array.isArray(value.cases) && value.caseCount !== value.cases.length) return { accepted: false, error: { code: 'CASE_COUNT_MISMATCH' } };
+    if (Object.hasOwn(value, 'manifestDigest') && (typeof value.manifestDigest !== 'string' || !/^[a-f0-9]{64}$/.test(value.manifestDigest))) return { accepted: false, error: { code: 'MANIFEST_DIGEST_MISMATCH' } };
+  }
+  return value;
+}
+
 function without(record, field) {
   const copy = { ...record };
   delete copy[field];
   return copy;
 }
 
-function materializeCas(base, scenario, input) {
-  if (scenario === 'wrong-container' || scenario === 'unknown-top-level-field') return input;
-  if (scenario.startsWith('missing-')) {
-    const field = scenario.slice('missing-'.length);
-    return { ...base, expected: without(base.expected, field), observed: without(base.observed, field) };
+function overlay(base, patch) {
+  if (!patch || typeof patch !== 'object' || Array.isArray(patch)) return patch;
+  if (Object.keys(patch).length === 0) return {};
+  const output = { ...base };
+  for (const [key, value] of Object.entries(patch)) {
+    output[key] = value && typeof value === 'object' && !Array.isArray(value) && base?.[key] && typeof base[key] === 'object' && !Array.isArray(base[key])
+      ? overlay(base[key], value)
+      : value;
   }
-  if (scenario === 'extra-tuple-member') return { ...base, expected: { ...base.expected, extra: true } };
-  if (scenario === 'invalid-commitSha' || scenario === 'invalid-manifestDigest' || scenario === 'invalid-setDigest' || scenario === 'invalid-headDigest') {
-    const field = scenario.replace('invalid-', '');
-    return { ...base, expected: { ...base.expected, [field]: 'BAD' }, observed: { ...base.observed, [field]: 'BAD' } };
-  }
-  if (scenario.startsWith('stale-')) {
-    const field = scenario.replace('stale-', '');
-    const value = field === 'commitSha' ? 'b'.repeat(40) : 'b'.repeat(64);
-    const old = field === 'commitSha' ? 'a'.repeat(40) : 'a'.repeat(64);
-    return { ...base, expected: { ...base.expected, [field]: old }, observed: { ...base.observed, [field]: value } };
-  }
-  if (scenario === 'forged-result-digest') return { ...base, result: { ...base.result, manifestDigest: 'f'.repeat(64) } };
-  if (scenario === 'forged-result-preimage' || scenario === 'rejected-cas-snapshot') return { ...base, resultData: { ...base.resultData, projection: 'forged' } };
-  if (scenario === 'invalid-result-data-container') return { ...base, resultData: [] };
-  if (scenario === 'invalid-result-container') return { ...base, result: [] };
-  return input;
+  return output;
 }
 
-function materializeRecord(base, scenario, input) {
-  if (scenario === 'valid-transition' || scenario === 'valid-correction') return input;
-  if (scenario === 'transition-with-correction-kind') return { ...base, operation: 'correction' };
-  if (scenario === 'correction-with-transition-kind') return { ...base, schemaVersion: 'status-correction-record/v1', operation: 'update' };
-  if (scenario === 'unknown-record-field') return { ...base, unknown: true };
-  if (scenario === 'missing-record-field') return {};
-  if (scenario === 'invalid-nested-shape') return { ...base, predecessor: [] };
-  if (scenario === 'rejected-record-snapshot') return { ...base, successor: '4'.repeat(64) };
-  if (scenario === 'invalid-schema-kind') return { ...base, schemaVersion: 'unknown/v1' };
-  return input;
+function materializeBoundary(base, resolvedInput) {
+  if (!resolvedInput || typeof resolvedInput !== 'object' || Array.isArray(resolvedInput)) return resolvedInput;
+  const payload = { ...resolvedInput };
+  if (Object.hasOwn(payload, 'resultDigest')) {
+    delete payload.resultDigest;
+    payload.result = { ...base.result, manifestDigest: 'f'.repeat(64) };
+  }
+  if (Object.hasOwn(payload, 'preimage')) {
+    payload.resultData = { ...base.resultData, projection: payload.preimage };
+    delete payload.preimage;
+  }
+  if (Object.hasOwn(payload, 'snapshot')) {
+    delete payload.snapshot;
+    if (base.resultData) payload.resultData = { ...base.resultData, projection: 'forged' };
+    else if (base.recordDigest) payload.successor = '4'.repeat(64);
+    else if (base.consumedRecordDigests) payload.proposal = 'f'.repeat(64);
+  }
+  return overlay(base, payload);
 }
 
-function materializeApproval(base, record, scenario, input) {
-  if (scenario === 'wrong-identity') return { ...base, identity: input.identity };
-  if (scenario === 'wrong-proposal') return { ...base, proposal: input.proposal };
-  if (scenario === 'wrong-predecessor') return { ...base, predecessor: input.predecessor };
-  if (scenario === 'wrong-successor') return { ...base, result: input.result };
-  if (scenario === 'duplicate-record' || scenario === 'reused-approval-data' || scenario === 'replay-input-unchanged') return { ...base, consumedRecordDigests: [record.recordDigest] };
-  if (scenario === 'rejected-approval-snapshot') return { ...base, proposal: 'f'.repeat(64) };
-  if (scenario === 'independent-approval-not-allowed') return { ...base, independent: true };
-  return input;
-}
+const frozenBoundaryOperations = new Map([
+  ['replay-input-unchanged', { boundary: 'approval', patch: (base) => ({ consumedRecordDigests: [base.record.recordDigest] }) }],
+  ['record-digest-empty-object', { boundary: 'recordDigest' }],
+  ['invalid-record-input-container', { boundary: 'createTransitionRecord' }],
+]);
 
 function recordConstructorInput(record) {
   return without(without(record, 'schemaVersion'), 'recordDigest');
@@ -325,31 +357,31 @@ function recordConstructorInput(record) {
 
 async function executeManifestCase(entry, corpusCase, fixtures) {
   const resolvedInput = corpusCase.input?.fixture ? await readFixtureReference(corpusCase.input.fixture) : corpusCase.input;
-  const expected = entry.expected.output?.fixture ? await readFixtureReference(entry.expected.output.fixture) : entry.expected.output;
-  const scenario = corpusCase.scenario;
   if (entry.kind === 'manifest') {
-    if (scenario === 'duplicate-case-id') return { accepted: false, error: { code: 'DUPLICATE_CASE_ID' } };
-    if (scenario === 'unsorted-case-id') return { accepted: false, error: { code: 'UNSORTED_CASE_ID' } };
-    if (scenario === 'case-count-mismatch') return { accepted: false, error: { code: 'CASE_COUNT_MISMATCH' } };
-    if (scenario === 'manifest-digest-mismatch') return { accepted: false, error: { code: 'MANIFEST_DIGEST_MISMATCH' } };
-    return await readFixtureReference(corpusCase.input.fixture);
+    return resolveManifestReference(resolvedInput);
   }
-  const validRequest = fixtures.valid;
-  const transition = fixtures.transition;
-  const correction = fixtures.correction;
-  const validApproval = { record: transition, identity: transition.predecessor.authenticatedBy, independent: false, proposal: transition.proposal, predecessor: transition.predecessor.digest, result: transition.successor, consumedRecordDigests: [] };
-  if (entry.kind === 'cas') return evaluateCasDecision(materializeCas(validRequest, scenario, resolvedInput));
-  if (entry.kind === 'digest') return evaluateCasDecision(materializeCas(validRequest, scenario, resolvedInput));
+  const validRequest = materializeBoundary(fixtures.valid, resolvedInput);
+  const transition = materializeBoundary(fixtures.transition, resolvedInput);
+  const approvalRecord = Array.isArray(resolvedInput?.consumedRecordDigests) && resolvedInput.consumedRecordDigests.includes(fixtures.correction.recordDigest)
+    ? fixtures.correction
+    : fixtures.transition;
+  const validApproval = { record: approvalRecord, identity: approvalRecord.predecessor.authenticatedBy, independent: false, proposal: approvalRecord.proposal, predecessor: approvalRecord.predecessor.digest, result: approvalRecord.successor, consumedRecordDigests: [] };
+  if (entry.kind === 'cas' || entry.kind === 'digest') return evaluateCasDecision(validRequest);
   if (entry.kind === 'transition') return createTransitionRecord(recordConstructorInput(resolvedInput));
   if (entry.kind === 'correction') return createCorrectionRecord({ ...recordConstructorInput(resolvedInput), operation: undefined });
   if (entry.kind === 'record') {
-    if (scenario === 'record-digest-empty-object') return recordDigest(resolvedInput);
-    if (scenario === 'invalid-record-input-container') return createTransitionRecord(resolvedInput);
-    const errors = validateRecord(materializeRecord(transition, scenario, resolvedInput));
+    const operation = frozenBoundaryOperations.get(corpusCase.scenario);
+    if (operation?.boundary === 'recordDigest') return recordDigest(resolvedInput);
+    if (operation?.boundary === 'createTransitionRecord') return createTransitionRecord(resolvedInput);
+    const errors = validateRecord(transition);
     return { accepted: errors.length === 0, ...(errors.length > 0 ? { error: { code: errors[0].code } } : {}) };
   }
-  if (entry.kind === 'approval') return approveRecord(materializeApproval(validApproval, transition, scenario, resolvedInput));
-  return expected;
+  if (entry.kind === 'approval') {
+    const operation = frozenBoundaryOperations.get(corpusCase.scenario);
+    const input = operation?.patch ? { ...materializeBoundary(validApproval, resolvedInput), ...operation.patch(validApproval) } : materializeBoundary(validApproval, resolvedInput);
+    return approveRecord(input);
+  }
+  return resolveManifestReference(resolvedInput);
 }
 
 test('authoritative manifest executes every frozen case through its boundary and compares exact outcomes', async () => {
@@ -369,10 +401,23 @@ test('authoritative manifest executes every frozen case through its boundary and
     executed.push(entry.id);
   }
   assert.deepEqual(executed, manifest.cases.map(({ id }) => id));
-  assert.equal(executed.length, 52);
+  assert.equal(executed.length, manifest.caseCount);
+  assert.deepEqual(new Set(executed), new Set(manifest.cases.map(({ id }) => id)));
 });
 
-test('all manifest cases have schema/runtime parity at every applicable public schema boundary', async () => {
+test('manifest execution is bound to resolved fixture payloads', async () => {
+  const valid = JSON.parse(await readFile(path.join(fixtureRoot, 'valid.json'), 'utf8'));
+  const corrupted = structuredClone(valid);
+  corrupted.resultData.projection = 'corrupted fixture payload';
+  assert.deepEqual(evaluateCasDecision(valid).accepted, true);
+  assert.deepEqual(evaluateCasDecision(corrupted), { accepted: false, error: { code: 'RESULT_DIGEST_MISMATCH' } });
+});
+
+function normalizedAjvErrors(validate) {
+  return (validate.errors ?? []).map(({ instancePath, keyword, schemaPath, params }) => ({ instancePath, keyword, schemaPath, params })).sort((left, right) => JSON.stringify(left).localeCompare(JSON.stringify(right)));
+}
+
+test('all manifest cases compare actual AJV results/errors with runtime outcomes', async () => {
   const manifest = JSON.parse(await readFile(path.join(fixtureRoot, 'manifest.json'), 'utf8'));
   const corpus = JSON.parse(await readFile(path.join(fixtureRoot, 'corpus.json'), 'utf8'));
   const valid = JSON.parse(await readFile(path.join(fixtureRoot, 'valid.json'), 'utf8'));
@@ -384,35 +429,30 @@ test('all manifest cases have schema/runtime parity at every applicable public s
   for (const entry of manifest.cases) {
     const corpusCase = corpus.cases[entry.id];
     if (entry.kind === 'cas') {
-      const input = materializeCas(valid, corpusCase.scenario, corpusCase.input?.fixture ? await readFixtureReference(corpusCase.input.fixture) : corpusCase.input);
+      const input = materializeBoundary(valid, corpusCase.input?.fixture ? await readFixtureReference(corpusCase.input.fixture) : corpusCase.input);
       const runtime = evaluateCasDecision(input);
       const schemaValid = schemas['status-cas-request'](input);
-      const structural = new Set(['INVALID_INPUT', 'UNKNOWN_FIELD', 'INVALID_TUPLE', 'INVALID_COMMIT', 'INVALID_MANIFEST', 'INVALID_SET', 'INVALID_HEAD', 'INVALID_RESULT', 'INVALID_DIGEST_INPUT']).has(entry.expected.error?.code);
-      assert.equal(schemaValid, !structural, entry.id);
-      if (runtime.accepted) assert.equal(schemas['status-cas-decision'](runtime), true, entry.id);
-      else assert.equal(schemas['status-cas-decision'](runtime), true, `${entry.id}: ${JSON.stringify(schemas['status-cas-decision'].errors)}`);
+      const runtimeStructural = runtime.accepted || !new Set(['INVALID_INPUT', 'UNKNOWN_FIELD', 'INVALID_TUPLE', 'INVALID_COMMIT', 'INVALID_MANIFEST', 'INVALID_SET', 'INVALID_HEAD', 'INVALID_RESULT', 'INVALID_DIGEST_INPUT']).has(runtime.error?.code);
+      assert.equal(schemaValid, runtimeStructural, `${entry.id}: AJV ${JSON.stringify(normalizedAjvErrors(schemas['status-cas-request']))}`);
+      assert.equal(schemas['status-cas-decision'](runtime), true, `${entry.id}: ${JSON.stringify(normalizedAjvErrors(schemas['status-cas-decision']))}`);
       parityCount += 2;
     } else if (entry.kind === 'transition' || entry.kind === 'correction' || entry.kind === 'record') {
       const source = entry.kind === 'correction' ? fixtures.correction : fixtures.transition;
-      const input = entry.kind === 'transition' ? materializeRecord(source, corpusCase.scenario, corpusCase.input?.fixture ? await readFixtureReference(corpusCase.input.fixture) : corpusCase.input) : entry.kind === 'correction' ? (corpusCase.input?.fixture ? await readFixtureReference(corpusCase.input.fixture) : corpusCase.input) : materializeRecord(source, corpusCase.scenario, corpusCase.input);
+      const resolved = corpusCase.input?.fixture ? await readFixtureReference(corpusCase.input.fixture) : corpusCase.input;
+      const input = entry.kind === 'transition' || entry.kind === 'correction' ? resolved : materializeBoundary(source, resolved);
       const schemaName = input?.schemaVersion === 'status-correction-record/v1' ? 'status-correction-record' : 'status-transition-record';
       const schemaValid = schemas[schemaName](input);
       const runtime = entry.kind === 'transition'
         ? createTransitionRecord(recordConstructorInput(input))
         : entry.kind === 'correction'
           ? createCorrectionRecord({ ...recordConstructorInput(input), operation: undefined })
-          : corpusCase.scenario === 'record-digest-empty-object'
-            ? recordDigest(input)
-            : corpusCase.scenario === 'invalid-record-input-container'
-              ? createTransitionRecord(input)
-              : validateRecord(input).length === 0;
-      const expectedCode = entry.expected.error?.code;
-      const structural = new Set(['INVALID_RECORD', 'INVALID_RECORD_INPUT', 'UNKNOWN_FIELD', 'MISSING_FIELD', 'INVALID_OPERATION', 'INVALID_SCHEMA_KIND', 'INVALID_NESTED_SHAPE', 'INVALID_TUPLE']).has(expectedCode);
-      assert.equal(schemaValid, !structural, entry.id);
-      if (entry.kind === 'record') {
-        const runtimeAccepted = typeof runtime === 'boolean' ? runtime : typeof runtime === 'string';
-        assert.equal(runtimeAccepted, !expectedCode, entry.id);
-      }
+          : validateRecord(input);
+      const runtimeAccepted = entry.kind === 'record'
+        ? (runtime.length === 0 || !new Set(['INVALID_RECORD', 'UNKNOWN_FIELD', 'MISSING_FIELD', 'INVALID_OPERATION', 'INVALID_SCHEMA_KIND', 'INVALID_NESTED_SHAPE', 'INVALID_TUPLE']).has(runtime[0]?.code))
+        : entry.kind === 'transition' || entry.kind === 'correction'
+        ? !runtime.error
+        : false;
+      assert.equal(schemaValid, runtimeAccepted, `${entry.id}: AJV ${JSON.stringify(normalizedAjvErrors(schemas[schemaName]))}`);
       parityCount += 1;
     }
   }

@@ -28,15 +28,47 @@ function validateTuple(tuple) {
 }
 
 function validResultData(value) {
-  if (!exact(value, new Set(['manifest', 'set', 'head', 'projection', 'contentTree']))) return false;
-  if (!exact(value.manifest, new Set(['schemaVersion', 'manifestDigest', 'setDigest'])) || !exact(value.head, new Set(['schemaVersion', 'activeIssueKeys', 'setDigest']))) return false;
-  if (!Array.isArray(value.set) || value.set.some((entry) => !exact(entry, new Set(['issueKey', 'path', 'recordDigest'])))) return false;
-  return typeof value.projection === 'string' && Array.isArray(value.contentTree) && value.contentTree.every((entry) => exact(entry, new Set(['path', 'bytes'])));
+  const resultDataFields = new Set(['manifest', 'set', 'head', 'projection', 'contentTree']);
+  const manifestFields = new Set(['schemaVersion', 'manifestDigest', 'setDigest']);
+  const setEntryFields = new Set(['issueKey', 'path', 'recordDigest']);
+  const headFields = new Set(['schemaVersion', 'activeIssueKeys', 'setDigest']);
+  const contentTreeEntryFields = new Set(['path', 'bytes']);
+  if (!isObject(value)) return 'INVALID_DIGEST_INPUT';
+  if (Object.keys(value).some((key) => !resultDataFields.has(key))) return 'UNKNOWN_FIELD';
+  if (Object.keys(value).length !== resultDataFields.size) return 'INVALID_DIGEST_INPUT';
+  if (!isObject(value.manifest) || !exact(value.manifest, manifestFields)
+    || typeof value.manifest.schemaVersion !== 'string'
+    || typeof value.manifest.manifestDigest !== 'string' || !DIGEST.test(value.manifest.manifestDigest)
+    || typeof value.manifest.setDigest !== 'string' || !DIGEST.test(value.manifest.setDigest)) {
+    if (isObject(value.manifest) && !exact(value.manifest, manifestFields)) return 'UNKNOWN_FIELD';
+    return 'INVALID_DIGEST_INPUT';
+  }
+  if (!Array.isArray(value.set) || value.set.some((entry) => !isObject(entry) || !exact(entry, setEntryFields)
+    || typeof entry.issueKey !== 'string' || typeof entry.path !== 'string'
+    || typeof entry.recordDigest !== 'string' || !DIGEST.test(entry.recordDigest))) {
+    if (Array.isArray(value.set) && value.set.some((entry) => isObject(entry) && !exact(entry, setEntryFields))) return 'UNKNOWN_FIELD';
+    return 'INVALID_DIGEST_INPUT';
+  }
+  if (!isObject(value.head) || !exact(value.head, headFields)
+    || typeof value.head.schemaVersion !== 'string' || !Array.isArray(value.head.activeIssueKeys)
+    || value.head.activeIssueKeys.some((key) => typeof key !== 'string')
+    || typeof value.head.setDigest !== 'string' || !DIGEST.test(value.head.setDigest)) {
+    if (isObject(value.head) && !exact(value.head, headFields)) return 'UNKNOWN_FIELD';
+    return 'INVALID_DIGEST_INPUT';
+  }
+  if (typeof value.projection !== 'string' || !Array.isArray(value.contentTree)
+    || value.contentTree.some((entry) => !isObject(entry) || !exact(entry, contentTreeEntryFields)
+      || typeof entry.path !== 'string' || typeof entry.bytes !== 'string')) {
+    if (Array.isArray(value.contentTree) && value.contentTree.some((entry) => isObject(entry) && !exact(entry, contentTreeEntryFields))) return 'UNKNOWN_FIELD';
+    return 'INVALID_DIGEST_INPUT';
+  }
+  return null;
 }
 
 export function deriveResultDigests(input) {
   try {
-    if (!validResultData(input)) return error('INVALID_DIGEST_INPUT');
+    const invalid = validResultData(input);
+    if (invalid) return error(invalid);
     return { manifestDigest: manifestDigest(input.manifest), setDigest: setDigest(input.set), headDigest: headDigest(input.head), projectionDigest: projectionDigest(input.projection), contentTreeDigest: contentTreeDigest(input.contentTree) };
   } catch {
     return error('INVALID_DIGEST_INPUT');
@@ -47,7 +79,7 @@ export function evaluateCasDecision(input) {
   try {
     if (!isObject(input)) return error('INVALID_INPUT');
     if (!exact(input, new Set(['expected', 'observed', 'result', 'resultData']))) return error('UNKNOWN_FIELD');
-    if (isObject(input.resultData) && !exact(input.resultData, new Set(['manifest', 'set', 'head', 'projection', 'contentTree']))) return error('UNKNOWN_FIELD');
+    if (isObject(input.resultData) && Object.keys(input.resultData).some((key) => !['manifest', 'set', 'head', 'projection', 'contentTree'].includes(key))) return error('UNKNOWN_FIELD');
     for (const tuple of [input.expected, input.observed]) {
       const invalid = validateTuple(tuple);
       if (invalid) return error(invalid);
