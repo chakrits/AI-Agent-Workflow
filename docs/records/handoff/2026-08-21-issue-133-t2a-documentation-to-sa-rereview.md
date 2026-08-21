@@ -89,7 +89,7 @@ Planning artifacts frozen; implementation AC evidence not claimed. Primary owner
 `docs/records/implementation-plan/2026-08-21-issue-133-imp003-t2a-cas-record-validation.md#11-ac-traceability-ownership`
 
 ## Verified Commit SHA
-`d821b2f217064588f2ddd1d5caba0049744ee2f7` (full SHA verified immediately before this final handoff amendment; the resulting amended final SHA is reported in the completion response)
+`e8e8ab13fecd09b61a5312e44ec2ae29f7d56633` (supplied immutable base verification point; the final documentation-repair commit is the exact full SHA reported in the completion response and must be checked out for this handoff)
 
 ## Platform Activation Record URL / Status
 N/A — no platform activation or external dispatch performed
@@ -106,6 +106,8 @@ Human exact-revision approval remains required after SA re-review; `status:spec-
 
 ## Known Limitations
 - The corpus payloads are test-only planning fixtures; future implementation tests must pass only the dereferenced payload, never the `testOnly` metadata.
+- `digest-vectors.json` retains both the canonical `vectors` map and the T1-compatible top-level `derived` object; no implementation test or production/runtime file was changed.
+- `consumedRecordDigests` is frozen as serialized JSON `string[]`, converted to a fresh internal `Set`; null/wrong containers/malformed members return `INVALID_RECORD`, duplicates are idempotent, order is ignored, and no consumption store exists.
 - Existing implementation files at the base commit were not modified or revalidated by this documentation task.
 
 ## Open Questions
