@@ -8,12 +8,12 @@ const IDENTITY = /^[A-Za-z0-9][A-Za-z0-9._:@/-]{0,127}$/;
 const CAS_FIELDS = [['commitSha', 'COMMIT'], ['manifestDigest', 'MANIFEST'], ['setDigest', 'SET'], ['headDigest', 'HEAD']];
 const RESULT_FIELDS = ['manifestDigest', 'setDigest', 'headDigest', 'projectionDigest', 'contentTreeDigest'];
 const RECORD_FIELDS = new Set(['schemaVersion', 'operation', 'identity', 'predecessor', 'proposal', 'successor', 'expected', 'changedPaths', 'approval', 'recordDigest']);
+const RECORD_PREIMAGE_FIELDS = new Set([...RECORD_FIELDS].filter((field) => field !== 'recordDigest'));
 const RECORD_INPUT_FIELDS = new Set(['operation', 'identity', 'predecessor', 'proposal', 'successor', 'expected', 'changedPaths', 'approval']);
 const RESERVED_PATHS = new Set(['CON', 'PRN', 'AUX', 'NUL', ...Array.from({ length: 9 }, (_, i) => `COM${i + 1}`), ...Array.from({ length: 9 }, (_, i) => `LPT${i + 1}`)]);
 const error = (code) => ({ accepted: false, error: { code } });
 const isObject = (value) => value !== null && typeof value === 'object' && !Array.isArray(value);
 const exact = (value, fields) => isObject(value) && Object.keys(value).every((key) => fields.has(key));
-const sortedPaths = (paths) => [...paths].sort((a, b) => Buffer.compare(Buffer.from(a), Buffer.from(b)));
 
 export function isSafeRepositoryPath(value) {
   if (typeof value !== 'string' || value.length === 0 || value.length > 255 || value.normalize('NFC') !== value) return false;
@@ -67,7 +67,7 @@ function recordPreimage(record) { const copy = { ...record }; delete copy.record
 
 export function recordDigest(record) {
   try {
-    if (!exact(record, RECORD_FIELDS)) return error('INVALID_RECORD');
+    if (!exact(record, RECORD_FIELDS) || [...RECORD_PREIMAGE_FIELDS].some((key) => !Object.hasOwn(record, key))) return error('INVALID_RECORD');
     return createHash('sha256').update(canonicalJcsBytes(recordPreimage(record))).digest('hex');
   } catch {
     return error('INVALID_RECORD');
@@ -79,7 +79,7 @@ function makeRecord(input, kind, defaultOperation) {
     if (!isObject(input) || !exact(input, RECORD_INPUT_FIELDS) || !Array.isArray(input.changedPaths)) return error('INVALID_RECORD_INPUT');
     if (kind === 'correction' && input.operation !== undefined && input.operation !== 'correction') return error('INVALID_RECORD_INPUT');
     const operation = kind === 'correction' ? 'correction' : input.operation ?? defaultOperation;
-    const record = { schemaVersion: `status-${kind}-record/v1`, operation, identity: input.identity, predecessor: isObject(input.predecessor) ? { ...input.predecessor } : input.predecessor, proposal: input.proposal, successor: input.successor, expected: isObject(input.expected) ? { ...input.expected } : input.expected, changedPaths: sortedPaths(input.changedPaths), approval: input.approval };
+    const record = { schemaVersion: `status-${kind}-record/v1`, operation, identity: input.identity, predecessor: isObject(input.predecessor) ? { ...input.predecessor } : input.predecessor, proposal: input.proposal, successor: input.successor, expected: isObject(input.expected) ? { ...input.expected } : input.expected, changedPaths: [...input.changedPaths], approval: input.approval };
     const digest = recordDigest(record);
     return digest.error ? error('INVALID_RECORD_INPUT') : { ...record, recordDigest: digest };
   } catch {
@@ -96,14 +96,16 @@ export function validateRecord(record) {
     if (!isObject(record)) return [{ code: 'INVALID_RECORD' }];
     if (!exact(record, RECORD_FIELDS)) errors.push({ code: 'UNKNOWN_FIELD' });
     if ([...RECORD_FIELDS].some((key) => !Object.hasOwn(record, key))) errors.push({ code: 'MISSING_FIELD' });
+    const knownSchema = record.schemaVersion === 'status-transition-record/v1' || record.schemaVersion === 'status-correction-record/v1';
+    if (!knownSchema) errors.push({ code: 'INVALID_SCHEMA_KIND' });
     const validOperation = record.schemaVersion === 'status-transition-record/v1' ? ['create', 'update', 'archive', 'rollback'].includes(record.operation) : record.schemaVersion === 'status-correction-record/v1' && record.operation === 'correction';
-    if (!validOperation) errors.push({ code: 'INVALID_OPERATION' });
-    if (typeof record.identity !== 'string' || !IDENTITY.test(record.identity)) errors.push({ code: 'INVALID_IDENTITY' });
-    if (!exact(record.predecessor, new Set(['digest', 'authenticatedBy'])) || !DIGEST.test(record.predecessor?.digest ?? '') || typeof record.predecessor?.authenticatedBy !== 'string' || !IDENTITY.test(record.predecessor.authenticatedBy)) errors.push({ code: 'INVALID_PREDECESSOR' });
-    for (const field of ['proposal', 'successor', 'approval']) if (typeof record[field] !== 'string' || !DIGEST.test(record[field])) errors.push({ code: `INVALID_${field.toUpperCase()}` });
+    if (knownSchema && !validOperation) errors.push({ code: 'INVALID_OPERATION' });
+    if (typeof record.identity !== 'string' || !IDENTITY.test(record.identity)) errors.push({ code: 'INVALID_NESTED_SHAPE' });
+    if (!exact(record.predecessor, new Set(['digest', 'authenticatedBy'])) || !DIGEST.test(record.predecessor?.digest ?? '') || typeof record.predecessor?.authenticatedBy !== 'string' || !IDENTITY.test(record.predecessor.authenticatedBy)) errors.push({ code: 'INVALID_NESTED_SHAPE' });
+    for (const field of ['proposal', 'successor', 'approval']) if (typeof record[field] !== 'string' || !DIGEST.test(record[field])) errors.push({ code: 'INVALID_NESTED_SHAPE' });
     const tupleError = validateTuple(record.expected);
     if (tupleError) errors.push({ code: tupleError });
-    if (!Array.isArray(record.changedPaths) || record.changedPaths.length === 0 || record.changedPaths.some((value, index, values) => !isSafeRepositoryPath(value) || values.indexOf(value) !== index || (index > 0 && Buffer.compare(Buffer.from(values[index - 1]), Buffer.from(value)) >= 0))) errors.push({ code: 'INVALID_CHANGED_PATHS' });
+    if (!Array.isArray(record.changedPaths) || record.changedPaths.length === 0 || record.changedPaths.some((value, index, values) => !isSafeRepositoryPath(value) || values.indexOf(value) !== index)) errors.push({ code: 'INVALID_NESTED_SHAPE' });
     const digest = recordDigest(record);
     if (typeof record.recordDigest !== 'string' || !DIGEST.test(record.recordDigest) || typeof digest !== 'string' || record.recordDigest !== digest) errors.push({ code: 'RECORD_DIGEST_MISMATCH' });
   } catch {
@@ -118,7 +120,9 @@ export function approveRecord(input) {
     if (input.independent !== false) return error('INDEPENDENT_APPROVAL_NOT_ALLOWED');
     if (input.identity !== input.record.predecessor.authenticatedBy) return error('APPROVAL_IDENTITY_MISMATCH');
     if (input.proposal !== input.record.proposal || input.predecessor !== input.record.predecessor.digest || input.result !== input.record.successor) return error('APPROVAL_BINDING_MISMATCH');
-    if (input.consumedRecordDigests?.has?.(input.record.recordDigest)) return error('APPROVAL_REPLAY');
+    if (!Array.isArray(input.consumedRecordDigests) || input.consumedRecordDigests.some((value) => typeof value !== 'string' || !DIGEST.test(value))) return error('INVALID_RECORD');
+    const consumedRecordDigests = new Set(input.consumedRecordDigests);
+    if (consumedRecordDigests.has(input.record.recordDigest)) return error('APPROVAL_REPLAY');
     return { accepted: true, event: { type: 'approval', independent: false, recordDigest: input.record.recordDigest, proposal: input.proposal, predecessor: input.predecessor, result: input.result, identity: input.identity } };
   } catch {
     return error('INVALID_RECORD');
