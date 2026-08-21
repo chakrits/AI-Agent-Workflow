@@ -1,1 +1,24 @@
-{"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"https://github.com/chakrits/AI-Agent-Workflow/docs/contracts/schemas/status-cas-decision.schema.json","title":"Status CAS Decision v1","type":"object","additionalProperties":false,"required":["accepted"],"properties":{"accepted":{"type":"boolean"},"observed":{"$ref":"#/$defs/tuple"},"result":{"$ref":"#/$defs/result"},"error":{"type":"object","additionalProperties":false,"required":["code"],"properties":{"code":{"type":"string","pattern":"^[A-Z][A-Z0-9_]*$"}}}},"$defs":{"digest":{"type":"string","pattern":"^[a-f0-9]{64}$"},"tuple":{"type":"object","additionalProperties":false,"required":["commitSha","manifestDigest","setDigest","headDigest"],"properties":{"commitSha":{"type":"string","pattern":"^[a-f0-9]{40}$"},"manifestDigest":{"$ref":"#/$defs/digest"},"setDigest":{"$ref":"#/$defs/digest"},"headDigest":{"$ref":"#/$defs/digest"}}},"result":{"type":"object","additionalProperties":false,"required":["manifestDigest","setDigest","headDigest","projectionDigest","contentTreeDigest"],"properties":{"manifestDigest":{"$ref":"#/$defs/digest"},"setDigest":{"$ref":"#/$defs/digest"},"headDigest":{"$ref":"#/$defs/digest"},"projectionDigest":{"$ref":"#/$defs/digest"},"contentTreeDigest":{"$ref":"#/$defs/digest"}}}}}
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/chakrits/AI-Agent-Workflow/docs/contracts/schemas/status-cas-decision.schema.json",
+  "title": "Status CAS Decision v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["accepted"],
+  "properties": {
+    "accepted": { "type": "boolean" },
+    "observed": { "$ref": "#/$defs/tuple" },
+    "result": { "$ref": "#/$defs/result" },
+    "error": { "$ref": "#/$defs/error" }
+  },
+  "allOf": [
+    { "if": { "properties": { "accepted": { "const": true } }, "required": ["accepted"] }, "then": { "properties": { "observed": {}, "result": {}, "error": {} }, "required": ["observed", "result"], "not": { "properties": { "error": {} }, "required": ["error"] } } },
+    { "if": { "properties": { "accepted": { "const": false } }, "required": ["accepted"] }, "then": { "properties": { "observed": {}, "result": {}, "error": {} }, "required": ["error"], "not": { "anyOf": [{ "properties": { "observed": {} }, "required": ["observed"] }, { "properties": { "result": {} }, "required": ["result"] }] } } }
+  ],
+  "$defs": {
+    "digest": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "tuple": { "type": "object", "additionalProperties": false, "required": ["commitSha", "manifestDigest", "setDigest", "headDigest"], "properties": { "commitSha": { "type": "string", "pattern": "^[a-f0-9]{40}$" }, "manifestDigest": { "$ref": "#/$defs/digest" }, "setDigest": { "$ref": "#/$defs/digest" }, "headDigest": { "$ref": "#/$defs/digest" } } },
+    "result": { "type": "object", "additionalProperties": false, "required": ["manifestDigest", "setDigest", "headDigest", "projectionDigest", "contentTreeDigest"], "properties": { "manifestDigest": { "$ref": "#/$defs/digest" }, "setDigest": { "$ref": "#/$defs/digest" }, "headDigest": { "$ref": "#/$defs/digest" }, "projectionDigest": { "$ref": "#/$defs/digest" }, "contentTreeDigest": { "$ref": "#/$defs/digest" } } },
+    "error": { "type": "object", "additionalProperties": false, "required": ["code"], "properties": { "code": { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*$" } } }
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "derived": {
+    "manifestDigest": "6ea40d7c7f84b3e71d66320f4c367079cdc6fb36274a6df07c9bcaa127460054",
+    "setDigest": "972cfe097309529e369ee7810dd27ed7f29a7624379a8500ee50e3d1eb7ddb13",
+    "headDigest": "6e7379878e871c724cebcc622dda24df84420cc5bec0f866b6127c2d66b2eb4d",
+    "projectionDigest": "95fb7925aee5851a27f1776ba7cacbc45c3647b0a8e6ddb487ed981ae83c4fba",
+    "contentTreeDigest": "d9878822cfec07ee64a6321df18f788da14cac00731feb18265256334bc8c64c"
+  }
+}
