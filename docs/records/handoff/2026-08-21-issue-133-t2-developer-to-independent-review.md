@@ -114,7 +114,7 @@ T2 brief/plan v1; rework packet v2
 
 ## Verified Commit SHA
 
-Pending atomic implementation commit; branch base is `95f3ea39e0d57f8fd33920d826c49b191adb5cc9`.
+Implementation commit: `f7cd7d4`; branch base: `95f3ea39e0d57f8fd33920d826c49b191adb5cc9`.
 
 ## Platform Activation Record URL / Status
 
