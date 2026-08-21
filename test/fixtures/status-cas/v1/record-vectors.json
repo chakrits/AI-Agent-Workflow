@@ -1,0 +1,38 @@
+{
+  "fixtureVersion": "status-cas-record-vectors/v1",
+  "testOnly": true,
+  "vectors": {
+    "T2A-RECORD-001/TRANSITION": {
+      "record": {
+        "schemaVersion": "status-transition-record/v1",
+        "operation": "update",
+        "identity": "maintainer@example.com",
+        "predecessor": { "digest": "9cd30e3d938ae46960dcf8e2ed499f243bd301a0f4667a6d75f9dd22ec71e529", "authenticatedBy": "maintainer@example.com" },
+        "proposal": "9cd30e3d938ae46960dcf8e2ed499f243bd301a0f4667a6d75f9dd22ec71e529",
+        "successor": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "expected": { "commitSha": "cccccccccccccccccccccccccccccccccccccccc", "manifestDigest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "setDigest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "headDigest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" },
+        "changedPaths": ["PROJECT_STATUS.md", "docs/status/active/issue-133.yaml", "docs/status/manifest.yaml"],
+        "approval": "9cd30e3d938ae46960dcf8e2ed499f243bd301a0f4667a6d75f9dd22ec71e529",
+        "recordDigest": "c2352178b62c238cf2d6cb596024fd950862bacc4ec4e313e952a069785ea947"
+      },
+      "canonicalUtf8": "{\"approval\":\"9cd30e3d938ae46960dcf8e2ed499f243bd301a0f4667a6d75f9dd22ec71e529\",\"changedPaths\":[\"PROJECT_STATUS.md\",\"docs/status/active/issue-133.yaml\",\"docs/status/manifest.yaml\"],\"expected\":{\"commitSha\":\"cccccccccccccccccccccccccccccccccccccccc\",\"headDigest\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"manifestDigest\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"setDigest\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"},\"identity\":\"maintainer@example.com\",\"operation\":\"update\",\"predecessor\":{\"authenticatedBy\":\"maintainer@example.com\",\"digest\":\"9cd30e3d938ae46960dcf8e2ed499f243bd301a0f4667a6d75f9dd22ec71e529\"},\"proposal\":\"9cd30e3d938ae46960dcf8e2ed499f243bd301a0f4667a6d75f9dd22ec71e529\",\"schemaVersion\":\"status-transition-record/v1\",\"successor\":\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"}",
+      "recordDigest": "c2352178b62c238cf2d6cb596024fd950862bacc4ec4e313e952a069785ea947"
+    },
+    "T2A-RECORD-001/CORRECTION": {
+      "record": {
+        "schemaVersion": "status-correction-record/v1",
+        "operation": "correction",
+        "identity": "maintainer@example.com",
+        "predecessor": { "digest": "9cd30e3d938ae46960dcf8e2ed499f243bd301a0f4667a6d75f9dd22ec71e529", "authenticatedBy": "maintainer@example.com" },
+        "proposal": "9cd30e3d938ae46960dcf8e2ed499f243bd301a0f4667a6d75f9dd22ec71e529",
+        "successor": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "expected": { "commitSha": "cccccccccccccccccccccccccccccccccccccccc", "manifestDigest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "setDigest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "headDigest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" },
+        "changedPaths": ["PROJECT_STATUS.md", "docs/status/active/issue-133.yaml", "docs/status/manifest.yaml"],
+        "approval": "9cd30e3d938ae46960dcf8e2ed499f243bd301a0f4667a6d75f9dd22ec71e529",
+        "recordDigest": "d206024ddb4893a83f6eca60a5a07184ece187cfe59dca043eec3d73774a6e69"
+      },
+      "canonicalUtf8": "{\"approval\":\"9cd30e3d938ae46960dcf8e2ed499f243bd301a0f4667a6d75f9dd22ec71e529\",\"changedPaths\":[\"PROJECT_STATUS.md\",\"docs/status/active/issue-133.yaml\",\"docs/status/manifest.yaml\"],\"expected\":{\"commitSha\":\"cccccccccccccccccccccccccccccccccccccccc\",\"headDigest\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"manifestDigest\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"setDigest\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"},\"identity\":\"maintainer@example.com\",\"operation\":\"correction\",\"predecessor\":{\"authenticatedBy\":\"maintainer@example.com\",\"digest\":\"9cd30e3d938ae46960dcf8e2ed499f243bd301a0f4667a6d75f9dd22ec71e529\"},\"proposal\":\"9cd30e3d938ae46960dcf8e2ed499f243bd301a0f4667a6d75f9dd22ec71e529\",\"schemaVersion\":\"status-correction-record/v1\",\"successor\":\"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\"}",
+      "recordDigest": "d206024ddb4893a83f6eca60a5a07184ece187cfe59dca043eec3d73774a6e69"
+    }
+  }
+}

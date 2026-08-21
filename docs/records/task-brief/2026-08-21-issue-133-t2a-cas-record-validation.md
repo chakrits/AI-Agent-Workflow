@@ -116,7 +116,7 @@ The implementation must enumerate these seven runtime exports and four schema bo
 
 ## Fixture manifest and omission detection
 
-The authoritative executable manifest is `test/fixtures/status-cas/v1/manifest.json`, encoded as UTF-8 JSON. It has exactly `schemaVersion`, `caseCount`, `manifestDigest`, and `cases`; each case has exactly `id`, `kind`, `input`, and `expected`, where `expected` has exactly `accepted` plus either `output` or `error`. `kind` identifies one of `cas`, `digest`, `transition`, `correction`, `record`, or `approval`. `manifestDigest` is SHA-256 over the JCS UTF-8 manifest preimage excluding only `manifestDigest`; its fixed value and the approved numeric `caseCount` are required before implementation. The numeric count is an SA decision point until the final case list is approved; it must not be inferred at runtime.
+The authoritative executable manifest is `test/fixtures/status-cas/v1/manifest.json`, encoded as UTF-8 JSON. It has exactly `schemaVersion`, `caseCount`, `manifestDigest`, and `cases`; each case has exactly `id`, `kind`, `input`, and `expected`, where `expected` has exactly `accepted` plus either `output` or `error`. `kind` identifies one of `cas`, `digest`, `transition`, `correction`, `record`, or `approval`. `manifestDigest` is SHA-256 over the JCS UTF-8 manifest preimage excluding only `manifestDigest`; its fixed value and approved numeric `caseCount` are frozen in the Human-approved fixture decision and must not be inferred at runtime.
 
 Every listed case must run through both its applicable JSON Schema and runtime boundary. The test command must assert: manifest path exists; manifest digest matches; `caseCount === cases.length`; IDs are unique and sorted by the manifest rule; every case has the required fields; every case produces exactly its expected output/error; and the executed-ID set equals the manifest-ID set. A test that discovers files without consuming this manifest is insufficient. Omission detection is therefore a count check, digest check, unique-ID check, and executed-ID equality check; a missing case fails closed.
 
@@ -158,7 +158,7 @@ T2-B is a future separate contract/package for publication-boundary behavior. It
 ## Verification and Stop Condition
 
 - Documentation checks: `git diff --check`; `npm run validate:project-state`; `npm run validate:contracts`; `npm run validate:skill-usage`; `npm run validate:context-budget`.
-- Planning-only checks: inspect the diff for exactly two new T2-A records plus minimal project-state entries; confirm no code/test/schema implementation files changed and no T2-B criterion appears in the A-01..A-12 table.
+- Planning-only checks: inspect the diff for the two synthetic record vectors, the T2-A-only fixture manifest, and minimal project-state entries; confirm no runtime code, runtime schema, or implementation test changed and no T2-B criterion appears in the A-01..A-12 table.
 - Future implementation checks: failing-test evidence before implementation; focused CAS/record/fixture tests; `npm test`; all project validators above; fresh independent Code Review, Security Review, QA, and Human approval. Do not claim these implementation checks from this planning task.
 - Stop and route to SA for contract/preimage/schema ambiguity; Security for untrusted-input, canonicalization, replay, or side-effect control findings; Human for scope, authority, credentials, lifecycle, migration, release, or Go/No-Go decisions; Developer/QA only after approved implementation evidence exists.
 
@@ -199,7 +199,7 @@ The following values are copied from `test/status-audit.test.mjs:233-271` at bas
 
 The SET row's source assertion is the immutable byte source for the full long string; the abbreviated table notation is not an alternate preimage. Implementers must copy the source assertion or its exact UTF-8/hex bytes, not regenerate a different descriptor order.
 
-### Record vectors: explicit non-T1 planning decision
+### Record vectors: Human-approved synthetic test-only decision
 
 T1 has no transition/correction constructor, record schema, or record-digest helper. The existing T2 schemas at `docs/contracts/schemas/status-transition-record.schema.json` and `status-correction-record.schema.json` define the closed field types only. Therefore these are explicitly synthetic planning vectors, not T1 evidence; SA/Human must approve them before they become implementation fixtures. They use the real T1 `auditDigest` from `test/fixtures/status-audit/v1/valid.json` and the real T1 `changedPaths`/tuple values to keep the example data anchored.
 
@@ -213,10 +213,27 @@ T2A-RECORD-001/TRANSITION {"approval":"9cd30e3d938ae46960dcf8e2ed499f243bd301a0f
 T2A-RECORD-001/CORRECTION {"approval":"9cd30e3d938ae46960dcf8e2ed499f243bd301a0f4667a6d75f9dd22ec71e529","changedPaths":["PROJECT_STATUS.md","docs/status/active/issue-133.yaml","docs/status/manifest.yaml"],"expected":{"commitSha":"cccccccccccccccccccccccccccccccccccccccc","headDigest":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","manifestDigest":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","setDigest":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},"identity":"maintainer@example.com","operation":"correction","predecessor":{"authenticatedBy":"maintainer@example.com","digest":"9cd30e3d938ae46960dcf8e2ed499f243bd301a0f4667a6d75f9dd22ec71e529"},"proposal":"9cd30e3d938ae46960dcf8e2ed499f243bd301a0f4667a6d75f9dd22ec71e529","schemaVersion":"status-correction-record/v1","successor":"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"}
 ```
 
-No record vector is authoritative until SA/Human approves this explicit synthetic-data decision.
+Human approved both vectors as synthetic, test-only planning artifacts. They are reproducible with the existing T1 JCS/SHA-256 helper but are not T1 evidence and do not become production authority, runtime state, publication records, migration data, live status records, or approval/identity capability. They do not consume replay state and do not authorize T2-B.
 
-### Fixture manifest stop / `NEEDS_CONTEXT`
+### Frozen T2-A fixture manifest and corpus
 
-The exact path and format are frozen: `test/fixtures/status-cas/v1/manifest.json`, UTF-8 JSON, closed top-level `{ schemaVersion, caseCount, manifestDigest, cases }`, case shape `{ id, kind, input, expected }`, `expected` shape `{ accepted, output | error }`, and IDs sorted by UTF-8 byte order. Required category IDs are the stable prefixes `T2A-CAS-001` through `T2A-CAS-012` (accepted; wrong container/unknown; missing/extra/invalid/stale C/M/S/H; forged result; valid transition; valid correction; cross-kind/record closure; wrong binding; replay; no-side-effect), with subcases numbered in each category.
+The exact path and format are frozen: `test/fixtures/status-cas/v1/manifest.json`, UTF-8 JSON, closed top-level `{ schemaVersion, caseCount, manifestDigest, cases }`, case shape `{ id, kind, input, expected }`, `expected` shape `{ accepted, output | error }`, and IDs sorted by UTF-8 byte order. The checked-in manifest has `caseCount: 34` and `manifestDigest` `c254c2dff962b4b11a21dbaea2bc7f9a6e1c2e9978b21edaa890f765b64bc0c2`; its digest is SHA-256 over the JCS UTF-8 manifest preimage excluding only `manifestDigest`.
 
-The exact final subcase list, numeric `caseCount`, and canonical `manifestDigest` cannot be derived from T1: T1 contains no T2-A fixture corpus, no T2 runtime error outputs, and no record constructor. Choosing those values now would invent implementation-level evidence and could make omission detection pass over an incomplete corpus. **Return `NEEDS_CONTEXT` and request one precise SA/Human decision:** approve the two synthetic record vectors above and provide/approve the complete numbered subcase list (including each C/M/S/H negative and deterministic expected error), after which the Documentation Agent can compute and freeze `caseCount` and the manifest JCS/SHA-256 preimage/digest. Until that decision, no `status:spec-ready`, Developer dispatch, implementation test claim, or T2-B work is allowed.
+| Category | Numbered IDs | Mapping and expected coverage |
+|---|---:|---|
+| T2A-CAS-001 | 01 | Accepted complete CAS tuple/result |
+| T2A-CAS-002 | 01–02 | Wrong outer container; unknown public field |
+| T2A-CAS-003 | 01–05 | Missing `C`, `M`, `S`, `H`; extra tuple member |
+| T2A-CAS-004 | 01–04 | Invalid `C`, `M`, `S`, `H` in precedence order |
+| T2A-CAS-005 | 01–04 | Stale/mismatched `C`, `M`, `S`, `H` in precedence order |
+| T2A-CAS-006 | 01–02 | Forged result digest; forged result preimage |
+| T2A-CAS-007 | 01 | Valid synthetic transition record |
+| T2A-CAS-008 | 01 | Valid synthetic correction record |
+| T2A-CAS-009 | 01–04 | Cross-kind operation; unknown record field; missing record field |
+| T2A-CAS-010 | 01–04 | Wrong identity, proposal, predecessor, successor binding |
+| T2A-CAS-011 | 01–02 | Duplicate/reused record or approval data |
+| T2A-CAS-012 | 01–04 | Rejected CAS/record/approval snapshots and unchanged replay input |
+
+The manifest is omission-detectable: future tests must resolve every `input.fixture`, execute every listed ID through its applicable schema and runtime boundary, assert the exact `expected` result/error, verify unique UTF-8-byte-sorted IDs, assert `caseCount === cases.length`, recompute `manifestDigest`, and compare executed IDs with manifest IDs. T2-B writer/publication/harness cases are deliberately absent from this corpus; the prior four-case harness manifest is superseded for T2-A planning.
+
+All synthetic vectors and cases are test-only. They are not production authority, live status records, runtime state, publication records, migration data, credentials, real refs, or approval stores; they do not mutate or consume replay state, and they do not authorize T2-B.
