@@ -1,14 +1,14 @@
 # PROJECT_STATUS.md
 
 ## Current Work Item
-- Issue #133 — IMP-003-T2 controlled CAS/writer-boundary planning revision after SA `NEEDS_REVISION`; preserve Human review and lifecycle gates before implementation continues.
+- Issue #133 — IMP-003-T2 controlled CAS/writer-boundary Developer rework round 2/2; preserve independent Code/Security and Human gates.
 
 ## Current Stage
-- Planning revision — T1 is merged and verified; SA returned `NEEDS_REVISION` for T2. The revised brief/plan bind `C/M/S/H`, separate transition/correction records, local-CLI intent, disposable TOCTOU/atomic publication, deterministic fail-closed errors, and explicit no-side-effect coverage. No `status:spec-ready`, implementation, writer activation, runtime status mutation, projection-authority change, consumer migration, or dispatch/terminal-result relay redesign was made.
+- Development complete pending fresh independent review — T2 runtime and disposable harness rework is implemented on the isolated branch from `95f3ea39e0d57f8fd33920d826c49b191adb5cc9`; full suite is 498/498 and required local contract/project-state checks pass. No production writer, real ref/credential, authority switch, orchestration, dispatch relay, T1 behavior, or runtime status authority change was made.
 
 ## Change Classification
 - Change Type: Framework / Meta (evidence and measurement foundation)
-- Risk Level: Medium
+- Risk Level: High
 - Required Workflow Route: SA re-review → Documentation Agent → Human specification review → Developer Agent → independent code review → Security Reviewer → independent QA → Human Approval
 - Code Change Required: Yes — future T2 contract/harness implementation only; no production writer activation
 - Architecture Change Required: Yes — CAS, predecessor/approval binding, and publication-boundary semantics
@@ -57,10 +57,10 @@
 - Issue #166's artifacts are merged: canonical definition `docs/workflow/task-execution-mode.md`, specification of record `docs/records/sdd/2026-08-12-issue-166-task-execution-mode-spec.md`, `DECISIONS.md` ADR-0014.
 
 ## Next Quality Gate
-- Fresh SA re-review and Human approval of the revised IMP-003-T2 brief/plan. Only after approval may `status:spec-ready` be considered; then route the bounded implementation through independent code review, Security before QA, fresh QA, and Human review.
+- Fresh independent Code Reviewer and Security Reviewer re-review of this final rework head, followed by QA and Human review. If either fresh review retains a blocking finding, stop with `human_review_required`; do not begin round 3.
 
 ## Recommended Next Agent
-- Human Maintainer — review the revised IMP-003-T2 specification; do not apply `status:spec-ready` or dispatch Developer until approval is explicit.
+- Independent Code Reviewer / Security Reviewer — review the exact final rework head; no self-review, QA, merge, writer activation, or authority switch is authorized.
 
 ## Notes
 - Reset to template baseline by `npm run reset:template`.

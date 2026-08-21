@@ -18,14 +18,26 @@ import {
 const digest = 'a'.repeat(64);
 const tuple = { commitSha: 'b'.repeat(40), manifestDigest: digest, setDigest: digest, headDigest: digest };
 const result = { manifestDigest: 'c'.repeat(64), setDigest: 'd'.repeat(64), headDigest: 'e'.repeat(64), projectionDigest: 'f'.repeat(64), contentTreeDigest: '0'.repeat(64) };
+const resultData = {
+  manifest: { schemaVersion: 'status-manifest/v1', manifestDigest: 'f'.repeat(64), setDigest: digest },
+  set: [{ issueKey: 'owner/repo#133', path: 'docs/status/active/issue-133.yaml', recordDigest: digest }],
+  head: { schemaVersion: 'work-item-status/v1', activeIssueKeys: ['owner/repo#133'], setDigest: '972cfe097309529e369ee7810dd27ed7f29a7624379a8500ee50e3d1eb7ddb13' },
+  projection: '# Status\n',
+  contentTree: [{ path: 'PROJECT_STATUS.md', bytes: 'one' }],
+};
 const fixtureRoot = path.join('test', 'fixtures', 'status-cas', 'v1');
 
 function decision(overrides = {}) {
-  return evaluateCasDecision({ expected: tuple, observed: tuple, result, ...overrides });
+  return evaluateCasDecision({ expected: tuple, observed: tuple, result: deriveResultDigests(resultData), resultData, ...overrides });
 }
 
 function validRecord(overrides = {}) {
   return createTransitionRecord({ operation: 'update', identity: 'owner/repo:133', predecessor: { digest, authenticatedBy: 'maintainer@example.com' }, proposal: '1'.repeat(64), successor: '2'.repeat(64), expected: tuple, changedPaths: ['PROJECT_STATUS.md'], approval: '3'.repeat(64), ...overrides });
+}
+function recordInput(overrides = {}) {
+  const record = validRecord();
+  const { schemaVersion, recordDigest, ...input } = record;
+  return { ...input, ...overrides };
 }
 
 test('checked-in valid fixture is executable and accepted', async () => {
@@ -41,6 +53,15 @@ test('every public CAS/record/approval boundary returns a code-only error for ma
   assert.deepEqual(validateRecord(null), [{ code: 'INVALID_RECORD' }]);
   assert.deepEqual(approveRecord(), { accepted: false, error: { code: 'INVALID_RECORD' } });
   assert.deepEqual(approveRecord({ record: {} }), { accepted: false, error: { code: 'INVALID_RECORD' } });
+  assert.deepEqual(deriveResultDigests(null), { accepted: false, error: { code: 'INVALID_DIGEST_INPUT' } });
+  assert.deepEqual(deriveResultDigests({ manifest: null, set: [], head: {}, projection: '', contentTree: [] }), { accepted: false, error: { code: 'INVALID_DIGEST_INPUT' } });
+});
+
+test('CAS rejects unknown public fields and binds accepted result digests to supplied data', () => {
+  assert.deepEqual(evaluateCasDecision({ expected: tuple, observed: tuple, result: deriveResultDigests(resultData), resultData, extra: true }), { accepted: false, error: { code: 'UNKNOWN_FIELD' } });
+  assert.deepEqual(decision({ result: { ...deriveResultDigests(resultData), manifestDigest: 'a'.repeat(64) } }), { accepted: false, error: { code: 'RESULT_DIGEST_MISMATCH' } });
+  assert.deepEqual(decision({ resultData: { ...resultData, projection: '# Forged\n' } }), { accepted: false, error: { code: 'RESULT_DIGEST_MISMATCH' } });
+  assert.deepEqual(decision({ resultData: { ...resultData, extra: true } }), { accepted: false, error: { code: 'UNKNOWN_FIELD' } });
 });
 
 test('CAS rejects malformed values and each of the four stale tuple members', () => {
@@ -63,12 +84,12 @@ test('record digest covers the complete record and approval rejects forged, stal
 
 test('transition and correction records stay distinct and path validation is cross-platform safe', () => {
   const transition = validRecord();
-  const correction = createCorrectionRecord({ ...transition, recordDigest: undefined, operation: undefined });
+  const correction = createCorrectionRecord(recordInput({ operation: undefined }));
   assert.deepEqual(validateRecord(transition), []);
   assert.deepEqual(validateRecord(correction), []);
   assert.equal(transition.schemaVersion, 'status-transition-record/v1');
   assert.equal(correction.schemaVersion, 'status-correction-record/v1');
-  for (const unsafe of ['C:\\temp\\x', 'C:/temp/x', '/absolute', '../escape', 'a/../b', 'a\nb', 'a\u0000b', 'CON', 'aux.txt', 'a//b', 'a/']) assert.equal(isSafeRepositoryPath(unsafe), false, unsafe);
+  for (const unsafe of ['C:\\temp\\x', 'C:/temp/x', '/absolute', '../escape', 'a/../b', 'a\nb', 'a\u0000b', 'CON', 'aux.txt', 'a//b', 'a/', 'name. ', 'name./x', 'docs/\u0065\u0301.txt']) assert.equal(isSafeRepositoryPath(unsafe), false, unsafe);
   assert.equal(isSafeRepositoryPath('docs/status/active/item.json'), true);
 });
 
@@ -92,7 +113,7 @@ test('T2 record schemas are closed and generated records validate', async () => 
   for (const name of ['status-transition-record', 'status-correction-record']) {
     const schema = JSON.parse(await readFile(path.join('docs/contracts/schemas', `${name}.schema.json`), 'utf8'));
     const validate = new Ajv2020({ strict: true }).compile(schema);
-    const record = name.includes('correction') ? createCorrectionRecord(validRecord()) : validRecord();
+    const record = name.includes('correction') ? createCorrectionRecord(recordInput({ operation: undefined })) : validRecord();
     assert.equal(validate(record), true, JSON.stringify(validate.errors));
     assert.equal(validate({ ...record, extra: true }), false);
   }
