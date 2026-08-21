@@ -1,0 +1,138 @@
+# IMP-003 T2-A Pure CAS and Record Validation Implementation Plan
+
+> **For agentic workers:** Implement only after SA review and Human approval of the paired T2-A Task Brief plus `status:spec-ready`. This plan is a bounded contract/test slice; it does not authorize T2-B, publication, or authority changes.
+
+**Goal:** Implement and verify a pure data-only CAS decision boundary and closed transition/correction record validation while preserving T1 behavior.
+
+**Architecture:** Keep the CAS evaluator and record validators side-effect-free. Validate exact expected/observed `(C, M, S, H)` tuples, derive five result digests through unchanged T1 helpers, and bind canonical record fields/digests in data only. JSON Schema and runtime must share closed shapes and deterministic errors; an executable fixture manifest is the single corpus source for malformed, forged, replay, unknown-field, and no-side-effect cases.
+
+**Tech Stack:** Node.js ESM, JSON Schema/Ajv as already used by the repository, Node test runner, existing T1 JCS/SHA-256 helpers, and checked-in JSON fixtures. No writer, Git, filesystem, network, credential, or orchestration dependency is permitted.
+
+**Spec:** `docs/records/task-brief/2026-08-21-issue-133-t2a-cas-record-validation.md`
+
+## Global Constraints
+
+- T2-A is a new bounded scope reset, not rework round 3; the parent Issue remains open.
+- Only pure CAS/record/digest validation over data is in scope.
+- Expected and observed CAS tuples are exactly `(C, M, S, H)` and all five result digests are data-bound to unchanged T1 helpers.
+- Transition and correction records remain distinct, closed, canonically digested, and exact-field bound.
+- Every malformed, forged, replayed, unknown-field, and rejected input returns deterministic code-only evidence and leaves observable state unchanged.
+- No writer intent, publication, interruption/rollback, TOCTOU race, production authority, real ref, credential, dispatch/relay, terminal-result, orchestration, lifecycle, migration, or Go/No-Go work is authorized.
+
+## 1. Plan Summary
+
+| Item | Detail |
+|---|---|
+| Work Item | GitHub Issue #133 / IMP-003 T2-A |
+| Change Type | Framework / Meta; bounded contract and test implementation slice |
+| Risk Level | High — untrusted input, canonical digest, replay, and authority-boundary semantics |
+| Owner | Developer Agent after SA and Human approval; Documentation Agent owns this plan |
+| Target Branch / Ticket | New clean `codex/` branch from approved implementation head; Issue #133 |
+| Rework policy | New T2-A scope-reset review cycle; not rework round 3 and not a continuation of the combined T2 implementation packet |
+
+## 2. Inputs Reviewed
+
+| Artifact | Status | Notes |
+|---|---|---|
+| T2-A Task Brief | Available | Paired record with A-01..A-12 and explicit T2-B deferral |
+| Prior T2 brief/plan | Superseded for this slice | Combined writer/publication/TOCTOU scope is not copied into T2-A current AC |
+| T1 task brief and helpers | Available | Reuse existing `status-audit/v1` digest/preimage helpers; no T1 behavior change |
+| Prior Code/Security blocked route | Available | Findings motivate narrower pure/data-only scope; this plan does not claim the prior implementation review passed |
+| Required approval | Pending | SA review first, then Human specification approval; `status:spec-ready` withheld |
+
+## 3. Affected Areas and Explicit Exclusions
+
+| Area | Files / Components | Expected T2-A change |
+|---|---|---|
+| Pure runtime | `scripts/lib/status-cas-decision.mjs` | Add/align data-only tuple, result, record, digest, binding, and deterministic-error validation |
+| Schemas | `docs/contracts/schemas/status-cas-decision.schema.json`, `status-transition-record.schema.json`, `status-correction-record.schema.json`, and a distinct CAS request schema if needed | Closed schemas with required fields and runtime-parity rules |
+| Tests | `test/status-cas-decision.test.mjs` | RED-first unit/contract tests for every A-01..A-12 behavior, including no-I/O assertions |
+| Fixtures | `test/fixtures/status-cas/v1/**` | Executable manifest, valid vectors, malformed/forged/replay/unknown/no-side-effect cases |
+| T1 compatibility | Existing T1 test/helpers only | Read-only regression proof; modification requires SA-approved compatibility seam |
+| Project state | `PROJECT_STATUS.md`, `TASK_LOG.md` | Planning/handoff state only |
+
+Excluded files/components include writer harnesses, publication schemas/paths, candidate/archive/manifest/projection/ref mutation, interruption/rollback code, TOCTOU/race harnesses, production credentials/refs, dispatch/relay/terminal-result/orchestration/lifecycle/migration/Go artifacts, and any T1 authority change.
+
+## 4. Task Breakdown
+
+| Task ID | Task | Owner | Files / Components | Verification |
+|---|---|---|---|---|
+| T2A-01 | Freeze the T2-A field tables, error-code table, canonical preimages, and AC traceability; identify whether a distinct CAS request schema is required. | SA | T2-A brief, schemas | SA records PASS/NEEDS_REVISION against A-01..A-12; no Developer dispatch on ambiguity. |
+| T2A-02 | Add RED tests and fixture-manifest entries for exact tuple closure, malformed/unknown inputs, and pure no-I/O behavior. | Developer | `test/status-cas-decision.test.mjs`, `test/fixtures/status-cas/v1/**` | Focused tests fail for the intended missing runtime/schema behavior before implementation. |
+| T2A-03 | Add RED tests and schemas for five T1-derived result digests, transition/correction distinction, canonical record digest, and exact proposal/predecessor/successor/approval binding. | Developer | CAS/record schemas, tests, fixtures | Schema/runtime tests fail for missing closed fields, forged preimages, wrong bindings, and cross-kind records. |
+| T2A-04 | Implement the minimal pure CAS/result/record validators and deterministic code-only errors using unchanged T1 helpers. | Developer | `scripts/lib/status-cas-decision.mjs` and approved schemas | Focused tests pass; static inspection confirms no I/O/import/authority seam; fixture outputs are exact. |
+| T2A-05 | Make the fixture manifest authoritative and execute every listed case; add replay and no-side-effect snapshot assertions without introducing publication state. | Developer | Fixture manifest/corpus and tests | Manifest count/integrity test passes; forged/replay/rejected cases preserve snapshots; no T2-B fixtures exist in this package. |
+| T2A-06 | Run checkpoint and T1 regression compatibility before handoff. | Developer | T2-A tests and existing T1 suite | Focused suite, full `npm test`, contracts, project state, skill usage, context budget, and diff checks pass. |
+| T2A-07 | Perform independent Code Review and Security Review of exact implementation range. | Independent Code Reviewer / Security Reviewer | Pinned diff, schemas, runtime, fixtures | Code Review and Security Review PASS; any blocking finding routes to SA/Developer/Human and blocks QA. |
+| T2A-08 | Perform fresh independent QA against A-01..A-12 and T1 regression. | QA Agent | Pinned base/head and fixture manifest | QA records exact AC traceability, schema/runtime parity, deterministic negative evidence, and no-side-effect evidence. |
+| T2A-09 | Human reviews the complete evidence and decides the next action. | Human Maintainer | SA, Code, Security, QA records | Human approval or explicit stop; no autonomous merge, authority switch, T2-B start, release, or Go/No-Go claim. |
+
+Tasks T2A-02 and T2A-03 may prepare independent RED fixtures, but T2A-04 depends on T2A-01 through T2A-03. T2A-05 and T2A-06 are sequential checkpoints. Review and QA are strictly after implementation and are not self-review substitutes.
+
+## 5. Failing-Test / TDD Approach
+
+1. Record the exact A-01..A-12 checklist and field/error tables before code changes.
+2. Add the executable manifest and RED tests first. Run the focused test command and preserve failure output showing missing or mismatched pure contract behavior.
+3. Implement only the smallest runtime/schema changes needed to turn those named failures green. Do not add a writer, publication model, race harness, or external-resource seam.
+4. Add/verify fixture-manifest integrity and snapshot assertions, then rerun focused tests.
+5. Run the full regression and repository validators before independent review. Any test that requires filesystem/Git/network/credential/orchestration access is a scope failure and must be removed or routed to T2-B planning.
+
+## 6. Test Strategy
+
+| Test Type | Required? | Scope | Owner |
+|---|---|---|---|
+| Unit/contract | Yes | Pure tuple/result/record/binding validation and deterministic errors | Developer; independent Code Review |
+| Schema/runtime parity | Yes | Same closed input/output/error shapes, including distinct CAS request contract if needed | Developer; QA |
+| Fixture corpus | Yes | Manifest-executed valid, malformed, forged, replay, unknown-field, and no-side-effect cases | Developer; QA |
+| T1 regression | Yes | Existing status-audit/loader/JCS/lineage/resource tests plus full suite | QA |
+| Security Review | Yes | Untrusted input, canonicalization, replay, data binding, and proof of no authority/I/O | Security Reviewer before QA |
+| Writer/publication/TOCTOU/E2E/hosted | No | Explicitly deferred or excluded from T2-A | N/A |
+
+## 7. Verification Commands
+
+```bash
+node --test test/status-cas-decision.test.mjs
+npm test
+npm run validate:project-state
+npm run validate:contracts
+npm run validate:skill-usage
+npm run validate:context-budget
+npm run validate:review-gate
+git diff --check
+```
+
+The implementation handoff must include RED evidence, focused GREEN output, fixture-manifest execution count, schema/runtime parity output, T1 regression result, exact pinned base/head SHAs, Code/Security review records, and fresh QA evidence. This planning task runs only docs/state checks and must not claim implementation test results.
+
+## 8. Rollback / Fallback Plan
+
+| Scenario | Rollback / Fallback Action | Owner |
+|---|---|---|
+| SA or Human rejects scope | Revert this docs-only package; retain the parent Issue open and do not dispatch Developer. | Human / Documentation |
+| Schema/preimage ambiguity | Stop implementation and route the exact field/vector conflict to SA; no guessed alternate preimage. | Developer / SA |
+| Runtime/schema mismatch | Stop before review; preserve RED evidence and correct only the approved T2-A contract. | Developer |
+| Security finding | Block QA; route the finding to Security and SA/Developer. Do not add credentials, refs, or authority. | Security Reviewer |
+| QA failure | Route by root cause to Developer, SA, or Security; preserve this scope split and do not relabel it as round 3. | QA / Human |
+| Human approval absent | Remain `phase:planning`/pending approval; no `status:spec-ready`, dispatch, merge, release, T2-B work, or Go decision. | Human Maintainer |
+
+## 9. Risks / Blockers
+
+| Risk / Blocker | Impact | Mitigation / Next Action |
+|---|---|---|
+| Tuple member or digest preimage omitted | False CAS acceptance or unverifiable result | Closed exact field sets, fixed vectors, per-member negative cases, SA review |
+| Runtime/schema drift | Different callers receive inconsistent acceptance/error behavior | Dual validation of every manifest case and parity assertions |
+| Forged/replayed record accepted | Incorrect correction or approval binding | Canonical digest over complete preimage, exact field bindings, replay fixtures, no mutation |
+| Pure seam gains hidden side effects | Authority or state can change before a later gate | No-I/O spies/snapshots and static import/path review; publication is excluded |
+| T2-B leaks back into T2-A | Scope expands and prior blocked concerns recur | Explicit exclusion list, current AC table audit, SA review, Human approval |
+| T1 regression | Existing status evidence changes | Reuse unchanged T1 helpers and run full regression |
+
+## 10. Handoff and Required Gates
+
+1. **SA review:** review the exact T2-A brief/plan, A-01..A-12, field/error/preimage tables, and T2-B boundary.
+2. **Human specification approval:** approve this exact revision before `status:spec-ready` or Developer dispatch.
+3. **Developer:** clean isolated worktree, RED evidence, exact write set, and no external-resource or authority seam.
+4. **Independent Code Review:** pinned base/head, pure-boundary, schema/runtime, digest/preimage, and fixture-manifest review.
+5. **Security Review:** untrusted input, canonicalization, replay, no-side-effect, and non-authority review; unresolved findings block QA.
+6. **Fresh QA:** pinned AC traceability, manifest execution, deterministic negative cases, schema/runtime parity, and T1 regression.
+7. **Human approval:** decide merge/next action; no self-approval, T2-B dispatch, release, authority switch, or Go/No-Go claim.
+
+Next action: **SA review of the exact T2-A specification.**
