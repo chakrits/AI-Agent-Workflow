@@ -33,7 +33,7 @@
 - Issue #133 / IMP-003 T2-A fixture-decision closure. The paired brief/plan and test-only fixture artifacts freeze the approved synthetic record vectors, exact JCS preimages/digests, 34 numbered subcases, category mapping, deterministic errors, UTF-8 sorting, manifest digest, omission checks, AC ownership, rollback, and absolute T2-B exclusions. The next handoff is SA re-review of this exact revision, then Human exact-revision approval; `status:spec-ready` and Developer dispatch remain withheld. No implementation tests or implementation evidence are claimed.
 
 ## Blockers / Open Questions
-- SA must re-review the exact fixture decision and Human must approve this exact revision before `status:spec-ready`. The checked-in test-only manifest has `caseCount: 34` and `manifestDigest: c254c2dff962b4b11a21dbaea2bc7f9a6e1c2e9978b21edaa890f765b64bc0c2`. No Developer dispatch, implementation test claim, T2-B work, authority change, or Go/No-Go decision is authorized.
+- SA must re-review the exact fixture decision and Human must approve this exact revision before `status:spec-ready`. The checked-in test-only manifest has `caseCount: 34` and `manifestDigest: eda1bfb20310ee34bf8cab1842d43a240993c615df2acf943546420d67f64dd3`; all 34 references resolve under the frozen relative-file plus RFC-6901 JSON-Pointer convention, and all five A-03 digest IDs are materialized. No Developer dispatch, implementation test claim, T2-B work, authority change, or Go/No-Go decision is authorized.
 - Human approval remains required at the Task 4 merge, later QA, and Go/No-Go gates defined by Issue #132. The pre-existing high-severity dependency audit finding remains documented and unchanged; no dependency was modified by Task 4. Synthetic fixtures do not establish native host support. Issue #183 / PR #184 supplies the evidence seam, but no replay/live-shadow run may begin before its later gates are explicitly approved.
 - Earlier SA findings on metric authority, context baseline, shadow envelope, and risk coverage are closed by the recorded correction/review chain; the risk-validator semantic limitation remains a separate follow-up.
 - Not audited: whether any earlier multi-commit branch merged an unreviewed script change while Issue #168's defect was live. The fix corrects the mechanism only; PR #167 is verified clear by hand.
@@ -41,7 +41,7 @@
 - Lesson from the #169 SA/QA dispatch cross-check: open-ended SA design reviews timed out at 600s three times; a bounded QA dispatch (packet v1) completed reliably. Design-review packets should carry an explicit bounded return checkpoint.
 
 ## Required Artifacts
-- Issue #133 / IMP-003 T2-A fixture decision: `test/fixtures/status-cas/v1/record-vectors.json` and `test/fixtures/status-cas/v1/manifest.json`; test-only synthetic vectors and 34-case corpus, not production authority or T2-B authorization.
+- Issue #133 / IMP-003 T2-A fixture decision: `test/fixtures/status-cas/v1/manifest.json`, `corpus.json`, `record-vectors.json`, and `digest-vectors.json`; machine-readable test-only synthetic vectors and a 34-case corpus, not production authority or T2-B authorization.
 - IMP-002 Task 4 implementation: commit `3258f6f` on the host-activation/measurement-adapter branch; independent QA evidence recorded in the Task 4 review record.
 - IMP-002 Task 4 SDD: `docs/records/sdd/2026-08-16-issue-132-imp002-task4-host-activation-measurement-contract.md`.
 - IMP-002 Task 3 implementation: commit `3d937a4` on the shadow-adapter branch; independent QA evidence recorded in the active Task 3 review handoff.

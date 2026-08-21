@@ -1,9 +1,11 @@
 {
-  "derived": {
-    "manifestDigest": "6ea40d7c7f84b3e71d66320f4c367079cdc6fb36274a6df07c9bcaa127460054",
-    "setDigest": "972cfe097309529e369ee7810dd27ed7f29a7624379a8500ee50e3d1eb7ddb13",
-    "headDigest": "6e7379878e871c724cebcc622dda24df84420cc5bec0f866b6127c2d66b2eb4d",
-    "projectionDigest": "95fb7925aee5851a27f1776ba7cacbc45c3647b0a8e6ddb487ed981ae83c4fba",
-    "contentTreeDigest": "d9878822cfec07ee64a6321df18f788da14cac00731feb18265256334bc8c64c"
+  "fixtureVersion": "status-cas-digest-vectors/v1",
+  "testOnly": true,
+  "vectors": {
+    "T2A-DIGEST-001/MANIFEST": {"kind":"manifest","input":{"schemaVersion":"status-manifest/v1","manifestDigest":"ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff","nested":{"manifestDigest":"keep-me"},"setDigest":"9bea80eaae94dfd06301903d9b5f3d7740221794495160800edac7cbb137f600"},"canonicalUtf8":"{\"nested\":{\"manifestDigest\":\"keep-me\"},\"schemaVersion\":\"status-manifest/v1\",\"setDigest\":\"9bea80eaae94dfd06301903d9b5f3d7740221794495160800edac7cbb137f600\"}","digest":"11ee19ff51b96ea45af5080ba14d8b4513772d95219ae21086781f4c58b4c88c"},
+    "T2A-DIGEST-001/SET": {"kind":"set","input":[{"issueKey":"chakrits/AI-Agent-Workflow#2","path":"docs/status/active/issue-2.yaml","recordDigest":"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"},{"issueKey":"chakrits/AI-Agent-Workflow#1","path":"docs/status/active/issue-1.yaml","recordDigest":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}],"canonicalUtf8":"[{\"issueKey\":\"chakrits/AI-Agent-Workflow#1\",\"path\":\"docs/status/active/issue-1.yaml\",\"recordDigest\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"},{\"issueKey\":\"chakrits/AI-Agent-Workflow#2\",\"path\":\"docs/status/active/issue-2.yaml\",\"recordDigest\":\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"}]","digest":"9bea80eaae94dfd06301903d9b5f3d7740221794495160800edac7cbb137f600"},
+    "T2A-DIGEST-001/HEAD": {"kind":"head","input":{"schemaVersion":"work-item-status/v1","activeIssueKeys":["chakrits/AI-Agent-Workflow#1","chakrits/AI-Agent-Workflow#2"],"setDigest":"9bea80eaae94dfd06301903d9b5f3d7740221794495160800edac7cbb137f600"},"canonicalUtf8":"{\"activeIssueKeys\":[\"chakrits/AI-Agent-Workflow#1\",\"chakrits/AI-Agent-Workflow#2\"],\"schemaVersion\":\"work-item-status/v1\",\"setDigest\":\"9bea80eaae94dfd06301903d9b5f3d7740221794495160800edac7cbb137f600\"}","digest":"a37343194a1ac035cdfb7fb1c3d94a1abd55b1237777dec27ac702518ebefe8d"},
+    "T2A-DIGEST-001/PROJECTION": {"kind":"projection","input":"a\r\nb\r\n","canonicalUtf8":"a\nb\n","digest":"911169ddaaf146aff539f58c26c489af3b892dff0fe283c1c264c65ae5aa59a2"},
+    "T2A-DIGEST-001/CONTENT-TREE": {"kind":"contentTree","input":[{"path":"zeta.txt","bytes":"z"},{"path":"docs/records/status-audit/ignored.json","bytes":"must not contribute"},{"path":"é.txt","bytes":"e"}],"canonicalUtf8":"zeta.txt\\0fa7af8bf5fdd704f73beb3adc5612682a98e1af5\\0é.txt\\09cbe6ea56f225388ae614c419249bfc6d734cc30\\0","digest":"df3e425dec1ba06274a95db2364dfc7e66c769c9a5e3982ff1204fb1452ea45a"}
   }
 }

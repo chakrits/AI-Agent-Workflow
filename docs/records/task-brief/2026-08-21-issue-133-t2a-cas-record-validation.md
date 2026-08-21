@@ -70,7 +70,7 @@ The following tables are the implementation contract. They describe data shapes 
 | `H` / `headDigest` | Lowercase hexadecimal SHA-256 digest, 64 characters | Invalid member → `INVALID_HEAD`; expected/observed difference → `CAS_HEAD_MISMATCH`. |
 | Five result fields | Exactly `manifestDigest`, `setDigest`, `headDigest`, `projectionDigest`, `contentTreeDigest` | All five are recomputed from supplied `resultData` through unchanged T1 helpers. Any mismatch → `RESULT_DIGEST_MISMATCH`; no caller-supplied digest is trusted. |
 
-The five fixed vector IDs are `T2A-DIGEST-001/MANIFEST`, `T2A-DIGEST-001/SET`, `T2A-DIGEST-001/HEAD`, `T2A-DIGEST-001/PROJECTION`, and `T2A-DIGEST-001/CONTENT-TREE`. Their input values and expected lowercase hex outputs must be copied from the T1 helper contracts or recorded as an SA decision point; the Developer must not choose replacement preimages.
+The five fixed vector IDs are `T2A-DIGEST-001/MANIFEST`, `T2A-DIGEST-001/SET`, `T2A-DIGEST-001/HEAD`, `T2A-DIGEST-001/PROJECTION`, and `T2A-DIGEST-001/CONTENT-TREE`. Their exact inputs, canonical UTF-8 preimages, and expected lowercase hex outputs are materialized under the same IDs in `test/fixtures/status-cas/v1/digest-vectors.json`; the Developer must not choose replacement preimages.
 
 ### Transition, correction, and approval records
 
@@ -97,7 +97,7 @@ For single-result boundaries, the first applicable rule wins: (1) wrong outer co
 - Record preimage includes every record field except `recordDigest`; approval event preimage is not separately digested in T2-A.
 - Schema version is included in record preimages and is a fixed `.../v1` discriminator. It is not silently omitted or normalized.
 - JCS canonical UTF-8 bytes are hashed with SHA-256 and encoded as lowercase hexadecimal. No Base64, host locale, path lookup, Git lookup, or line-ending substitution is allowed.
-- The fixed vector IDs above and their exact canonical bytes/digests must be checked into the fixture manifest. Missing helper-derived bytes are an SA decision point.
+- The fixed vector IDs above and their exact canonical bytes/digests must be checked into the authoritative checked-in digest-vector corpus. Missing helper-derived bytes are an SA decision point.
 
 Replay means only validating a duplicate/reused record or approval input against caller-supplied data such as `consumedRecordDigests`. T2-A must not create or read a replay store, mutate a consumed/used flag, track publication state, or perform an authority/identity capability check. A repeated input is rejected as `APPROVAL_REPLAY` only when the supplied data says its digest is already present; the pure function does not add it.
 
@@ -116,11 +116,17 @@ The implementation must enumerate these seven runtime exports and four schema bo
 
 ## Fixture manifest and omission detection
 
-The authoritative executable manifest is `test/fixtures/status-cas/v1/manifest.json`, encoded as UTF-8 JSON. It has exactly `schemaVersion`, `caseCount`, `manifestDigest`, and `cases`; each case has exactly `id`, `kind`, `input`, and `expected`, where `expected` has exactly `accepted` plus either `output` or `error`. `kind` identifies one of `cas`, `digest`, `transition`, `correction`, `record`, or `approval`. `manifestDigest` is SHA-256 over the JCS UTF-8 manifest preimage excluding only `manifestDigest`; its fixed value and approved numeric `caseCount` are frozen in the Human-approved fixture decision and must not be inferred at runtime.
+The authoritative executable manifest is `test/fixtures/status-cas/v1/manifest.json`, encoded as UTF-8 JSON. It has exactly `schemaVersion`, `testOnly: true`, `caseCount`, `manifestDigest`, and `cases`; each case has exactly `id`, `kind`, `input`, and `expected`, where `expected` has exactly `accepted` plus either `output` or `error`. `kind` identifies one of `cas`, `digest`, `transition`, `correction`, `record`, or `approval`. `manifestDigest` is SHA-256 over the JCS UTF-8 manifest preimage excluding only `manifestDigest`; its fixed value and approved numeric `caseCount` are frozen in the Human-approved fixture decision and must not be inferred at runtime.
 
 Every listed case must run through both its applicable JSON Schema and runtime boundary. The test command must assert: manifest path exists; manifest digest matches; `caseCount === cases.length`; IDs are unique and sorted by the manifest rule; every case has the required fields; every case produces exactly its expected output/error; and the executed-ID set equals the manifest-ID set. A test that discovers files without consuming this manifest is insufficient. Omission detection is therefore a count check, digest check, unique-ID check, and executed-ID equality check; a missing case fails closed.
 
-Required case categories are: accepted CAS, malformed/wrong-container CAS, each missing/extra/invalid/stale C/M/S/H member, forged result/preimage, valid transition, valid correction, cross-kind operation, unknown/missing record fields, wrong proposal/predecessor/successor/approval, duplicate/reused record and approval data, and no-side-effect rejection snapshots. The final count and any category-to-ID mapping are frozen by SA before Developer dispatch.
+Required case categories are: accepted CAS, malformed/wrong-container CAS, each missing/extra/invalid/stale C/M/S/H member, forged result/preimage, valid transition, valid correction, cross-kind operation, unknown/missing record fields, wrong proposal/predecessor/successor/approval, duplicate/reused record and approval data, and no-side-effect rejection snapshots. The final count and category-to-ID mapping are frozen in this revision.
+
+### Frozen fixture resolver and test-only marking
+
+Every fixture reference uses the exact form `<relative-file>#<json-pointer>`, including the `#` delimiter. The file path is relative to `test/fixtures/status-cas/v1/manifest.json`, must stay inside that directory, and may not contain `..`, an absolute prefix, or a bare name without `#`. The fragment is an RFC 6901 JSON Pointer: `#` selects the JSON root, and `/`-delimited tokens select the payload; `~1` and `~0` are decoded before lookup. The resolver reads JSON only, requires the referenced file to exist, and recursively resolves an object whose only key is `fixture` through the same rule, with cycle detection; it passes only the final dereferenced payload to the applicable schema/runtime boundary. `input.fixture` resolves the case input; `expected.output.fixture` resolves the exact expected output. `expected.error` remains inline and is compared as code-only evidence.
+
+The authoritative corpus index is `test/fixtures/status-cas/v1/corpus.json` with `fixtureVersion`, `testOnly: true`, and a `cases` object. Each case entry is marked `testOnly: true` and contains dereferenceable `input` and `output` payloads. `record-vectors.json` and `digest-vectors.json` are checked-in test-only sources; all five A-03 vector IDs are materialized in the latter. Manifest case IDs and digest-vector IDs are sorted by UTF-8 byte order, not locale order. These markers are package metadata and are not passed into runtime inputs.
 
 ## No-side-effect proof and implementation rollback
 
@@ -217,7 +223,7 @@ Human approved both vectors as synthetic, test-only planning artifacts. They are
 
 ### Frozen T2-A fixture manifest and corpus
 
-The exact path and format are frozen: `test/fixtures/status-cas/v1/manifest.json`, UTF-8 JSON, closed top-level `{ schemaVersion, caseCount, manifestDigest, cases }`, case shape `{ id, kind, input, expected }`, `expected` shape `{ accepted, output | error }`, and IDs sorted by UTF-8 byte order. The checked-in manifest has `caseCount: 34` and `manifestDigest` `c254c2dff962b4b11a21dbaea2bc7f9a6e1c2e9978b21edaa890f765b64bc0c2`; its digest is SHA-256 over the JCS UTF-8 manifest preimage excluding only `manifestDigest`.
+The exact path and format are frozen: `test/fixtures/status-cas/v1/manifest.json`, UTF-8 JSON, closed top-level `{ schemaVersion, testOnly: true, caseCount, manifestDigest, cases }`, case shape `{ id, kind, input, expected }`, `expected` shape `{ accepted, output | error }`, fixture references in `<relative-file>#<RFC-6901-json-pointer>` form, and IDs sorted by UTF-8 byte order. The checked-in manifest has `caseCount: 34` and `manifestDigest` `eda1bfb20310ee34bf8cab1842d43a240993c615df2acf943546420d67f64dd3`; its digest is SHA-256 over the JCS UTF-8 manifest preimage excluding only `manifestDigest`.
 
 | Category | Numbered IDs | Mapping and expected coverage |
 |---|---:|---|

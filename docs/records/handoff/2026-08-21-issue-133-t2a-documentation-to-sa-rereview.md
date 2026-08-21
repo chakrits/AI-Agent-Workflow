@@ -54,12 +54,17 @@ Packet v1; T2-A only
 ## Completed Work
 - Froze two Human-approved synthetic record vectors with exact closed shapes, canonical UTF-8 JCS preimages, and expected SHA-256 record digests.
 - Froze 34 numbered T2-A subcases across twelve categories with deterministic expected errors, UTF-8 byte sorting, count, manifest digest, and omission checks.
+- Materialized `corpus.json` for every non-record case, converted every manifest reference to `<relative-file>#<RFC-6901-json-pointer>`, and froze the root-fragment rule, path containment rule, dereference roles, and UTF-8 sort rule.
+- Materialized all five A-03 vectors as `T2A-DIGEST-001/MANIFEST`, `/SET`, `/HEAD`, `/PROJECTION`, and `/CONTENT-TREE` in the authoritative `digest-vectors.json` corpus.
+- Added machine-readable `testOnly: true` markers to the manifest, corpus index, record vectors, and digest vectors; markers are metadata and are not runtime payload fields.
 - Preserved T2-B exclusions and stated that all vectors/cases are test-only, non-authoritative, non-live, non-replay-consuming, and non-authorizing.
 
 ## Artifacts Produced
 - `docs/records/task-brief/2026-08-21-issue-133-t2a-cas-record-validation.md`
 - `docs/records/implementation-plan/2026-08-21-issue-133-imp003-t2a-cas-record-validation.md`
 - `test/fixtures/status-cas/v1/record-vectors.json`
+- `test/fixtures/status-cas/v1/corpus.json`
+- `test/fixtures/status-cas/v1/digest-vectors.json`
 - `test/fixtures/status-cas/v1/manifest.json`
 - `PROJECT_STATUS.md`
 - `TASK_LOG.md`
@@ -68,7 +73,7 @@ Packet v1; T2-A only
 See the exact list above; no runtime source, runtime schema, implementation test, or production file changed.
 
 ## Verification Performed
-Manifest parsed and independently re-derived with the existing T1 `canonicalJcsBytes` helper: `caseCount=34`, IDs sorted by UTF-8 byte order, `manifestDigest=c254c2dff962b4b11a21dbaea2bc7f9a6e1c2e9978b21edaa890f765b64bc0c2`. Required repository checks are run before commit and recorded in the final handoff.
+Manifest parsed and independently re-derived with the existing T1 `manifestDigest` helper: `caseCount=34`, 34 unique IDs sorted by UTF-8 byte order, all manifest input/output references resolved, five required digest IDs present, `manifestDigest=eda1bfb20310ee34bf8cab1842d43a240993c615df2acf943546420d67f64dd3`. Required repository checks are run before commit and recorded in the final handoff.
 
 ## Evidence References
 - T1 helper source: `scripts/lib/status-audit.mjs:259-340`
@@ -83,7 +88,7 @@ Planning artifacts frozen; implementation AC evidence not claimed. Primary owner
 `docs/records/implementation-plan/2026-08-21-issue-133-imp003-t2a-cas-record-validation.md#11-ac-traceability-ownership`
 
 ## Verified Commit SHA
-`PENDING — atomic documentation commit SHA recorded after commit`
+`NEEDS_REVISION — exact full candidate SHA is recorded after the atomic commit; this handoff is amended only to replace this field.`
 
 ## Platform Activation Record URL / Status
 N/A — no platform activation or external dispatch performed
@@ -99,11 +104,11 @@ N/A — no implementation QA performed or claimed
 Human exact-revision approval remains required after SA re-review; `status:spec-ready` and Developer dispatch are withheld.
 
 ## Known Limitations
-- Manifest inputs are stable fixture references; future tests must resolve each reference and assert the listed expected result.
+- The corpus payloads are test-only planning fixtures; future implementation tests must pass only the dereferenced payload, never the `testOnly` metadata.
 - Existing implementation files at the base commit were not modified or revalidated by this documentation task.
 
 ## Open Questions
-- SA must confirm the exact fixture-reference resolution convention and all deterministic codes against the intended runtime/schema implementation before `status:spec-ready`.
+- SA must confirm the exact deterministic codes against the intended runtime/schema implementation before `status:spec-ready`; the fixture-reference convention is frozen in the paired brief/plan and is no longer ambiguous.
 
 ## QA / Review Focus
 - Verify the two synthetic record preimages/digests against the T1 helper.
