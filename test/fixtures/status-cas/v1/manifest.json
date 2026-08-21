@@ -1,8 +1,8 @@
 {
   "schemaVersion": "status-cas-fixtures/v1",
   "testOnly": true,
-  "caseCount": 34,
-  "manifestDigest": "eda1bfb20310ee34bf8cab1842d43a240993c615df2acf943546420d67f64dd3",
+  "caseCount": 52,
+  "manifestDigest": "ad354f1cde4076127053ec22e3030c3b748e4878954c3687a57c587716029e63",
   "cases": [
     {"id":"T2A-CAS-001-01","kind":"cas","input":{"fixture":"corpus.json#/cases/T2A-CAS-001-01/input"},"expected":{"accepted":true,"output":{"fixture":"corpus.json#/cases/T2A-CAS-001-01/output"}}},
     {"id":"T2A-CAS-002-01","kind":"cas","input":{"fixture":"corpus.json#/cases/T2A-CAS-002-01/input"},"expected":{"accepted":false,"error":{"code":"INVALID_INPUT"}}},
@@ -37,6 +37,24 @@
     {"id":"T2A-CAS-012-01","kind":"cas","input":{"fixture":"corpus.json#/cases/T2A-CAS-012-01/input"},"expected":{"accepted":false,"error":{"code":"RESULT_DIGEST_MISMATCH"}}},
     {"id":"T2A-CAS-012-02","kind":"record","input":{"fixture":"corpus.json#/cases/T2A-CAS-012-02/input"},"expected":{"accepted":false,"error":{"code":"RECORD_DIGEST_MISMATCH"}}},
     {"id":"T2A-CAS-012-03","kind":"approval","input":{"fixture":"corpus.json#/cases/T2A-CAS-012-03/input"},"expected":{"accepted":false,"error":{"code":"APPROVAL_BINDING_MISMATCH"}}},
-    {"id":"T2A-CAS-012-04","kind":"approval","input":{"fixture":"corpus.json#/cases/T2A-CAS-012-04/input"},"expected":{"accepted":false,"error":{"code":"APPROVAL_REPLAY"}}}
+    {"id":"T2A-CAS-012-04","kind":"approval","input":{"fixture":"corpus.json#/cases/T2A-CAS-012-04/input"},"expected":{"accepted":false,"error":{"code":"APPROVAL_REPLAY"}}},
+    {"id":"T2A-CAS-013-01","kind":"manifest","input":{"fixture":"corpus.json#/cases/T2A-CAS-013-01/input"},"expected":{"accepted":false,"error":{"code":"INVALID_FIXTURE_REFERENCE_SYNTAX"}}},
+    {"id":"T2A-CAS-013-02","kind":"manifest","input":{"fixture":"corpus.json#/cases/T2A-CAS-013-02/input"},"expected":{"accepted":false,"error":{"code":"FIXTURE_NOT_FOUND"}}},
+    {"id":"T2A-CAS-013-03","kind":"manifest","input":{"fixture":"corpus.json#/cases/T2A-CAS-013-03/input"},"expected":{"accepted":false,"error":{"code":"INVALID_JSON_POINTER"}}},
+    {"id":"T2A-CAS-013-04","kind":"manifest","input":{"fixture":"corpus.json#/cases/T2A-CAS-013-04/input"},"expected":{"accepted":false,"error":{"code":"FIXTURE_TARGET_NOT_FOUND"}}},
+    {"id":"T2A-CAS-013-05","kind":"manifest","input":{"fixture":"corpus.json#/cases/T2A-CAS-013-05/input"},"expected":{"accepted":false,"error":{"code":"FIXTURE_ALIAS_CYCLE"}}},
+    {"id":"T2A-CAS-013-06","kind":"manifest","input":{"fixture":"corpus.json#/cases/T2A-CAS-013-06/input"},"expected":{"accepted":false,"error":{"code":"DUPLICATE_CASE_ID"}}},
+    {"id":"T2A-CAS-013-07","kind":"manifest","input":{"fixture":"corpus.json#/cases/T2A-CAS-013-07/input"},"expected":{"accepted":false,"error":{"code":"UNSORTED_CASE_ID"}}},
+    {"id":"T2A-CAS-013-08","kind":"manifest","input":{"fixture":"corpus.json#/cases/T2A-CAS-013-08/input"},"expected":{"accepted":false,"error":{"code":"CASE_COUNT_MISMATCH"}}},
+    {"id":"T2A-CAS-013-09","kind":"manifest","input":{"fixture":"corpus.json#/cases/T2A-CAS-013-09/input"},"expected":{"accepted":false,"error":{"code":"MANIFEST_DIGEST_MISMATCH"}}},
+    {"id":"T2A-CAS-014-01","kind":"record","input":{"fixture":"corpus.json#/cases/T2A-CAS-014-01/input"},"expected":{"accepted":false,"error":{"code":"INVALID_RECORD"}}},
+    {"id":"T2A-CAS-014-02","kind":"approval","input":{"fixture":"corpus.json#/cases/T2A-CAS-014-02/input"},"expected":{"accepted":false,"error":{"code":"INVALID_RECORD"}}},
+    {"id":"T2A-CAS-014-03","kind":"record","input":{"fixture":"corpus.json#/cases/T2A-CAS-014-03/input"},"expected":{"accepted":false,"error":{"code":"INVALID_NESTED_SHAPE"}}},
+    {"id":"T2A-CAS-014-04","kind":"record","input":{"fixture":"corpus.json#/cases/T2A-CAS-014-04/input"},"expected":{"accepted":false,"error":{"code":"INVALID_RECORD"}}},
+    {"id":"T2A-CAS-014-05","kind":"cas","input":{"fixture":"corpus.json#/cases/T2A-CAS-014-05/input"},"expected":{"accepted":false,"error":{"code":"INVALID_DIGEST_INPUT"}}},
+    {"id":"T2A-CAS-014-06","kind":"record","input":{"fixture":"corpus.json#/cases/T2A-CAS-014-06/input"},"expected":{"accepted":false,"error":{"code":"INVALID_RECORD_INPUT"}}},
+    {"id":"T2A-CAS-014-07","kind":"record","input":{"fixture":"corpus.json#/cases/T2A-CAS-014-07/input"},"expected":{"accepted":false,"error":{"code":"INVALID_SCHEMA_KIND"}}},
+    {"id":"T2A-CAS-014-08","kind":"cas","input":{"fixture":"corpus.json#/cases/T2A-CAS-014-08/input"},"expected":{"accepted":false,"error":{"code":"INVALID_RESULT"}}},
+    {"id":"T2A-CAS-014-09","kind":"approval","input":{"fixture":"corpus.json#/cases/T2A-CAS-014-09/input"},"expected":{"accepted":false,"error":{"code":"INDEPENDENT_APPROVAL_NOT_ALLOWED"}}}
   ]
 }

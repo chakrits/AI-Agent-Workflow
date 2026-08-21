@@ -86,7 +86,15 @@ The five fixed vector IDs are `T2A-DIGEST-001/MANIFEST`, `T2A-DIGEST-001/SET`, `
 
 ### Deterministic error codes and precedence
 
-For single-result boundaries, the first applicable rule wins: (1) wrong outer container → `INVALID_INPUT`/boundary-specific `INVALID_RECORD_INPUT` or `INVALID_RECORD`; (2) unknown top-level field → `UNKNOWN_FIELD`; (3) missing or extra tuple member → `INVALID_TUPLE`; (4) tuple member format in C, M, S, H order → `INVALID_COMMIT`, `INVALID_MANIFEST`, `INVALID_SET`, `INVALID_HEAD`; (5) tuple mismatch in C, M, S, H order → `CAS_COMMIT_MISMATCH`, `CAS_MANIFEST_MISMATCH`, `CAS_SET_MISMATCH`, `CAS_HEAD_MISMATCH`; (6) result shape → `INVALID_RESULT`; (7) result-data/preimage shape or helper failure → `INVALID_DIGEST_INPUT`; (8) result digest mismatch → `RESULT_DIGEST_MISMATCH`. Record validation returns an ordered code list in this order: closure/missing fields, operation/kind, identity, predecessor, proposal/successor/approval, expected tuple, changed paths, record digest. Approval returns `INVALID_RECORD`, `INDEPENDENT_APPROVAL_NOT_ALLOWED`, `APPROVAL_IDENTITY_MISMATCH`, `APPROVAL_BINDING_MISMATCH`, then `APPROVAL_REPLAY` in that order. Any code not derivable from the existing T1/runtime contract is an SA decision point, not a Developer choice.
+The following inventory is closed and normative; an open regex, free-form string, or implementation-defined extension is not authoritative.
+
+| Boundary | Closed error codes | Precedence within the boundary |
+|---|---|---|
+| Fixture resolver / manifest | `INVALID_FIXTURE_REFERENCE_SYNTAX`, `FIXTURE_NOT_FOUND`, `INVALID_JSON_POINTER`, `FIXTURE_TARGET_NOT_FOUND`, `FIXTURE_ALIAS_CYCLE`, `DUPLICATE_CASE_ID`, `UNSORTED_CASE_ID`, `CASE_COUNT_MISMATCH`, `MANIFEST_DIGEST_MISMATCH` | Reference syntax → file existence → pointer syntax → pointer target → alias cycle; manifest duplicate IDs → UTF-8-byte order → count → digest |
+| CAS / result digest | `INVALID_INPUT`, `UNKNOWN_FIELD`, `INVALID_TUPLE`, `INVALID_COMMIT`, `INVALID_MANIFEST`, `INVALID_SET`, `INVALID_HEAD`, `CAS_COMMIT_MISMATCH`, `CAS_MANIFEST_MISMATCH`, `CAS_SET_MISMATCH`, `CAS_HEAD_MISMATCH`, `INVALID_RESULT`, `INVALID_DIGEST_INPUT`, `RESULT_DIGEST_MISMATCH` | Outer container → unknown field → tuple closure → C/M/S/H member format → C/M/S/H mismatch → result shape → digest input/helper → result digest |
+| Record / approval | `INVALID_RECORD_INPUT`, `INVALID_RECORD`, `UNKNOWN_FIELD`, `MISSING_FIELD`, `INVALID_OPERATION`, `INVALID_SCHEMA_KIND`, `INVALID_NESTED_SHAPE`, `RECORD_DIGEST_MISMATCH`, `INDEPENDENT_APPROVAL_NOT_ALLOWED`, `APPROVAL_IDENTITY_MISMATCH`, `APPROVAL_BINDING_MISMATCH`, `APPROVAL_REPLAY` | Record container → closure/missing/unknown fields → schema kind → operation → nested shapes → bindings → record preimage/digest; approval validates record first, then independent flag → identity → binding → caller-supplied duplicate membership |
+
+No other error code is permitted in the T2-A planning corpus. `recordDigest({})` is a required negative case and returns `INVALID_RECORD`; it must never return a digest or throw. Developer must add this case before implementation (TDD RED first) and QA must assert the exact code. If the existing runtime cannot satisfy it, route `NEEDS_CONTEXT` to Developer; do not edit runtime code in this documentation task.
 
 ## Canonicalization, replay, and boundary inventory
 
@@ -223,7 +231,7 @@ Human approved both vectors as synthetic, test-only planning artifacts. They are
 
 ### Frozen T2-A fixture manifest and corpus
 
-The exact path and format are frozen: `test/fixtures/status-cas/v1/manifest.json`, UTF-8 JSON, closed top-level `{ schemaVersion, testOnly: true, caseCount, manifestDigest, cases }`, case shape `{ id, kind, input, expected }`, `expected` shape `{ accepted, output | error }`, fixture references in `<relative-file>#<RFC-6901-json-pointer>` form, and IDs sorted by UTF-8 byte order. The checked-in manifest has `caseCount: 34` and `manifestDigest` `eda1bfb20310ee34bf8cab1842d43a240993c615df2acf943546420d67f64dd3`; its digest is SHA-256 over the JCS UTF-8 manifest preimage excluding only `manifestDigest`.
+The exact path and format are frozen: `test/fixtures/status-cas/v1/manifest.json`, UTF-8 JSON, closed top-level `{ schemaVersion, testOnly: true, caseCount, manifestDigest, cases }`, case shape `{ id, kind, input, expected }`, `expected` shape `{ accepted, output | error }`, fixture references in `<relative-file>#<RFC-6901-json-pointer>` form, and IDs sorted by UTF-8 byte order. The checked-in manifest has `caseCount: 52` and `manifestDigest` `ad354f1cde4076127053ec22e3030c3b748e4878954c3687a57c587716029e63`; its digest is SHA-256 over the JCS UTF-8 manifest preimage excluding only `manifestDigest`.
 
 | Category | Numbered IDs | Mapping and expected coverage |
 |---|---:|---|
@@ -239,6 +247,10 @@ The exact path and format are frozen: `test/fixtures/status-cas/v1/manifest.json
 | T2A-CAS-010 | 01–04 | Wrong identity, proposal, predecessor, successor binding |
 | T2A-CAS-011 | 01–02 | Duplicate/reused record or approval data |
 | T2A-CAS-012 | 01–04 | Rejected CAS/record/approval snapshots and unchanged replay input |
+| T2A-CAS-013 | 01–09 | Resolver/manifest syntax, missing file, invalid pointer, missing target, alias cycle, duplicate/unsorted ID, caseCount mismatch, manifestDigest mismatch |
+| T2A-CAS-014 | 01–09 | Wrong record/approval containers, invalid nested shape, malformed `recordDigest({})`, invalid result-data/result containers, invalid record-input container, invalid schema kind, independent approval |
+
+The corpus also includes explicit `recordDigest({}) → INVALID_RECORD`, wrong record/approval containers, invalid nested predecessor/paths/approval shapes, and invalid result/resultData containers. These are test-only planning cases with exact expected codes; they do not prove runtime/schema parity. Parity remains a Developer implementation requirement followed by independent Code Review and QA.
 
 The manifest is omission-detectable: future tests must resolve every `input.fixture`, execute every listed ID through its applicable schema and runtime boundary, assert the exact `expected` result/error, verify unique UTF-8-byte-sorted IDs, assert `caseCount === cases.length`, recompute `manifestDigest`, and compare executed IDs with manifest IDs. T2-B writer/publication/harness cases are deliberately absent from this corpus; the prior four-case harness manifest is superseded for T2-A planning.
 

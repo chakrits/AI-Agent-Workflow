@@ -53,7 +53,8 @@ Packet v1; T2-A only
 
 ## Completed Work
 - Froze two Human-approved synthetic record vectors with exact closed shapes, canonical UTF-8 JCS preimages, and expected SHA-256 record digests.
-- Froze 34 numbered T2-A subcases across twelve categories with deterministic expected errors, UTF-8 byte sorting, count, manifest digest, and omission checks.
+- Froze 52 numbered T2-A subcases across fourteen categories with a closed resolver/manifest, CAS/result, and record/approval error inventory, deterministic precedence, UTF-8 byte sorting, count, manifest digest, and omission checks.
+- Added the required `recordDigest({}) → INVALID_RECORD` Developer/TDD negative case and explicitly kept runtime/schema parity as a Developer plus independent Code Review/QA gate.
 - Materialized `corpus.json` for every non-record case, converted every manifest reference to `<relative-file>#<RFC-6901-json-pointer>`, and froze the root-fragment rule, path containment rule, dereference roles, and UTF-8 sort rule.
 - Materialized all five A-03 vectors as `T2A-DIGEST-001/MANIFEST`, `/SET`, `/HEAD`, `/PROJECTION`, and `/CONTENT-TREE` in the authoritative `digest-vectors.json` corpus.
 - Added machine-readable `testOnly: true` markers to the manifest, corpus index, record vectors, and digest vectors; markers are metadata and are not runtime payload fields.
@@ -73,7 +74,7 @@ Packet v1; T2-A only
 See the exact list above; no runtime source, runtime schema, implementation test, or production file changed.
 
 ## Verification Performed
-Manifest parsed and independently re-derived with the existing T1 `manifestDigest` helper: `caseCount=34`, 34 unique IDs sorted by UTF-8 byte order, all manifest input/output references resolved, five required digest IDs present, `manifestDigest=eda1bfb20310ee34bf8cab1842d43a240993c615df2acf943546420d67f64dd3`. Required repository checks are run before commit and recorded in the final handoff.
+Manifest parsed and independently re-derived with the existing T1 `digestJcs` helper: `caseCount=52`, 52 unique IDs sorted by UTF-8 byte order, all manifest-to-corpus references resolved, five required digest IDs present, `manifestDigest=ad354f1cde4076127053ec22e3030c3b748e4878954c3687a57c587716029e63`. Required repository checks are run before commit and recorded in the final handoff. This is planning/fixture evidence only; runtime/schema parity and `recordDigest({})` behavior are not proven here.
 
 ## Evidence References
 - T1 helper source: `scripts/lib/status-audit.mjs:259-340`
@@ -88,7 +89,7 @@ Planning artifacts frozen; implementation AC evidence not claimed. Primary owner
 `docs/records/implementation-plan/2026-08-21-issue-133-imp003-t2a-cas-record-validation.md#11-ac-traceability-ownership`
 
 ## Verified Commit SHA
-`NEEDS_REVISION — exact full candidate SHA is recorded after the atomic commit; this handoff is amended only to replace this field.`
+`d821b2f217064588f2ddd1d5caba0049744ee2f7` (full SHA verified immediately before this final handoff amendment; the resulting amended final SHA is reported in the completion response)
 
 ## Platform Activation Record URL / Status
 N/A — no platform activation or external dispatch performed
@@ -112,7 +113,7 @@ Human exact-revision approval remains required after SA re-review; `status:spec-
 
 ## QA / Review Focus
 - Verify the two synthetic record preimages/digests against the T1 helper.
-- Verify the 34 IDs, category mapping, error precedence, count/digest, and absence of T2-B harness cases.
+- Verify the 52 IDs, closed error inventory and precedence, category mapping, count/digest, and absence of T2-B harness cases.
 - Verify no production authority, live status, replay mutation, migration, or T2-B meaning is implied.
 
 ## Recommended Next Step
