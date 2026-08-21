@@ -4,7 +4,7 @@
 |---|---|
 | Work Item / Task ID | GitHub Issue #133 / IMP-003 T2-A |
 | Objective | Define one bounded implementation slice for a pure, fail-closed CAS decision and transition/correction record validation over data only. |
-| Base SHA | `e8e8ab13fecd09b61a5312e44ec2ae29f7d56633` |
+| Candidate base SHA | `5b657d3bb1902c0e1db7b24e4b9202ab888444d5` (full SHA verified before this documentation repair) |
 | Dependencies | Merged T1 `status-audit/v1` helpers; existing T1 schemas/tests; Human-approved T2 scope split; SA review of this exact revision |
 | Required reviewer mode | SA specification review, Human specification approval, independent Code Review, Security Review, fresh independent QA, Human approval |
 | Human decision evidence (addressable URL) | Issue #133: https://github.com/chakrits/AI-Agent-Workflow/issues/133 — exact approval comment for this revision is required before `status:spec-ready` |
@@ -95,6 +95,33 @@ The following inventory is closed and normative; an open regex, free-form string
 | Record / approval | `INVALID_RECORD_INPUT`, `INVALID_RECORD`, `UNKNOWN_FIELD`, `MISSING_FIELD`, `INVALID_OPERATION`, `INVALID_SCHEMA_KIND`, `INVALID_NESTED_SHAPE`, `RECORD_DIGEST_MISMATCH`, `INDEPENDENT_APPROVAL_NOT_ALLOWED`, `APPROVAL_IDENTITY_MISMATCH`, `APPROVAL_BINDING_MISMATCH`, `APPROVAL_REPLAY` | Record container → closure/missing/unknown fields → schema kind → operation → nested shapes → bindings → record preimage/digest; approval validates record first, then independent flag → identity → binding → caller-supplied duplicate membership |
 
 No other error code is permitted in the T2-A planning corpus. `recordDigest({})` is a required negative case and returns `INVALID_RECORD`; it must never return a digest or throw. Developer must add this case before implementation (TDD RED first) and QA must assert the exact code. If the existing runtime cannot satisfy it, route `NEEDS_CONTEXT` to Developer; do not edit runtime code in this documentation task.
+
+### Public-code closure and internal-code reconciliation
+
+The public error-code inventory is closed at 34 unique codes: the nine fixture/manifest codes, the fourteen CAS/result codes, and the eleven unique record/approval codes (the shared `UNKNOWN_FIELD` is counted once). Public schemas, fixtures, runtime responses, and handoffs must expose only those 34 codes. Existing implementation-only field diagnostics are not additional public codes and must not silently expand this inventory.
+
+| Existing internal runtime code | Canonical public code | Reconciliation requirement |
+|---|---|---|
+| `INVALID_IDENTITY` | `INVALID_NESTED_SHAPE` | Developer/TDD asserts the public mapping for invalid record identity. |
+| `INVALID_PREDECESSOR` | `INVALID_NESTED_SHAPE` | Developer/TDD asserts the public mapping for malformed predecessor shape/member data. |
+| `INVALID_PROPOSAL` | `INVALID_NESTED_SHAPE` | Developer/TDD asserts the public mapping for malformed proposal digest data. |
+| `INVALID_SUCCESSOR` | `INVALID_NESTED_SHAPE` | Developer/TDD asserts the public mapping for malformed successor digest data. |
+| `INVALID_APPROVAL` | `INVALID_NESTED_SHAPE` | Developer/TDD asserts the public mapping for malformed approval digest data. |
+| `INVALID_CHANGED_PATHS` | `INVALID_NESTED_SHAPE` | Developer/TDD asserts the public mapping for malformed, duplicate, unsorted, or wrong-container path data. |
+
+`INVALID_RECORD`, `INVALID_RECORD_INPUT`, `UNKNOWN_FIELD`, `MISSING_FIELD`, `INVALID_OPERATION`, `RECORD_DIGEST_MISMATCH`, `INDEPENDENT_APPROVAL_NOT_ALLOWED`, `APPROVAL_IDENTITY_MISMATCH`, `APPROVAL_BINDING_MISMATCH`, and `APPROVAL_REPLAY` already belong to the closed public inventory with the same names. This mapping is a contract reconciliation requirement, not evidence that the current runtime already returns the canonical public code. Developer implementation and TDD parity must normalize these diagnostics at the public boundary or obtain an SA-approved deterministic alternative before `status:spec-ready`; no implementation-only code may leak as a new public code.
+
+### Developer/TDD boundary acceptance criteria
+
+Before implementation, Developer must add RED cases and then prove GREEN behavior for the exact boundary:
+
+- Serialized public and fixture input is a JSON array of lowercase 64-hex digest strings. The runtime boundary copies it into a fresh internal `Set` for the current call; it never accepts or serializes a public `Set`, mutates the caller array, writes the set back, or creates/reads a consumption store.
+- `null`, missing `consumedRecordDigests`, objects, strings, numbers, booleans, and other non-array containers reject deterministically with canonical public `INVALID_RECORD`. Non-string, uppercase, wrong-length, or otherwise malformed array members reject with the same code. No malformed value may throw or be coerced.
+- Duplicate valid digests are accepted idempotently; arrays differing only by duplicates or ordering have the same membership result after validation. The input array remains unchanged, and the internal set is fresh per invocation.
+- A supplied array containing the record digest returns canonical `APPROVAL_REPLAY`; an absent digest returns the accepted approval event. The function does not add the digest or consume state.
+- RED/GREEN parity cases cover each six-code internal-to-public mapping above, assert that every public result is one of the closed 34 codes, and fail if any implementation-only code is exposed. Schema and runtime return the same canonical code for each case.
+
+These are Developer/TDD acceptance gates for future implementation and runtime/schema parity. They are not claims about the current runtime, and this documentation repair does not edit production code or implementation tests.
 
 ## Canonicalization, replay, and boundary inventory
 
@@ -201,7 +228,7 @@ The accepted CAS condition is exact: the four expected and observed tuple member
 
 ### Frozen T1 digest vectors
 
-The following values are copied from `test/status-audit.test.mjs:233-271` at base `56e99b5`; the helper source is `scripts/lib/status-audit.mjs:259-340`. The copied canonical strings are the exact UTF-8 bytes (the corresponding SHA-256 output is lowercase hex). These are the five stable vector IDs required by A-03.
+The following values are copied from `test/status-audit.test.mjs:233-271` at the verified candidate base `5b657d3bb1902c0e1db7b24e4b9202ab888444d5`; the helper source is `scripts/lib/status-audit.mjs:259-340`. The copied canonical strings are the exact UTF-8 bytes (the corresponding SHA-256 output is lowercase hex). These are the five stable vector IDs required by A-03.
 
 | Vector ID | T1 input/source | Exact canonical UTF-8 preimage | Expected digest |
 |---|---|---|---|

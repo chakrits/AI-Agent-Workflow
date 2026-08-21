@@ -89,7 +89,9 @@ Planning artifacts frozen; implementation AC evidence not claimed. Primary owner
 `docs/records/implementation-plan/2026-08-21-issue-133-imp003-t2a-cas-record-validation.md#11-ac-traceability-ownership`
 
 ## Verified Commit SHA
-`e8e8ab13fecd09b61a5312e44ec2ae29f7d56633` (supplied immutable base verification point; the final documentation-repair commit is the exact full SHA reported in the completion response and must be checked out for this handoff)
+Prior candidate verification point: `5b657d3bb1902c0e1db7b24e4b9202ab888444d5`.
+
+Final documentation-repair commit before this handoff metadata update: `017d6b8b097c205727a839ea98dd333dc28aae2f`.
 
 ## Platform Activation Record URL / Status
 N/A — no platform activation or external dispatch performed
@@ -108,6 +110,8 @@ Human exact-revision approval remains required after SA re-review; `status:spec-
 - The corpus payloads are test-only planning fixtures; future implementation tests must pass only the dereferenced payload, never the `testOnly` metadata.
 - `digest-vectors.json` retains both the canonical `vectors` map and the T1-compatible top-level `derived` object; no implementation test or production/runtime file was changed.
 - `consumedRecordDigests` is frozen as serialized JSON `string[]`, converted to a fresh internal `Set`; null/wrong containers/malformed members return `INVALID_RECORD`, duplicates are idempotent, order is ignored, and no consumption store exists.
+- The canonical public inventory is closed at 34 unique codes. Existing internal `INVALID_IDENTITY`, `INVALID_PREDECESSOR`, `INVALID_PROPOSAL`, `INVALID_SUCCESSOR`, `INVALID_APPROVAL`, and `INVALID_CHANGED_PATHS` reconcile to public `INVALID_NESTED_SHAPE` only after Developer/TDD parity verification; they are not public additions and current runtime parity is not claimed.
+- Developer/TDD must cover serialized-array conversion, null/missing/wrong-container/malformed-member rejection, duplicate/order idempotence, fresh-Set/no-mutation/no-store behavior, `APPROVAL_REPLAY`, and the six internal-to-public mappings. Schema/runtime parity remains a future acceptance gate.
 - Existing implementation files at the base commit were not modified or revalidated by this documentation task.
 
 ## Open Questions
