@@ -4,7 +4,7 @@
 - Issue #133 — IMP-003 T2-A bounded pure CAS/record-validation planning scope reset; the parent Issue remains open and T2-B is deferred as a separate future contract/package.
 
 ## Current Stage
-- T2-A planning revision is complete for the Human-approved synthetic test-only decision: two exact transition/correction vectors, canonical UTF-8 preimages, record digests, a closed resolver/CAS/record error inventory, and a 52-case omission-detectable manifest with deterministic category mapping and manifest digest are frozen. This is a new bounded scope reset, not rework round 3. The artifacts are not production authority, live status records, runtime state, publication records, migration data, credentials, real refs, or replay state; they do not consume replay state or authorize T2-B. No implementation or runtime/schema parity evidence is claimed.
+- T2-A planning revision is complete for the Human-approved synthetic test-only decision: two exact transition/correction vectors, canonical UTF-8 preimages, record digests, a closed resolver/CAS/record error inventory, and a 52-case omission-detectable manifest with deterministic category mapping and manifest digest are frozen. The current SA review target is `6ecef1aecb20fc803c67878e03bca0b62c68d6d2`; prior SHAs are historical verification points only. This is a new bounded scope reset, not rework round 3. The artifacts are not production authority, live status records, runtime state, publication records, migration data, credentials, real refs, or replay state; they do not consume replay state or authorize T2-B. No implementation or runtime/schema parity evidence is claimed.
 
 ## Change Classification
 - Change Type: Framework / Meta (evidence and measurement foundation)

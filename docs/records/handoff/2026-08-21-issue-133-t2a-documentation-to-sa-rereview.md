@@ -88,10 +88,13 @@ Planning artifacts frozen; implementation AC evidence not claimed. Primary owner
 ## Acceptance Traceability Matrix URL
 `docs/records/implementation-plan/2026-08-21-issue-133-imp003-t2a-cas-record-validation.md#11-ac-traceability-ownership`
 
-## Verified Commit SHA
-Prior candidate verification point: `5b657d3bb1902c0e1db7b24e4b9202ab888444d5`.
+## Reviewed Candidate SHA
+`6ecef1aecb20fc803c67878e03bca0b62c68d6d2`
 
-Final documentation-repair commit before this handoff metadata update: `017d6b8b097c205727a839ea98dd333dc28aae2f`.
+This exact immutable SHA is the authoritative SA review target. The prior candidate verification point `5b657d3bb1902c0e1db7b24e4b9202ab888444d5` and the earlier documentation-repair commit `017d6b8b097c205727a839ea98dd333dc28aae2f` are historical evidence only; neither is the current target.
+
+## Handoff Record Commit SHA
+Resolved externally as the final SHA of the documentation-repair branch. It is intentionally not embedded in this record because embedding a commit's own SHA would create a self-referential SHA loop. The reviewed candidate SHA above remains authoritative.
 
 ## Platform Activation Record URL / Status
 N/A — no platform activation or external dispatch performed

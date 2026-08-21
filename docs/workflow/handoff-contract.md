@@ -24,7 +24,8 @@ Every handoff must be structured. Do not pass work with vague statements such as
 - Evidence References
 - Acceptance Criteria Verification Status
 - Acceptance Traceability Matrix URL
-- Verified Commit SHA
+- Reviewed Candidate SHA
+- Handoff Record Commit SHA
 - Platform Activation Record URL / Status
 - QA Evidence URL
 - Stop Reason
@@ -69,3 +70,5 @@ Use `docs/templates/HANDOFF.md`.
 13. Each terminal handoff has a stable `Handoff Event ID`, `Parent Orchestrator ID`, and `Child Task ID`. Supervision is in-turn only: `Dispatch` is valid only when the parent invokes the target child and awaits its terminal receipt within the same active Orchestrator turn, for the whole chain of dispatches in that turn. After invocation succeeds, the parent registers the native wait (`collaboration.wait_agent` or the host equivalent) and records `Completion Event Evidence` before it can validly consume the result; the parent must not end or yield while a child is outstanding.
 14. The in-turn wait identifies one immutable `Terminal Result ID`. Before ending its turn, the parent consumes `(Handoff Event ID, Terminal Result ID)` exactly once, records `Consumption Evidence`, emits the Boss event, routes one permitted successor within the same turn or stops, then closes the receipt. Duplicate or late events retain the first result and do not re-dispatch or emit another Boss event.
 15. No host capability in this contract retains and resumes a parent after it ends or yields its turn. If the parent cannot complete the in-turn invoke-and-await for a required dispatch, it must not end or yield while claiming a later resumption; it records `Dispatch State: blocked`, `Stop Reason: host_completion_unavailable`, and a Boss event in the current turn, and must not claim automatic continuation. Deadline expiry and explicit cancellation, when they occur during an active in-turn wait, are terminal outcomes: record `timed_out` or `cancelled` with `Timeout / Cancellation Reason`, reject stale child output, and do not use schedule/heartbeat polling as a substitute. Cross-turn or event-driven dispatch that resumes a parent after it has ended its turn is out of scope for this contract and is deferred to a separately approved durable control-plane design (GitHub Issue #35); heartbeat/schedule mechanisms are operator-invoked emergency diagnostics only and are never acceptance evidence for `Dispatch`.
+
+16. Use two fields: `Reviewed Candidate SHA` is the review target; `Handoff Record Commit SHA` identifies the record. If self-reference is impossible, resolve it externally by parent or branch SHA. No placeholders.

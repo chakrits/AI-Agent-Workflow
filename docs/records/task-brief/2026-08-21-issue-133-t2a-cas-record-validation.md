@@ -4,7 +4,8 @@
 |---|---|
 | Work Item / Task ID | GitHub Issue #133 / IMP-003 T2-A |
 | Objective | Define one bounded implementation slice for a pure, fail-closed CAS decision and transition/correction record validation over data only. |
-| Candidate base SHA | `5b657d3bb1902c0e1db7b24e4b9202ab888444d5` (full SHA verified before this documentation repair) |
+| Prior candidate verification point | `5b657d3bb1902c0e1db7b24e4b9202ab888444d5` (historical source/verification point; not the current SA target) |
+| Reviewed Candidate SHA | `6ecef1aecb20fc803c67878e03bca0b62c68d6d2` (exact immutable candidate under SA review and authoritative review target) |
 | Dependencies | Merged T1 `status-audit/v1` helpers; existing T1 schemas/tests; Human-approved T2 scope split; SA review of this exact revision |
 | Required reviewer mode | SA specification review, Human specification approval, independent Code Review, Security Review, fresh independent QA, Human approval |
 | Human decision evidence (addressable URL) | Issue #133: https://github.com/chakrits/AI-Agent-Workflow/issues/133 — exact approval comment for this revision is required before `status:spec-ready` |
@@ -12,6 +13,10 @@
 ## Scope classification and reset rule
 
 This is a documentation-only planning revision for a new bounded T2-A review cycle. It is not a continuation of, or rework round 3 after, the prior combined T2 implementation/rework packet. The parent Issue #133 remains open. T2-B is a later separate contract/package and is not part of the current acceptance criteria.
+
+### Two-SHA handoff model
+
+All future handoffs must distinguish the immutable `Reviewed Candidate SHA` from the `Handoff Record Commit SHA`. The former is the exact commit SA/QA must inspect and is the authoritative target. The latter identifies the commit containing the handoff record; when self-reference would make the commit impossible to determine, the record must say that the value is resolved externally as the branch final SHA or identified by its parent commit. Historical verification points remain evidence only and must not be labeled as the current target. Neither field may use `PENDING` or `NEEDS_REVISION`.
 
 ## Allowed Scope
 
@@ -228,7 +233,7 @@ The accepted CAS condition is exact: the four expected and observed tuple member
 
 ### Frozen T1 digest vectors
 
-The following values are copied from `test/status-audit.test.mjs:233-271` at the verified candidate base `5b657d3bb1902c0e1db7b24e4b9202ab888444d5`; the helper source is `scripts/lib/status-audit.mjs:259-340`. The copied canonical strings are the exact UTF-8 bytes (the corresponding SHA-256 output is lowercase hex). These are the five stable vector IDs required by A-03.
+The following values are copied from `test/status-audit.test.mjs:233-271` at the prior candidate verification point `5b657d3bb1902c0e1db7b24e4b9202ab888444d5`; the helper source is `scripts/lib/status-audit.mjs:259-340`. The copied canonical strings are the exact UTF-8 bytes (the corresponding SHA-256 output is lowercase hex). These are the five stable vector IDs required by A-03; the current SA review target remains the separate `Reviewed Candidate SHA` above.
 
 | Vector ID | T1 input/source | Exact canonical UTF-8 preimage | Expected digest |
 |---|---|---|---|
