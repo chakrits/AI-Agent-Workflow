@@ -53,6 +53,36 @@
 
 Excluded files/components include writer harnesses, publication schemas/paths, candidate/archive/manifest/projection/ref mutation, interruption/rollback code, TOCTOU/race harnesses, production credentials/refs, dispatch/relay/terminal-result/orchestration/lifecycle/migration/Go artifacts, and any T1 authority change.
 
+## 3A. Frozen contract for implementation
+
+The Developer must implement the paired Task Brief literally. The public runtime inventory is `evaluateCasDecision(input)`, `deriveResultDigests(input)`, `recordDigest(record)`, `createTransitionRecord(input)`, `createCorrectionRecord(input)`, `validateRecord(record)`, and `approveRecord(input)`. The schema inventory is a distinct CAS request schema, CAS response schema, `status-transition-record/v1`, and `status-correction-record/v1`. Every boundary is a closed object; wrong containers return the documented code-only result and never throw.
+
+| Contract | Frozen shape and behavior |
+|---|---|
+| CAS request/response | Request exactly `expected`, `observed`, `result`, `resultData`; accepted response exactly `accepted`, `observed`, `result`; rejected response exactly `accepted`, `error`. `resultData` exactly `manifest`, `set`, `head`, `projection`, `contentTree`. |
+| Tuple | Exactly `commitSha`, `manifestDigest`, `setDigest`, `headDigest`; C is lowercase 40-hex and M/S/H are lowercase 64-hex. Compare C, M, S, H in that order. |
+| Results | Exactly `manifestDigest`, `setDigest`, `headDigest`, `projectionDigest`, `contentTreeDigest`, recomputed with unchanged T1 `manifestDigest`, `setDigest`, `headDigest`, `projectionDigest`, and `contentTreeDigest` helpers. |
+| Records | Both record kinds exactly `schemaVersion`, `operation`, `identity`, `predecessor`, `proposal`, `successor`, `expected`, `changedPaths`, `approval`, `recordDigest`; predecessor exactly `digest`, `authenticatedBy`. Transition operations remain the existing set; correction operation is exactly `correction`. |
+| Approval | Validate record first, require `independent:false`, bind identity to `predecessor.authenticatedBy` and proposal/predecessor/result to record values. `consumedRecordDigests` is caller data for duplicate/reuse detection only; never mutate it or maintain a store. |
+
+### Preimages, vectors, and precedence
+
+Record digest is SHA-256 of JCS canonical UTF-8 for the complete record excluding only `recordDigest`; schema version is included. Result digests use only the corresponding T1 helper preimage. CAS tuple comparison excludes result/resultData. Encoding is lowercase hexadecimal; no Base64, locale, line-ending, filesystem, Git, or network normalization is permitted. Fixed vector IDs are `T2A-DIGEST-001/MANIFEST`, `/SET`, `/HEAD`, `/PROJECTION`, and `/CONTENT-TREE`. The exact helper bytes/values and the approved manifest case count are explicit SA decision points if they cannot be derived from existing T1 helpers; implementation must stop rather than guess.
+
+Error precedence is deterministic: outer-container error; unknown field; tuple closure; tuple member format in C/M/S/H order; tuple mismatch in C/M/S/H order; result shape; result-data/helper failure; result digest mismatch. Record validation reports ordered codes for closure/missing fields, kind/operation, identity, predecessor, proposal/successor/approval, tuple, paths, and record digest. Approval reports invalid record, independent approval, identity mismatch, binding mismatch, then replay. All failures are code-only and no caller-supplied digest is trusted.
+
+### Replay and no-side-effect boundary
+
+Replay is a data-only duplicate/reuse check over caller-supplied values. No replay store, consumed flag, publication state, authority check, credential check, writer identity capability, dispatch, or lifecycle state is permitted. The pure module may import only `node:crypto` and approved T1 in-memory helpers. Static and runtime evidence must show no filesystem/Git/network/credential/secret/subprocess/orchestration imports or calls. Every fixture snapshots input and in-memory state before/after; rejected malformed, forged, replay, unknown-field, and wrong-container cases must leave snapshots and supplied replay data unchanged.
+
+### Executable manifest
+
+The sole authoritative corpus is `test/fixtures/status-cas/v1/manifest.json` (UTF-8 JSON), with exactly `schemaVersion`, `caseCount`, `manifestDigest`, and `cases`. Each case has exactly `id`, `kind`, `input`, and `expected`; expected has exactly `accepted` plus either `output` or `error`. The manifest digest is SHA-256 JCS over the manifest excluding only `manifestDigest`. The approved numeric count is frozen by SA before implementation. Tests must verify path, digest, count equals array length, unique IDs, required fields, schema/runtime expected output, and executed-ID set equals manifest-ID set. File discovery without manifest consumption is a failure. Required categories are valid, malformed, wrong-container, missing/extra/invalid/stale tuple, forged preimage/result, transition/correction, cross-kind, unknown/missing record, wrong binding, duplicate/reuse, and no-side-effect cases.
+
+### Rollback and T1 preservation
+
+If implementation or parity evidence fails, stop before review, preserve RED evidence, and revert only T2-A runtime/schema/fixture changes. Re-run unchanged T1 status-audit, loader, JCS, lineage, resource, and full regression checks. No T2-A runtime/resource state exists to roll back: it creates no replay store, publication state, Git ref, credential, authority state, or production data. T1 helpers, authority, consumers, and lifecycle contracts remain unchanged unless SA approves a named compatibility seam.
+
 ## 4. Task Breakdown
 
 | Task ID | Task | Owner | Files / Components | Verification |
@@ -134,5 +164,26 @@ The implementation handoff must include RED evidence, focused GREEN output, fixt
 5. **Security Review:** untrusted input, canonicalization, replay, no-side-effect, and non-authority review; unresolved findings block QA.
 6. **Fresh QA:** pinned AC traceability, manifest execution, deterministic negative cases, schema/runtime parity, and T1 regression.
 7. **Human approval:** decide merge/next action; no self-approval, T2-B dispatch, release, authority switch, or Go/No-Go claim.
+
+The Developer handoff must be a complete populated copy of [`docs/templates/HANDOFF.md`](../../templates/HANDOFF.md), including every identity, lifecycle, specification, evidence, acceptance-traceability, QA, stop/limitation/open-question, next-action, Boss-event, dispatch receipt, acknowledgement, terminal result, completion, consumption, and timeout/cancellation field. Non-applicable fields must state `N/A — blocked route` and why; abbreviated handoffs are not accepted.
+
+## 11. AC traceability ownership
+
+| Primary AC | Sole assertion owner | Required evidence |
+|---|---|---|
+| A-01 | Pure data-only request/response behavior | Runtime boundary cases and static import audit |
+| A-02 | Exact C/M/S/H closure and mismatch precedence | Tuple schema/runtime matrix |
+| A-03 | Five T1-derived result digests | Fixed vectors and forged preimage cases |
+| A-04 | Transition/correction schema and operation distinction | Both schema/runtime matrices |
+| A-05 | Canonical complete-record digest | Preimage vectors and field-tamper cases |
+| A-06 | Exact proposal/predecessor/successor/approval binding | Approval binding cases |
+| A-07 | Malformed/forged/replay corpus and error precedence | Manifest category and executed-ID report |
+| A-08 | Unknown/missing/wrong-container closure and parity | Schema/runtime parity report |
+| A-09 | No-side-effect and unchanged-snapshot proof | Static audit plus before/after snapshots |
+| A-10 | Distinct CAS request schema and parity | Request schema cases |
+| A-11 | Manifest count/digest/ID omission detection | Manifest integrity output |
+| A-12 | T1 preservation | T1 regression and diff scope |
+
+A-01 therefore owns callable semantics while A-09 owns the independent side-effect proof; A-07 owns corpus completeness while A-08 owns closure/parity. No assertion is credited to two primary owners.
 
 Next action: **SA review of the exact T2-A specification.**

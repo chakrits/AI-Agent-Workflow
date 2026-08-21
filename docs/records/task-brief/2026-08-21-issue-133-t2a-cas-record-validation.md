@@ -4,7 +4,7 @@
 |---|---|
 | Work Item / Task ID | GitHub Issue #133 / IMP-003 T2-A |
 | Objective | Define one bounded implementation slice for a pure, fail-closed CAS decision and transition/correction record validation over data only. |
-| Base SHA | `9025151c84ce82209f73e7397842dd6be43e6841` |
+| Base SHA | `f02e5ec52c070a3ccadfc4e6435868bc310f8097` |
 | Dependencies | Merged T1 `status-audit/v1` helpers; existing T1 schemas/tests; Human-approved T2 scope split; SA review of this exact revision |
 | Required reviewer mode | SA specification review, Human specification approval, independent Code Review, Security Review, fresh independent QA, Human approval |
 | Human decision evidence (addressable URL) | Issue #133: https://github.com/chakrits/AI-Agent-Workflow/issues/133 — exact approval comment for this revision is required before `status:spec-ready` |
@@ -46,6 +46,110 @@ T2-A must not define acceptance criteria, implementation tasks, fixtures, or run
 | A-10 — Schema/runtime parity | A distinct CAS request contract is added when the request shape is not already represented. The fixture suite validates the same accepted/rejected shapes against JSON Schema and runtime, with no schema-only or runtime-only behavior. |
 | A-11 — Fixture manifest execution | The checked-in manifest is consumed by the test command; every listed fixture executes and asserts its expected result/error, with a count and digest/manifest integrity check preventing silent omission. |
 | A-12 — T1 compatibility | Existing T1 status-audit, loader, JCS, lineage, resource, and full regression tests pass without changing T1 helpers, T1 authority, consumers, projection behavior, or lifecycle/orchestration contracts. |
+
+## Normative T2-A data contract
+
+The following tables are the implementation contract. They describe data shapes and validation only; they do not authorize a writer, publication, authority decision, or resource access. Object boundaries are closed (`additionalProperties: false`) and arrays/strings are validated as containers before member access.
+
+### Public CAS request and response
+
+| Boundary | Exact fields | Normative rule |
+|---|---|---|
+| CAS request | `expected`, `observed`, `result`, `resultData` | Top-level object with exactly these four fields. `expected` and `observed` are C/M/S/H tuples; `result` is the five-digest result; `resultData` supplies the five in-memory preimage inputs. No `schemaVersion` is added unless SA identifies an existing T1 version contract that requires it. |
+| Accepted response | `accepted`, `observed`, `result` | Exactly these fields; `accepted` is `true`, and `observed`/`result` are copies of validated data. No error field. |
+| Rejected response | `accepted`, `error` | Exactly these fields; `accepted` is `false`, and `error` contains exactly `code`. No partial observed/result data. |
+| Result data | `manifest`, `set`, `head`, `projection`, `contentTree` | Exactly these five in-memory containers. Their member shapes remain the shapes consumed by the unchanged T1 helpers; any additional member required by a helper is an SA decision point and must be recorded before implementation. |
+
+### C/M/S/H tuple and result digests
+
+| Symbol / field | Type and binding | Rejection condition |
+|---|---|---|
+| `C` / `commitSha` | Lowercase hexadecimal 40-character commit identifier | Missing, extra, wrong container, uppercase, or wrong length → `INVALID_TUPLE` or `INVALID_COMMIT` per error precedence below. T2-A treats it as data; it is not dereferenced as a Git ref. |
+| `M` / `manifestDigest` | Lowercase hexadecimal SHA-256 digest, 64 characters | Invalid member → `INVALID_MANIFEST`; expected/observed difference → `CAS_MANIFEST_MISMATCH`. |
+| `S` / `setDigest` | Lowercase hexadecimal SHA-256 digest, 64 characters | Invalid member → `INVALID_SET`; expected/observed difference → `CAS_SET_MISMATCH`. |
+| `H` / `headDigest` | Lowercase hexadecimal SHA-256 digest, 64 characters | Invalid member → `INVALID_HEAD`; expected/observed difference → `CAS_HEAD_MISMATCH`. |
+| Five result fields | Exactly `manifestDigest`, `setDigest`, `headDigest`, `projectionDigest`, `contentTreeDigest` | All five are recomputed from supplied `resultData` through unchanged T1 helpers. Any mismatch → `RESULT_DIGEST_MISMATCH`; no caller-supplied digest is trusted. |
+
+The five fixed vector IDs are `T2A-DIGEST-001/MANIFEST`, `T2A-DIGEST-001/SET`, `T2A-DIGEST-001/HEAD`, `T2A-DIGEST-001/PROJECTION`, and `T2A-DIGEST-001/CONTENT-TREE`. Their input values and expected lowercase hex outputs must be copied from the T1 helper contracts or recorded as an SA decision point; the Developer must not choose replacement preimages.
+
+### Transition, correction, and approval records
+
+| Boundary | Exact fields | Normative rule |
+|---|---|---|
+| Transition record | `schemaVersion`, `operation`, `identity`, `predecessor`, `proposal`, `successor`, `expected`, `changedPaths`, `approval`, `recordDigest` | `schemaVersion` is `status-transition-record/v1`; `operation` is one of the existing transition operations (`create`, `update`, `archive`, `rollback`). The record is closed and has the exact field set. |
+| Correction record | Same exact field set | `schemaVersion` is `status-correction-record/v1`; `operation` is exactly `correction`. It is a distinct schema/kind, never accepted as a transition by kind confusion. |
+| `predecessor` | `digest`, `authenticatedBy` | Closed object; both values are bound as data. `authenticatedBy` is not an authority check. |
+| Approval binding input | `record`, `identity`, `independent`, `proposal`, `predecessor`, `result`, `consumedRecordDigests` | `record` must validate first; `independent` must be `false`; identity equals `record.predecessor.authenticatedBy`; proposal/predecessor/result equal record proposal/predecessor.digest/successor. `consumedRecordDigests` is an optional caller-supplied data set used only to detect duplicate/reuse in this call. |
+| Approval result | `accepted`, `event` or `accepted`, `error` | Accepted event contains only `type`, `independent`, `recordDigest`, `proposal`, `predecessor`, `result`, `identity`. It is not an approval store or consumption mutation. |
+
+`recordDigest` is SHA-256 over the JCS UTF-8 canonical serialization of the complete record preimage with only `recordDigest` excluded. All other fields, including `schemaVersion`, operation, paths, approval, predecessor, proposal, successor, and expected tuple, are included. JCS key ordering, UTF-8 encoding, lowercase hexadecimal output, and the T1 lone-surrogate/number rejection rules are normative. If T1 does not expose the exact helper preimage bytes, SA must decide and record the vector before implementation.
+
+### Deterministic error codes and precedence
+
+For single-result boundaries, the first applicable rule wins: (1) wrong outer container → `INVALID_INPUT`/boundary-specific `INVALID_RECORD_INPUT` or `INVALID_RECORD`; (2) unknown top-level field → `UNKNOWN_FIELD`; (3) missing or extra tuple member → `INVALID_TUPLE`; (4) tuple member format in C, M, S, H order → `INVALID_COMMIT`, `INVALID_MANIFEST`, `INVALID_SET`, `INVALID_HEAD`; (5) tuple mismatch in C, M, S, H order → `CAS_COMMIT_MISMATCH`, `CAS_MANIFEST_MISMATCH`, `CAS_SET_MISMATCH`, `CAS_HEAD_MISMATCH`; (6) result shape → `INVALID_RESULT`; (7) result-data/preimage shape or helper failure → `INVALID_DIGEST_INPUT`; (8) result digest mismatch → `RESULT_DIGEST_MISMATCH`. Record validation returns an ordered code list in this order: closure/missing fields, operation/kind, identity, predecessor, proposal/successor/approval, expected tuple, changed paths, record digest. Approval returns `INVALID_RECORD`, `INDEPENDENT_APPROVAL_NOT_ALLOWED`, `APPROVAL_IDENTITY_MISMATCH`, `APPROVAL_BINDING_MISMATCH`, then `APPROVAL_REPLAY` in that order. Any code not derivable from the existing T1/runtime contract is an SA decision point, not a Developer choice.
+
+## Canonicalization, replay, and boundary inventory
+
+### Frozen preimage rules
+
+- CAS tuple comparison includes only `expected` and `observed` fields `commitSha`, `manifestDigest`, `setDigest`, and `headDigest`; result fields and `resultData` are not tuple members.
+- Result preimages include only the data passed to the corresponding unchanged T1 helper: `manifest`, `set`, `head`, `projection`, or `contentTree`. Caller-supplied result digests, request envelope fields, and error fields are excluded.
+- Record preimage includes every record field except `recordDigest`; approval event preimage is not separately digested in T2-A.
+- Schema version is included in record preimages and is a fixed `.../v1` discriminator. It is not silently omitted or normalized.
+- JCS canonical UTF-8 bytes are hashed with SHA-256 and encoded as lowercase hexadecimal. No Base64, host locale, path lookup, Git lookup, or line-ending substitution is allowed.
+- The fixed vector IDs above and their exact canonical bytes/digests must be checked into the fixture manifest. Missing helper-derived bytes are an SA decision point.
+
+Replay means only validating a duplicate/reused record or approval input against caller-supplied data such as `consumedRecordDigests`. T2-A must not create or read a replay store, mutate a consumed/used flag, track publication state, or perform an authority/identity capability check. A repeated input is rejected as `APPROVAL_REPLAY` only when the supplied data says its digest is already present; the pure function does not add it.
+
+| Public boundary | Schema/runtime contract | Wrong-container behavior |
+|---|---|---|
+| `evaluateCasDecision(input)` | Distinct request schema plus response schema; exact four-field request and conditional accepted/rejected response | Code-only `{accepted:false,error:{code:"INVALID_INPUT"}}` |
+| `deriveResultDigests(input)` | In-memory five-container result-data shape; five T1-derived digest fields | Code-only `INVALID_DIGEST_INPUT` |
+| `recordDigest(record)` | Closed complete record shape; returns canonical digest or boundary error | Code-only `INVALID_RECORD` |
+| `createTransitionRecord(input)` | Closed record-input constructor; fixes transition schema version and operation set | Code-only `INVALID_RECORD_INPUT` |
+| `createCorrectionRecord(input)` | Closed record-input constructor; fixes correction schema version and operation | Code-only `INVALID_RECORD_INPUT` |
+| `validateRecord(record)` | Both versioned closed record schemas; ordered code list | `[{"code":"INVALID_RECORD"}]`, never a throw |
+| `approveRecord(input)` | Closed approval-binding input and conditional approval event/error response | Code-only `INVALID_RECORD`, never a throw |
+| JSON Schema boundaries | CAS request, CAS response, transition record, correction record; runtime must exercise each same shape | Schema rejection must map to the runtime code for the same case; wrong containers are invalid, never coerced |
+
+The implementation must enumerate these seven runtime exports and four schema boundaries in its handoff. Constructors, validators, approval binding, result-data derivation, and fixture-manifest validation are all public contract surfaces even when invoked only by tests.
+
+## Fixture manifest and omission detection
+
+The authoritative executable manifest is `test/fixtures/status-cas/v1/manifest.json`, encoded as UTF-8 JSON. It has exactly `schemaVersion`, `caseCount`, `manifestDigest`, and `cases`; each case has exactly `id`, `kind`, `input`, and `expected`, where `expected` has exactly `accepted` plus either `output` or `error`. `kind` identifies one of `cas`, `digest`, `transition`, `correction`, `record`, or `approval`. `manifestDigest` is SHA-256 over the JCS UTF-8 manifest preimage excluding only `manifestDigest`; its fixed value and the approved numeric `caseCount` are required before implementation. The numeric count is an SA decision point until the final case list is approved; it must not be inferred at runtime.
+
+Every listed case must run through both its applicable JSON Schema and runtime boundary. The test command must assert: manifest path exists; manifest digest matches; `caseCount === cases.length`; IDs are unique and sorted by the manifest rule; every case has the required fields; every case produces exactly its expected output/error; and the executed-ID set equals the manifest-ID set. A test that discovers files without consuming this manifest is insufficient. Omission detection is therefore a count check, digest check, unique-ID check, and executed-ID equality check; a missing case fails closed.
+
+Required case categories are: accepted CAS, malformed/wrong-container CAS, each missing/extra/invalid/stale C/M/S/H member, forged result/preimage, valid transition, valid correction, cross-kind operation, unknown/missing record fields, wrong proposal/predecessor/successor/approval, duplicate/reused record and approval data, and no-side-effect rejection snapshots. The final count and any category-to-ID mapping are frozen by SA before Developer dispatch.
+
+## No-side-effect proof and implementation rollback
+
+The pure module may import only `node:crypto` and approved T1 in-memory helpers. Static and runtime proof must show no filesystem, Git, network, credential/secret, subprocess, child-process, orchestration, dispatch/relay, or lifecycle imports/calls. Each manifest case snapshots the input graph and all supplied in-memory state before and after invocation; deep equality and digest checks must be unchanged. Rejected malformed, forged, replay, unknown-field, and wrong-container cases must not mutate inputs, add replay entries, consume approvals, set publication state, or hide mutation behind a helper.
+
+If implementation evidence fails, stop before QA, preserve the RED evidence, revert only the T2-A implementation/schema/fixture changes, and rerun the unchanged T1 status-audit, loader, JCS, lineage, resource, and full regression checks. T1 helpers, authority, consumers, and lifecycle contracts must remain byte-for-byte unchanged unless SA approves a named compatibility seam. There is no runtime/resource state, replay store, publication state, Git ref, credential, or production data created by T2-A to roll back.
+
+## Developer handoff contract
+
+The Developer handoff must be a complete instance of [`docs/templates/HANDOFF.md`](../../templates/HANDOFF.md), with every heading populated: identity/work item and URLs; change type/risk; lifecycle phase/specification readiness/current stage/task state/contract version/rework count; completed work/artifacts/files/verification/evidence; AC verification and traceability URL; verified SHA/platform activation; QA evidence/stop reason/limitations/open questions/review focus/recommended next step; next action/owner/orchestration turn/Boss event; and all dispatch, acknowledgement, terminal-result, completion, consumption, and timeout/cancellation fields. Fields that do not apply must say `N/A — blocked route` with the reason. No abbreviated handoff or free-form replacement is accepted.
+
+## AC traceability ownership
+
+Each assertion has one primary AC owner. A-01 owns pure input/output behavior; A-09 owns the independent no-side-effect proof. A-07 owns the required malformed/forged/replay/error-precedence corpus; A-08 owns closed shape and wrong-container schema/runtime parity. This removes the former A-01/A-09 and A-07/A-08 overlap.
+
+| Assertion | Primary AC | Evidence |
+|---|---|---|
+| Pure data-only callable and deterministic accepted/rejected result | A-01 | Boundary test and static import audit |
+| Exact C/M/S/H closure and mismatch codes | A-02 | Tuple schema/runtime matrix |
+| Five helper-derived result digests and forged-preimage rejection | A-03 | Fixed-vector and mismatch cases |
+| Distinct transition/correction schemas and operations | A-04 | Schema/runtime record matrix |
+| Complete canonical record digest binding | A-05 | Preimage vectors and field-tamper cases |
+| Exact proposal/predecessor/successor/approval data binding | A-06 | Approval binding cases |
+| Malformed/forged/replay/error-precedence cases are all listed and executed | A-07 | Manifest category and executed-ID report |
+| Unknown-field, missing-field, and wrong-container closure/parity | A-08 | Schema/runtime parity report |
+| No imports/calls, unchanged snapshots, and no hidden replay mutation | A-09 | Static audit plus before/after snapshot report |
+| Distinct request schema and same-case schema/runtime outcomes | A-10 | Request schema and parity report |
+| Manifest digest/count/ID equality prevents omission | A-11 | Manifest integrity test output |
+| T1 helpers and behavior remain unchanged | A-12 | T1 regression and diff scope evidence |
 
 ## T2-B deferred follow-up (not current AC)
 
