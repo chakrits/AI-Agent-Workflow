@@ -2,7 +2,7 @@
   "fixtureVersion": "status-cas-corpus/v1",
   "testOnly": true,
   "cases": {
-    "T2A-CAS-001-01": {"testOnly":true,"kind":"cas","scenario":"accepted-complete-tuple","input":{"fixture":"valid.json#"},"output":{"fixture":"valid.json#"}},
+    "T2A-CAS-001-01": {"testOnly":true,"kind":"cas","scenario":"accepted-complete-tuple","input":{"fixture":"valid.json#"},"output":{"accepted":true,"observed":{"commitSha":"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb","manifestDigest":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","setDigest":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","headDigest":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},"result":{"manifestDigest":"6ea40d7c7f84b3e71d66320f4c367079cdc6fb36274a6df07c9bcaa127460054","setDigest":"972cfe097309529e369ee7810dd27ed7f29a7624379a8500ee50e3d1eb7ddb13","headDigest":"6e7379878e871c724cebcc622dda24df84420cc5bec0f866b6127c2d66b2eb4d","projectionDigest":"95fb7925aee5851a27f1776ba7cacbc45c3647b0a8e6ddb487ed981ae83c4fba","contentTreeDigest":"d9878822cfec07ee64a6321df18f788da14cac00731feb18265256334bc8c64c"}}},
     "T2A-CAS-002-01": {"testOnly":true,"kind":"cas","scenario":"wrong-container","input":[],"output":{"accepted":false,"error":{"code":"INVALID_INPUT"}}},
     "T2A-CAS-002-02": {"testOnly":true,"kind":"cas","scenario":"unknown-top-level-field","input":{"unknown":true},"output":{"accepted":false,"error":{"code":"UNKNOWN_FIELD"}}},
     "T2A-CAS-003-01": {"testOnly":true,"kind":"cas","scenario":"missing-commitSha","input":{"expected":{},"observed":{}},"output":{"accepted":false,"error":{"code":"INVALID_TUPLE"}}},

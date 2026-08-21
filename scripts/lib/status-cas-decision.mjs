@@ -22,7 +22,7 @@ export function isSafeRepositoryPath(value) {
 }
 
 function validateTuple(tuple) {
-  if (!isObject(tuple) || !exact(tuple, new Set(CAS_FIELDS.map(([field]) => field)))) return 'INVALID_TUPLE';
+  if (!isObject(tuple) || !exact(tuple, new Set(CAS_FIELDS.map(([field]) => field))) || CAS_FIELDS.some(([field]) => !Object.hasOwn(tuple, field))) return 'INVALID_TUPLE';
   for (const [field, label] of CAS_FIELDS) if (typeof tuple[field] !== 'string' || !(field === 'commitSha' ? COMMIT : DIGEST).test(tuple[field])) return `INVALID_${label}`;
   return null;
 }
