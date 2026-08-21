@@ -4,7 +4,7 @@
 |---|---|
 | Work Item / Task ID | GitHub Issue #133 / IMP-003 T2-A |
 | Objective | Define one bounded implementation slice for a pure, fail-closed CAS decision and transition/correction record validation over data only. |
-| Base SHA | `f02e5ec52c070a3ccadfc4e6435868bc310f8097` |
+| Base SHA | `56e99b58202134fb7edb2ded4a1068abccbc2bf3` |
 | Dependencies | Merged T1 `status-audit/v1` helpers; existing T1 schemas/tests; Human-approved T2 scope split; SA review of this exact revision |
 | Required reviewer mode | SA specification review, Human specification approval, independent Code Review, Security Review, fresh independent QA, Human approval |
 | Human decision evidence (addressable URL) | Issue #133: https://github.com/chakrits/AI-Agent-Workflow/issues/133 — exact approval comment for this revision is required before `status:spec-ready` |
@@ -165,3 +165,58 @@ T2-B is a future separate contract/package for publication-boundary behavior. It
 Rollback for this planning task is a documentation-only revert before approval. No runtime state, authority, ref, credential, or production data is created or changed.
 
 Next handoff: SA Agent review of this exact Task Brief and paired Implementation Plan. `status:spec-ready` and Developer dispatch remain withheld until Human approval.
+
+## SA closeout addendum — T1-derived freezes and context stop
+
+This addendum is the authoritative clarification for the remaining SA findings. It is planning evidence only; it does not add implementation authority.
+
+### Exact public shapes and operand semantics
+
+| Value | Exact shape/type | Equality and normalization |
+|---|---|---|
+| `identity` | A non-empty string matching the existing T1 identity grammar `^[A-Za-z0-9][A-Za-z0-9._:@/-]{0,127}$`; no object or array form | Exact code-point equality; no trim, case-fold, URL/email normalization, or capability lookup. |
+| `proposal` | A lowercase 64-hex digest string | Exact string equality. It is data, not an authorization token. |
+| `predecessor` | Closed object `{ "digest": string, "authenticatedBy": string }`; both digest and identity use the types above | Exact member equality; `authenticatedBy` is a binding value, not an authority check. |
+| `successor` | A lowercase 64-hex digest string | Exact string equality. |
+| Record `approval` | A lowercase 64-hex digest string in each transition/correction record | Exact string equality; it is the bound approval-event digest, not an approval object or store. |
+| `changedPaths` | Non-empty array of unique repository-path strings, each 1–255 characters, using the existing T2 schema path rule; no object members | Array order is significant because it is included in the record preimage. No sorting, path resolution, slash conversion, or case normalization is applied by T2-A. |
+| Approval input | Closed object `{ record: object, identity: string, independent: boolean, proposal: string, predecessor: string, result: string, consumedRecordDigests: string[] }`; `proposal`, `predecessor`, and `result` are lowercase 64-hex digests; `consumedRecordDigests` is an array of lowercase 64-hex digests | `record` validates first. `independent` must be exactly `false`. Digest and identity comparisons are exact. `consumedRecordDigests` is read as a membership set for this call only; the input array is not sorted, deduplicated, or mutated. |
+| `resultData` | Closed object with exactly `{ manifest, set, head, projection, contentTree }` | Each member is passed unchanged to its named T1 helper. The helper alone defines its internal canonical sorting/line-ending behavior. T2-A does not normalize the container before calling it. |
+
+The accepted CAS condition is exact: the four expected and observed tuple members `C/M/S/H` all match, and all five recomputed result digests `manifestDigest`, `setDigest`, `headDigest`, `projectionDigest`, and `contentTreeDigest` match the caller-provided result. Any one mismatch rejects. Tuple operands are compared in the order `commitSha`, `manifestDigest`, `setDigest`, `headDigest`; strings must already be lowercase canonical forms. JSON object key order is irrelevant only to JCS digest canonicalization; no other operand normalization is permitted.
+
+### Frozen T1 digest vectors
+
+The following values are copied from `test/status-audit.test.mjs:233-271` at base `56e99b5`; the helper source is `scripts/lib/status-audit.mjs:259-340`. The copied canonical strings are the exact UTF-8 bytes (the corresponding SHA-256 output is lowercase hex). These are the five stable vector IDs required by A-03.
+
+| Vector ID | T1 input/source | Exact canonical UTF-8 preimage | Expected digest |
+|---|---|---|---|
+| `T2A-DIGEST-001/MANIFEST` | `manifest = { schemaVersion: "status-manifest/v1", manifestDigest: "f"×64, nested: { manifestDigest: "keep-me" }, setDigest: "9bea80eaae94dfd06301903d9b5f3d7740221794495160800edac7cbb137f600" }` | `{"nested":{"manifestDigest":"keep-me"},"schemaVersion":"status-manifest/v1","setDigest":"9bea80eaae94dfd06301903d9b5f3d7740221794495160800edac7cbb137f600"}` | `11ee19ff51b96ea45af5080ba14d8b4513772d95219ae21086781f4c58b4c88c` |
+| `T2A-DIGEST-001/SET` | The two descriptors at `test/status-audit.test.mjs:237-240` | `[ { issueKey: "chakrits/AI-Agent-Workflow#1", path: "docs/status/active/issue-1.yaml", recordDigest: "a"×64 }, { issueKey: "chakrits/AI-Agent-Workflow#2", path: "docs/status/active/issue-2.yaml", recordDigest: "b"×64 } ]` rendered as the exact JCS string in the source assertion at line 243 | `9bea80eaae94dfd06301903d9b5f3d7740221794495160800edac7cbb137f600` |
+| `T2A-DIGEST-001/HEAD` | `head` at `test/status-audit.test.mjs:248-249` using the preceding set digest | `{"activeIssueKeys":["chakrits/AI-Agent-Workflow#1","chakrits/AI-Agent-Workflow#2"],"schemaVersion":"work-item-status/v1","setDigest":"9bea80eaae94dfd06301903d9b5f3d7740221794495160800edac7cbb137f600"}` | `a37343194a1ac035cdfb7fb1c3d94a1abd55b1237777dec27ac702518ebefe8d` |
+| `T2A-DIGEST-001/PROJECTION` | Input literal `a\r\nb\r\n` at line 259 | `a\nb\n` (bytes `61 0a 62 0a`) | `911169ddaaf146aff539f58c26c489af3b892dff0fe283c1c264c65ae5aa59a2` |
+| `T2A-DIGEST-001/CONTENT-TREE` | Entries at `test/status-audit.test.mjs:211-215`; the audit-path entry is supplied but excluded by the T1 helper | `zeta.txt\0fa7af8bf5fdd704f73beb3adc5612682a98e1af5\0é.txt\09cbe6ea56f225388ae614c419249bfc6d734cc30\0` | `df3e425dec1ba06274a95db2364dfc7e66c769c9a5e3982ff1204fb1452ea45a` |
+
+The SET row's source assertion is the immutable byte source for the full long string; the abbreviated table notation is not an alternate preimage. Implementers must copy the source assertion or its exact UTF-8/hex bytes, not regenerate a different descriptor order.
+
+### Record vectors: explicit non-T1 planning decision
+
+T1 has no transition/correction constructor, record schema, or record-digest helper. The existing T2 schemas at `docs/contracts/schemas/status-transition-record.schema.json` and `status-correction-record.schema.json` define the closed field types only. Therefore these are explicitly synthetic planning vectors, not T1 evidence; SA/Human must approve them before they become implementation fixtures. They use the real T1 `auditDigest` from `test/fixtures/status-audit/v1/valid.json` and the real T1 `changedPaths`/tuple values to keep the example data anchored.
+
+- `T2A-RECORD-001/TRANSITION`: schema `status-transition-record/v1`, operation `update`, identity and `predecessor.authenticatedBy` `maintainer@example.com`, predecessor/proposal/approval `9cd30e3d938ae46960dcf8e2ed499f243bd301a0f4667a6d75f9dd22ec71e529`, successor `b`×64, expected `{ commitSha: "c"×40, manifestDigest: "a"×64, setDigest: "a"×64, headDigest: "a"×64 }`, changed paths `PROJECT_STATUS.md`, `docs/status/active/issue-133.yaml`, `docs/status/manifest.yaml`, expected `recordDigest` `c2352178b62c238cf2d6cb596024fd950862bacc4ec4e313e952a069785ea947`.
+- `T2A-RECORD-001/CORRECTION`: schema `status-correction-record/v1`, operation `correction`, all fields as above except successor `c`×64, expected `recordDigest` `d206024ddb4893a83f6eca60a5a07184ece187cfe59dca043eec3d73774a6e69`.
+
+For both vectors, the canonical preimage is JCS UTF-8 over the complete record with only `recordDigest` omitted; schema version and every other field are included. The exact preimage bytes are copied below (one line per vector) and are reproducible by `canonicalizeJcs(recordWithoutRecordDigest)` from the T1 helper `scripts/lib/status-jcs.mjs:110-120`:
+
+```text
+T2A-RECORD-001/TRANSITION {"approval":"9cd30e3d938ae46960dcf8e2ed499f243bd301a0f4667a6d75f9dd22ec71e529","changedPaths":["PROJECT_STATUS.md","docs/status/active/issue-133.yaml","docs/status/manifest.yaml"],"expected":{"commitSha":"cccccccccccccccccccccccccccccccccccccccc","headDigest":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","manifestDigest":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","setDigest":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},"identity":"maintainer@example.com","operation":"update","predecessor":{"authenticatedBy":"maintainer@example.com","digest":"9cd30e3d938ae46960dcf8e2ed499f243bd301a0f4667a6d75f9dd22ec71e529"},"proposal":"9cd30e3d938ae46960dcf8e2ed499f243bd301a0f4667a6d75f9dd22ec71e529","schemaVersion":"status-transition-record/v1","successor":"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"}
+T2A-RECORD-001/CORRECTION {"approval":"9cd30e3d938ae46960dcf8e2ed499f243bd301a0f4667a6d75f9dd22ec71e529","changedPaths":["PROJECT_STATUS.md","docs/status/active/issue-133.yaml","docs/status/manifest.yaml"],"expected":{"commitSha":"cccccccccccccccccccccccccccccccccccccccc","headDigest":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","manifestDigest":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","setDigest":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},"identity":"maintainer@example.com","operation":"correction","predecessor":{"authenticatedBy":"maintainer@example.com","digest":"9cd30e3d938ae46960dcf8e2ed499f243bd301a0f4667a6d75f9dd22ec71e529"},"proposal":"9cd30e3d938ae46960dcf8e2ed499f243bd301a0f4667a6d75f9dd22ec71e529","schemaVersion":"status-correction-record/v1","successor":"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"}
+```
+
+No record vector is authoritative until SA/Human approves this explicit synthetic-data decision.
+
+### Fixture manifest stop / `NEEDS_CONTEXT`
+
+The exact path and format are frozen: `test/fixtures/status-cas/v1/manifest.json`, UTF-8 JSON, closed top-level `{ schemaVersion, caseCount, manifestDigest, cases }`, case shape `{ id, kind, input, expected }`, `expected` shape `{ accepted, output | error }`, and IDs sorted by UTF-8 byte order. Required category IDs are the stable prefixes `T2A-CAS-001` through `T2A-CAS-012` (accepted; wrong container/unknown; missing/extra/invalid/stale C/M/S/H; forged result; valid transition; valid correction; cross-kind/record closure; wrong binding; replay; no-side-effect), with subcases numbered in each category.
+
+The exact final subcase list, numeric `caseCount`, and canonical `manifestDigest` cannot be derived from T1: T1 contains no T2-A fixture corpus, no T2 runtime error outputs, and no record constructor. Choosing those values now would invent implementation-level evidence and could make omission detection pass over an incomplete corpus. **Return `NEEDS_CONTEXT` and request one precise SA/Human decision:** approve the two synthetic record vectors above and provide/approve the complete numbered subcase list (including each C/M/S/H negative and deterministic expected error), after which the Documentation Agent can compute and freeze `caseCount` and the manifest JCS/SHA-256 preimage/digest. Until that decision, no `status:spec-ready`, Developer dispatch, implementation test claim, or T2-B work is allowed.
