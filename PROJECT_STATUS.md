@@ -1,7 +1,7 @@
 # PROJECT_STATUS.md
 
 ## Current Work Item
-- None yet.
+- None yet. Blank-template reset completed through PR #205 (`aa2a871`).
 
 ## Current Stage
 - None yet.
@@ -14,7 +14,7 @@
 - Security Review Required: N/A
 
 ## Completed
-- Nothing yet — this is a fresh clone of the workflow template.
+- Blank-template reset completed through PR #205 (`aa2a871`); historical records remain recoverable from Git history.
 
 ## In Progress
 - Nothing in progress.
