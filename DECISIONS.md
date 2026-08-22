@@ -2,6 +2,40 @@
 
 ## Decision Log
 
+### ADR-0019: No-Go and freeze for IMP-003 T2-B
+
+- Date: 2026-08-22
+- Work Items: [Issue #133](https://github.com/chakrits/AI-Agent-Workflow/issues/133), [Issue #203](https://github.com/chakrits/AI-Agent-Workflow/issues/203)
+- Status: Accepted — deferred
+
+#### Context
+
+T2-B expanded the framework into a controlled writer and publication system involving
+protected refs, CAS enforcement, credentials, approval authority, retention, rollback, and
+predecessor recovery. The Human Maintainer determined that the operational value is not yet
+demonstrated for the current personal, single-user workflow and that the design/verification
+overhead exceeds the current benefit.
+
+#### Decision
+
+Do not proceed with T2-B at this time. Freeze the code baseline at `a739286` and keep
+Issues #133 and #203 as deferred initiatives. The SA design at `eb15450` is reference-only
+and is not approved for implementation.
+
+No Developer dispatch, `status:spec-ready`, Security Review, writer/publication activation,
+authority migration, release, or Go/No-Go execution is authorized by this decision.
+
+Reopening requires a new Human-approved scope, a demonstrated user-value hypothesis, and
+explicit measurable exit criteria. This is a process/code freeze, not a destructive history
+rewrite; all prior commits remain recoverable through Git history.
+
+#### Consequences
+
+- T2-A evidence and scope-cleanup work remain available as the frozen baseline.
+- T2-B design artifacts remain deferred and create no runtime obligations.
+- Future work should prioritize practical orchestration, dispatch, terminal-result consumption,
+  and context efficiency over status publication infrastructure.
+
 ### ADR-0014: Add a task-execution layer without changing lifecycle orchestration
 
 - Date: 2026-08-12

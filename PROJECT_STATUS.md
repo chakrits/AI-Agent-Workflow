@@ -1,10 +1,10 @@
 # PROJECT_STATUS.md
 
 ## Current Work Item
-- Issue #133 — T2-A scope cleanup is merged; awaiting Human decision on whether to proceed with separately planned T2-B work. T2-B remains deferred.
+- Idle — IMP-003 T2-B is deferred by ADR-0019; code baseline frozen at `a739286`.
 
 ## Current Stage
-- Issue #133 T2-A scope cleanup is merged on `main` through PR #201 (`a43dcd3`). The four T2-B writer/publication artifacts were removed from the T2-A candidate after independent Code Review and QA passed. Issue #133 is at `phase:human-review`; T2-B, authority, writer/publication activation, migration, and Go/No-Go remain deferred. No T2-A production behavior or dispatch/relay/lifecycle behavior changed.
+- Framework / Meta — No-Go/freeze decision recorded. Issues #133 and #203 remain deferred at `phase:blocked`; no implementation route is active.
 
 ## Change Classification
 - Change Type: Framework / Meta (test evidence hardening)
@@ -15,6 +15,7 @@
 - Security Review Required: No — no auth, secrets, sensitive data, or trust-boundary behavior changed
 
 ## Completed
+- Human decision — IMP-003 T2-B No-Go/freeze recorded in ADR-0019. Code baseline is frozen at `a739286`; Issues #133 and #203 are deferred. The SA design at `eb15450` remains reference-only. No Developer dispatch, writer/publication activation, authority migration, release, or Go/No-Go execution is authorized until a new Human-approved value hypothesis and exit criteria exist.
 - Issue #133 / IMP-003 T2-A scope cleanup merged through PR #201 as commit `a43dcd3eaadb237682e4773bbe197b036aa501bd`. Removed the T2-B writer harness, writer-intent schema, writer-publication schema, and writer harness test from the T2-A candidate while preserving Git history. Independent Code Review approved and QA passed at final evidence head `f1c2f9f`; `npm test` 503/503 and all required validators passed. The T2-A package remains limited to CAS/record validation; T2-B and authority/publication work remain separate and deferred.
 - Issue #196 / Issue #198 merged through PR #197 as commit `95ffa37bf05be02f962500478db1bb16101b5145` (with stacked PR #199 merged first as `eccdafe678ed3b84ece71da3535592dbfacad785`). Hardened the T2-A evidence harness against scenario-keyed execution and hidden fixture substitution, added adversarial input binding, made parity evidence manifest-derived, and resolved the eight inherited full-suite failures through canonical handoff vocabulary and refreshed context-source hashes. Independent Code Review and QA passed; final checks include `npm test` 509/509 and context budget 29,985/30,000. No production runtime, authority, dispatch/relay, lifecycle, migration, or Go/No-Go behavior changed.
 - Issue #133 / IMP-003 Task 1 merged through PR #194 as commit `d0bb800c04d420d526eb0b0b37f493ac94b96a8a`. Added the bounded `status-audit/v1` contract foundation: schema validation, deterministic audit/digest helpers, fixed digest vectors, and regression coverage. Developer rework closed the three Major QA findings (invalid Gregorian/UTC timestamp handling, fixed digest vectors, and JCS lone-surrogate keys). Fresh independent QA returned `spec_verdict: PASS` and `quality_verdict: APPROVED` on `dc9026c9..b5dd39c6` with focused tests 41/41 and full suite 482/482; code-review evidence was added at `3aa1cc2`. This slice does not activate a writer, mutate runtime status, change projection authority, migrate consumers, or alter dispatch/terminal-result relay. Issue #133 remains open for its subsequent status-engine tasks. QA evidence: https://github.com/chakrits/AI-Agent-Workflow/issues/133#issuecomment-5358338516.
