@@ -2,7 +2,7 @@
   "schemaVersion": "status-cas-fixtures/v1",
   "testOnly": true,
   "caseCount": 52,
-  "manifestDigest": "ad354f1cde4076127053ec22e3030c3b748e4878954c3687a57c587716029e63",
+  "manifestDigest": "956f916a21a0033a70496e03a6ce8cc886fd478dc7a2f3b69fc35f4998cf0168",
   "cases": [
     {"id":"T2A-CAS-001-01","kind":"cas","input":{"fixture":"corpus.json#/cases/T2A-CAS-001-01/input"},"expected":{"accepted":true,"output":{"fixture":"corpus.json#/cases/T2A-CAS-001-01/output"}}},
     {"id":"T2A-CAS-002-01","kind":"cas","input":{"fixture":"corpus.json#/cases/T2A-CAS-002-01/input"},"expected":{"accepted":false,"error":{"code":"INVALID_INPUT"}}},
@@ -50,9 +50,9 @@
     {"id":"T2A-CAS-014-01","kind":"record","input":{"fixture":"corpus.json#/cases/T2A-CAS-014-01/input"},"expected":{"accepted":false,"error":{"code":"INVALID_RECORD"}}},
     {"id":"T2A-CAS-014-02","kind":"approval","input":{"fixture":"corpus.json#/cases/T2A-CAS-014-02/input"},"expected":{"accepted":false,"error":{"code":"INVALID_RECORD"}}},
     {"id":"T2A-CAS-014-03","kind":"record","input":{"fixture":"corpus.json#/cases/T2A-CAS-014-03/input"},"expected":{"accepted":false,"error":{"code":"INVALID_NESTED_SHAPE"}}},
-    {"id":"T2A-CAS-014-04","kind":"record","input":{"fixture":"corpus.json#/cases/T2A-CAS-014-04/input"},"expected":{"accepted":false,"error":{"code":"INVALID_RECORD"}}},
+    {"id":"T2A-CAS-014-04","kind":"recordDigest","input":{"fixture":"corpus.json#/cases/T2A-CAS-014-04/input"},"expected":{"accepted":false,"error":{"code":"INVALID_RECORD"}}},
     {"id":"T2A-CAS-014-05","kind":"cas","input":{"fixture":"corpus.json#/cases/T2A-CAS-014-05/input"},"expected":{"accepted":false,"error":{"code":"INVALID_DIGEST_INPUT"}}},
-    {"id":"T2A-CAS-014-06","kind":"record","input":{"fixture":"corpus.json#/cases/T2A-CAS-014-06/input"},"expected":{"accepted":false,"error":{"code":"INVALID_RECORD_INPUT"}}},
+    {"id":"T2A-CAS-014-06","kind":"transition","input":{"fixture":"corpus.json#/cases/T2A-CAS-014-06/input"},"expected":{"accepted":false,"error":{"code":"INVALID_RECORD_INPUT"}}},
     {"id":"T2A-CAS-014-07","kind":"record","input":{"fixture":"corpus.json#/cases/T2A-CAS-014-07/input"},"expected":{"accepted":false,"error":{"code":"INVALID_SCHEMA_KIND"}}},
     {"id":"T2A-CAS-014-08","kind":"cas","input":{"fixture":"corpus.json#/cases/T2A-CAS-014-08/input"},"expected":{"accepted":false,"error":{"code":"INVALID_RESULT"}}},
     {"id":"T2A-CAS-014-09","kind":"approval","input":{"fixture":"corpus.json#/cases/T2A-CAS-014-09/input"},"expected":{"accepted":false,"error":{"code":"INDEPENDENT_APPROVAL_NOT_ALLOWED"}}}

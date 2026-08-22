@@ -313,88 +313,35 @@ function without(record, field) {
   return copy;
 }
 
-function overlay(base, patch) {
-  if (!patch || typeof patch !== 'object' || Array.isArray(patch)) return patch;
-  if (Object.keys(patch).length === 0) return {};
-  const output = { ...base };
-  for (const [key, value] of Object.entries(patch)) {
-    output[key] = value && typeof value === 'object' && !Array.isArray(value) && base?.[key] && typeof base[key] === 'object' && !Array.isArray(base[key])
-      ? overlay(base[key], value)
-      : value;
-  }
-  return output;
-}
-
-function materializeBoundary(base, resolvedInput) {
-  if (!resolvedInput || typeof resolvedInput !== 'object' || Array.isArray(resolvedInput)) return resolvedInput;
-  const payload = { ...resolvedInput };
-  if (Object.hasOwn(payload, 'resultDigest')) {
-    delete payload.resultDigest;
-    payload.result = { ...base.result, manifestDigest: 'f'.repeat(64) };
-  }
-  if (Object.hasOwn(payload, 'preimage')) {
-    payload.resultData = { ...base.resultData, projection: payload.preimage };
-    delete payload.preimage;
-  }
-  if (Object.hasOwn(payload, 'snapshot')) {
-    delete payload.snapshot;
-    if (base.resultData) payload.resultData = { ...base.resultData, projection: 'forged' };
-    else if (base.recordDigest) payload.successor = '4'.repeat(64);
-    else if (base.consumedRecordDigests) payload.proposal = 'f'.repeat(64);
-  }
-  return overlay(base, payload);
-}
-
-const frozenBoundaryOperations = new Map([
-  ['replay-input-unchanged', { boundary: 'approval', patch: (base) => ({ consumedRecordDigests: [base.record.recordDigest] }) }],
-  ['record-digest-empty-object', { boundary: 'recordDigest' }],
-  ['invalid-record-input-container', { boundary: 'createTransitionRecord' }],
-]);
-
 function recordConstructorInput(record) {
   return without(without(record, 'schemaVersion'), 'recordDigest');
 }
 
-async function executeManifestCase(entry, corpusCase, fixtures) {
+async function executeManifestCase(entry, corpusCase) {
   const resolvedInput = corpusCase.input?.fixture ? await readFixtureReference(corpusCase.input.fixture) : corpusCase.input;
   if (entry.kind === 'manifest') {
     return resolveManifestReference(resolvedInput);
   }
-  const validRequest = materializeBoundary(fixtures.valid, resolvedInput);
-  const transition = materializeBoundary(fixtures.transition, resolvedInput);
-  const approvalRecord = Array.isArray(resolvedInput?.consumedRecordDigests) && resolvedInput.consumedRecordDigests.includes(fixtures.correction.recordDigest)
-    ? fixtures.correction
-    : fixtures.transition;
-  const validApproval = { record: approvalRecord, identity: approvalRecord.predecessor.authenticatedBy, independent: false, proposal: approvalRecord.proposal, predecessor: approvalRecord.predecessor.digest, result: approvalRecord.successor, consumedRecordDigests: [] };
-  if (entry.kind === 'cas' || entry.kind === 'digest') return evaluateCasDecision(validRequest);
+  if (entry.kind === 'cas' || entry.kind === 'digest') return evaluateCasDecision(resolvedInput);
   if (entry.kind === 'transition') return createTransitionRecord(recordConstructorInput(resolvedInput));
   if (entry.kind === 'correction') return createCorrectionRecord({ ...recordConstructorInput(resolvedInput), operation: undefined });
+  if (entry.kind === 'recordDigest') return recordDigest(resolvedInput);
   if (entry.kind === 'record') {
-    const operation = frozenBoundaryOperations.get(corpusCase.scenario);
-    if (operation?.boundary === 'recordDigest') return recordDigest(resolvedInput);
-    if (operation?.boundary === 'createTransitionRecord') return createTransitionRecord(resolvedInput);
-    const errors = validateRecord(transition);
+    const errors = validateRecord(resolvedInput);
     return { accepted: errors.length === 0, ...(errors.length > 0 ? { error: { code: errors[0].code } } : {}) };
   }
-  if (entry.kind === 'approval') {
-    const operation = frozenBoundaryOperations.get(corpusCase.scenario);
-    const input = operation?.patch ? { ...materializeBoundary(validApproval, resolvedInput), ...operation.patch(validApproval) } : materializeBoundary(validApproval, resolvedInput);
-    return approveRecord(input);
-  }
+  if (entry.kind === 'approval') return approveRecord(resolvedInput);
   return resolveManifestReference(resolvedInput);
 }
 
 test('authoritative manifest executes every frozen case through its boundary and compares exact outcomes', async () => {
   const manifest = JSON.parse(await readFile(path.join(fixtureRoot, 'manifest.json'), 'utf8'));
   const corpus = JSON.parse(await readFile(path.join(fixtureRoot, 'corpus.json'), 'utf8'));
-  const valid = JSON.parse(await readFile(path.join(fixtureRoot, 'valid.json'), 'utf8'));
-  const vectors = JSON.parse(await readFile(path.join(fixtureRoot, 'record-vectors.json'), 'utf8')).vectors;
-  const fixtures = { valid, transition: vectors['T2A-RECORD-001/TRANSITION'].record, correction: vectors['T2A-RECORD-001/CORRECTION'].record };
   const executed = [];
   for (const entry of manifest.cases) {
     const corpusCase = corpus.cases[entry.id];
     assert.ok(corpusCase, entry.id);
-    const actual = await executeManifestCase(entry, corpusCase, fixtures);
+    const actual = await executeManifestCase(entry, corpusCase);
     const expected = entry.expected.error ? { accepted: false, error: entry.expected.error } : entry.expected.output?.fixture ? await readFixtureReference(entry.expected.output.fixture) : entry.expected.output;
     assert.deepEqual(actual, expected, entry.id);
     if (actual.error) assert.ok(publicErrorCodes.has(actual.error.code), entry.id);
@@ -413,6 +360,22 @@ test('manifest execution is bound to resolved fixture payloads', async () => {
   assert.deepEqual(evaluateCasDecision(corrupted), { accepted: false, error: { code: 'RESULT_DIGEST_MISMATCH' } });
 });
 
+test('adversarial fixture mutation changes the manifest result without changing scenario metadata', async () => {
+  const manifest = JSON.parse(await readFile(path.join(fixtureRoot, 'manifest.json'), 'utf8'));
+  const corpus = JSON.parse(await readFile(path.join(fixtureRoot, 'corpus.json'), 'utf8'));
+  const entry = manifest.cases.find(({ id }) => id === 'T2A-CAS-012-01');
+  const originalCase = corpus.cases[entry.id];
+  const mutatedCase = structuredClone(originalCase);
+  const resolvedInput = await readFixtureReference(originalCase.input.fixture);
+  const mutatedInput = structuredClone(resolvedInput);
+  mutatedInput.resultData.projection = '# Status\n';
+  mutatedCase.input = mutatedInput;
+  assert.equal(mutatedCase.scenario, originalCase.scenario);
+  const original = await executeManifestCase(entry, originalCase);
+  const mutated = await executeManifestCase(entry, mutatedCase);
+  assert.notDeepEqual(mutated, original);
+});
+
 function normalizedAjvErrors(validate) {
   return (validate.errors ?? []).map(({ instancePath, keyword, schemaPath, params }) => ({ instancePath, keyword, schemaPath, params })).sort((left, right) => JSON.stringify(left).localeCompare(JSON.stringify(right)));
 }
@@ -420,26 +383,36 @@ function normalizedAjvErrors(validate) {
 test('all manifest cases compare actual AJV results/errors with runtime outcomes', async () => {
   const manifest = JSON.parse(await readFile(path.join(fixtureRoot, 'manifest.json'), 'utf8'));
   const corpus = JSON.parse(await readFile(path.join(fixtureRoot, 'corpus.json'), 'utf8'));
-  const valid = JSON.parse(await readFile(path.join(fixtureRoot, 'valid.json'), 'utf8'));
-  const vectors = JSON.parse(await readFile(path.join(fixtureRoot, 'record-vectors.json'), 'utf8')).vectors;
-  const fixtures = { valid, transition: vectors['T2A-RECORD-001/TRANSITION'].record, correction: vectors['T2A-RECORD-001/CORRECTION'].record };
   const schemas = {};
   for (const name of ['status-cas-request', 'status-cas-decision', 'status-transition-record', 'status-correction-record']) schemas[name] = new Ajv2020({ strict: true }).compile(JSON.parse(await readFile(path.join('docs/contracts/schemas', `${name}.schema.json`), 'utf8')));
-  let parityCount = 0;
+  const notApplicableReasons = {
+    approval: 'No standalone approval schema exists; approval inputs are covered by the runtime approval boundary and the record schema for record cases.',
+    manifest: 'Manifest reference resolution is a test-only fixture loader boundary; no published manifest-input schema exists for a schema/runtime comparison.',
+    recordDigest: 'recordDigest returns a scalar digest/error boundary; no published recordDigest schema exists for a schema/runtime comparison.',
+  };
+  const notApplicableCaseReasons = {
+    'T2A-CAS-012-02': 'The record schema checks digest shape only; it cannot recompute recordDigest, so this semantic integrity case is runtime-exact with an explicit schema N/A reason.',
+  };
+  const exactParityKinds = new Set(['cas', 'digest', 'transition', 'correction', 'record']);
+  const parityEvidence = new Map();
   for (const entry of manifest.cases) {
     const corpusCase = corpus.cases[entry.id];
-    if (entry.kind === 'cas') {
-      const input = materializeBoundary(valid, corpusCase.input?.fixture ? await readFixtureReference(corpusCase.input.fixture) : corpusCase.input);
-      const runtime = evaluateCasDecision(input);
+    const input = corpusCase.input?.fixture ? await readFixtureReference(corpusCase.input.fixture) : corpusCase.input;
+    const runtime = await executeManifestCase(entry, corpusCase);
+    const expected = entry.expected.error ? { accepted: false, error: entry.expected.error } : entry.expected.output?.fixture ? await readFixtureReference(entry.expected.output.fixture) : entry.expected.output;
+    assert.deepEqual(runtime, expected, `${entry.id}: runtime outcome`);
+    if (entry.kind === 'cas' || entry.kind === 'digest') {
       const schemaValid = schemas['status-cas-request'](input);
       const runtimeStructural = runtime.accepted || !new Set(['INVALID_INPUT', 'UNKNOWN_FIELD', 'INVALID_TUPLE', 'INVALID_COMMIT', 'INVALID_MANIFEST', 'INVALID_SET', 'INVALID_HEAD', 'INVALID_RESULT', 'INVALID_DIGEST_INPUT']).has(runtime.error?.code);
       assert.equal(schemaValid, runtimeStructural, `${entry.id}: AJV ${JSON.stringify(normalizedAjvErrors(schemas['status-cas-request']))}`);
       assert.equal(schemas['status-cas-decision'](runtime), true, `${entry.id}: ${JSON.stringify(normalizedAjvErrors(schemas['status-cas-decision']))}`);
-      parityCount += 2;
+      if (!schemaValid) assert.ok(normalizedAjvErrors(schemas['status-cas-request']).length > 0, `${entry.id}: missing AJV error evidence`);
+      parityEvidence.set(entry.id, { status: 'exact', schema: 'status-cas-request', runtime: entry.kind === 'digest' ? 'evaluateCasDecision/digest' : 'evaluateCasDecision' });
     } else if (entry.kind === 'transition' || entry.kind === 'correction' || entry.kind === 'record') {
-      const source = entry.kind === 'correction' ? fixtures.correction : fixtures.transition;
-      const resolved = corpusCase.input?.fixture ? await readFixtureReference(corpusCase.input.fixture) : corpusCase.input;
-      const input = entry.kind === 'transition' || entry.kind === 'correction' ? resolved : materializeBoundary(source, resolved);
+      if (Object.hasOwn(notApplicableCaseReasons, entry.id)) {
+        parityEvidence.set(entry.id, { status: 'not-applicable', reason: notApplicableCaseReasons[entry.id] });
+        continue;
+      }
       const schemaName = input?.schemaVersion === 'status-correction-record/v1' ? 'status-correction-record' : 'status-transition-record';
       const schemaValid = schemas[schemaName](input);
       const runtime = entry.kind === 'transition'
@@ -447,14 +420,19 @@ test('all manifest cases compare actual AJV results/errors with runtime outcomes
         : entry.kind === 'correction'
           ? createCorrectionRecord({ ...recordConstructorInput(input), operation: undefined })
           : validateRecord(input);
-      const runtimeAccepted = entry.kind === 'record'
-        ? (runtime.length === 0 || !new Set(['INVALID_RECORD', 'UNKNOWN_FIELD', 'MISSING_FIELD', 'INVALID_OPERATION', 'INVALID_SCHEMA_KIND', 'INVALID_NESTED_SHAPE', 'INVALID_TUPLE']).has(runtime[0]?.code))
-        : entry.kind === 'transition' || entry.kind === 'correction'
-        ? !runtime.error
-        : false;
+      const runtimeAccepted = entry.kind === 'record' ? runtime.length === 0 : !runtime.error;
       assert.equal(schemaValid, runtimeAccepted, `${entry.id}: AJV ${JSON.stringify(normalizedAjvErrors(schemas[schemaName]))}`);
-      parityCount += 1;
+      if (!schemaValid) assert.ok(normalizedAjvErrors(schemas[schemaName]).length > 0, `${entry.id}: missing AJV error evidence`);
+      parityEvidence.set(entry.id, { status: 'exact', schema: schemaName, runtime: entry.kind });
+    } else {
+      assert.equal(Object.hasOwn(notApplicableReasons, entry.kind), true, `${entry.id}: undocumented parity exclusion`);
+      parityEvidence.set(entry.id, { status: 'not-applicable', reason: notApplicableReasons[entry.kind] });
     }
   }
-  assert.equal(parityCount, 50);
+  const manifestIds = manifest.cases.map(({ id }) => id);
+  const exactParityIds = manifest.cases.filter(({ id, kind }) => exactParityKinds.has(kind) && !Object.hasOwn(notApplicableCaseReasons, id)).map(({ id }) => id);
+  const notApplicableIds = manifest.cases.filter(({ id, kind }) => !exactParityKinds.has(kind) || Object.hasOwn(notApplicableCaseReasons, id)).map(({ id }) => id);
+  assert.deepEqual([...parityEvidence.keys()], manifestIds);
+  assert.deepEqual([...parityEvidence.entries()].filter(([, evidence]) => evidence.status === 'exact').map(([id]) => id), exactParityIds);
+  assert.deepEqual([...parityEvidence.entries()].filter(([, evidence]) => evidence.status === 'not-applicable').map(([id]) => id), notApplicableIds);
 });
