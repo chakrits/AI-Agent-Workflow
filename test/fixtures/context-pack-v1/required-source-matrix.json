@@ -20,7 +20,7 @@
       "requiredSources": [
         {
           "path": "AGENTS.md",
-          "sha256": "34d4fb559873f95c8985744018656432c4f0f4f15718a478bbdd9493e8d208fc"
+          "sha256": "862a9edae1188aab35943b9c39112d6ec16876ac322fe9895f18cf1249e7f550"
         },
         {
           "path": "docs/operating-model/AGENT_OPERATING_MODEL.md",
@@ -42,7 +42,7 @@
       "requiredSources": [
         {
           "path": "AGENTS.md",
-          "sha256": "34d4fb559873f95c8985744018656432c4f0f4f15718a478bbdd9493e8d208fc"
+          "sha256": "862a9edae1188aab35943b9c39112d6ec16876ac322fe9895f18cf1249e7f550"
         },
         {
           "path": "docs/operating-model/AGENT_OPERATING_MODEL.md",
@@ -64,7 +64,7 @@
       "requiredSources": [
         {
           "path": "AGENTS.md",
-          "sha256": "34d4fb559873f95c8985744018656432c4f0f4f15718a478bbdd9493e8d208fc"
+          "sha256": "862a9edae1188aab35943b9c39112d6ec16876ac322fe9895f18cf1249e7f550"
         },
         {
           "path": "docs/operating-model/AGENT_OPERATING_MODEL.md",
@@ -86,7 +86,7 @@
       "requiredSources": [
         {
           "path": "AGENTS.md",
-          "sha256": "34d4fb559873f95c8985744018656432c4f0f4f15718a478bbdd9493e8d208fc"
+          "sha256": "862a9edae1188aab35943b9c39112d6ec16876ac322fe9895f18cf1249e7f550"
         },
         {
           "path": "docs/operating-model/AGENT_OPERATING_MODEL.md",
@@ -108,7 +108,7 @@
       "requiredSources": [
         {
           "path": "AGENTS.md",
-          "sha256": "34d4fb559873f95c8985744018656432c4f0f4f15718a478bbdd9493e8d208fc"
+          "sha256": "862a9edae1188aab35943b9c39112d6ec16876ac322fe9895f18cf1249e7f550"
         },
         {
           "path": "docs/operating-model/AGENT_OPERATING_MODEL.md",
@@ -130,7 +130,7 @@
       "requiredSources": [
         {
           "path": "AGENTS.md",
-          "sha256": "34d4fb559873f95c8985744018656432c4f0f4f15718a478bbdd9493e8d208fc"
+          "sha256": "862a9edae1188aab35943b9c39112d6ec16876ac322fe9895f18cf1249e7f550"
         },
         {
           "path": "docs/operating-model/AGENT_OPERATING_MODEL.md",
@@ -152,7 +152,7 @@
       "requiredSources": [
         {
           "path": "AGENTS.md",
-          "sha256": "34d4fb559873f95c8985744018656432c4f0f4f15718a478bbdd9493e8d208fc"
+          "sha256": "862a9edae1188aab35943b9c39112d6ec16876ac322fe9895f18cf1249e7f550"
         },
         {
           "path": "docs/operating-model/AGENT_OPERATING_MODEL.md",
@@ -174,7 +174,7 @@
       "requiredSources": [
         {
           "path": "AGENTS.md",
-          "sha256": "34d4fb559873f95c8985744018656432c4f0f4f15718a478bbdd9493e8d208fc"
+          "sha256": "862a9edae1188aab35943b9c39112d6ec16876ac322fe9895f18cf1249e7f550"
         },
         {
           "path": "docs/operating-model/AGENT_OPERATING_MODEL.md",
@@ -196,7 +196,7 @@
       "requiredSources": [
         {
           "path": "AGENTS.md",
-          "sha256": "34d4fb559873f95c8985744018656432c4f0f4f15718a478bbdd9493e8d208fc"
+          "sha256": "862a9edae1188aab35943b9c39112d6ec16876ac322fe9895f18cf1249e7f550"
         },
         {
           "path": "docs/operating-model/AGENT_OPERATING_MODEL.md",
@@ -218,7 +218,7 @@
       "requiredSources": [
         {
           "path": "AGENTS.md",
-          "sha256": "34d4fb559873f95c8985744018656432c4f0f4f15718a478bbdd9493e8d208fc"
+          "sha256": "862a9edae1188aab35943b9c39112d6ec16876ac322fe9895f18cf1249e7f550"
         },
         {
           "path": "docs/operating-model/AGENT_OPERATING_MODEL.md",
@@ -240,7 +240,7 @@
       "requiredSources": [
         {
           "path": "AGENTS.md",
-          "sha256": "34d4fb559873f95c8985744018656432c4f0f4f15718a478bbdd9493e8d208fc"
+          "sha256": "862a9edae1188aab35943b9c39112d6ec16876ac322fe9895f18cf1249e7f550"
         },
         {
           "path": "docs/operating-model/AGENT_OPERATING_MODEL.md",
@@ -262,7 +262,7 @@
       "requiredSources": [
         {
           "path": "AGENTS.md",
-          "sha256": "34d4fb559873f95c8985744018656432c4f0f4f15718a478bbdd9493e8d208fc"
+          "sha256": "862a9edae1188aab35943b9c39112d6ec16876ac322fe9895f18cf1249e7f550"
         },
         {
           "path": "docs/operating-model/AGENT_OPERATING_MODEL.md",
@@ -282,7 +282,7 @@
         },
         {
           "path": "docs/workflow/handoff-contract.md",
-          "sha256": "8f4a90da8c2cd30a9187209f423a9a40bd676597864632885636b471b9da7752"
+          "sha256": "467892846fd15250f820045a0aceb7701ea5e23796f99b84afd64d8aa45a892a"
         },
         {
           "path": "docs/operating-model/AGENT_EVALUATION_CHECKLIST.md",
@@ -315,7 +315,7 @@
       "requiredSources": [
         {
           "path": "AGENTS.md",
-          "sha256": "34d4fb559873f95c8985744018656432c4f0f4f15718a478bbdd9493e8d208fc"
+          "sha256": "862a9edae1188aab35943b9c39112d6ec16876ac322fe9895f18cf1249e7f550"
         },
         {
           "path": "docs/operating-model/AGENT_OPERATING_MODEL.md",
@@ -335,7 +335,7 @@
         },
         {
           "path": "docs/workflow/handoff-contract.md",
-          "sha256": "8f4a90da8c2cd30a9187209f423a9a40bd676597864632885636b471b9da7752"
+          "sha256": "467892846fd15250f820045a0aceb7701ea5e23796f99b84afd64d8aa45a892a"
         },
         {
           "path": "docs/operating-model/AGENT_EVALUATION_CHECKLIST.md",
@@ -368,7 +368,7 @@
       "requiredSources": [
         {
           "path": "AGENTS.md",
-          "sha256": "34d4fb559873f95c8985744018656432c4f0f4f15718a478bbdd9493e8d208fc"
+          "sha256": "862a9edae1188aab35943b9c39112d6ec16876ac322fe9895f18cf1249e7f550"
         },
         {
           "path": "docs/operating-model/AGENT_OPERATING_MODEL.md",
@@ -388,7 +388,7 @@
         },
         {
           "path": "docs/workflow/handoff-contract.md",
-          "sha256": "8f4a90da8c2cd30a9187209f423a9a40bd676597864632885636b471b9da7752"
+          "sha256": "467892846fd15250f820045a0aceb7701ea5e23796f99b84afd64d8aa45a892a"
         },
         {
           "path": "docs/operating-model/AGENT_EVALUATION_CHECKLIST.md",
@@ -421,7 +421,7 @@
       "requiredSources": [
         {
           "path": "AGENTS.md",
-          "sha256": "34d4fb559873f95c8985744018656432c4f0f4f15718a478bbdd9493e8d208fc"
+          "sha256": "862a9edae1188aab35943b9c39112d6ec16876ac322fe9895f18cf1249e7f550"
         },
         {
           "path": "docs/operating-model/AGENT_OPERATING_MODEL.md",
@@ -441,7 +441,7 @@
         },
         {
           "path": "docs/workflow/handoff-contract.md",
-          "sha256": "8f4a90da8c2cd30a9187209f423a9a40bd676597864632885636b471b9da7752"
+          "sha256": "467892846fd15250f820045a0aceb7701ea5e23796f99b84afd64d8aa45a892a"
         },
         {
           "path": "docs/operating-model/AGENT_EVALUATION_CHECKLIST.md",
@@ -474,7 +474,7 @@
       "requiredSources": [
         {
           "path": "AGENTS.md",
-          "sha256": "34d4fb559873f95c8985744018656432c4f0f4f15718a478bbdd9493e8d208fc"
+          "sha256": "862a9edae1188aab35943b9c39112d6ec16876ac322fe9895f18cf1249e7f550"
         },
         {
           "path": "docs/operating-model/AGENT_OPERATING_MODEL.md",
@@ -494,7 +494,7 @@
         },
         {
           "path": "docs/workflow/handoff-contract.md",
-          "sha256": "8f4a90da8c2cd30a9187209f423a9a40bd676597864632885636b471b9da7752"
+          "sha256": "467892846fd15250f820045a0aceb7701ea5e23796f99b84afd64d8aa45a892a"
         },
         {
           "path": "docs/operating-model/AGENT_EVALUATION_CHECKLIST.md",
@@ -527,7 +527,7 @@
       "requiredSources": [
         {
           "path": "AGENTS.md",
-          "sha256": "34d4fb559873f95c8985744018656432c4f0f4f15718a478bbdd9493e8d208fc"
+          "sha256": "862a9edae1188aab35943b9c39112d6ec16876ac322fe9895f18cf1249e7f550"
         },
         {
           "path": "docs/operating-model/AGENT_OPERATING_MODEL.md",
@@ -547,7 +547,7 @@
         },
         {
           "path": "docs/workflow/handoff-contract.md",
-          "sha256": "8f4a90da8c2cd30a9187209f423a9a40bd676597864632885636b471b9da7752"
+          "sha256": "467892846fd15250f820045a0aceb7701ea5e23796f99b84afd64d8aa45a892a"
         },
         {
           "path": "docs/operating-model/AGENT_EVALUATION_CHECKLIST.md",
@@ -580,7 +580,7 @@
       "requiredSources": [
         {
           "path": "AGENTS.md",
-          "sha256": "34d4fb559873f95c8985744018656432c4f0f4f15718a478bbdd9493e8d208fc"
+          "sha256": "862a9edae1188aab35943b9c39112d6ec16876ac322fe9895f18cf1249e7f550"
         },
         {
           "path": "docs/operating-model/AGENT_OPERATING_MODEL.md",
@@ -600,7 +600,7 @@
         },
         {
           "path": "docs/workflow/handoff-contract.md",
-          "sha256": "8f4a90da8c2cd30a9187209f423a9a40bd676597864632885636b471b9da7752"
+          "sha256": "467892846fd15250f820045a0aceb7701ea5e23796f99b84afd64d8aa45a892a"
         },
         {
           "path": "docs/operating-model/AGENT_EVALUATION_CHECKLIST.md",
@@ -633,7 +633,7 @@
       "requiredSources": [
         {
           "path": "AGENTS.md",
-          "sha256": "34d4fb559873f95c8985744018656432c4f0f4f15718a478bbdd9493e8d208fc"
+          "sha256": "862a9edae1188aab35943b9c39112d6ec16876ac322fe9895f18cf1249e7f550"
         },
         {
           "path": "docs/operating-model/AGENT_OPERATING_MODEL.md",
@@ -653,7 +653,7 @@
         },
         {
           "path": "docs/workflow/handoff-contract.md",
-          "sha256": "8f4a90da8c2cd30a9187209f423a9a40bd676597864632885636b471b9da7752"
+          "sha256": "467892846fd15250f820045a0aceb7701ea5e23796f99b84afd64d8aa45a892a"
         },
         {
           "path": "docs/operating-model/AGENT_EVALUATION_CHECKLIST.md",
@@ -686,7 +686,7 @@
       "requiredSources": [
         {
           "path": "AGENTS.md",
-          "sha256": "34d4fb559873f95c8985744018656432c4f0f4f15718a478bbdd9493e8d208fc"
+          "sha256": "862a9edae1188aab35943b9c39112d6ec16876ac322fe9895f18cf1249e7f550"
         },
         {
           "path": "docs/operating-model/AGENT_OPERATING_MODEL.md",
@@ -706,7 +706,7 @@
         },
         {
           "path": "docs/workflow/handoff-contract.md",
-          "sha256": "8f4a90da8c2cd30a9187209f423a9a40bd676597864632885636b471b9da7752"
+          "sha256": "467892846fd15250f820045a0aceb7701ea5e23796f99b84afd64d8aa45a892a"
         },
         {
           "path": "docs/operating-model/AGENT_EVALUATION_CHECKLIST.md",
@@ -739,7 +739,7 @@
       "requiredSources": [
         {
           "path": "AGENTS.md",
-          "sha256": "34d4fb559873f95c8985744018656432c4f0f4f15718a478bbdd9493e8d208fc"
+          "sha256": "862a9edae1188aab35943b9c39112d6ec16876ac322fe9895f18cf1249e7f550"
         },
         {
           "path": "docs/operating-model/AGENT_OPERATING_MODEL.md",
@@ -759,7 +759,7 @@
         },
         {
           "path": "docs/workflow/handoff-contract.md",
-          "sha256": "8f4a90da8c2cd30a9187209f423a9a40bd676597864632885636b471b9da7752"
+          "sha256": "467892846fd15250f820045a0aceb7701ea5e23796f99b84afd64d8aa45a892a"
         },
         {
           "path": "docs/operating-model/AGENT_EVALUATION_CHECKLIST.md",
@@ -792,7 +792,7 @@
       "requiredSources": [
         {
           "path": "AGENTS.md",
-          "sha256": "34d4fb559873f95c8985744018656432c4f0f4f15718a478bbdd9493e8d208fc"
+          "sha256": "862a9edae1188aab35943b9c39112d6ec16876ac322fe9895f18cf1249e7f550"
         },
         {
           "path": "docs/operating-model/AGENT_OPERATING_MODEL.md",
@@ -812,7 +812,7 @@
         },
         {
           "path": "docs/workflow/handoff-contract.md",
-          "sha256": "8f4a90da8c2cd30a9187209f423a9a40bd676597864632885636b471b9da7752"
+          "sha256": "467892846fd15250f820045a0aceb7701ea5e23796f99b84afd64d8aa45a892a"
         },
         {
           "path": "docs/operating-model/AGENT_EVALUATION_CHECKLIST.md",
