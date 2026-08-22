@@ -98,7 +98,6 @@ The rules above are stated once each, in the section that owns them. This sectio
 - Run the applicable skill's verification step before claiming work done (Verification Rule).
 - Write or identify a failing test before a behavior change, unless project context says TDD is impractical (TDD Rule).
 - Keep implementer and verifier responsibilities separate (Core Operating Principle 4).
-- Update project state after every meaningful step (Core Operating Principle 6).
 
 **Ask First**
 
