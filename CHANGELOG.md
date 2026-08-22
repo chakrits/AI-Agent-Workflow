@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+### Changed
+- IMP-003 T2-B is deferred by Human No-Go decision (ADR-0019). The code baseline is frozen at `a739286`; Issues #133 and #203 remain deferred, and the SA design at `eb15450` is reference-only. No writer/publication activation, authority migration, release, or Go/No-Go execution is authorized.
+
 ### Added
 - Bounded `status-audit/v1` contract foundation for Issue #133 / PR #194, merged as `d0bb800c04d420d526eb0b0b37f493ac94b96a8a`: schema validation, deterministic audit/digest helpers, fixed digest vectors, and regression tests. The slice does not activate a writer, mutate runtime status, change projection authority, migrate consumers, or alter dispatch/terminal-result relay. QA verified 41/41 focused tests and 482/482 full-suite tests; subsequent Issue #133 tasks remain open.
 - IMP-002 Task 4 host activation/measurement adapter (Issue #132, PR #190, merged as `81f8e65defe477b41d9b2f9b0db4f6f4dddfbd08`): validates canonical `host-native-evidence/v1` evidence, fails closed to `unknown`, and preserves legacy context as the sole authority. Independent QA passed the bounded Task 4 scope with `PASS_WITH_CONCERNS`; synthetic fixtures do not establish native host compatibility. Task 5, replay/live-shadow, authority switching, and Go/No-Go remain out of scope.
