@@ -1,7 +1,7 @@
 {
   "schemaVersion": "context-corpus/v1",
   "fixturePath": "test/fixtures/context-compatibility-v1.json",
-  "fixtureSha256": "48762ed40e2d8857c68fc7147e49390ff93158db2799dd7c8b979d555d9198e3",
+  "fixtureSha256": "e0e8278a8cfefd36a99af08f6e3780d34b0a7418cc5967d2902a6b73b301576b",
   "fixtureCount": 36,
   "groupCounts": {
     "routing": 12,

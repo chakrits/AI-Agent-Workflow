@@ -194,7 +194,7 @@ Implementation complete at `53321ed`; focused and repository validation evidence
 
 ## Handoff Event ID
 
-ISSUE-196-DEV-20260822-01
+issue-196-dev-20260822-01
 
 ## Parent Orchestrator ID
 
