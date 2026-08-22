@@ -18,7 +18,7 @@ const REQUIRED_DISPATCH_HANDOFF_FIELDS = [
   'Specification Readiness', 'Current Stage', 'Task State', 'Contract Version',
   'Rework Count', 'Completed Work', 'Artifacts Produced', 'Files Changed',
   'Verification Performed', 'Evidence References', 'Acceptance Criteria Verification Status',
-  'Acceptance Traceability Matrix URL', 'Verified Commit SHA',
+  'Acceptance Traceability Matrix URL', 'Reviewed Candidate SHA', 'Handoff Record Commit SHA',
   'Platform Activation Record URL / Status', 'QA Evidence URL', 'Stop Reason',
   'Known Limitations', 'Open Questions', 'QA / Review Focus', 'Recommended Next Step',
   'Next Action', 'Next Owner', 'Orchestration Turn ID', 'Boss Event Required',
