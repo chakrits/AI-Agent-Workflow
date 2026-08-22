@@ -79,7 +79,13 @@ Evidence and approval reference:
 
 ## Acceptance Traceability Matrix URL
 
-## Verified Commit SHA
+## Reviewed Candidate SHA
+
+Exact immutable commit under review. This is the authoritative review target; historical verification points belong in `Evidence References` and must be labeled historical.
+
+## Handoff Record Commit SHA
+
+Commit containing this handoff record. If the record cannot embed its own final SHA without changing that SHA, state that it is resolved externally as the branch final SHA or identified by its parent commit. Do not use `PENDING` or `NEEDS_REVISION`.
 
 ## Platform Activation Record URL / Status
 

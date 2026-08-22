@@ -1,18 +1,18 @@
 # PROJECT_STATUS.md
 
 ## Current Work Item
-- Issue #133 — Worktree-Scoped Status Engine, next bounded slice after merged IMP-003 Task 1; preserve the Human review and lifecycle gates before implementation continues.
+- Issue #196 — T2-A evidence harness hardening on base `ef3aea52b7652de957d986d09e55893a9b1eb445`; Issue #133 remains blocked at rework 2/2 and T2-B is deferred.
 
 ## Current Stage
-- Post-merge closeout / next-slice planning — PR #194 merged as `d0bb800c04d420d526eb0b0b37f493ac94b96a8a`. IMP-003 Task 1 is merged and verified; Issue #133 remains open for subsequent status-engine tasks. No writer activation, runtime status mutation, projection-authority change, consumer migration, or dispatch/terminal-result relay redesign was made.
+- Issue #196 implementation is complete at `53321ed` on isolated branch `codex/issue-196-evidence-harness`; handoff record follows in a separate state commit. Focused tests pass 21/21; the manifest executes 52/52 IDs once and records exact/N/A parity evidence derived from manifest IDs. Full `npm test` is 501/509 with the same eight inherited failures as the 500/508 baseline. Independent Code Review is the next gate; Security Review and QA remain downstream. No T2-A production behavior, T2-B, authority, writer/publication, TOCTOU, Git-ref, credential, dispatch/relay, orchestration/lifecycle, migration, or Go/No-Go behavior was added.
 
 ## Change Classification
-- Change Type: Framework / Meta (evidence and measurement foundation)
+- Change Type: Framework / Meta (test evidence hardening)
 - Risk Level: Medium
-- Required Workflow Route: Orchestrator → SA Agent → Documentation Agent → Developer Agent → independent QA → Human Approval
-- Code Change Required: Yes — Task 4 host activation/measurement adapter; native activation and runtime migration remain unproven and out of scope
-- Architecture Change Required: Yes — evidence ownership and source-of-truth boundaries
-- Security Review Required: No
+- Required Workflow Route: Developer Agent → independent Code Review → QA Agent → Human Approval
+- Code Change Required: Yes — test harness and supporting test-only fixture evidence only
+- Architecture Change Required: No — production behavior and contracts are unchanged
+- Security Review Required: No — no auth, secrets, sensitive data, or trust-boundary behavior changed
 
 ## Completed
 - Issue #133 / IMP-003 Task 1 merged through PR #194 as commit `d0bb800c04d420d526eb0b0b37f493ac94b96a8a`. Added the bounded `status-audit/v1` contract foundation: schema validation, deterministic audit/digest helpers, fixed digest vectors, and regression coverage. Developer rework closed the three Major QA findings (invalid Gregorian/UTC timestamp handling, fixed digest vectors, and JCS lone-surrogate keys). Fresh independent QA returned `spec_verdict: PASS` and `quality_verdict: APPROVED` on `dc9026c9..b5dd39c6` with focused tests 41/41 and full suite 482/482; code-review evidence was added at `3aa1cc2`. This slice does not activate a writer, mutate runtime status, change projection authority, migrate consumers, or alter dispatch/terminal-result relay. Issue #133 remains open for its subsequent status-engine tasks. QA evidence: https://github.com/chakrits/AI-Agent-Workflow/issues/133#issuecomment-5358338516.
@@ -30,9 +30,12 @@
 - Issue #160 (reset repository to template baseline) merged through PR #162 as commit `93203e2`. Boss-approved run of `scripts/reset-to-template.mjs --apply --confirm-reset`: stubbed this file, `TASK_LOG.md`, `CHANGELOG.md`, `RISKS.md`, `DECISIONS.md` and cleared 13 historical record directories (109 entries — 104 deletions + 5 stub replacements), including `docs/records/handoffs` (fixed in #158/PR #159 ahead of this run). `docs/records/qa/`, `README.md`, `PROJECT_INDEX.md`, `docs/vault/00-Index.md`, and all canonical workflow/skill/template/CI content are untouched — this is a working-tree content reset only, not a history rewrite; every removed file remains recoverable via `git log`/`git show`. A first attempt (commit `f2c1375`, since-deleted branch) was correctly returned BLOCKED by independent QA because its own implementation-plan document had been left on an unmerged sibling branch, so the reset commit's history didn't actually contain the file it cited. Redone as a 2-commit branch — the plan doc landed as its own first commit (`ec2a7ca`), then the reset ran on top (`2754d45`) — so the plan is genuinely part of history before being cleared, same as every other `docs/records/` entry. Independent QA PASS on all 5 Acceptance Criteria at the corrected commit (evidence: https://github.com/chakrits/AI-Agent-Workflow/issues/160#issuecomment-5262083435). Plan: `docs/records/implementation-plan/2026-08-12-reset-to-template-execution-plan.md` (itself cleared by this same run, recoverable via `git show ec2a7ca:...`). Verified with the full command suite (`npm test` 399/399; `validate:contracts`, `validate:project-state`, `validate:skill-parity` 38/38, `adr:audit`, `validate:risk-register`, `validate:review-gate`, `validate:skill-usage`, `validate:metrics`, `validate:context-budget`, `git diff --check` — all PASS) and pre-confirmed via `scripts/verify-reset-template.mjs`'s disposable-clone harness.
 
 ## In Progress
-- Issue #132 / IMP-002 next-increment planning. Task 4 is merged and recorded; Task 5, replay/live-shadow execution, native support claims, and Go/No-Go remain gated behind a fresh scope/specification and Human approval.
+- Issue #196: implementation `53321ed` removes scenario-keyed execution and hidden fixture substitution, adds adversarial input binding, and replaces synthetic parity counting with exact manifest-derived evidence. Independent Code Review is required before any Security Review or QA routing.
+- Issue #133 / IMP-003 T2-A final rework handoff. Next action is fresh independent Code Review only; Security Review, fresh QA, and Human approval remain downstream gates. A-07/A-11 are now covered by 52/52 resolver execution and omission assertions; no T2-B or authority work is authorized.
+- SA repair scope is documentation/test-fixture only: `digest-vectors.json` preserves the T2-A `vectors` map plus the existing T1-compatible `derived` output shape, and `consumedRecordDigests` is serialized as JSON `string[]` then converted at the future Developer runtime boundary to a fresh internal `Set` for data-only membership validation. Null/missing/wrong containers/malformed members must return canonical public `INVALID_RECORD`; duplicates are idempotent, ordering is ignored after validation, and no consumption store is created. The 52-case manifest and its digest remain unchanged; the closed public inventory has 34 unique codes. Existing internal `INVALID_IDENTITY`, `INVALID_PREDECESSOR`, `INVALID_PROPOSAL`, `INVALID_SUCCESSOR`, `INVALID_APPROVAL`, and `INVALID_CHANGED_PATHS` are mapped to public `INVALID_NESTED_SHAPE` only as a Developer/TDD reconciliation gate; current runtime parity is not claimed.
 
 ## Blockers / Open Questions
+- SA must re-review the exact fixture decision and Human must approve this exact revision before `status:spec-ready`. The checked-in test-only manifest has `caseCount: 52` and `manifestDigest: ad354f1cde4076127053ec22e3030c3b748e4878954c3687a57c587716029e63`; all 52 manifest-to-corpus references resolve under the frozen relative-file plus RFC-6901 JSON-Pointer convention, and all five A-03 digest IDs are materialized in UTF-8-byte order. Runtime/schema parity and `recordDigest({})` behavior remain Developer plus independent Code Review/QA gates; no Developer dispatch, implementation test claim, T2-B work, authority change, or Go/No-Go decision is authorized.
 - Human approval remains required at the Task 4 merge, later QA, and Go/No-Go gates defined by Issue #132. The pre-existing high-severity dependency audit finding remains documented and unchanged; no dependency was modified by Task 4. Synthetic fixtures do not establish native host support. Issue #183 / PR #184 supplies the evidence seam, but no replay/live-shadow run may begin before its later gates are explicitly approved.
 - Earlier SA findings on metric authority, context baseline, shadow envelope, and risk coverage are closed by the recorded correction/review chain; the risk-validator semantic limitation remains a separate follow-up.
 - Not audited: whether any earlier multi-commit branch merged an unreviewed script change while Issue #168's defect was live. The fix corrects the mechanism only; PR #167 is verified clear by hand.
@@ -40,6 +43,9 @@
 - Lesson from the #169 SA/QA dispatch cross-check: open-ended SA design reviews timed out at 600s three times; a bounded QA dispatch (packet v1) completed reliably. Design-review packets should carry an explicit bounded return checkpoint.
 
 ## Required Artifacts
+- Issue #196 plan/work item/handoff: `docs/records/implementation-plan/2026-08-22-issue-196-evidence-harness.md`, `docs/records/work-items/2026-08-22-issue-196-evidence-harness.md`, and `docs/records/handoff/2026-08-22-issue-196-developer-to-code-review.md`.
+- Issue #196 implementation: `53321ed`, `test/status-cas-decision.test.mjs`, and test-only resolved-input fixture evidence.
+- Issue #133 / IMP-003 T2-A fixture decision: `test/fixtures/status-cas/v1/manifest.json`, `corpus.json`, `record-vectors.json`, and `digest-vectors.json`; machine-readable test-only synthetic vectors and a 52-case corpus, not production authority or T2-B authorization.
 - IMP-002 Task 4 implementation: commit `3258f6f` on the host-activation/measurement-adapter branch; independent QA evidence recorded in the Task 4 review record.
 - IMP-002 Task 4 SDD: `docs/records/sdd/2026-08-16-issue-132-imp002-task4-host-activation-measurement-contract.md`.
 - IMP-002 Task 3 implementation: commit `3d937a4` on the shadow-adapter branch; independent QA evidence recorded in the active Task 3 review handoff.
@@ -57,10 +63,10 @@
 - Issue #166's artifacts are merged: canonical definition `docs/workflow/task-execution-mode.md`, specification of record `docs/records/sdd/2026-08-12-issue-166-task-execution-mode-spec.md`, `DECISIONS.md` ADR-0014.
 
 ## Next Quality Gate
-- Fresh Human-approved scope/specification for the next Issue #132 increment. After approval, route the selected task through its own implementation, independent review, QA, and Human gates; preserve legacy authority and do not claim native host support, replay/live-shadow readiness, or Go/No-Go.
+- Independent Code Review of Issue #196 candidate `53321ed`; Security Review and QA remain gated until review passes. The Issue #196 follow-up does not increase Issue #133's rework count.
 
 ## Recommended Next Agent
-- Orchestrator / Human Maintainer — define and approve the next bounded Issue #132 increment; do not dispatch Task 5 or replay/live-shadow work yet.
+- Independent Code Reviewer — verify AC-01–AC-06 against candidate `53321ed`; do not route to Security Review or QA until the review passes.
 
 ## Notes
 - Reset to template baseline by `npm run reset:template`.
