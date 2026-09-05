@@ -47,6 +47,20 @@ Both are properties of `validate-dispatch-receipts.mjs`, which this change only 
 
 Suite 509 → 513.
 
+## Second revision after independent re-review
+
+Independent re-review at `681a40e` disposed of CR-1107–CR-1113 and CR-1111/CR-1112's corrections as verified, confirmed CR-1104's overclaim was the actual error (not a new problem), and found one new Major finding: a regression that CR-1110's own fix introduces.
+
+| Finding ID | Severity | Finding | Fix | Evidence |
+|---|---|---|---|---|
+| CR-1114 | Major | **Scoping to the named `validate` job (CR-1110) creates a fail-open of its own.** `githubJobCommands` returned an empty `Set` when the job name did not resolve — not just for a genuinely job-less workflow, but identically for a workflow where the job was renamed or restructured. `findMissingFromGitlab` then compared an empty GitHub set against anything and reported zero missing commands, and `main()` printed `CI parity check PASSED` with `0` commands compared on either side. A job rename is a smaller, less visible action than editing `HOST_ONLY_COMMANDS`, and unlike that path it produced no error at all | `githubJobCommands` now throws when the named job is absent or has no steps array, naming the job and file. `main()`'s existing exemption-error catch block now also catches this, so a rename surfaces as `CI parity check FAILED`, not a silent PASS | Reproduced against a fixture with the job renamed to `validate-contracts`: before, `findMissingFromGitlab` returned `[]` and the CLI printed PASSED; after, both throw naming `job "validate" was not found` |
+| — | Minor (CR-1109 wording) | This record's CR-1109 entry says `normaliseCommand` "compares invocation identity." It does not across shapes: `npm run validate:contracts` and `node scripts/validate-contracts.mjs` invoke the same script but normalise to two different literal strings, so the check would report a false parity failure rather than recognizing them as equivalent | Not fixed — recorded as a documentation-precision correction, not a behavior change. `normaliseCommand` compares invocation *text*, not the script identity behind it. Left for a follow-up if this asymmetry is ever hit in practice | Reproduced: GitHub `npm run validate:contracts` vs. GitLab `node scripts/validate-contracts.mjs` → reported as missing on GitLab side despite running the same script |
+| — | Minor (merge strategy) | The absolute local path from the CR-1107 symlink remains in this branch's commit history at `973180d` even though `681a40e`'s net diff against `main` is clean. A merge or rebase that preserves individual commits carries the path into `main`'s permanent history; only a squash merge avoids it | Not a code fix — recorded for the Human Maintainer's merge-strategy decision | `git log -p --all -- node_modules` on this branch shows the path at `973180d` |
+
+Suite 513 → 515 (two regression tests added for CR-1114: a renamed job and a job with no steps, both asserting the check now fails loudly instead of comparing nothing).
+
+`task_review_rework_count` is now **1 of a maximum 2**.
+
 ## Review Decision
 
 Approved. CR-1101 is the defect; CR-1102 and CR-1103 are what stop it returning; CR-1104 is the check that kept the fix from being cosmetic on the other host; CR-1105 and CR-1106 mark the two things this change does **not** claim.

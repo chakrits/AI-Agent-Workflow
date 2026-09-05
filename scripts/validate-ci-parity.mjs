@@ -63,12 +63,22 @@ function readYaml(filePath) {
  * Commands run by one named job of a GitHub workflow.
  *
  * Scoped to a single job on purpose: a GitHub-only publish job in the same file
- * must not be reported as something GitLab is failing to run.
+ * must not be reported as something GitLab is failing to run. But scoping by
+ * name creates its own failure mode — a renamed or restructured job resolves to
+ * `undefined` the same way a genuinely job-less workflow would, and comparing
+ * an empty set against anything reports a vacuous PASS. A renamed job must fail
+ * the check, not silently disable it: throw here so `main()`'s existing
+ * error-reporting path (built for stale exemptions) also catches this.
  */
 export function githubJobCommands(filePath, jobName = GITHUB_VALIDATE_JOB) {
   const doc = readYaml(filePath);
   const steps = doc?.jobs?.[jobName]?.steps;
-  if (!Array.isArray(steps)) return new Set();
+  if (!Array.isArray(steps)) {
+    throw new Error(
+      `CI parity check cannot run: job "${jobName}" was not found (or has no steps) in ${filePath}. ` +
+        'If the job was renamed or restructured, update GITHUB_VALIDATE_JOB rather than let this check compare nothing.'
+    );
+  }
   const commands = new Set();
   for (const step of steps) {
     const command = normaliseCommand(step?.run);
@@ -123,10 +133,12 @@ export function findMissingFromGitlab(root = process.cwd(), { hostOnly = HOST_ON
 
 function main() {
   const root = process.cwd();
-  const github = githubJobCommands(path.join(root, GITHUB_VALIDATE_WORKFLOW));
-  const gitlab = gitlabCommands(path.join(root, GITLAB_CI));
+  let github;
+  let gitlab;
   let missing;
   try {
+    github = githubJobCommands(path.join(root, GITHUB_VALIDATE_WORKFLOW));
+    gitlab = gitlabCommands(path.join(root, GITLAB_CI));
     missing = findMissingFromGitlab(root);
   } catch (error) {
     console.error(`CI parity check FAILED: ${error.message}`);

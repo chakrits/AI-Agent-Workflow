@@ -191,3 +191,50 @@ test('an exemption must carry a reason and name a command GitHub actually runs',
     rmSync(root, { recursive: true, force: true });
   }
 });
+
+// --- QA finding CR-1114 on candidate 681a40e: a renamed/restructured GitHub
+// job must not silently disable the whole check ---
+
+test('a renamed GitHub validate job fails loudly instead of comparing nothing', () => {
+  const root = makeRepo({
+    github: `name: v
+on: [push, pull_request]
+jobs:
+  validate-contracts:
+    runs-on: ubuntu-latest
+    steps:
+      - run: npm run validate:contracts
+`,
+    gitlab: 'validate:\n  script:\n    - npm test\n'
+  });
+  try {
+    assert.throws(
+      () => findMissingFromGitlab(root),
+      /job "validate" .* not found/i,
+      'a job rename must surface as a broken check, not as an empty comparison that reports PASSED'
+    );
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('a validate job with no steps fails loudly instead of comparing nothing', () => {
+  const root = makeRepo({
+    github: `name: v
+on: [push, pull_request]
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+`,
+    gitlab: 'validate:\n  script:\n    - npm test\n'
+  });
+  try {
+    assert.throws(
+      () => findMissingFromGitlab(root),
+      /job "validate" .* not found/i,
+      'a job with no steps array is indistinguishable from a rename and must fail the same way'
+    );
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
