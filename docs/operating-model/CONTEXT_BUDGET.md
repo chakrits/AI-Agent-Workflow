@@ -50,6 +50,23 @@ npm run validate:context-budget
 
 The script reads each canonical file, prints the per-file breakdown, and exits 0 when the total is within target (or exits 1 when it is over). Update the table above with the new numbers whenever the baseline changes.
 
+## After Editing a Canonical or Skill File
+
+The files measured above (plus `docs/workflow/testing-conventions.md`, `docs/operating-model/SKILL_CATALOG.md`,
+`docs/contracts/*.yaml`, and each role's `.agents/skills/*/SKILL.md`) are also pinned by exact sha256 in
+`test/fixtures/context-pack-v1/required-source-matrix.json`. Editing any of them makes that pinned hash stale and
+fails the context-pack tests with no obvious pointer back to the matrix.
+
+After a legitimate edit to one of these files, re-pin the matrix rather than hand-editing the hash:
+
+```bash
+npm run repin:source-matrix
+```
+
+The script recomputes sha256 for every path the matrix pins, rewrites only the entries whose hash actually
+changed (including every row where a changed path is pinned redundantly), and makes no change at all when
+nothing needs updating. Run `npm test` afterward to confirm the matrix is consistent again.
+
 ## When the Budget Is Over
 
 If `npm run validate:context-budget` exits 1:

@@ -1,17 +1,17 @@
 # PROJECT_STATUS.md
 
 ## Current Work Item
-- None on `main` — repository is idle. Issue #215 (framework tooling: re-pin `required-source-matrix.json`) is in progress on a separate branch by Developer Agent, following SA Agent's approved design; its own status will sync here on merge.
+- GitHub Issue #215 — no tooling to re-pin `required-source-matrix.json`'s sha256 hashes after a legitimate doc edit. Independent QA passed; ready for merge.
 
 ## Current Stage
-- Idle on `main`.
+- Development complete, self-reviewed, independently QA-verified. Awaiting merge.
 
 ## Change Classification
-- Change Type: N/A
-- Risk Level: N/A
-- Code Change Required: N/A
-- Architecture Change Required: N/A
-- Security Review Required: N/A
+- Change Type: New Feature
+- Risk Level: Low
+- Code Change Required: Yes
+- Architecture Change Required: No
+- Security Review Required: No
 
 ## Completed
 - Blank-template reset completed through PR #205 (`aa2a871`); historical records remain recoverable from Git history.
@@ -20,10 +20,9 @@
 - Issue #214 — `reset-to-template` no longer destroys the risk register, and `validate-risk-register` fails closed when the total risk-entry count drops relative to a prior commit (merge-base + branch-walk comparison, mirroring `adr-audit.mjs`'s `comparisonRefs`). `RISKS.md` itself is unmodified: AC-01 investigation found no currently open Issue cites a specific `RISKS.md` id, so no historical content was restored, per explicit instruction that this data-restoration scope question is a Human Maintainer decision, not a Developer Agent guess. Merged via PR #216 (squash) as `b44c057`. Independent QA passed at `6064154` (542/542, mutation-verified: comparison-walk logic, regression check, and reset guard each individually confirmed load-bearing by deletion) with one non-blocking Question left open below. Evidence: https://github.com/chakrits/AI-Agent-Workflow/issues/214#issuecomment-5551998929
 
 ## In Progress
-- Issue #215 — see Current Work Item.
+- Issue #215 — see Current Work Item. `scripts/repin-source-matrix.mjs` (new) recomputes and rewrites stale sha256 entries in `test/fixtures/context-pack-v1/required-source-matrix.json`, wired to `npm run repin:source-matrix`, exporting the existing `sha256(bytes)` helper from `scripts/lib/context-compatibility-v1.mjs` for reuse. Fails closed on non-uniform pre-existing hashes or a fixture-formatting drift; updates every occurrence of a redundantly-pinned path; byte-identical no-op when nothing changed. Documented in `docs/operating-model/CONTEXT_BUDGET.md` (not `docs/workflow/platform-readiness.md`, since that file is itself one of the 25 pinned paths — see the self-review record). Independent QA passed (541/541, mutation-verified for all three load-bearing claims), with two non-blocking Minors on test-quality precision routed to Developer Agent. Self-review: `docs/records/qa/2026-09-05-issue-215-repin-source-matrix-code-review.md`. Evidence: https://github.com/chakrits/AI-Agent-Workflow/issues/215#issuecomment-5552109777
 
 ## Blockers / Open Questions
-- No tooling exists to re-pin `test/fixtures/context-pack-v1/required-source-matrix.json`, so editing any of the ~20 canonical or skill files it pins fails 7 tests until the sha256 is corrected by hand. Same class as Issue #198 — now tracked and in progress as Issue #215 (see In Progress).
 - Whether to reconstruct any of the 7 historical `RISKS.md` entries destroyed by the resets (despite no currently open Issue citing one by id) is an open data-restoration scope question, explicitly left to the Human Maintainer per Issue #214's routing comment. Not decided or guessed at in that diff.
 - Design Question from Issue #214's QA: `validate-risk-register.mjs`'s `runRiskValidation` returns `passed: true` when `previousTotal === undefined` (comparison commit unreadable) — an untested fail-open path, structurally similar to a finding from Issue #210's round 2. Not required by AC-05 as written; not fixed. Owner: Human Maintainer.
 - Design Question from Issue #210's round-3 QA: `scripts/validate-ci-parity.mjs`'s `githubJobCommands` enumerates shapes that yield zero commands (missing job, empty steps, composite-action-only) rather than positively asserting job validity. No further gap was found after three rounds, but the recurring pattern is worth a design-level look independent of any further line-item fix. Owner: Human Maintainer.
@@ -35,13 +34,14 @@
 - Self-review record (#208): `docs/records/qa/2026-09-05-issue-208-decision-log-preservation-code-review.md`
 - Self-review record (#210): `docs/records/qa/2026-09-05-issue-210-ci-parity-code-review.md`
 - Self-review record (#214): `docs/records/qa/2026-09-05-issue-214-risk-register-preservation-code-review.md`
+- Self-review record (#215): `docs/records/qa/2026-09-05-issue-215-repin-source-matrix-code-review.md`
 - Framework assessment: `docs/records/misc/2026-09-05-framework-sdlc-assessment.md`
 
 ## Next Quality Gate
-- Independent QA verification of Issue #215 once its Developer Agent branch opens a PR.
+- Merge decision for PR #217. Independent QA has passed; no further verification gate required before merge.
 
 ## Recommended Next Agent
-- QA Agent, once Issue #215's PR is ready.
+- Human Maintainer / orchestrating session, to merge PR #217.
 
 ## Notes
 - Reset to template baseline by `npm run reset:template`.
