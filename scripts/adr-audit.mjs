@@ -1,4 +1,5 @@
 import { readFileSync, existsSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
@@ -9,6 +10,62 @@ const DECISION_KEYWORDS = /excluded|deliberately|skipped|deferred|rejected/gi;
  * Count real (non-stub) ADR entries in DECISIONS.md.
  * A stub ADR has an empty Date field ("- Date:" with no value after it).
  */
+export function countAdrsInContent(content) {
+  if (typeof content !== 'string') return 0;
+  const sections = content.split(ADR_HEADER_RE);
+  let realCount = 0;
+  for (let i = 1; i < sections.length; i++) {
+    const dateLine = sections[i].match(/- Date:[ \t]*(\S+)/);
+    if (dateLine && dateLine[1]) realCount++;
+  }
+  return realCount;
+}
+
+function gitCapture(root, args) {
+  try {
+    const out = execFileSync('git', args, { cwd: root, stdio: ['ignore', 'pipe', 'ignore'] }).toString();
+    return out;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * The commit this working tree should be compared against.
+ *
+ * On a branch, that is the merge base with the base branch. On the base branch
+ * itself the merge base is HEAD, which would compare a commit to itself and see
+ * no change, so fall back to the previous commit. Returns undefined when neither
+ * resolves (a fresh repository with no history), in which case no comparison is
+ * possible and none is claimed.
+ */
+export function comparisonRef(root = process.cwd()) {
+  const head = gitCapture(root, ['rev-parse', 'HEAD'])?.trim();
+  if (!head) return undefined;
+
+  const declared = process.env.GITHUB_BASE_REF;
+  const candidates = declared
+    ? [`origin/${declared}`, declared]
+    : ['origin/main', 'main'];
+
+  for (const candidate of candidates) {
+    const mergeBase = gitCapture(root, ['merge-base', candidate, 'HEAD'])?.trim();
+    if (mergeBase && mergeBase !== head) return mergeBase;
+  }
+  return gitCapture(root, ['rev-parse', 'HEAD~1'])?.trim();
+}
+
+/**
+ * Real ADR count in DECISIONS.md as of `ref`, or undefined when the file or the
+ * ref cannot be read. Undefined means "cannot compare", never "zero".
+ */
+export function countRealAdrsAtRef(root, ref) {
+  if (!ref) return undefined;
+  const content = gitCapture(root, ['show', `${ref}:DECISIONS.md`]);
+  if (content === undefined) return undefined;
+  return countAdrsInContent(content);
+}
+
 export function countRealAdrs(root = process.cwd()) {
   const decisionsPath = path.join(root, 'DECISIONS.md');
   if (!existsSync(decisionsPath)) return 0;
@@ -63,6 +120,11 @@ export function countTaskLogDecisions(root = process.cwd()) {
  */
 export function runAudit(root = process.cwd()) {
   const adrCount = countRealAdrs(root);
+  const previousAdrCount = countRealAdrsAtRef(root, comparisonRef(root));
+  // A reset blanks DECISIONS.md and TASK_LOG.md in the same commit, so the ratio
+  // becomes 0/0 and reads as healthy. Losing recorded decisions is the failure the
+  // ratio cannot see, so it is checked separately and fails closed.
+  const regressed = previousAdrCount !== undefined && adrCount < previousAdrCount;
   const taskLogDecisions = countTaskLogDecisions(root);
   const threshold = 10;
   const ratio =
@@ -72,10 +134,12 @@ export function runAudit(root = process.cwd()) {
 
   return {
     adrCount,
+    previousAdrCount,
+    regressed,
     taskLogDecisions,
     ratio,
     threshold,
-    passed: ratio <= threshold
+    passed: ratio <= threshold && !regressed
   };
 }
 
@@ -89,7 +153,16 @@ function main() {
   console.log(`Ratio (decisions/ADRs):            ${result.ratio.toFixed(2)}:1`);
   console.log(`Threshold:                         ${result.threshold}:1`);
 
-  if (result.ratio === Infinity) {
+  if (result.regressed) {
+    console.error(
+      `\nADR audit FAILED: the decision log shrank from ${result.previousAdrCount} to ${result.adrCount} ADR(s).`
+    );
+    console.error(
+      'DECISIONS.md records governing decisions, not clearable history. Restore the removed entries, ' +
+        'or mark them Superseded in place rather than deleting them.'
+    );
+    process.exitCode = 1;
+  } else if (result.ratio === Infinity) {
     console.error('\nADR audit FAILED: no real ADR entries found in DECISIONS.md.');
     process.exitCode = 1;
   } else if (result.passed) {

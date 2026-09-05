@@ -413,3 +413,95 @@ test('CLI exits 1 when no ADRs exist', () => {
     rmSync(root, { recursive: true, force: true });
   }
 });
+// --- Issue #208: a reset blanks DECISIONS.md and TASK_LOG.md together, so the
+// --- ratio becomes 0/0 and the audit reports PASS while the decision log is destroyed.
+
+const REAL_ADRS = [
+  '# DECISIONS.md',
+  '',
+  '## Decision Log',
+  '',
+  '### ADR-0017: Use one authoritative path',
+  '',
+  '- Date: 2026-07-31',
+  '- Status: Accepted',
+  '',
+  '### ADR-0019: No-Go and freeze',
+  '',
+  '- Date: 2026-08-22',
+  '- Status: Accepted',
+  ''
+].join('\n');
+
+const BLANK_DECISIONS = '# DECISIONS.md\n\n## Decision Log\n\nNo decisions recorded yet.\n';
+
+function makeGitRepoWithAdrHistory({ committed, current }) {
+  const root = mkdtempSync(path.join(tmpdir(), 'adr-regress-'));
+  const real = execFileSync('/bin/sh', ['-c', `cd "${root}" && pwd -P`]).toString().trim();
+  const git = (...args) => execFileSync('git', args, { cwd: real, stdio: ['ignore', 'pipe', 'ignore'] });
+
+  git('init', '--quiet', '--initial-branch=main');
+  git('config', 'user.email', 'test@example.com');
+  git('config', 'user.name', 'Test');
+  writeFileSync(path.join(real, 'DECISIONS.md'), committed);
+  writeFileSync(path.join(real, 'TASK_LOG.md'), '# TASK_LOG.md\n');
+  git('add', '.');
+  git('commit', '--quiet', '-m', 'baseline with decisions');
+
+  writeFileSync(path.join(real, 'DECISIONS.md'), current);
+  // Always touch a second file so the commit exists even when DECISIONS.md is
+  // unchanged; otherwise git creates nothing and HEAD~1 does not resolve.
+  writeFileSync(path.join(real, 'TASK_LOG.md'), '# TASK_LOG.md\n\nsecond commit\n');
+  git('add', '.');
+  git('commit', '--quiet', '-m', 'second commit');
+  return real;
+}
+
+test('runAudit fails when the real ADR count drops relative to the previous commit', () => {
+  const root = makeGitRepoWithAdrHistory({ committed: REAL_ADRS, current: BLANK_DECISIONS });
+  try {
+    const result = runAudit(root);
+    assert.equal(result.adrCount, 0);
+    assert.equal(result.previousAdrCount, 2, 'the audit must look at what the previous commit held');
+    assert.equal(
+      result.passed,
+      false,
+      'blanking a decision log that held two ADRs must fail, even though 0/0 is inside the ratio threshold'
+    );
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('runAudit does not fail when the ADR count is unchanged or grows', () => {
+  const root = makeGitRepoWithAdrHistory({ committed: REAL_ADRS, current: REAL_ADRS });
+  try {
+    const result = runAudit(root);
+    assert.equal(result.previousAdrCount, 2);
+    assert.equal(result.adrCount, 2);
+    assert.equal(result.passed, true);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('CLI exits 1 and names the lost ADR count when the decision log shrinks', () => {
+  const root = makeGitRepoWithAdrHistory({ committed: REAL_ADRS, current: BLANK_DECISIONS });
+  try {
+    let code = 0;
+    let output = '';
+    try {
+      output = execFileSync(process.execPath, [path.resolve('scripts/adr-audit.mjs')], {
+        cwd: root,
+        stdio: ['ignore', 'pipe', 'pipe']
+      }).toString();
+    } catch (error) {
+      code = error.status;
+      output = `${error.stdout ?? ''}${error.stderr ?? ''}`;
+    }
+    assert.equal(code, 1);
+    assert.match(output, /2 .*0|decision log/i);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
