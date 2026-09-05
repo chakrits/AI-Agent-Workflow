@@ -3,6 +3,7 @@
 ## Unreleased
 
 ### Added
+- `scripts/repin-source-matrix.mjs` (`npm run repin:source-matrix`) recomputes and rewrites stale sha256 entries in `test/fixtures/context-pack-v1/required-source-matrix.json`, so editing a pinned canonical or skill file no longer requires hand-computing hashes to fix the resulting test failures. Documented in `docs/operating-model/CONTEXT_BUDGET.md`. (Issue #215, PR #217)
 
 ### Changed
 - Blank-template reset completed through PR #205 (`aa2a871`): project-state files and historical record directories were reset in the approved isolated operation; canonical workflow/skill files and Git history were preserved.
