@@ -1,70 +1,163 @@
 import { readFileSync, existsSync } from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { parse } from 'yaml';
 
 const GITHUB_VALIDATE_WORKFLOW = '.github/workflows/validate-contracts.yml';
+const GITHUB_VALIDATE_JOB = 'validate';
 const GITLAB_CI = '.gitlab-ci.yml';
 
 /**
- * Scripts GitHub runs that GitLab deliberately does not.
+ * Commands the GitHub validate job runs that GitLab deliberately does not.
  *
- * An entry here is a recorded decision that a host asymmetry is intended, not a
- * default. Add one only with a reason in the same change, and expect to justify
- * it in review: every current validator is a plain Node script with no host API
- * dependency, so "GitLab cannot run it" is rarely the real reason.
+ * Each entry is `{ command, reason }`. An entry is a recorded decision that a
+ * host asymmetry is intended, not a default: `findMissingFromGitlab` rejects an
+ * entry with no reason, and rejects one naming a command the GitHub validate job
+ * does not run, so a stale exemption is reported rather than sitting inert.
  */
-export const HOST_ONLY_SCRIPTS = [];
+export const HOST_ONLY_COMMANDS = [];
 
 /**
- * Every `npm run <script>` invocation in a CI file, as a Set.
- * Bare `npm test` is excluded: it is not a named script and both hosts run it.
+ * Commands that are not validators and are expected on one host only.
+ * `npm ci` differs by host (GitLab passes cache flags) and `npm test` is run by
+ * both under different job names, so neither is a useful parity signal.
  */
-export function npmScriptsIn(filePath) {
-  if (!existsSync(filePath)) return new Set();
-  const content = readFileSync(filePath, 'utf8');
-  return new Set([...content.matchAll(/npm run ([a-zA-Z0-9:_-]+)/g)].map((m) => m[1]));
+const IGNORED_COMMAND_RE = /^(?:npm (?:ci|install|test)\b|npx --version)/;
+
+/**
+ * Normalises a shell step to the command this check compares.
+ *
+ * Only the invocation shape matters, so `npm run x -- --strict` and `npm run x`
+ * compare equal. `node scripts/x.mjs` and `npx x` are included because a
+ * validator invoked either way is still a gate; matching only `npm run` let a
+ * whole class of steps pass unseen.
+ */
+export function normaliseCommand(step) {
+  if (typeof step !== 'string') return undefined;
+  const text = step.trim();
+  if (!text || text.startsWith('#')) return undefined;
+  if (IGNORED_COMMAND_RE.test(text)) return undefined;
+
+  const npmRun = text.match(/\bnpm run ([a-zA-Z0-9:_-]+)/);
+  if (npmRun) return `npm run ${npmRun[1]}`;
+
+  const nodeScript = text.match(/\bnode (scripts\/[\w./-]+)/);
+  if (nodeScript) return `node ${nodeScript[1]}`;
+
+  const npx = text.match(/\bnpx ([a-zA-Z0-9@/._-]+)/);
+  if (npx) return `npx ${npx[1]}`;
+
+  return undefined;
+}
+
+function readYaml(filePath) {
+  if (!existsSync(filePath)) return undefined;
+  try {
+    return parse(readFileSync(filePath, 'utf8'));
+  } catch {
+    return undefined;
+  }
 }
 
 /**
- * Portable validators the GitHub validate job runs that GitLab CI does not.
+ * Commands run by one named job of a GitHub workflow.
  *
- * The asymmetry matters because a GitLab-hosted clone is then enforced by a
- * weaker gate set than a GitHub-hosted one, with nothing reporting it.
+ * Scoped to a single job on purpose: a GitHub-only publish job in the same file
+ * must not be reported as something GitLab is failing to run.
  */
-export function findMissingFromGitlab(root = process.cwd(), { hostOnly = HOST_ONLY_SCRIPTS } = {}) {
-  const github = npmScriptsIn(path.join(root, GITHUB_VALIDATE_WORKFLOW));
-  const gitlab = npmScriptsIn(path.join(root, GITLAB_CI));
-  const exempt = new Set(hostOnly);
-  return [...github].filter((script) => !gitlab.has(script) && !exempt.has(script)).sort();
+export function githubJobCommands(filePath, jobName = GITHUB_VALIDATE_JOB) {
+  const doc = readYaml(filePath);
+  const steps = doc?.jobs?.[jobName]?.steps;
+  if (!Array.isArray(steps)) return new Set();
+  const commands = new Set();
+  for (const step of steps) {
+    const command = normaliseCommand(step?.run);
+    if (command) commands.add(command);
+  }
+  return commands;
+}
+
+/**
+ * Commands run by any GitLab job.
+ *
+ * Parsed rather than regex-scanned so that a step commented out with `#` is not
+ * counted as coverage: commenting out a flaky job is a routine edit, and it must
+ * not silently reopen the drift this check exists to prevent.
+ */
+export function gitlabCommands(filePath) {
+  const doc = readYaml(filePath);
+  if (!doc || typeof doc !== 'object') return new Set();
+  const commands = new Set();
+  for (const [key, job] of Object.entries(doc)) {
+    if (key.startsWith('.') || !job || typeof job !== 'object') continue;
+    for (const field of ['before_script', 'script', 'after_script']) {
+      for (const step of [].concat(job[field] ?? [])) {
+        const command = normaliseCommand(step);
+        if (command) commands.add(command);
+      }
+    }
+  }
+  return commands;
+}
+
+export function findMissingFromGitlab(root = process.cwd(), { hostOnly = HOST_ONLY_COMMANDS } = {}) {
+  const github = githubJobCommands(path.join(root, GITHUB_VALIDATE_WORKFLOW));
+  const gitlab = gitlabCommands(path.join(root, GITLAB_CI));
+
+  const exempt = new Set();
+  for (const entry of hostOnly) {
+    const command = typeof entry === 'string' ? entry : entry?.command;
+    const reason = typeof entry === 'string' ? undefined : entry?.reason;
+    if (!command) throw new Error('CI parity exemption: every entry needs a command');
+    if (!reason) {
+      throw new Error(`CI parity exemption for "${command}" needs a reason; an exemption without one is an oversight, not a decision`);
+    }
+    if (!github.has(command)) {
+      throw new Error(`CI parity exemption for "${command}" is stale: it is not run by the GitHub validate job`);
+    }
+    exempt.add(command);
+  }
+
+  return [...github].filter((command) => !gitlab.has(command) && !exempt.has(command)).sort();
 }
 
 function main() {
   const root = process.cwd();
-  const github = npmScriptsIn(path.join(root, GITHUB_VALIDATE_WORKFLOW));
-  const gitlab = npmScriptsIn(path.join(root, GITLAB_CI));
-  const missing = findMissingFromGitlab(root);
-
-  console.log('CI parity check');
-  console.log('─────────────────────────────────────────────────────────');
-  console.log(`GitHub validate job runs:  ${github.size} named script(s)`);
-  console.log(`GitLab CI runs:            ${gitlab.size} named script(s)`);
-  console.log(`Deliberate host-only:      ${HOST_ONLY_SCRIPTS.length}`);
-  console.log('─────────────────────────────────────────────────────────');
-
-  if (missing.length === 0) {
-    console.log('CI parity check PASSED: GitLab runs every portable validator GitHub enforces.');
+  const github = githubJobCommands(path.join(root, GITHUB_VALIDATE_WORKFLOW));
+  const gitlab = gitlabCommands(path.join(root, GITLAB_CI));
+  let missing;
+  try {
+    missing = findMissingFromGitlab(root);
+  } catch (error) {
+    console.error(`CI parity check FAILED: ${error.message}`);
+    process.exitCode = 1;
     return;
   }
 
-  console.error(`CI parity check FAILED: ${missing.length} validator(s) run on GitHub but not on GitLab:`);
-  for (const script of missing) console.error(`  - ${script}`);
+  console.log('CI parity check');
+  console.log('─────────────────────────────────────────────────────────');
+  console.log(`GitHub "${GITHUB_VALIDATE_JOB}" job runs:  ${github.size} command(s)`);
+  console.log(`GitLab CI runs:              ${gitlab.size} command(s)`);
+  console.log(`Deliberate host-only:        ${HOST_ONLY_COMMANDS.length}`);
+  console.log('─────────────────────────────────────────────────────────');
+  console.log('Scope: this compares which commands run, not when they run. A job');
+  console.log('whose triggers are narrowed on one host is not detected here.');
+  console.log('─────────────────────────────────────────────────────────');
+
+  if (missing.length === 0) {
+    console.log('CI parity check PASSED: GitLab runs every command the GitHub validate job enforces.');
+    return;
+  }
+
+  console.error(`CI parity check FAILED: ${missing.length} command(s) run on GitHub but not on GitLab:`);
+  for (const command of missing) console.error(`  - ${command}`);
   console.error(
-    '\nA GitLab-hosted clone is therefore gated more weakly than a GitHub-hosted one. ' +
-      `Add each to ${GITLAB_CI}, or record it in HOST_ONLY_SCRIPTS with a reason if the asymmetry is intended.`
+    `\nA GitLab-hosted clone is therefore gated more weakly than a GitHub-hosted one. ` +
+      `Add each to ${GITLAB_CI}, or record it in HOST_ONLY_COMMANDS with a reason if the asymmetry is intended.`
   );
   process.exitCode = 1;
 }
 
-if (import.meta.url === pathToFileURL(process.argv[1]).href) {
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   main();
 }

@@ -17,7 +17,7 @@
 - Blank-template reset completed through PR #205 (`aa2a871`); historical records remain recoverable from Git history.
 
 ## In Progress
-- Issue #210: three portable validators added to `.gitlab-ci.yml`, plus `validate:ci-parity` wired into both CI files so the drift cannot recur silently. Suite 503 → 509.
+- Issue #210: three portable validators added to `.gitlab-ci.yml`, plus `validate:ci-parity` wired into both CI files so the drift cannot recur silently. Independent QA returned NEEDS_REVISION at `973180d` (1 Critical, 4 Major, 3 Minor). The Critical was mine: a `node_modules` symlink holding an absolute home path was committed because `.gitignore` used `node_modules/` with a trailing slash, which matches directories only. The detector was also defeatable by a commented-out GitLab job, by `node`/`npx` invocation, and produced a false failure on a GitHub-only job; it now parses both files with the `yaml` package and is scoped to the named validate job. One QA example was checked and found factually wrong, and is recorded as such. Suite 503 → 513.
 - Issue #208 is in flight on a separate branch (`fix/preserve-decision-log`, PR #209) and also edits this file; on merge, keep the branch being merged and let each closeout sync its own state.
 
 ## Blockers / Open Questions
