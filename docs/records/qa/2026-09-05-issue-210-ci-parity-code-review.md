@@ -59,7 +59,19 @@ Independent re-review at `681a40e` disposed of CR-1107–CR-1113 and CR-1111/CR-
 
 Suite 513 → 515 (two regression tests added for CR-1114: a renamed job and a job with no steps, both asserting the check now fails loudly instead of comparing nothing).
 
-`task_review_rework_count` is now **1 of a maximum 2**.
+`task_review_rework_count` is now **2 of a maximum 2 — the ceiling**, per `docs/workflow/task-execution-mode.md:55-58` ("increments once after a review that needs a fix"). This entry originally understated it as "1 of a maximum 2"; that was a counting error in this record, corrected here rather than left standing. The review at `973180d` that produced CR-1107–1113 was round 1; the review at `681a40e` that produced CR-1114 was round 2, which is the ceiling.
+
+## Third revision after independent re-review
+
+The next review, of `0e1244c`, is therefore the "next unresolved review result" that `task-execution-mode.md` says stops for the Human Maintainer rather than looping into a third automatic fix round. It found one new Major (CR-1115), reported as NEEDS_REVISION. Per the Human Maintainer's explicit decision at that point — fix it anyway, rather than merge with the gap documented as residual risk or stop for further manual review — this round proceeded as an exception to the stated ceiling, not as a silent continuation of it.
+
+| Finding ID | Severity | Finding | Fix | Evidence |
+|---|---|---|---|---|
+| CR-1115 | Major | **CR-1114's guard (`!Array.isArray(steps)`) does not cover a job whose `steps` array exists but yields zero recognised commands.** A `validate` job restructured into a composite action (`uses: ./.github/actions/run-validators` instead of direct `run:` steps) or reduced to a literal `steps: []` passes the CR-1114 guard, produces an empty command `Set`, and reaches the identical silent outcome CR-1114 was raised to close: `findMissingFromGitlab` compares 0 GitHub commands against GitLab's, `main()` prints `CI parity check PASSED` with `GitHub "validate" job runs: 0 command(s)`, exit 0 | `githubJobCommands` now also throws when the extracted command set is empty, naming the job and file, with the same message shape as the CR-1114 throw so both failure modes surface identically through `main()`'s existing catch | Reproduced against composite-action and `steps: []` fixtures: before, both printed `PASSED` with `0 command(s)` and exited 0; after, both throw `job "validate" ... yielded no comparable commands` and the CLI exits 1 |
+
+Suite 515 → 517 (two regression tests added for CR-1115: a composite-action-only job and a literal `steps: []` job). Mutation-verified: removing the new zero-commands guard drops the suite to 12/14 passing on the affected test file, failing exactly the two new CR-1115 tests and nothing else.
+
+`task_review_rework_count` is now **3**, one past the stated ceiling of 2, by the Human Maintainer's explicit direction rather than by default. Any further unresolved finding on this PR should not be treated as another automatic round — it returns to the Human Maintainer for a decision, as the ceiling already called for at round 2.
 
 ## Review Decision
 

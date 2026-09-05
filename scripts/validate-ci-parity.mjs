@@ -67,8 +67,14 @@ function readYaml(filePath) {
  * name creates its own failure mode — a renamed or restructured job resolves to
  * `undefined` the same way a genuinely job-less workflow would, and comparing
  * an empty set against anything reports a vacuous PASS. A renamed job must fail
- * the check, not silently disable it: throw here so `main()`'s existing
- * error-reporting path (built for stale exemptions) also catches this.
+ * the check, not silently disable it, so a missing/malformed `steps` throws.
+ *
+ * That guard alone is not enough (CR-1115): a job whose `steps` array exists
+ * but resolves to zero recognised commands — extracted into a composite
+ * action, reduced to `steps: []`, or left with only `uses:` steps — reaches
+ * the same silent-PASS outcome through a shape `!Array.isArray` never catches.
+ * A validate job with nothing to compare is exactly as broken as one that
+ * cannot be found, so both throw through the same path.
  */
 export function githubJobCommands(filePath, jobName = GITHUB_VALIDATE_JOB) {
   const doc = readYaml(filePath);
@@ -83,6 +89,13 @@ export function githubJobCommands(filePath, jobName = GITHUB_VALIDATE_JOB) {
   for (const step of steps) {
     const command = normaliseCommand(step?.run);
     if (command) commands.add(command);
+  }
+  if (commands.size === 0) {
+    throw new Error(
+      `CI parity check cannot run: job "${jobName}" in ${filePath} yielded no comparable commands. ` +
+        'If the job was restructured (e.g. into a composite action), update GITHUB_VALIDATE_JOB or this ' +
+        'check rather than let a job with nothing to compare report a vacuous PASS.'
+    );
   }
   return commands;
 }

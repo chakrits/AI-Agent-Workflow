@@ -238,3 +238,54 @@ jobs:
     rmSync(root, { recursive: true, force: true });
   }
 });
+
+// --- QA finding CR-1115 on candidate 0e1244c: a job restructured into steps
+// that yield zero real commands is indistinguishable from a rename, and the
+// CR-1114 guard (`!Array.isArray(steps)`) does not catch it ---
+
+test('a validate job restructured into a composite action fails loudly instead of comparing nothing', () => {
+  const root = makeRepo({
+    github: `name: v
+on: [push, pull_request]
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/run-validators
+`,
+    gitlab: 'validate:\n  script:\n    - npm test\n'
+  });
+  try {
+    assert.throws(
+      () => findMissingFromGitlab(root),
+      /job "validate" .* yielded no comparable commands/i,
+      'steps that exist but resolve to zero commands must fail the same way as a missing job, ' +
+        'not silently compare an empty set and report PASSED'
+    );
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('a validate job with a literal empty steps list fails loudly instead of comparing nothing', () => {
+  const root = makeRepo({
+    github: `name: v
+on: [push, pull_request]
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps: []
+`,
+    gitlab: 'validate:\n  script:\n    - npm test\n'
+  });
+  try {
+    assert.throws(
+      () => findMissingFromGitlab(root),
+      /job "validate" .* yielded no comparable commands/i,
+      'steps: [] must fail the same way as a missing steps array'
+    );
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
