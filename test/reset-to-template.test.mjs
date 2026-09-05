@@ -339,3 +339,56 @@ safe:
 test('repository CI contains no destructive reset invocation', () => {
   assert.deepEqual(findDestructiveCiInvocations(path.resolve('.')), []);
 });
+
+// --- Issue #208: DECISIONS.md holds governing decisions, not clearable records ---
+
+async function initGitFixtureWithRealAdr() {
+  const rootDir = await initGitFixture();
+  await writeFile(
+    path.join(rootDir, 'DECISIONS.md'),
+    '# DECISIONS.md\n\n## Decision Log\n\n### ADR-0042: A governing decision\n\n- Date: 2026-01-01\n- Status: Accepted\n',
+    'utf8'
+  );
+  await execFile('git', ['add', 'DECISIONS.md'], { cwd: rootDir });
+  await execFile('git', ['commit', '-qm', 'record a real ADR'], { cwd: rootDir });
+  return rootDir;
+}
+
+test('CLI refuses to blank DECISIONS.md when it holds real ADRs, names them, and mutates nothing', async () => {
+  const rootDir = await initGitFixtureWithRealAdr();
+  const before = await snapshotDeclaredTargets(rootDir);
+
+  await assert.rejects(
+    runCli(rootDir, ['--apply', '--confirm-reset']),
+    (error) =>
+      error.code !== 0 &&
+      /ADR-0042/.test(error.stderr) &&
+      /--reset-decisions/.test(error.stderr)
+  );
+
+  assert.deepEqual(
+    await snapshotDeclaredTargets(rootDir),
+    before,
+    'a refused reset must not delete records either — the refusal has to happen before any mutation'
+  );
+  await rm(rootDir, { recursive: true, force: true });
+});
+
+test('CLI blanks DECISIONS.md only when --reset-decisions is passed explicitly', async () => {
+  const rootDir = await initGitFixtureWithRealAdr();
+
+  await runCli(rootDir, ['--apply', '--confirm-reset', '--reset-decisions']);
+
+  assert.equal(await readFile(path.join(rootDir, 'DECISIONS.md'), 'utf8'), STUB_CONTENT['DECISIONS.md']);
+  await rm(rootDir, { recursive: true, force: true });
+});
+
+test('a DECISIONS.md with no real ADRs still resets without the extra flag', async () => {
+  const rootDir = await initGitFixture();
+
+  await runCli(rootDir, ['--apply', '--confirm-reset']);
+
+  assert.equal(await readFile(path.join(rootDir, 'DECISIONS.md'), 'utf8'), STUB_CONTENT['DECISIONS.md']);
+  assert.equal(await readFile(path.join(rootDir, 'PROJECT_STATUS.md'), 'utf8'), STUB_CONTENT['PROJECT_STATUS.md']);
+  await rm(rootDir, { recursive: true, force: true });
+});

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, rmSync, mkdirSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, rmSync, mkdirSync, writeFileSync, realpathSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { countRealAdrs, countTaskLogDecisions, runAudit } from '../scripts/adr-audit.mjs';
@@ -409,6 +409,286 @@ test('CLI exits 1 when no ADRs exist', () => {
       exitCode = err.status ?? 1;
     }
     assert.equal(exitCode, 1, 'CLI must exit 1 when no real ADR entries exist');
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+// --- Issue #208: a reset blanks DECISIONS.md and TASK_LOG.md together, so the
+// --- ratio becomes 0/0 and the audit reports PASS while the decision log is destroyed.
+
+const REAL_ADRS = [
+  '# DECISIONS.md',
+  '',
+  '## Decision Log',
+  '',
+  '### ADR-0017: Use one authoritative path',
+  '',
+  '- Date: 2026-07-31',
+  '- Status: Accepted',
+  '',
+  '### ADR-0019: No-Go and freeze',
+  '',
+  '- Date: 2026-08-22',
+  '- Status: Accepted',
+  ''
+].join('\n');
+
+const BLANK_DECISIONS = '# DECISIONS.md\n\n## Decision Log\n\nNo decisions recorded yet.\n';
+
+function makeGitRepoWithAdrHistory({ committed, current }) {
+  const root = mkdtempSync(path.join(tmpdir(), 'adr-regress-'));
+  const real = execFileSync('/bin/sh', ['-c', `cd "${root}" && pwd -P`]).toString().trim();
+  const git = (...args) => execFileSync('git', args, { cwd: real, stdio: ['ignore', 'pipe', 'ignore'] });
+
+  git('init', '--quiet', '--initial-branch=main');
+  git('config', 'user.email', 'test@example.com');
+  git('config', 'user.name', 'Test');
+  writeFileSync(path.join(real, 'DECISIONS.md'), committed);
+  writeFileSync(path.join(real, 'TASK_LOG.md'), '# TASK_LOG.md\n');
+  git('add', '.');
+  git('commit', '--quiet', '-m', 'baseline with decisions');
+
+  writeFileSync(path.join(real, 'DECISIONS.md'), current);
+  // Always touch a second file so the commit exists even when DECISIONS.md is
+  // unchanged; otherwise git creates nothing and HEAD~1 does not resolve.
+  writeFileSync(path.join(real, 'TASK_LOG.md'), '# TASK_LOG.md\n\nsecond commit\n');
+  git('add', '.');
+  git('commit', '--quiet', '-m', 'second commit');
+  return real;
+}
+
+test('runAudit fails when the real ADR count drops relative to the previous commit', () => {
+  const root = makeGitRepoWithAdrHistory({ committed: REAL_ADRS, current: BLANK_DECISIONS });
+  try {
+    const result = runAudit(root);
+    assert.equal(result.adrCount, 0);
+    assert.equal(result.previousAdrCount, 2, 'the audit must look at what the previous commit held');
+    assert.equal(
+      result.passed,
+      false,
+      'blanking a decision log that held two ADRs must fail, even though 0/0 is inside the ratio threshold'
+    );
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('runAudit does not fail when the ADR count is unchanged or grows', () => {
+  const root = makeGitRepoWithAdrHistory({ committed: REAL_ADRS, current: REAL_ADRS });
+  try {
+    const result = runAudit(root);
+    assert.equal(result.previousAdrCount, 2);
+    assert.equal(result.adrCount, 2);
+    assert.equal(result.passed, true);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('CLI exits 1 and names the lost ADR count when the decision log shrinks', () => {
+  const root = makeGitRepoWithAdrHistory({ committed: REAL_ADRS, current: BLANK_DECISIONS });
+  try {
+    let code = 0;
+    let output = '';
+    try {
+      output = execFileSync(process.execPath, [path.resolve('scripts/adr-audit.mjs')], {
+        cwd: root,
+        stdio: ['ignore', 'pipe', 'pipe']
+      }).toString();
+    } catch (error) {
+      code = error.status;
+      output = `${error.stdout ?? ''}${error.stderr ?? ''}`;
+    }
+    assert.equal(code, 1);
+    assert.match(output, /2 .*0|decision log/i);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+// --- QA findings on Issue #208 candidate 3ccd8f4 ---
+
+test('a real ADR is counted whatever shape its date field takes', () => {
+  for (const dateLine of ['- Date: 2026-01-01', '**Date:** 2026-01-01', 'Date: 2026-01-01']) {
+    const root = makeTempRepo({
+      decisions: `# DECISIONS.md\n\n### ADR-0042: real\n\n${dateLine}\n- Status: Accepted\n`
+    });
+    try {
+      assert.equal(
+        countRealAdrs(root),
+        1,
+        `"${dateLine}" is a recorded decision; not counting it means the reset silently destroys it`
+      );
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  }
+});
+
+test('an unfilled template ADR is still not counted', () => {
+  const root = makeTempRepo({
+    decisions: '# DECISIONS.md\n\n### ADR-0001: <Title>\n\n- Date:\n- Status: Proposed / Accepted\n'
+  });
+  try {
+    assert.equal(countRealAdrs(root), 0);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+/**
+ * A repository with a real `origin` remote and a feature branch, which is the
+ * shape CI actually runs on. Fixtures without a remote always fall through to
+ * the HEAD~1 path, leaving the merge-base branch untested.
+ */
+function makeRepoWithOriginAndBranch({ onMain, onBranch }) {
+  const dir = realpathSync(mkdtempSync(path.join(tmpdir(), 'adr-origin-')));
+  const originPath = path.join(dir, 'origin.git');
+  const workPath = path.join(dir, 'work');
+  execFileSync('git', ['init', '--quiet', '--bare', '--initial-branch=main', originPath]);
+
+  execFileSync('git', ['clone', '--quiet', originPath, workPath]);
+  const git = (...args) => execFileSync('git', args, { cwd: workPath, stdio: ['ignore', 'pipe', 'ignore'] });
+  git('config', 'user.email', 'test@example.com');
+  git('config', 'user.name', 'Test');
+
+  writeFileSync(path.join(workPath, 'DECISIONS.md'), onMain);
+  writeFileSync(path.join(workPath, 'TASK_LOG.md'), '# TASK_LOG.md\n');
+  git('add', '.');
+  git('commit', '--quiet', '-m', 'main baseline');
+  git('push', '--quiet', 'origin', 'main');
+
+  git('checkout', '--quiet', '-b', 'feature');
+  for (const [index, content] of onBranch.entries()) {
+    writeFileSync(path.join(workPath, 'DECISIONS.md'), content);
+    writeFileSync(path.join(workPath, 'TASK_LOG.md'), `# TASK_LOG.md\n\ncommit ${index}\n`);
+    git('add', '.');
+    git('commit', '--quiet', '-m', `branch commit ${index}`);
+  }
+  return { dir, workPath };
+}
+
+const FIVE_ADRS = [
+  '# DECISIONS.md',
+  '',
+  ...['0001', '0002', '0003', '0004', '0005'].flatMap((id) => [
+    `### ADR-${id}: decision ${id}`,
+    '',
+    '- Date: 2026-01-01',
+    '- Status: Accepted',
+    ''
+  ])
+].join('\n');
+
+test('ADRs added and then destroyed inside a feature branch are detected', () => {
+  const { dir, workPath } = makeRepoWithOriginAndBranch({
+    onMain: BLANK_DECISIONS,
+    onBranch: [FIVE_ADRS, BLANK_DECISIONS]
+  });
+  try {
+    const result = runAudit(workPath);
+    assert.equal(result.adrCount, 0);
+    assert.equal(
+      result.previousAdrCount,
+      5,
+      'the merge base holds none of these ADRs, so comparing only against it hides the loss entirely'
+    );
+    assert.equal(result.passed, false);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('a feature branch that removes an ADR present on main is detected', () => {
+  const { dir, workPath } = makeRepoWithOriginAndBranch({
+    onMain: FIVE_ADRS,
+    onBranch: [BLANK_DECISIONS]
+  });
+  try {
+    const result = runAudit(workPath);
+    assert.equal(result.previousAdrCount, 5);
+    assert.equal(result.passed, false);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('a feature branch that only adds ADRs passes', () => {
+  const { dir, workPath } = makeRepoWithOriginAndBranch({
+    onMain: BLANK_DECISIONS,
+    onBranch: [FIVE_ADRS]
+  });
+  try {
+    const result = runAudit(workPath);
+    assert.equal(result.adrCount, 5);
+    assert.equal(result.passed, true);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+// --- Re-review findings: the previous "coverage" tests survived deleting the
+// --- rev-list walk they existed to prove, so only cases the walk alone can
+// --- answer are added here. Each must fail if that block is removed.
+
+test('a loss in the middle of a branch is found only by walking the branch', () => {
+  const { dir, workPath } = makeRepoWithOriginAndBranch({
+    onMain: BLANK_DECISIONS,
+    onBranch: [FIVE_ADRS, BLANK_DECISIONS, BLANK_DECISIONS]
+  });
+  try {
+    const result = runAudit(workPath);
+    // merge base holds 0 and HEAD~1 holds 0; only the middle commit holds 5,
+    // so this assertion cannot be satisfied by the HEAD~1 fallback alone.
+    assert.equal(
+      result.previousAdrCount,
+      5,
+      'neither the fork point nor the parent commit knows about these ADRs'
+    );
+    assert.equal(result.passed, false);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('an unfilled template ADR is not counted whatever emphasis it uses', () => {
+  for (const dateLine of ['- Date:', 'Date:', '**Date:**', '**Date**:', '* Date:']) {
+    const root = makeTempRepo({
+      decisions: `# DECISIONS.md\n\n### ADR-0001: <Title>\n\n${dateLine}\n- Status: Proposed\n`
+    });
+    try {
+      assert.equal(
+        countRealAdrs(root),
+        0,
+        `"${dateLine}" has no value; counting it lets a blanked log look populated`
+      );
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  }
+});
+
+test('a filled date is counted whatever emphasis it uses', () => {
+  for (const dateLine of ['- Date: 2026-01-01', 'Date: 2026-01-01', '**Date:** 2026-01-01', '**Date**: 2026-01-01', '* Date: 2026-01-01']) {
+    const root = makeTempRepo({
+      decisions: `# DECISIONS.md\n\n### ADR-0042: real\n\n${dateLine}\n`
+    });
+    try {
+      assert.equal(countRealAdrs(root), 1, `"${dateLine}" is a recorded decision`);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  }
+});
+
+test('a placeholder date value is still counted, as it was before this guard existed', () => {
+  const root = makeTempRepo({
+    decisions: '# DECISIONS.md\n\n### ADR-0001: <Title>\n\n- Date: <YYYY-MM-DD>\n'
+  });
+  try {
+    // Pinned deliberately: this counted before Issue #208 and tightening it now
+    // would be scope expansion dressed as a regression fix.
+    assert.equal(countRealAdrs(root), 1);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

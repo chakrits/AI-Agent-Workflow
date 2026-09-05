@@ -4,6 +4,7 @@ import { execFile as execFileCallback } from 'node:child_process';
 import { promisify } from 'node:util';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { countRealAdrs } from './adr-audit.mjs';
 
 const execFile = promisify(execFileCallback);
 
@@ -261,9 +262,19 @@ function printInventory({ fileChanges, dirChanges }) {
   console.log(`\nInventory total: ${entryCount} entries would be deleted or replaced.`);
 }
 
+/**
+ * ADR headers currently recorded in DECISIONS.md, for the refusal message.
+ */
+function recordedAdrIds(rootDir) {
+  const decisionsPath = path.join(rootDir, 'DECISIONS.md');
+  if (!existsSync(decisionsPath)) return [];
+  return [...readFileSync(decisionsPath, 'utf8').matchAll(/^### (ADR-[^\s:]+)/gm)].map((m) => m[1]);
+}
+
 export async function main(args = process.argv.slice(2), cwd = process.cwd()) {
   const apply = args.includes('--apply');
   const confirmed = args.includes('--confirm-reset');
+  const resetDecisions = args.includes('--reset-decisions');
   const rootDir = await repositoryRoot(cwd);
   const plan = await planReset(rootDir);
 
@@ -279,6 +290,19 @@ export async function main(args = process.argv.slice(2), cwd = process.cwd()) {
   if (!confirmed) {
     throw new Error('Refusing to apply: --apply also requires the explicit --confirm-reset token.');
   }
+  // DECISIONS.md is not a record of past work; it holds decisions that still govern
+  // open work items. Blanking it has twice destroyed ADRs that open issues cite, and
+  // adr-audit could not see it because TASK_LOG.md was blanked in the same run.
+  const adrCount = countRealAdrs(rootDir);
+  if (adrCount > 0 && !resetDecisions) {
+    const ids = recordedAdrIds(rootDir);
+    throw new Error(
+      `Refusing to apply: DECISIONS.md holds ${adrCount} recorded decision(s) that this reset would destroy:\n` +
+        `${ids.map((id) => `  - ${id}`).join('\n')}\n` +
+        'These may still govern open work items. Move or supersede them first, or pass --reset-decisions to blank them deliberately.'
+    );
+  }
+
   const dirty = await dirtyTargets(rootDir);
   if (dirty.length > 0) {
     throw new Error(`Refusing to apply because dirty targeted paths were found:\n${dirty.map((p) => `  - ${p}`).join('\n')}`);
@@ -295,7 +319,7 @@ export async function main(args = process.argv.slice(2), cwd = process.cwd()) {
   console.log('Git history was not changed. Any optional new-root operation is human-only.');
 }
 
-if (import.meta.url === pathToFileURL(process.argv[1]).href) {
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   try {
     await main();
   } catch (error) {
