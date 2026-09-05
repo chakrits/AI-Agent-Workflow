@@ -483,6 +483,49 @@ test('a loss in the middle of a branch is found only by walking the branch', () 
   }
 });
 
+// --- Issue #220 AC-01: lock in the fail-open path (mirrors adr-audit.mjs's
+// --- `previousAdrCount === undefined` design) with a real regression test.
+
+test(
+  'runRiskValidation fail-opens (previousTotal stays undefined, never 0) when no comparison commit can be read',
+  () => {
+    // A plain non-git temp dir: comparisonRefs(root) cannot even resolve HEAD,
+    // so it returns [] and no comparison count is ever attempted — the same
+    // "shallow clone or unreachable base" shape the docstring names. This is
+    // the identical intentional design already present in adr-audit.mjs's
+    // `previousAdrCount === undefined` branch: undefined must never be
+    // conflated with 0, and the guard being *absent* here must not be
+    // reported as passing an assertion it never made.
+    const risks = `# RISKS.md
+
+| ID | Risk | Area | Severity | Likelihood | Mitigation | Owner | Status |
+|---|---|---|---|---|---|---|---|
+| R-001 | Some risk. | Area | Medium | Medium | Mitigation. | Owner | Open |
+`;
+    const projectStatus = `# PROJECT_STATUS.md
+
+## Current Work Item
+- ID: None
+- Title: None
+- Owner: None
+- Status: Idle
+`;
+    const root = makeTempRepo({ risks, projectStatus });
+    try {
+      const result = runRiskValidation(root);
+      assert.equal(
+        result.previousTotal,
+        undefined,
+        'no comparison commit could be read, so previousTotal must stay undefined, never 0'
+      );
+      assert.equal(result.regressed, false);
+      assert.equal(result.passed, true);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  }
+);
+
 test('a feature branch that only adds risks passes', () => {
   const { dir, workPath } = makeRepoWithOriginAndBranch({
     onMain: BLANK_RISKS,

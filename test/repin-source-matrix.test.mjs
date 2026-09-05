@@ -107,28 +107,6 @@ test('updates every occurrence of a redundantly-pinned path, not just the first 
   await rm(rootDir, { recursive: true, force: true });
 });
 
-test('mutation check: an implementation that stops after the first occurrence must fail this test', async () => {
-  // This test documents the mutation-testing claim: it is identical in shape to the
-  // previous test, and is the one that would go red if the implementation used
-  // `.find()`/broke after updating only the first occurrence of a changed path.
-  const rows = [];
-  for (let i = 0; i < 3; i += 1) {
-    rows.push({ role: `Role ${i}`, loadMode: 'on-demand', paths: [{ path: 'docs/workflow/role-definitions.md', content: 'v1\n' }] });
-  }
-  const rootDir = await makeFixtureRepo(rows);
-  await writeFile(path.join(rootDir, 'docs/workflow/role-definitions.md'), 'v2\n', 'utf8');
-
-  await repinSourceMatrix(rootDir);
-
-  const matrix = await readMatrix(rootDir);
-  const expected = sha256Of('v2\n');
-  for (const [index, row] of matrix.rows.entries()) {
-    assert.equal(row.requiredSources[0].sha256, expected, `row ${index} was not updated`);
-  }
-
-  await rm(rootDir, { recursive: true, force: true });
-});
-
 test('fails closed and writes nothing when a path is pinned with non-uniform hashes across rows', async () => {
   const rootDir = await makeFixtureRepo([
     { role: 'Orchestrator Agent', loadMode: 'boot', paths: [{ path: 'AGENTS.md', content: 'agents content\n', hash: 'a'.repeat(64) }] },
@@ -155,17 +133,24 @@ test('fails closed and writes nothing when a path is pinned with non-uniform has
   await rm(rootDir, { recursive: true, force: true });
 });
 
-test('fails closed when the fixture does not round-trip byte-identically through JSON.stringify(JSON.parse(x), null, 2)', async () => {
+test('fails closed when the fixture does not round-trip byte-identically through JSON.stringify(JSON.parse(x), null, 2), and prevents a write that would otherwise happen', async () => {
   const rootDir = await mkdtemp(path.join(os.tmpdir(), 'repin-source-matrix-'));
   const matrixDir = path.join(rootDir, path.dirname(MATRIX_RELATIVE_PATH));
   await mkdir(matrixDir, { recursive: true });
   await writeFile(path.join(rootDir, 'AGENTS.md'), 'agents content\n', 'utf8');
-  const hash = sha256Of('agents content\n');
+  // Deliberately stale/wrong — NOT sha256Of('agents content\n') — so that if the
+  // round-trip guard were bypassed, the script would find a genuine hash mismatch
+  // and actually attempt a write (with corrected 2-space formatting, discarding
+  // this fixture's 4-space indentation). A fixture whose hash is already correct
+  // (as this test previously used) can never provoke that write, so "the file is
+  // unmodified after the guard throws" would hold trivially either way and prove
+  // nothing about the guard actually preventing a write (QA-215-1).
+  const staleHash = 'f'.repeat(64);
   // 4-space indentation instead of the 2-space indentation the script assumes.
   const matrix = {
     schemaVersion: 'context-source-matrix/v1',
     roles: ['Orchestrator Agent'],
-    rows: [{ role: 'Orchestrator Agent', loadMode: 'boot', requiredSources: [{ path: 'AGENTS.md', sha256: hash }] }]
+    rows: [{ role: 'Orchestrator Agent', loadMode: 'boot', requiredSources: [{ path: 'AGENTS.md', sha256: staleHash }] }]
   };
   const raw = JSON.stringify(matrix, null, 4) + '\n';
   const matrixPath = path.join(rootDir, MATRIX_RELATIVE_PATH);
@@ -173,18 +158,28 @@ test('fails closed when the fixture does not round-trip byte-identically through
   const before = await readFile(matrixPath);
   const statBefore = await stat(matrixPath);
 
-  await assert.rejects(
-    () => repinSourceMatrix(rootDir),
-    (error) => {
-      assert.match(error.message, /round-trip|byte-for-byte|formatting/i);
-      return true;
-    }
-  );
+  // The file-unmodified check is asserted before the throw check, deliberately:
+  // if the round-trip guard were bypassed, the stale hash makes the script
+  // reach the write at the end of a normal (non-throwing) return, so a
+  // `.rejects` assertion evaluated first would abort the test right there and
+  // never reach the file check at all — silently no-op'ing the very assertion
+  // this test exists to strengthen (QA-215-1).
+  let caught;
+  try {
+    await repinSourceMatrix(rootDir);
+  } catch (error) {
+    caught = error;
+  }
 
   const after = await readFile(matrixPath);
   const statAfter = await stat(matrixPath);
-  assert.ok(before.equals(after));
-  assert.equal(statAfter.mtimeMs, statBefore.mtimeMs);
+  assert.ok(
+    before.equals(after),
+    'the guard must prevent the write that the stale hash would otherwise trigger — file bytes must be unchanged'
+  );
+  assert.equal(statAfter.mtimeMs, statBefore.mtimeMs, 'no write may occur on the fail-closed path');
+  assert.ok(caught, 'the round-trip guard must throw');
+  assert.match(caught.message, /round-trip|byte-for-byte|formatting/i);
 
   await rm(rootDir, { recursive: true, force: true });
 });
