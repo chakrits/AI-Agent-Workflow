@@ -46,7 +46,7 @@ const exactFields = (value, fields, label) => {
   ];
 };
 
-function sha256(bytes) {
+export function sha256(bytes) {
   return createHash('sha256').update(bytes).digest('hex');
 }
 
