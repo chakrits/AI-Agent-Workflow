@@ -158,13 +158,18 @@ test('fails closed when the fixture does not round-trip byte-identically through
   const before = await readFile(matrixPath);
   const statBefore = await stat(matrixPath);
 
-  await assert.rejects(
-    () => repinSourceMatrix(rootDir),
-    (error) => {
-      assert.match(error.message, /round-trip|byte-for-byte|formatting/i);
-      return true;
-    }
-  );
+  // The file-unmodified check is asserted before the throw check, deliberately:
+  // if the round-trip guard were bypassed, the stale hash makes the script
+  // reach the write at the end of a normal (non-throwing) return, so a
+  // `.rejects` assertion evaluated first would abort the test right there and
+  // never reach the file check at all — silently no-op'ing the very assertion
+  // this test exists to strengthen (QA-215-1).
+  let caught;
+  try {
+    await repinSourceMatrix(rootDir);
+  } catch (error) {
+    caught = error;
+  }
 
   const after = await readFile(matrixPath);
   const statAfter = await stat(matrixPath);
@@ -173,6 +178,8 @@ test('fails closed when the fixture does not round-trip byte-identically through
     'the guard must prevent the write that the stale hash would otherwise trigger — file bytes must be unchanged'
   );
   assert.equal(statAfter.mtimeMs, statBefore.mtimeMs, 'no write may occur on the fail-closed path');
+  assert.ok(caught, 'the round-trip guard must throw');
+  assert.match(caught.message, /round-trip|byte-for-byte|formatting/i);
 
   await rm(rootDir, { recursive: true, force: true });
 });
