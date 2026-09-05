@@ -16,9 +16,9 @@ Scope: stops `scripts/reset-to-template.mjs` from silently blanking a `RISKS.md`
 
 ### TDD
 
-- Wrote 10 new failing tests first, across both files, before touching implementation:
-  - `test/validate-risk-register.test.mjs`: 6 new regression-detection tests (`runRiskValidation fails when the total risk count drops...`, `...does not fail when unchanged or grows`, `...does not fail when open risks drop but total is unchanged`, CLI exit-1 test, and two branch-walk tests) — RED at 13/19 passing before implementation (6 failures, all in the new tests; the pre-existing 13 untouched).
-  - `test/reset-to-template.test.mjs`: 3 new guard tests (`CLI refuses to blank RISKS.md...`, `CLI blanks RISKS.md only when --reset-risks...`, `a RISKS.md with no real entries still resets...`) — RED at 23/24 (the refusal test failed with "Missing expected rejection", the other two incidentally passed because no guard yet existed to block them, which is expected for a "still works" and an "opt-in flag has no effect yet" case).
+- Added 10 new tests total, across both files, before touching implementation: `test/validate-risk-register.test.mjs` went from 12 to 19 (7 new tests), `test/reset-to-template.test.mjs` went from 21 to 24 (3 new tests). 7 + 3 = 10, matching the eventual 532 → 542 full-suite delta.
+  - `test/validate-risk-register.test.mjs`'s 7 new tests: `runRiskValidation fails when the total risk count drops...`, `...does not fail when unchanged or grows`, `...does not fail when open risks drop but total is unchanged`, the CLI exit-1 test, and three branch-walk tests (`risks added and then destroyed...`, `a loss in the middle of a branch...`, `a feature branch that only adds risks passes`) — RED at 13/19 before implementation (6 of the 7 new tests failed; `...only adds risks passes` passed incidentally pre-fix because `runRiskValidation` had no `previousTotal` field yet and the assertion on `result.total` alone was already satisfiable).
+  - `test/reset-to-template.test.mjs`'s 3 new tests: `CLI refuses to blank RISKS.md...`, `CLI blanks RISKS.md only when --reset-risks...`, `a RISKS.md with no real entries still resets...` — RED at 23/24 (the refusal test failed with "Missing expected rejection"; the other two passed incidentally because no guard yet existed to block them, which is the expected pre-fix state for a "still works unguarded" and an "opt-in flag has no effect yet" case).
 - Implemented `countRisksInContent`/`countRisksAtRef`/regression logic in `validate-risk-register.mjs`, then the `--reset-risks` guard in `reset-to-template.mjs`. Both files GREEN afterward: 19/19 and 24/24.
 
 ### Mutation verification (not just assertion-reading)
@@ -35,8 +35,8 @@ Scope: stops `scripts/reset-to-template.mjs` from silently blanking a `RISKS.md`
 
 ### Full-suite and validator results
 
-- `npm test`: 542 / 542 passing (532 before this branch's tests were added; +10 net across both test files — 6 net-new assertions plus 4 that already existed as unaffected pre-existing tests re-verified).
-- `validate:contracts`, `validate:project-state`, `validate:skill-parity`, `validate:risk-register`, `adr:audit`, `validate:skill-usage`, `validate:metrics`, `validate:context-budget`, `validate:review-gate`, `validate:ci-parity`: all PASS.
+- `npm test`: 542 / 542 passing (532 before this branch's tests were added; +10 net — 7 new tests in `test/validate-risk-register.test.mjs` plus 3 new tests in `test/reset-to-template.test.mjs`).
+- `validate:contracts`, `validate:project-state`, `validate:skill-parity`, `validate:risk-register`, `adr:audit`, `validate:skill-usage`, `validate:metrics`, `validate:context-budget`, `validate:review-gate`, `validate:ci-parity`, `validate:clearable-refs`, `validate:workflow-evidence`, `validate:dispatch-receipts`: all PASS (13 of 13 commands GitHub's `validate` job runs, per `validate:ci-parity`'s own count on this branch).
 - `git diff --check`: clean, no whitespace errors.
 - `npm run validate:risk-register` on this repository (which still holds 0 risk entries, unaffected by this diff) reports `Total risk entries: 0 … Previous total: 0 … PASSED` — the regression guard correctly reports no regression, since `RISKS.md` was already at 0 before and after this branch, and `validate:metrics` independently confirms `Risks tracked: 0 (0 open, 0 closed)`.
 
