@@ -1,27 +1,31 @@
 import { readFileSync, existsSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { comparisonRefs } from './adr-audit.mjs';
 
 /**
- * Count open (non-closed) risk entries in RISKS.md.
+ * Count total and open (non-closed) risk entries in a RISKS.md's content, and
+ * the ids of the rows found. Split out from `countOpenRisks` so the same
+ * parsing logic can be run against both the working tree and a historical
+ * git ref — a divergent second implementation reading the same table shape
+ * differently is exactly the bug class this guard exists to prevent.
  * A risk is considered closed if its Status column contains "Closed" (case-sensitive).
  */
-export function countOpenRisks(root = process.cwd()) {
-  const risksPath = path.join(root, 'RISKS.md');
-  if (!existsSync(risksPath)) {
-    return { total: 0, open: 0 };
-  }
-
-  const content = readFileSync(risksPath, 'utf8');
+export function countRisksInContent(content) {
+  if (typeof content !== 'string') return { total: 0, open: 0, ids: [] };
   const lines = content.split('\n');
 
   let total = 0;
   let open = 0;
+  const ids = [];
 
   for (const line of lines) {
     // Match table data rows: lines starting with "| R-"
     if (line.startsWith('| R-')) {
       total++;
+      const idMatch = line.match(/^\|\s*(R-[^\s|]+)/);
+      if (idMatch) ids.push(idMatch[1]);
       // A closed risk has "Closed" in its Status column (the last column)
       if (!line.includes('| Closed')) {
         open++;
@@ -29,7 +33,38 @@ export function countOpenRisks(root = process.cwd()) {
     }
   }
 
-  return { total, open };
+  return { total, open, ids };
+}
+
+/**
+ * Count total and open (non-closed) risk entries in RISKS.md.
+ */
+export function countOpenRisks(root = process.cwd()) {
+  const risksPath = path.join(root, 'RISKS.md');
+  if (!existsSync(risksPath)) {
+    return { total: 0, open: 0, ids: [] };
+  }
+
+  return countRisksInContent(readFileSync(risksPath, 'utf8'));
+}
+
+function gitCapture(root, args) {
+  try {
+    return execFileSync('git', args, { cwd: root, stdio: ['ignore', 'pipe', 'ignore'] }).toString();
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Total risk-entry count in RISKS.md as of `ref`, or undefined when the file
+ * or the ref cannot be read. Undefined means "cannot compare", never "zero".
+ */
+export function countRisksAtRef(root, ref) {
+  if (!ref) return undefined;
+  const content = gitCapture(root, ['show', `${ref}:RISKS.md`]);
+  if (content === undefined) return undefined;
+  return countRisksInContent(content).total;
 }
 
 /**
@@ -63,16 +98,33 @@ export function hasActiveWorkItems(root = process.cwd()) {
 
 /**
  * Run the risk register validation.
- * @returns {{ total: number, open: number, activeWork: boolean, passed: boolean }}
+ *
+ * Compares the current total risk-entry count against every reachable
+ * comparison commit (mirroring `adr-audit.mjs`'s merge-base + branch-walk
+ * strategy). Total, not open, is the regression signal: marking a risk
+ * Closed is a legitimate lifecycle change that reduces `open` without
+ * destroying anything, but a row disappearing reduces `total` and that is
+ * exactly what an unconditional reset does.
+ *
+ * @returns {{ total: number, open: number, ids: string[], activeWork: boolean,
+ *   previousTotal: number|undefined, regressed: boolean, passed: boolean }}
  */
 export function runRiskValidation(root = process.cwd()) {
-  const { total, open } = countOpenRisks(root);
+  const { total, open, ids } = countOpenRisks(root);
   const activeWork = hasActiveWorkItems(root);
 
-  // Warn when there are active work items but no open risks
-  const passed = !(activeWork && open === 0);
+  // The worst loss is what matters, so take the highest count any comparison
+  // commit held. undefined means no comparison was possible, never zero.
+  const previousCounts = comparisonRefs(root)
+    .map((ref) => countRisksAtRef(root, ref))
+    .filter((count) => count !== undefined);
+  const previousTotal = previousCounts.length > 0 ? Math.max(...previousCounts) : undefined;
+  const regressed = previousTotal !== undefined && total < previousTotal;
 
-  return { total, open, activeWork, passed };
+  // Warn when there are active work items but no open risks
+  const passed = !(activeWork && open === 0) && !regressed;
+
+  return { total, open, ids, activeWork, previousTotal, regressed, passed };
 }
 
 function main() {
@@ -83,10 +135,25 @@ function main() {
   console.log(`Total risk entries:  ${result.total}`);
   console.log(`Open risk entries:   ${result.open}`);
   console.log(`Active work items:   ${result.activeWork ? 'Yes' : 'No'}`);
-
-  if (result.passed) {
-    console.log('\nRisk register validation PASSED.');
+  if (result.previousTotal === undefined) {
+    console.log('Previous total:      unavailable — no comparison commit could be read');
+    console.log('(a shallow clone or an unreachable base leaves this guard absent, not passing)');
   } else {
+    console.log(`Previous total:      ${result.previousTotal}`);
+  }
+
+  if (result.regressed) {
+    console.error(
+      `\nRisk register validation FAILED: RISKS.md shrank from ${result.previousTotal} to ${result.total} entr${
+        result.total === 1 ? 'y' : 'ies'
+      }.`
+    );
+    console.error(
+      'RISKS.md records tracked project risks, not clearable history. Restore the removed entries, ' +
+        'or mark them Closed in place rather than deleting them.'
+    );
+    process.exitCode = 1;
+  } else if (!result.passed) {
     console.error(
       '\nRisk register validation FAILED: active work items exist but no open risks are tracked.'
     );
@@ -94,9 +161,11 @@ function main() {
       'Add one or more open risk entries to RISKS.md before proceeding with active work.'
     );
     process.exitCode = 1;
+  } else {
+    console.log('\nRisk register validation PASSED.');
   }
 }
 
-if (import.meta.url === pathToFileURL(process.argv[1]).href) {
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   main();
 }

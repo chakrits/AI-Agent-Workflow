@@ -5,6 +5,7 @@ import { promisify } from 'node:util';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { countRealAdrs } from './adr-audit.mjs';
+import { countOpenRisks } from './validate-risk-register.mjs';
 
 const execFile = promisify(execFileCallback);
 
@@ -275,6 +276,7 @@ export async function main(args = process.argv.slice(2), cwd = process.cwd()) {
   const apply = args.includes('--apply');
   const confirmed = args.includes('--confirm-reset');
   const resetDecisions = args.includes('--reset-decisions');
+  const resetRisks = args.includes('--reset-risks');
   const rootDir = await repositoryRoot(cwd);
   const plan = await planReset(rootDir);
 
@@ -300,6 +302,19 @@ export async function main(args = process.argv.slice(2), cwd = process.cwd()) {
       `Refusing to apply: DECISIONS.md holds ${adrCount} recorded decision(s) that this reset would destroy:\n` +
         `${ids.map((id) => `  - ${id}`).join('\n')}\n` +
         'These may still govern open work items. Move or supersede them first, or pass --reset-decisions to blank them deliberately.'
+    );
+  }
+
+  // RISKS.md is not a record of past work either; it tracks project risks that
+  // still apply to open work. Blanking it has twice destroyed tracked risk
+  // entries, and validate-risk-register could not see it because it never
+  // compared against a prior commit.
+  const { total: riskCount, ids: riskIds } = countOpenRisks(rootDir);
+  if (riskCount > 0 && !resetRisks) {
+    throw new Error(
+      `Refusing to apply: RISKS.md holds ${riskCount} recorded risk(s) that this reset would destroy:\n` +
+        `${riskIds.map((id) => `  - ${id}`).join('\n')}\n` +
+        'These may still apply to open work items. Move or close them first, or pass --reset-risks to blank them deliberately.'
     );
   }
 
