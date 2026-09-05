@@ -2,10 +2,13 @@
   "name": "ai-agent-dynamic-workflow",
   "private": true,
   "type": "module",
-  "engines": { "node": ">=22" },
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "test": "node --test",
     "validate:contracts": "node scripts/validate-contracts.mjs",
+    "validate:ci-parity": "node scripts/validate-ci-parity.mjs",
     "validate:project-state": "node scripts/validate-project-state.mjs",
     "validate:dispatch-receipts": "node scripts/validate-dispatch-receipts.mjs",
     "validate:workflow-evidence": "node scripts/validate-workflow-evidence.mjs",

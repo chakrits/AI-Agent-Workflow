@@ -1,10 +1,10 @@
 # PROJECT_STATUS.md
 
 ## Current Work Item
-- None yet. Blank-template reset completed through PR #205 (`aa2a871`).
+- Issue #210 — GitLab CI runs a weaker validator set than GitHub CI, and nothing detects the drift
 
 ## Current Stage
-- None yet.
+- Bug Fix — implementation complete, awaiting independent QA. Governed by `docs/contracts/bug-fix-workflow.yaml`.
 
 ## Change Classification
 - Change Type: N/A
@@ -17,19 +17,20 @@
 - Blank-template reset completed through PR #205 (`aa2a871`); historical records remain recoverable from Git history.
 
 ## In Progress
-- Nothing in progress.
+- Issue #210: three portable validators added to `.gitlab-ci.yml`, plus `validate:ci-parity` wired into both CI files so the drift cannot recur silently. Suite 503 → 509.
+- Issue #208 is in flight on a separate branch (`fix/preserve-decision-log`, PR #209) and also edits this file; on merge, keep the branch being merged and let each closeout sync its own state.
 
 ## Blockers / Open Questions
-- None.
+- No tooling exists to re-pin `test/fixtures/context-pack-v1/required-source-matrix.json`, so editing any of the ~20 canonical or skill files it pins fails 7 tests until the sha256 is corrected by hand. Same class as Issue #198. Parked with an owner, not fixed here.
 
 ## Required Artifacts
-- None.
+- Self-review record: `docs/records/qa/2026-09-05-issue-210-ci-parity-code-review.md`
 
 ## Next Quality Gate
-- N/A.
+- Independent QA verification of Issue #210's Acceptance Criteria AC-01–AC-06.
 
 ## Recommended Next Agent
-- Orchestrator Agent (or PM Agent for a new business request).
+- QA Agent — independent verifier. The implementer must not self-certify this gate.
 
 ## Notes
 - Reset to template baseline by `npm run reset:template`.
