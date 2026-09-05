@@ -14,7 +14,11 @@ const DECISION_KEYWORDS = /excluded|deliberately|skipped|deferred|rejected/gi;
 // `- Date: x`, `**Date:** x` and bare `Date: x`; requiring one exact spelling made
 // a correctly-headed ADR invisible, so the reset destroyed it and the audit passed.
 // An unfilled template entry has the key and no value, and still must not count.
-const DATED_FIELD_RE = /^[ \t]*(?:[-*][ \t]*)?(?:\*\*)?Date(?:\*\*)?[ \t]*:[ \t]*(\S+)/im;
+// The value must be a real value: `**Date:**` with nothing after it is an
+// unfilled template entry, and the earlier form of this pattern captured the
+// closing `**` as if it were a date — reintroducing the exact failure this
+// guard exists to prevent, through a different door.
+const DATED_FIELD_RE = /^[ \t]*(?:[-*][ \t]*)?\*{0,2}Date\*{0,2}[ \t]*:[ \t]*(?:\*\*[ \t]*)?([^\s*]\S*)/im;
 
 export function countAdrsInContent(content) {
   if (typeof content !== 'string') return 0;
@@ -61,6 +65,8 @@ export function comparisonRefs(root = process.cwd()) {
     // Comparing only against the fork point hides a loss that happens entirely
     // inside the branch: add five ADRs, delete them, and the fork point still
     // reports the count it held before any of them existed.
+    // Bounded at 100 commits: a branch that adds and destroys ADRs more than
+    // 100 commits back is a blind spot. Stated rather than silently assumed.
     const revList = gitCapture(root, ['rev-list', '--max-count=100', `${mergeBase}..HEAD`]);
     for (const sha of (revList ?? '').split('\n').map((line) => line.trim()).filter(Boolean)) {
       if (sha !== head) refs.add(sha);
@@ -159,6 +165,13 @@ function main() {
   console.log(`Decision keywords in TASK_LOG.md:  ${result.taskLogDecisions}`);
   console.log(`Ratio (decisions/ADRs):            ${result.ratio.toFixed(2)}:1`);
   console.log(`Threshold:                         ${result.threshold}:1`);
+
+  if (result.previousAdrCount === undefined) {
+    console.log('Previous ADR count:                unavailable — no comparison commit could be read');
+    console.log('(a shallow clone or an unreachable base leaves this guard absent, not passing)');
+  } else {
+    console.log(`Previous ADR count:                ${result.previousAdrCount}`);
+  }
 
   if (result.regressed) {
     console.error(

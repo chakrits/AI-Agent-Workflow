@@ -39,6 +39,23 @@ QA's V1 (`## ADR-` heading level) is accepted as a format violation rather than 
 
 Suite 509 → 514.
 
+## Second revision after independent re-review
+
+The re-review disposed five of six prior findings as addressed, and found one **regression I introduced** plus one test defect. Both were reproduced before being accepted. `task_review_rework_count` is now **2 of a maximum 2**: any further unresolved review result stops for the Human Maintainer rather than starting a third round.
+
+| Finding ID | Severity | Finding | Fix | Evidence |
+|---|---|---|---|---|
+| CR-1013 | Major (regression, mine) | The widened `DATED_FIELD_RE` over-corrected. `\S+` captured the closing `**` of an **unfilled** `**Date:**`, so a template stub counted as a recorded decision — reintroducing the Issue #208 failure mode through a different door. A repository whose two real ADRs were replaced by two unfilled bold stubs reported `Real ADR entries: 2` and passed. The reset also began refusing on a log containing only an unfilled stub, contradicting this record's own claim that an unfilled entry counts as zero — a claim that had only ever been tested in the `- Date:` form, which never broke | Value must start with a non-`*` non-space character. Verified across eight shapes: `**Date:**`, `**Date**:`, `- Date:`, `Date:` → 0; `**Date:** x`, `**Date**: x`, `- Date: x`, `* Date: x` → 1 | Probed all eight directly before and after |
+| CR-1014 | Major (test defect, mine) | **The coverage fix claimed in CR-1008 was cosmetic.** The re-review deleted the entire `rev-list` walk — the whole Critical fix — and all 22 tests still passed. `refs.add(parent)` is unconditional and `runAudit` takes `Math.max`, so `HEAD~1` alone supplied the asserted `previousAdrCount` in all three fixtures. Removing `origin` changed nothing either. This is the **second** time a coverage claim in this record did not hold; CR-1003 was the first | Added a fixture only the walk can answer: three branch commits `[FIVE, BLANK, BLANK]`, where the fork point holds 0 and `HEAD~1` holds 0, so `previousAdrCount === 5` is unreachable without walking. Validated by mutation, not by assertion | Mutant with the walk deleted: `not ok 23 - a loss in the middle of a branch is found only by walking the branch`, 25/26. Unmutated: 26/26 |
+| CR-1015 | Minor | `--max-count=100` is a real bound: a branch that adds and destroys ADRs more than 100 commits back is a blind spot, undetected at the prior candidate too | Documented in the code rather than left implicit | Re-review case: 5 ADRs destroyed then 120 no-op commits → exit 0 |
+| CR-1016 | Minor | When no comparison commit is readable — a shallow clone, an unreachable base — the guard is silently absent and looks identical to a pass | The CLI now prints `unavailable — no comparison commit could be read` and says the guard is absent rather than passing. Not live today: `validate-contracts.yml` uses `fetch-depth: 0` and is the only job running `adr:audit` | New output line |
+
+**Deliberately not changed.** `Date: TBD` in prose and a `Date:` inside a fenced block still count. Bounding the field to a section's first lines is follow-up work, not a regression fix. `- Date: <YYYY-MM-DD>` also still counts, and is now pinned by a test: it counted before Issue #208, so tightening it here would be scope expansion dressed as a fix.
+
+**What I take from CR-1014.** Twice now this record asserted coverage that did not exist, and both times an independent reviewer proved it by mutating the source rather than reading the tests. Asserting that a test exercises a path is not evidence; deleting the path and watching the test fail is.
+
+Suite 514 → 518.
+
 ## Review Decision
 
 Approved. CR-1001 and CR-1002 are the defect and the reason nothing caught it. CR-1003 and CR-1004 are the two ways the new guard could have been cosmetic. CR-1005 protects the records a refusal is supposed to save. CR-1007 marks the boundary that was deliberately not crossed.

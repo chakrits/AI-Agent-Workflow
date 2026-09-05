@@ -626,3 +626,70 @@ test('a feature branch that only adds ADRs passes', () => {
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+// --- Re-review findings: the previous "coverage" tests survived deleting the
+// --- rev-list walk they existed to prove, so only cases the walk alone can
+// --- answer are added here. Each must fail if that block is removed.
+
+test('a loss in the middle of a branch is found only by walking the branch', () => {
+  const { dir, workPath } = makeRepoWithOriginAndBranch({
+    onMain: BLANK_DECISIONS,
+    onBranch: [FIVE_ADRS, BLANK_DECISIONS, BLANK_DECISIONS]
+  });
+  try {
+    const result = runAudit(workPath);
+    // merge base holds 0 and HEAD~1 holds 0; only the middle commit holds 5,
+    // so this assertion cannot be satisfied by the HEAD~1 fallback alone.
+    assert.equal(
+      result.previousAdrCount,
+      5,
+      'neither the fork point nor the parent commit knows about these ADRs'
+    );
+    assert.equal(result.passed, false);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('an unfilled template ADR is not counted whatever emphasis it uses', () => {
+  for (const dateLine of ['- Date:', 'Date:', '**Date:**', '**Date**:', '* Date:']) {
+    const root = makeTempRepo({
+      decisions: `# DECISIONS.md\n\n### ADR-0001: <Title>\n\n${dateLine}\n- Status: Proposed\n`
+    });
+    try {
+      assert.equal(
+        countRealAdrs(root),
+        0,
+        `"${dateLine}" has no value; counting it lets a blanked log look populated`
+      );
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  }
+});
+
+test('a filled date is counted whatever emphasis it uses', () => {
+  for (const dateLine of ['- Date: 2026-01-01', 'Date: 2026-01-01', '**Date:** 2026-01-01', '**Date**: 2026-01-01', '* Date: 2026-01-01']) {
+    const root = makeTempRepo({
+      decisions: `# DECISIONS.md\n\n### ADR-0042: real\n\n${dateLine}\n`
+    });
+    try {
+      assert.equal(countRealAdrs(root), 1, `"${dateLine}" is a recorded decision`);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  }
+});
+
+test('a placeholder date value is still counted, as it was before this guard existed', () => {
+  const root = makeTempRepo({
+    decisions: '# DECISIONS.md\n\n### ADR-0001: <Title>\n\n- Date: <YYYY-MM-DD>\n'
+  });
+  try {
+    // Pinned deliberately: this counted before Issue #208 and tightening it now
+    // would be scope expansion dressed as a regression fix.
+    assert.equal(countRealAdrs(root), 1);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
