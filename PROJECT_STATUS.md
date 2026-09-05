@@ -17,7 +17,7 @@
 - Blank-template reset completed through PR #205 (`aa2a871`); historical records remain recoverable from Git history.
 
 ## In Progress
-- Issue #208: the reset now refuses to blank a `DECISIONS.md` holding recorded ADRs unless `--reset-decisions` is passed explicitly, naming the ids at risk; `adr-audit` now fails when the ADR count drops against the comparison commit, resolved by merge base with the declared base branch. ADR-0017 and ADR-0019 restored. Suite 503 → 509.
+- Issue #208: the reset now refuses to blank a `DECISIONS.md` holding recorded ADRs unless `--reset-decisions` is passed explicitly, naming the ids at risk; `adr-audit` now fails when the ADR count drops against the comparison commit, resolved by merge base with the declared base branch. ADR-0017 and ADR-0019 restored. Independent QA returned NEEDS_REVISION at `3ccd8f4` (AC-05 FAIL, 1 Major, 4 Minor), all reproduced before being accepted: the guard compared only against the branch fork point, so ADRs added and destroyed inside a branch were invisible, and a correctly-headed ADR whose date field was written `**Date:**` was counted as zero and silently blanked. Fixed: the comparison now spans every commit on the branch and takes the highest count, and the date discriminator accepts the shapes actually in use. Suite 503 → 514.
 
 ## Blockers / Open Questions
 - `RISKS.md` is the same class of defect as `DECISIONS.md` and was deliberately left out of Issue #208. It needs its own decision about what a risk register means after a reset before anything changes.

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, rmSync, mkdirSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, rmSync, mkdirSync, writeFileSync, realpathSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { countRealAdrs, countTaskLogDecisions, runAudit } from '../scripts/adr-audit.mjs';
@@ -503,5 +503,126 @@ test('CLI exits 1 and names the lost ADR count when the decision log shrinks', (
     assert.match(output, /2 .*0|decision log/i);
   } finally {
     rmSync(root, { recursive: true, force: true });
+  }
+});
+
+// --- QA findings on Issue #208 candidate 3ccd8f4 ---
+
+test('a real ADR is counted whatever shape its date field takes', () => {
+  for (const dateLine of ['- Date: 2026-01-01', '**Date:** 2026-01-01', 'Date: 2026-01-01']) {
+    const root = makeTempRepo({
+      decisions: `# DECISIONS.md\n\n### ADR-0042: real\n\n${dateLine}\n- Status: Accepted\n`
+    });
+    try {
+      assert.equal(
+        countRealAdrs(root),
+        1,
+        `"${dateLine}" is a recorded decision; not counting it means the reset silently destroys it`
+      );
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  }
+});
+
+test('an unfilled template ADR is still not counted', () => {
+  const root = makeTempRepo({
+    decisions: '# DECISIONS.md\n\n### ADR-0001: <Title>\n\n- Date:\n- Status: Proposed / Accepted\n'
+  });
+  try {
+    assert.equal(countRealAdrs(root), 0);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+/**
+ * A repository with a real `origin` remote and a feature branch, which is the
+ * shape CI actually runs on. Fixtures without a remote always fall through to
+ * the HEAD~1 path, leaving the merge-base branch untested.
+ */
+function makeRepoWithOriginAndBranch({ onMain, onBranch }) {
+  const dir = realpathSync(mkdtempSync(path.join(tmpdir(), 'adr-origin-')));
+  const originPath = path.join(dir, 'origin.git');
+  const workPath = path.join(dir, 'work');
+  execFileSync('git', ['init', '--quiet', '--bare', '--initial-branch=main', originPath]);
+
+  execFileSync('git', ['clone', '--quiet', originPath, workPath]);
+  const git = (...args) => execFileSync('git', args, { cwd: workPath, stdio: ['ignore', 'pipe', 'ignore'] });
+  git('config', 'user.email', 'test@example.com');
+  git('config', 'user.name', 'Test');
+
+  writeFileSync(path.join(workPath, 'DECISIONS.md'), onMain);
+  writeFileSync(path.join(workPath, 'TASK_LOG.md'), '# TASK_LOG.md\n');
+  git('add', '.');
+  git('commit', '--quiet', '-m', 'main baseline');
+  git('push', '--quiet', 'origin', 'main');
+
+  git('checkout', '--quiet', '-b', 'feature');
+  for (const [index, content] of onBranch.entries()) {
+    writeFileSync(path.join(workPath, 'DECISIONS.md'), content);
+    writeFileSync(path.join(workPath, 'TASK_LOG.md'), `# TASK_LOG.md\n\ncommit ${index}\n`);
+    git('add', '.');
+    git('commit', '--quiet', '-m', `branch commit ${index}`);
+  }
+  return { dir, workPath };
+}
+
+const FIVE_ADRS = [
+  '# DECISIONS.md',
+  '',
+  ...['0001', '0002', '0003', '0004', '0005'].flatMap((id) => [
+    `### ADR-${id}: decision ${id}`,
+    '',
+    '- Date: 2026-01-01',
+    '- Status: Accepted',
+    ''
+  ])
+].join('\n');
+
+test('ADRs added and then destroyed inside a feature branch are detected', () => {
+  const { dir, workPath } = makeRepoWithOriginAndBranch({
+    onMain: BLANK_DECISIONS,
+    onBranch: [FIVE_ADRS, BLANK_DECISIONS]
+  });
+  try {
+    const result = runAudit(workPath);
+    assert.equal(result.adrCount, 0);
+    assert.equal(
+      result.previousAdrCount,
+      5,
+      'the merge base holds none of these ADRs, so comparing only against it hides the loss entirely'
+    );
+    assert.equal(result.passed, false);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('a feature branch that removes an ADR present on main is detected', () => {
+  const { dir, workPath } = makeRepoWithOriginAndBranch({
+    onMain: FIVE_ADRS,
+    onBranch: [BLANK_DECISIONS]
+  });
+  try {
+    const result = runAudit(workPath);
+    assert.equal(result.previousAdrCount, 5);
+    assert.equal(result.passed, false);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('a feature branch that only adds ADRs passes', () => {
+  const { dir, workPath } = makeRepoWithOriginAndBranch({
+    onMain: BLANK_DECISIONS,
+    onBranch: [FIVE_ADRS]
+  });
+  try {
+    const result = runAudit(workPath);
+    assert.equal(result.adrCount, 5);
+    assert.equal(result.passed, true);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
   }
 });

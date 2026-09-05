@@ -268,7 +268,7 @@ function printInventory({ fileChanges, dirChanges }) {
 function recordedAdrIds(rootDir) {
   const decisionsPath = path.join(rootDir, 'DECISIONS.md');
   if (!existsSync(decisionsPath)) return [];
-  return [...readFileSync(decisionsPath, 'utf8').matchAll(/^### (ADR-\d+)/gm)].map((m) => m[1]);
+  return [...readFileSync(decisionsPath, 'utf8').matchAll(/^### (ADR-[^\s:]+)/gm)].map((m) => m[1]);
 }
 
 export async function main(args = process.argv.slice(2), cwd = process.cwd()) {
@@ -319,7 +319,7 @@ export async function main(args = process.argv.slice(2), cwd = process.cwd()) {
   console.log('Git history was not changed. Any optional new-root operation is human-only.');
 }
 
-if (import.meta.url === pathToFileURL(process.argv[1]).href) {
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   try {
     await main();
   } catch (error) {

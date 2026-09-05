@@ -10,13 +10,18 @@ const DECISION_KEYWORDS = /excluded|deliberately|skipped|deferred|rejected/gi;
  * Count real (non-stub) ADR entries in DECISIONS.md.
  * A stub ADR has an empty Date field ("- Date:" with no value after it).
  */
+// A recorded decision carries a filled-in date. The field has been written as
+// `- Date: x`, `**Date:** x` and bare `Date: x`; requiring one exact spelling made
+// a correctly-headed ADR invisible, so the reset destroyed it and the audit passed.
+// An unfilled template entry has the key and no value, and still must not count.
+const DATED_FIELD_RE = /^[ \t]*(?:[-*][ \t]*)?(?:\*\*)?Date(?:\*\*)?[ \t]*:[ \t]*(\S+)/im;
+
 export function countAdrsInContent(content) {
   if (typeof content !== 'string') return 0;
   const sections = content.split(ADR_HEADER_RE);
   let realCount = 0;
   for (let i = 1; i < sections.length; i++) {
-    const dateLine = sections[i].match(/- Date:[ \t]*(\S+)/);
-    if (dateLine && dateLine[1]) realCount++;
+    if (DATED_FIELD_RE.test(sections[i])) realCount++;
   }
   return realCount;
 }
@@ -39,20 +44,32 @@ function gitCapture(root, args) {
  * resolves (a fresh repository with no history), in which case no comparison is
  * possible and none is claimed.
  */
-export function comparisonRef(root = process.cwd()) {
+export function comparisonRefs(root = process.cwd()) {
   const head = gitCapture(root, ['rev-parse', 'HEAD'])?.trim();
-  if (!head) return undefined;
+  if (!head) return [];
 
   const declared = process.env.GITHUB_BASE_REF;
   const candidates = declared
     ? [`origin/${declared}`, declared]
     : ['origin/main', 'main'];
 
+  const refs = new Set();
   for (const candidate of candidates) {
     const mergeBase = gitCapture(root, ['merge-base', candidate, 'HEAD'])?.trim();
-    if (mergeBase && mergeBase !== head) return mergeBase;
+    if (!mergeBase || mergeBase === head) continue;
+    refs.add(mergeBase);
+    // Comparing only against the fork point hides a loss that happens entirely
+    // inside the branch: add five ADRs, delete them, and the fork point still
+    // reports the count it held before any of them existed.
+    const revList = gitCapture(root, ['rev-list', '--max-count=100', `${mergeBase}..HEAD`]);
+    for (const sha of (revList ?? '').split('\n').map((line) => line.trim()).filter(Boolean)) {
+      if (sha !== head) refs.add(sha);
+    }
+    break;
   }
-  return gitCapture(root, ['rev-parse', 'HEAD~1'])?.trim();
+  const parent = gitCapture(root, ['rev-parse', 'HEAD~1'])?.trim();
+  if (parent) refs.add(parent);
+  return [...refs];
 }
 
 /**
@@ -69,22 +86,7 @@ export function countRealAdrsAtRef(root, ref) {
 export function countRealAdrs(root = process.cwd()) {
   const decisionsPath = path.join(root, 'DECISIONS.md');
   if (!existsSync(decisionsPath)) return 0;
-
-  const content = readFileSync(decisionsPath, 'utf8');
-  const sections = content.split(ADR_HEADER_RE);
-
-  // First element is everything before the first ADR header — skip it
-  let realCount = 0;
-  for (let i = 1; i < sections.length; i++) {
-    const section = sections[i];
-    // A stub ADR has "- Date:" followed immediately by end-of-line or whitespace-only
-    const dateLine = section.match(/- Date:[ \t]*(\S+)/);
-    if (dateLine && dateLine[1]) {
-      realCount++;
-    }
-  }
-
-  return realCount;
+  return countAdrsInContent(readFileSync(decisionsPath, 'utf8'));
 }
 
 /**
@@ -120,7 +122,12 @@ export function countTaskLogDecisions(root = process.cwd()) {
  */
 export function runAudit(root = process.cwd()) {
   const adrCount = countRealAdrs(root);
-  const previousAdrCount = countRealAdrsAtRef(root, comparisonRef(root));
+  // The worst loss is what matters, so take the highest count any comparison
+  // commit held. undefined means no comparison was possible, never zero.
+  const previousCounts = comparisonRefs(root)
+    .map((ref) => countRealAdrsAtRef(root, ref))
+    .filter((count) => count !== undefined);
+  const previousAdrCount = previousCounts.length > 0 ? Math.max(...previousCounts) : undefined;
   // A reset blanks DECISIONS.md and TASK_LOG.md in the same commit, so the ratio
   // becomes 0/0 and reads as healthy. Losing recorded decisions is the failure the
   // ratio cannot see, so it is checked separately and fails closed.
@@ -174,6 +181,6 @@ function main() {
   }
 }
 
-if (import.meta.url === pathToFileURL(process.argv[1]).href) {
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   main();
 }

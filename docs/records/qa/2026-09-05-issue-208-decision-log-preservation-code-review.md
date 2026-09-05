@@ -21,6 +21,24 @@ Scope: stops `scripts/reset-to-template.mjs` from silently blanking a `DECISIONS
 - `validate:contracts`, `validate:project-state`, `validate:skill-parity`, `adr:audit`, `validate:risk-register`, `validate:skill-usage`, `validate:metrics`, `validate:context-budget`, `validate:clearable-refs`, `validate:workflow-evidence`, `validate:dispatch-receipts`, `git diff --check`: all PASS.
 - Dry-run behaviour on this repository, which now holds 2 ADRs, is unchanged: the refusal is on the apply path only.
 
+## Revision after independent QA (NEEDS_REVISION)
+
+Independent QA returned NEEDS_REVISION at `3ccd8f4`: AC-05 FAIL, one Major, four Minor. Every finding was reproduced before being accepted. QA's sharpest observation was structural rather than any single case — the guard *worked better when misconfigured*, which is the clearest possible signal that its design was inverted.
+
+| Finding ID | Severity | Finding | Fix | Evidence |
+|---|---|---|---|---|
+| CR-1008 | Critical | `comparisonRef` compared only against the merge base with the base branch. ADRs added and then destroyed **inside** a feature branch were invisible: the fork point still reports the count it held before any of them existed. QA's case V4b destroyed 5 ADRs and the audit passed with exit 0. Their V7 showed a deliberately broken `GITHUB_BASE_REF` *did* detect the loss, because it fell through to `HEAD~1` | `comparisonRefs` now returns the merge base **plus every commit in `mergeBase..HEAD`** (capped at 100) plus `HEAD~1`, and `runAudit` takes the highest count any of them held. The worst loss is what matters | Reproduced V4b independently: before, `PASSED … EXIT=0`; after, `FAILED: the decision log shrank from 5 to 0 ADR(s)`, exit 1 |
+| CR-1009 | Major | The real-vs-stub discriminator required the literal `- Date:`. A correctly-headed `### ADR-0042` written with `**Date:** 2026-01-01` counted as zero, so the reset blanked it and the audit passed — the exact failure Issue #208 exists to eliminate. Nothing documents `- Date:` as load-bearing; there is no ADR template in `docs/templates/` | `DATED_FIELD_RE` accepts `- Date:`, `**Date:**` and bare `Date:`. An unfilled template entry still has the key with no value and still counts as zero | Reproduced independently: before, reset exit 0 and the ADR body gone; after, reset refuses and the file survives |
+| CR-1010 | Minor | `recordedAdrIds` used `/^### (ADR-\d+)/gm` while the counter matched `/^### ADR-/`, so a non-numeric id like `ADR-A7` produced a refusal listing **no ids at all** — failing AC-02's "names the ids" clause while still failing closed | Aligned on `/^### (ADR-[^\s:]+)/gm`, which also strips the trailing colon that `\S+` would have captured | `ADR-A7` and `ADR-0042` are now both named in the refusal |
+| CR-1011 | Minor | **CR-1006 in this record was factually wrong.** It claimed "One definition, two callers", but `countRealAdrs` still duplicated the split-and-match logic instead of delegating to the extracted `countAdrsInContent` | `countRealAdrs` now delegates. The original claim is left above rather than edited away, since a review record that quietly corrects itself is worth less than one that shows what it got wrong | `scripts/adr-audit.mjs` — `countRealAdrs` is now three lines |
+| CR-1012 | Minor | Both scripts threw `ERR_INVALID_ARG_TYPE` on import when `process.argv[1]` is undefined | Guarded with `process.argv[1] &&`. Pre-existing pattern, fixed here because both files were already open | `node -e 'import("./scripts/adr-audit.mjs")'` |
+
+**Test-coverage gap this exposed.** QA established that neither new `runAudit` test ever exercised the merge-base path: both fixtures used `git init` with no remote, so the lookup always failed and the code always fell through to `HEAD~1`. The branch CI actually takes had zero coverage, and CR-1003's evidence column asserted the opposite. `makeRepoWithOriginAndBranch` now builds a bare origin, clones it, and branches, so the three new tests run the real CI shape.
+
+QA's V1 (`## ADR-` heading level) is accepted as a format violation rather than a contract violation: `### ADR-` is documented at `docs/operating-model/METRICS.md:22` and enforced by `scripts/validate-metrics.mjs:8`. Not fixed; recorded so it is not rediscovered as new.
+
+Suite 509 → 514.
+
 ## Review Decision
 
 Approved. CR-1001 and CR-1002 are the defect and the reason nothing caught it. CR-1003 and CR-1004 are the two ways the new guard could have been cosmetic. CR-1005 protects the records a refusal is supposed to save. CR-1007 marks the boundary that was deliberately not crossed.
