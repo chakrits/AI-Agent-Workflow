@@ -2,7 +2,7 @@
 .superpowers/
 
 # Local npm dependency installation output.
-node_modules/
+node_modules
 
 # Isolated local Git worktrees.
 .worktrees/

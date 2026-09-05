@@ -1,35 +1,34 @@
 # PROJECT_STATUS.md
 
 ## Current Work Item
-- Issue #208 — `reset-to-template` destroys the ADR log, and `adr-audit` reports PASS while it happens
+- Issue #210 — GitLab CI runs a weaker validator set than GitHub CI, and nothing detects the drift
 
 ## Current Stage
-- Bug Fix — implementation complete, awaiting independent QA. Governed by `docs/contracts/bug-fix-workflow.yaml`, not the `phase:`/`status:` lifecycle label contract.
+- Bug Fix — independent QA passed after 3 rounds (evidence: https://github.com/chakrits/AI-Agent-Workflow/issues/210#issuecomment-5551566808), awaiting merge. Governed by `docs/contracts/bug-fix-workflow.yaml`, not the `phase:`/`status:` lifecycle label contract.
 
 ## Change Classification
-- Change Type: Bug Fix (tooling / data preservation)
-- Risk Level: High — the defect silently destroyed governing decisions for three currently-blocked issues, and the control meant to catch it reported PASS
-- Code Change Required: Yes — `scripts/reset-to-template.mjs`, `scripts/adr-audit.mjs`, and their tests
-- Architecture Change Required: No
-- Security Review Required: No — no auth, secrets, sensitive data, or trust boundary involved
+- Change Type: N/A
+- Risk Level: N/A
+- Code Change Required: N/A
+- Architecture Change Required: N/A
+- Security Review Required: N/A
 
 ## Completed
 - Blank-template reset completed through PR #205 (`aa2a871`); historical records remain recoverable from Git history.
 
 ## In Progress
-- Issue #208: the reset now refuses to blank a `DECISIONS.md` holding recorded ADRs unless `--reset-decisions` is passed explicitly, naming the ids at risk; `adr-audit` now fails when the ADR count drops against the comparison commit, resolved by merge base with the declared base branch. ADR-0017 and ADR-0019 restored. Independent QA returned NEEDS_REVISION at `3ccd8f4` (AC-05 FAIL, 1 Major, 4 Minor), all reproduced before being accepted: the guard compared only against the branch fork point, so ADRs added and destroyed inside a branch were invisible, and a correctly-headed ADR whose date field was written `**Date:**` was counted as zero and silently blanked. Fixed: the comparison now spans every commit on the branch and takes the highest count, and the date discriminator accepts the shapes actually in use. Independent re-review then disposed five of six findings as addressed and found one regression I introduced plus one test defect: the widened date pattern captured the closing `**` of an unfilled `**Date:**`, so a template stub counted as a real decision, and the coverage claimed for the branch-walk fix was cosmetic — deleting the entire walk left all 22 tests passing. Both fixed and validated by mutation. `task_review_rework_count` is 2 of 2, so any further unresolved result stops for the Human Maintainer. Suite 503 → 518.
+- Issue #210: three portable validators added to `.gitlab-ci.yml`, plus `validate:ci-parity` wired into both CI files so the drift cannot recur silently. Independent QA ran three rounds. Round 1 (`973180d`) returned NEEDS_REVISION (1 Critical, 4 Major, 3 Minor): the Critical was a `node_modules` symlink holding an absolute home path, committed because `.gitignore` used `node_modules/` with a trailing slash, which matches directories only; the detector was also defeatable by a commented-out GitLab job, by `node`/`npx` invocation, and produced a false failure on a GitHub-only job, all fixed by parsing both files with the `yaml` package and scoping to the named validate job. Round 2 (`681a40e`) found CR-1114: that job-scoping fix meant a renamed or restructured job resolved to an empty command set and reported a silent PASS; fixed by throwing when the named job cannot be found. This reached `task_review_rework_count`'s stated ceiling of 2. Round 3 (`0e1244c` → `050705c`), continued by explicit Human Maintainer decision past that ceiling, found CR-1115: the CR-1114 guard did not cover a job whose `steps` exist but yield zero commands (composite-action restructure, `steps: []`); fixed and mutation-verified, and independent QA then returned PASS with one non-blocking Minor and one design Question (three consecutive rounds targeting the same guard-scope defect class) flagged for the Human Maintainer rather than fixed as a fourth round. Suite 503 → 517. Issue #208 merged separately (PR #209, squash-merged as `e820389`) restoring ADR-0017 and ADR-0019 to `main`; this branch has been updated against that merge.
 
 ## Blockers / Open Questions
-- `RISKS.md` is the same class of defect as `DECISIONS.md` and was deliberately left out of Issue #208. It needs its own decision about what a risk register means after a reset before anything changes.
-- Restoring ADR-0017 and ADR-0019 does not by itself unblock Issues #132, #133, or #203; it only makes the decisions those issues cite readable again.
-- Framework assessment recorded at `docs/records/misc/2026-09-05-framework-sdlc-assessment.md`. Its two largest open items: the canonical context budget has 15 tokens of headroom, which blocks any new role or skill definition, and role adapters exist only under `.claude/agents/` with no parity gate (roadmap IMP-006, never opened as an issue).
+- No tooling exists to re-pin `test/fixtures/context-pack-v1/required-source-matrix.json`, so editing any of the ~20 canonical or skill files it pins fails 7 tests until the sha256 is corrected by hand. Same class as Issue #198. Parked with an owner, not fixed here.
+- Design Question from QA's round 3: `githubJobCommands` enumerates shapes that yield zero commands (missing job, empty steps, composite-action-only) rather than positively asserting job validity. No further gap was found, but the pattern recurring across two rounds is worth a design-level look independent of any further line-item fix. Owner: Human Maintainer.
+- Minor from QA's round 3: the "yielded no comparable commands" error message says "if the job was restructured... into a composite action," which is misleading for a job that legitimately runs only ignored commands (`npm test`/`npm ci`). Cosmetic wording only, not fixed.
 
 ## Required Artifacts
-- Self-review record: `docs/records/qa/2026-09-05-issue-208-decision-log-preservation-code-review.md`
-- Framework assessment: `docs/records/misc/2026-09-05-framework-sdlc-assessment.md`
+- Self-review record: `docs/records/qa/2026-09-05-issue-210-ci-parity-code-review.md`
 
 ## Next Quality Gate
-- Independent QA verification of Issue #208's Acceptance Criteria AC-01–AC-06 against the exact candidate diff.
+- Merge decision for PR #211. Independent QA has passed; no further verification gate required before merge.
 
 ## Recommended Next Agent
 - QA Agent — independent verifier. The implementer must not self-certify this gate.
