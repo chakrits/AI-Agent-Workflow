@@ -21,7 +21,11 @@ async function makeFixtureRepo() {
   await writeFile(path.join(rootDir, 'PROJECT_STATUS.md'), '# PROJECT_STATUS.md\n\nSome real project data here.\n', 'utf8');
   await writeFile(path.join(rootDir, 'TASK_LOG.md'), '# TASK_LOG.md\n\n| Date | ... |\n| 2026-01-01 | real row |\n', 'utf8');
   await writeFile(path.join(rootDir, 'CHANGELOG.md'), '# CHANGELOG.md\n\n### Added\n- real entry\n', 'utf8');
-  await writeFile(path.join(rootDir, 'RISKS.md'), '# RISKS.md\n\n| R-001 | real risk |\n', 'utf8');
+  await writeFile(
+    path.join(rootDir, 'RISKS.md'),
+    '# RISKS.md\n\nSome real project data here.\n\n| ID | Risk | Area | Severity | Likelihood | Mitigation | Owner | Status |\n|---|---|---|---|---|---|---|---|\n',
+    'utf8'
+  );
   await writeFile(path.join(rootDir, 'DECISIONS.md'), '# DECISIONS.md\n\n## ADR-0001: real decision\n', 'utf8');
   for (const dir of CLEARED_DIRECTORIES) {
     await mkdir(path.join(rootDir, dir), { recursive: true });
@@ -389,6 +393,62 @@ test('a DECISIONS.md with no real ADRs still resets without the extra flag', asy
   await runCli(rootDir, ['--apply', '--confirm-reset']);
 
   assert.equal(await readFile(path.join(rootDir, 'DECISIONS.md'), 'utf8'), STUB_CONTENT['DECISIONS.md']);
+  assert.equal(await readFile(path.join(rootDir, 'PROJECT_STATUS.md'), 'utf8'), STUB_CONTENT['PROJECT_STATUS.md']);
+  await rm(rootDir, { recursive: true, force: true });
+});
+
+// --- Issue #214: RISKS.md holds tracked project risks, not clearable records ---
+
+async function initGitFixtureWithRealRisk() {
+  const rootDir = await initGitFixture();
+  await writeFile(
+    path.join(rootDir, 'RISKS.md'),
+    '# RISKS.md\n\n' +
+      '| ID | Risk | Area | Severity | Likelihood | Mitigation | Owner | Status |\n' +
+      '|---|---|---|---|---|---|---|---|\n' +
+      '| R-042 | A tracked risk. | Area | Medium | Medium | Mitigation. | Owner | Open |\n',
+    'utf8'
+  );
+  await execFile('git', ['add', 'RISKS.md'], { cwd: rootDir });
+  await execFile('git', ['commit', '-qm', 'record a real risk'], { cwd: rootDir });
+  return rootDir;
+}
+
+test('CLI refuses to blank RISKS.md when it holds real entries, names them, and mutates nothing', async () => {
+  const rootDir = await initGitFixtureWithRealRisk();
+  const before = await snapshotDeclaredTargets(rootDir);
+
+  await assert.rejects(
+    runCli(rootDir, ['--apply', '--confirm-reset']),
+    (error) =>
+      error.code !== 0 &&
+      /R-042/.test(error.stderr) &&
+      /--reset-risks/.test(error.stderr)
+  );
+
+  assert.deepEqual(
+    await snapshotDeclaredTargets(rootDir),
+    before,
+    'a refused reset must not delete records either — the refusal has to happen before any mutation'
+  );
+  await rm(rootDir, { recursive: true, force: true });
+});
+
+test('CLI blanks RISKS.md only when --reset-risks is passed explicitly', async () => {
+  const rootDir = await initGitFixtureWithRealRisk();
+
+  await runCli(rootDir, ['--apply', '--confirm-reset', '--reset-risks']);
+
+  assert.equal(await readFile(path.join(rootDir, 'RISKS.md'), 'utf8'), STUB_CONTENT['RISKS.md']);
+  await rm(rootDir, { recursive: true, force: true });
+});
+
+test('a RISKS.md with no real entries still resets without the extra flag', async () => {
+  const rootDir = await initGitFixture();
+
+  await runCli(rootDir, ['--apply', '--confirm-reset']);
+
+  assert.equal(await readFile(path.join(rootDir, 'RISKS.md'), 'utf8'), STUB_CONTENT['RISKS.md']);
   assert.equal(await readFile(path.join(rootDir, 'PROJECT_STATUS.md'), 'utf8'), STUB_CONTENT['PROJECT_STATUS.md']);
   await rm(rootDir, { recursive: true, force: true });
 });
