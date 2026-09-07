@@ -7,6 +7,71 @@ Restored on 2026-09-05 under Issue #208. The blank-template resets of 2026-08-12
 that currently-open issues cite; ADR-0002 through ADR-0016 and ADR-0018 remain recoverable via
 `git show afe8091:DECISIONS.md` and were left out by Human Maintainer decision.
 
+### ADR-0020: Keep `validate-ci-parity.mjs`'s zero-command guard as-is; defer the `normaliseCommand` multi-line gap
+
+- Date: 2026-09-07
+- Work Items: [Issue #210](https://github.com/chakrits/AI-Agent-Workflow/issues/210), [Issue #212](https://github.com/chakrits/AI-Agent-Workflow/issues/212)
+- Status: Accepted
+
+#### Context
+
+Issue #210's round-3 QA left open a design Question: `scripts/validate-ci-parity.mjs`'s
+`githubJobCommands` throws when the named job's extracted command set is empty, and each of
+the three QA rounds had found one more shape (missing job, empty steps, composite-action-only)
+that reached this outcome. The QA framed this as "enumerating shapes that yield zero commands"
+and asked whether the pattern is inherently unbounded — always one more shape away from a gap —
+versus whether a positive-assertion approach would close the whole class at once. SA Agent was
+dispatched to evaluate, analysis-only, no code change.
+
+#### Decision
+
+Keep the current `githubJobCommands` zero-command guard as-is. SA Agent's rereading of the
+function found it is not a per-shape enumeration: it computes the command set with one loop,
+then asserts a single shape-independent postcondition (`commands.size === 0` → throw). Round
+3's own adversarial probe tried four further shapes specifically looking for a gap and found
+none — under a genuinely per-shape enumeration a new shape should have slipped through, and it
+did not. The Human Maintainer accepted this recommendation on 2026-09-07 without further review.
+
+#### Alternatives Considered
+
+- **Positive-assertion allowlist** (require the extracted set to contain at least one
+  known-required command, e.g. `npm run validate:contracts`) — rejected. Strictly less
+  detection power than the current guard for the case that matters (total silent failure,
+  already caught), no power against partial silent failure (most commands dropped, one
+  sentinel survives), and adds a new staleness/maintenance burden: the allowlist itself needs
+  updating on every legitimate script rename, turning a routine rename into a confusing parity
+  failure.
+- **Snapshot/fixture pattern** (compare the extracted command set against a checked-in
+  known-good snapshot) — rejected for this specific gap. This repo already has direct cost
+  evidence against this shape: `test/fixtures/context-pack-v1/required-source-matrix.json`
+  required a dedicated maintenance tool (`scripts/repin-source-matrix.mjs`, Issue #215) to stay
+  usable, and a snapshot is defeatable by regenerating it in the same PR that introduces the
+  regression it should catch.
+- **Merge-base/branch-walk count comparison** (the pattern `adr-audit.mjs` and
+  `validate-risk-register.mjs` already use for "did coverage silently shrink") — named as the
+  architecturally consistent choice if a future decision determines the partial-drop class
+  below needs closing, but not adopted here since `githubJobCommands` itself was found to have
+  no residual gap.
+
+#### Separate, Deferred Finding
+
+While verifying the option above, SA Agent found a different, structurally unrelated risk one
+level down, in `normaliseCommand`/`IGNORED_COMMAND_RE` (not `githubJobCommands`): a `run: |`
+multi-line step's non-global `.match()` only extracts the first recognized command, and a block
+whose first line matches `IGNORED_COMMAND_RE` (e.g. `npm ci`) is discarded whole, silently
+dropping any real commands on later lines. Confirmed **not currently live** — every `run:` step
+in `.github/workflows/validate-contracts.yml` is single-line. The Human Maintainer decided on
+2026-09-07 to defer this rather than fix it now, since it is latent, not active.
+
+#### Consequences
+
+- No code change to `scripts/validate-ci-parity.mjs` from this decision.
+- The Issue #210 round-3 design Question is closed; no further QA round is owed on it.
+- The `normaliseCommand` multi-line gap remains latent and undecided-as-a-priority. It should
+  be revisited if a `run: |` multi-line block is ever introduced into
+  `.github/workflows/validate-contracts.yml`, or sooner at the Human Maintainer's discretion.
+- Owner: Human Maintainer.
+
 ### ADR-0019: No-Go and freeze for IMP-003 T2-B
 
 - Date: 2026-08-22
