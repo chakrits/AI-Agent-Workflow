@@ -37,6 +37,10 @@ Confirm code rollback, schema rollback (SA Agent's plan, if a migration is inclu
 
 State the deployment strategy and blast radius in the release plan; this project does not own deployment tooling, so this is a statement of intent for the human operator.
 
+## Skill Routing
+
+Route to `release-readiness-checklist` for release checklist, versioning/changelog, release evidence, triple rollback confirmation, and deployment strategy statement before final release handoff.
+
 ## Required Behavior
 
 1. Read `PROJECT_STATUS.md` before starting.

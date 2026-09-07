@@ -25,7 +25,7 @@ const ROLE_SOURCE_CONTRACT = {
   'Security Reviewer': ['docs/contracts/new-feature-workflow.yaml', 'security-review'],
   'Config Agent': ['docs/contracts/config-change-workflow.yaml', 'data-config-change'],
   'Data Agent': ['docs/contracts/data-change-workflow.yaml', 'data-config-change'],
-  'Release Agent': ['docs/workflow/platform-readiness.md', 'documentation-closeout'],
+  'Release Agent': ['docs/workflow/platform-readiness.md', 'release-readiness-checklist'],
   'Documentation Agent': ['docs/workflow/reset-to-template.md', 'documentation-closeout'],
 };
 const CANONICAL_SOURCE_PATHS = new Set([

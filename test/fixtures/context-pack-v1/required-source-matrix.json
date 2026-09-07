@@ -290,7 +290,7 @@
         },
         {
           "path": "docs/operating-model/SKILL_CATALOG.md",
-          "sha256": "720acbd0baaea396b9c30212c24a082acfb57113ba50d738d708f7845dcbb9dd"
+          "sha256": "842c3dd09d25b0d1e4efa9e1ad73543cab496b6c3b27774621d0fb027bb64217"
         },
         {
           "path": "docs/workflow/dispatch-packet-contract.md",
@@ -343,7 +343,7 @@
         },
         {
           "path": "docs/operating-model/SKILL_CATALOG.md",
-          "sha256": "720acbd0baaea396b9c30212c24a082acfb57113ba50d738d708f7845dcbb9dd"
+          "sha256": "842c3dd09d25b0d1e4efa9e1ad73543cab496b6c3b27774621d0fb027bb64217"
         },
         {
           "path": "docs/contracts/new-feature-workflow.yaml",
@@ -396,7 +396,7 @@
         },
         {
           "path": "docs/operating-model/SKILL_CATALOG.md",
-          "sha256": "720acbd0baaea396b9c30212c24a082acfb57113ba50d738d708f7845dcbb9dd"
+          "sha256": "842c3dd09d25b0d1e4efa9e1ad73543cab496b6c3b27774621d0fb027bb64217"
         },
         {
           "path": "docs/contracts/new-feature-workflow.yaml",
@@ -449,7 +449,7 @@
         },
         {
           "path": "docs/operating-model/SKILL_CATALOG.md",
-          "sha256": "720acbd0baaea396b9c30212c24a082acfb57113ba50d738d708f7845dcbb9dd"
+          "sha256": "842c3dd09d25b0d1e4efa9e1ad73543cab496b6c3b27774621d0fb027bb64217"
         },
         {
           "path": "docs/workflow/testing-conventions.md",
@@ -502,7 +502,7 @@
         },
         {
           "path": "docs/operating-model/SKILL_CATALOG.md",
-          "sha256": "720acbd0baaea396b9c30212c24a082acfb57113ba50d738d708f7845dcbb9dd"
+          "sha256": "842c3dd09d25b0d1e4efa9e1ad73543cab496b6c3b27774621d0fb027bb64217"
         },
         {
           "path": "docs/workflow/task-execution-mode.md",
@@ -555,7 +555,7 @@
         },
         {
           "path": "docs/operating-model/SKILL_CATALOG.md",
-          "sha256": "720acbd0baaea396b9c30212c24a082acfb57113ba50d738d708f7845dcbb9dd"
+          "sha256": "842c3dd09d25b0d1e4efa9e1ad73543cab496b6c3b27774621d0fb027bb64217"
         },
         {
           "path": "docs/workflow/testing-conventions.md",
@@ -608,7 +608,7 @@
         },
         {
           "path": "docs/operating-model/SKILL_CATALOG.md",
-          "sha256": "720acbd0baaea396b9c30212c24a082acfb57113ba50d738d708f7845dcbb9dd"
+          "sha256": "842c3dd09d25b0d1e4efa9e1ad73543cab496b6c3b27774621d0fb027bb64217"
         },
         {
           "path": "docs/contracts/new-feature-workflow.yaml",
@@ -661,7 +661,7 @@
         },
         {
           "path": "docs/operating-model/SKILL_CATALOG.md",
-          "sha256": "720acbd0baaea396b9c30212c24a082acfb57113ba50d738d708f7845dcbb9dd"
+          "sha256": "842c3dd09d25b0d1e4efa9e1ad73543cab496b6c3b27774621d0fb027bb64217"
         },
         {
           "path": "docs/contracts/config-change-workflow.yaml",
@@ -714,7 +714,7 @@
         },
         {
           "path": "docs/operating-model/SKILL_CATALOG.md",
-          "sha256": "720acbd0baaea396b9c30212c24a082acfb57113ba50d738d708f7845dcbb9dd"
+          "sha256": "842c3dd09d25b0d1e4efa9e1ad73543cab496b6c3b27774621d0fb027bb64217"
         },
         {
           "path": "docs/contracts/data-change-workflow.yaml",
@@ -767,15 +767,15 @@
         },
         {
           "path": "docs/operating-model/SKILL_CATALOG.md",
-          "sha256": "720acbd0baaea396b9c30212c24a082acfb57113ba50d738d708f7845dcbb9dd"
+          "sha256": "842c3dd09d25b0d1e4efa9e1ad73543cab496b6c3b27774621d0fb027bb64217"
         },
         {
           "path": "docs/workflow/platform-readiness.md",
           "sha256": "92fe5452e1a1f54f18ccca046118ccc493df31e502d39be93de24809ae019263"
         },
         {
-          "path": ".agents/skills/documentation-closeout/SKILL.md",
-          "sha256": "ace74566693ac71784426670630757ef8172ccd687930ab4ce919fff817a8693"
+          "path": ".agents/skills/release-readiness-checklist/SKILL.md",
+          "sha256": "9c03bed7e0932e72b017c0a9209d1d6bc843f3e3244918d53af5695f8ea13bb0"
         }
       ],
       "allowedTriggerReasons": [
@@ -783,7 +783,7 @@
         "release readiness"
       ],
       "allowedSkillIds": [
-        "documentation-closeout"
+        "release-readiness-checklist"
       ]
     },
     {
@@ -820,7 +820,7 @@
         },
         {
           "path": "docs/operating-model/SKILL_CATALOG.md",
-          "sha256": "720acbd0baaea396b9c30212c24a082acfb57113ba50d738d708f7845dcbb9dd"
+          "sha256": "842c3dd09d25b0d1e4efa9e1ad73543cab496b6c3b27774621d0fb027bb64217"
         },
         {
           "path": "docs/workflow/reset-to-template.md",
