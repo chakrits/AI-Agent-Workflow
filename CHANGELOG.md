@@ -4,6 +4,7 @@
 
 ### Added
 - `scripts/repin-source-matrix.mjs` (`npm run repin:source-matrix`) recomputes and rewrites stale sha256 entries in `test/fixtures/context-pack-v1/required-source-matrix.json`, so editing a pinned canonical or skill file no longer requires hand-computing hashes to fix the resulting test failures. Documented in `docs/operating-model/CONTEXT_BUDGET.md`. (Issue #215, PR #217)
+- `scripts/validate-adapter-parity.mjs` (`npm run validate:adapter-parity`) gives role adapters the same cross-host drift gate the 38 skills already have: adapter bodies below frontmatter must match across `.claude/agents/`, `.agents/agents/`, and `.agent/agents/` (the latter two newly seeded), while `name:` is pinned equal and `description`/`tools` may differ per host. Wired into both CI hosts. 5 previously-unwired adapters now route to their existing skills. Relocating `role-definitions.md`'s Terminal Dispatch section into `task-execution-mode.md` recovered context-budget headroom from 15 to 616 tokens. (Issue #212, PR #232; design decided in ADR-0021)
 
 ### Changed
 - Blank-template reset completed through PR #205 (`aa2a871`): project-state files and historical record directories were reset in the approved isolated operation; canonical workflow/skill files and Git history were preserved.
