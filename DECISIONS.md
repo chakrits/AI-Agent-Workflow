@@ -7,6 +7,98 @@ Restored on 2026-09-05 under Issue #208. The blank-template resets of 2026-08-12
 that currently-open issues cite; ADR-0002 through ADR-0016 and ADR-0018 remain recoverable via
 `git show afe8091:DECISIONS.md` and were left out by Human Maintainer decision.
 
+### ADR-0021: Role-adapter parity via body comparison (Option B); relocate role-definitions.md's Terminal Dispatch section for headroom
+
+- Date: 2026-09-07
+- Work Items: [Issue #212](https://github.com/chakrits/AI-Agent-Workflow/issues/212) (IMP-006)
+- Status: Accepted
+
+#### Context
+
+Issue #212 (IMP-006 — canonical-source consolidation and adapter conformance) requires AC-01
+to decide, before implementation, which of three candidate mechanisms closes the gap that role
+adapters under `.claude/agents/` have no drift gate across hosts, unlike the 38 skills which do.
+It also requires AC-05: a measured `docs/workflow/role-definitions.md` context-budget audit,
+since the canonical reading budget sat at 29,985/30,000 tokens, leaving no room to land AC-06/
+AC-07 (wiring 5 unwired adapters, adding a Release Agent skill). SA Agent was dispatched twice:
+once producing the Issue's own preliminary options table, and once (2026-09-07) to verify or
+challenge that table against the actual current code and files, not the Issue's abstract example.
+
+#### Decision
+
+**AC-01: Option B — body-below-frontmatter comparison across `.claude/agents/`,
+`.agents/agents/`, `.agent/agents/`.** Each tree keeps its own frontmatter; the parity check
+compares only the content below it. SA's code-level check found every current adapter's
+frontmatter is exactly three fields (`name`, `description`, `tools`) — not just `tools:` as the
+Issue's illustrative example showed — and that adapter bodies contain no host-specific syntax.
+**`name:` is pinned equal across all three trees even though `description` and `tools` are
+allowed to diverge**, so a renamed adapter cannot drift invisibly past the check. Body content
+is free to differ per host only in what `tools:` and `description:` legitimately require.
+
+Option C (generated adapters, one canonical definition rendering per-host copies) was
+considered and explicitly declined for this Issue's scope. SA found a real gap B does not
+close: `.claude/agents/sa-agent.md`'s body is a condensed paraphrase of
+`docs/workflow/role-definitions.md:104-138`, not a copy, so B's tree-to-tree comparison will
+not catch an adapter silently diverging from the canonical role description — only C would.
+The Human Maintainer weighed this and accepted it as an accepted residual gap for now: B
+matches the guarantee the skill-parity mechanism already provides (copies agree with each
+other), and C's cost (generation tooling, a staleness gate of its own, per Issue #212's own
+cost table) is not justified for a single-user setup at this time. Revisiting C remains
+possible if canonical-vs-adapter fidelity becomes a demonstrated problem.
+
+**AC-05: relocate `docs/workflow/role-definitions.md`'s "Terminal Dispatch and Boss
+Visibility" section (lines 36-44, measured 674 tokens) into the existing
+`docs/workflow/task-execution-mode.md`, leaving a short pointer.** SA's sentence-level
+similarity scan found the Issue's originally proposed lever — auditing `role-definitions.md`
+against `AGENTS.md` for duplication — does not deliver: measured overlap is ~20-30 tokens, not
+meaningful. The lever that does work is relocation under the pattern Issue #166 already
+proved with `task-execution-mode.md`: `task-execution-mode.md` already states part of the
+Terminal Dispatch content (the acknowledgement-pending rule, the Issue #35 cross-turn
+resumption deferral, the `host_completion_unavailable` stop condition), so merging the rest
+there and leaving a ~70-token pointer is a real relocation, not a token-shaving rewrite.
+Measured resulting budget: **≈29,385/30,000 (≈615 tokens headroom)**, verifiable by running
+`npm run validate:context-budget` after the edit.
+
+SA also proposed a second, optional relocation — QA Agent's "Cross-Platform Acceptance
+Criteria Gate" (`role-definitions.md:217-230`, 575 tokens) — which would recover a further
+~505 tokens. **Declined for now.** It is a live gate QA reads on every handoff; the usability
+cost of putting it behind a link was judged not worth it when the Terminal Dispatch move alone
+already produces sufficient headroom for AC-06/AC-07 (SA's cost estimate: ≈150-300 tokens
+combined, against ≈615 recovered). May be revisited later if more headroom is needed.
+
+#### Alternatives Considered
+
+- **Option A (byte parity, reuse the skill mechanism unchanged)** — rejected. Would force
+  Claude-specific frontmatter (`tools:`, `description:`) to be mirrored byte-for-byte into
+  every other host's tree, which is wrong in substance even though it makes a hash check pass.
+- **Option C (generated adapters)** — rejected for now, not permanently. Strongest guarantee
+  (closes the canonical-vs-adapter fidelity gap B leaves open) but the largest change: needs
+  generation tooling and its own staleness gate across three trees. See Decision above.
+- **Auditing `role-definitions.md` against `AGENTS.md` for duplication (the Issue's original
+  AC-05 lever)** — rejected; SA's measurement found negligible overlap (~20-30 tokens), so
+  this does not recover meaningful headroom.
+- **Relocating QA's Cross-Platform Acceptance Criteria Gate alongside Terminal Dispatch** —
+  deferred, not rejected outright. Recovers a further ~505 tokens but at a live-gate usability
+  cost; unnecessary given the Terminal Dispatch move alone is sufficient for AC-06/AC-07.
+
+#### Consequences
+
+- AC-01 is closed: implementation may proceed under Option B once dispatched to Developer
+  Agent, with tests for tree-parity-on-match, drift, missing-file, and `name:` mismatch
+  (mirroring `test/validate-skill-parity.test.mjs`'s existing shape).
+- AC-05's Terminal Dispatch relocation is approved and becomes a required implementation step
+  before AC-06/AC-07 can land. It touches `docs/workflow/role-definitions.md`, which is pinned
+  by sha256 11 times in `test/fixtures/context-pack-v1/required-source-matrix.json` — the
+  implementing agent must run `npm run repin:source-matrix` as part of the same change, per
+  the pattern Issue #215 built for exactly this class of edit.
+- The QA Cross-Platform Acceptance Criteria Gate relocation is not authorized by this decision.
+  A future ADR is needed if it is revisited.
+- `.agents/agents/` and `.agent/agents/` do not exist yet and must be seeded as part of AC-02
+  implementation; a parity check naively mirroring `validate-skill-parity.mjs`'s directory
+  listing would throw `ENOENT` before seeding.
+- Owner: Human Maintainer / SA Agent / Developer Agent (implementation not yet dispatched by
+  this ADR).
+
 ### ADR-0020: Keep `validate-ci-parity.mjs`'s zero-command guard as-is; defer the `normaliseCommand` multi-line gap
 
 - Date: 2026-09-07
