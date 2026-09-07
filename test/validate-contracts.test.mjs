@@ -178,14 +178,28 @@ test('handoff vocabulary stays in parity across AGENTS, contract, and template',
 });
 
 test('terminal handoffs require a receipt, an explicit routing outcome, and a Boss-visible event', async () => {
-  const [agents, contract, template, routing, qualityGates, roles] = await Promise.all([
+  const [agents, contract, template, routing, qualityGates, roles, taskExecutionMode] = await Promise.all([
     readFile('AGENTS.md', 'utf8'),
     readFile('docs/workflow/handoff-contract.md', 'utf8'),
     readFile('docs/templates/HANDOFF.md', 'utf8'),
     readFile('docs/workflow/dynamic-routing.md', 'utf8'),
     readFile('docs/workflow/quality-gates.md', 'utf8'),
-    readFile('docs/workflow/role-definitions.md', 'utf8')
+    readFile('docs/workflow/role-definitions.md', 'utf8'),
+    readFile('docs/workflow/task-execution-mode.md', 'utf8')
   ]);
+  // Per ADR-0021 / Issue #212, the Orchestrator's Terminal Dispatch and Boss
+  // Visibility content lives normatively in task-execution-mode.md;
+  // role-definitions.md keeps only a short pointer. Combine the two so this
+  // content-presence check still verifies the content exists, at its new
+  // location, rather than asserting it against a pointer sentence.
+  const rolesWithTerminalDispatch = `${roles}\n${taskExecutionMode}`;
+
+  // Guards the pointer itself: without this, deleting the pointer sentence
+  // from role-definitions.md would still pass every assertion below, because
+  // the concatenated content is sourced from task-execution-mode.md either
+  // way. This assertion is what actually requires role-definitions.md to
+  // still point somewhere.
+  assert.match(roles, /task-execution-mode\.md/);
 
   const requiredFields = [
     'Next Action',
@@ -218,7 +232,7 @@ test('terminal handoffs require a receipt, an explicit routing outcome, and a Bo
     assert.ok(templateFields.includes(field), `handoff template is missing ${field}`);
     assert.match(agents, new RegExp(`- ${field.replace(/[\\/]/g, '\\$&')}`));
   }
-  for (const content of [contract, routing, qualityGates, roles]) {
+  for (const content of [contract, routing, qualityGates, rolesWithTerminalDispatch]) {
     assert.match(content, /exactly one.*Dispatch.*Human review.*Blocked|Dispatch.*Human review.*Blocked/i);
     assert.match(content, /same active (Orchestrator )?turn/i);
     assert.match(content, /acknowledg/i);
@@ -242,15 +256,19 @@ test('dynamic-workflow adapters require receipt evidence instead of prose-only n
 });
 
 test('in-turn dispatch completion requires parent ownership, native evidence, and truthful unsupported-host blocking', async () => {
-  const [contract, routing, gates, roles, codexAdapter] = await Promise.all([
+  const [contract, routing, gates, roles, taskExecutionMode, codexAdapter] = await Promise.all([
     readFile('docs/workflow/handoff-contract.md', 'utf8'),
     readFile('docs/workflow/dynamic-routing.md', 'utf8'),
     readFile('docs/workflow/quality-gates.md', 'utf8'),
     readFile('docs/workflow/role-definitions.md', 'utf8'),
+    readFile('docs/workflow/task-execution-mode.md', 'utf8'),
     readFile('.codex/orchestrator-supervision.md', 'utf8')
   ]);
+  // See the equivalent comment in the preceding test: this content now lives
+  // normatively in task-execution-mode.md per ADR-0021 / Issue #212.
+  const rolesWithTerminalDispatch = `${roles}\n${taskExecutionMode}`;
 
-  for (const content of [contract, routing, gates, roles]) {
+  for (const content of [contract, routing, gates, rolesWithTerminalDispatch]) {
     assert.match(content, /Handoff Event ID/);
     assert.match(content, /Parent Orchestrator ID/);
     assert.match(content, /Child Task ID/);

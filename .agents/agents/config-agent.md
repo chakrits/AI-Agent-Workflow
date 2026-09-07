@@ -1,7 +1,6 @@
 ---
 name: config-agent
 description: Use for feature flags, system parameters, thresholds, business config, environment settings, and mapping values.
-tools: Read, Grep, Glob, Bash, Edit
 ---
 
 # config-agent

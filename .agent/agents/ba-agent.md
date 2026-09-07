@@ -1,7 +1,6 @@
 ---
 name: ba-agent
 description: Use for requirements, user stories, acceptance criteria, business rules, process flows, and requirement ambiguity.
-tools: Read, Grep, Glob, Bash, Edit
 ---
 
 # ba-agent

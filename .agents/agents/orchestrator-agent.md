@@ -1,7 +1,6 @@
 ---
 name: orchestrator-agent
 description: Use for classifying change type/risk, routing work across PM, BA, SA, Developer, QA, Security, Config, Data, Release, and Documentation agents.
-tools: Read, Grep, Glob, Bash, Edit
 ---
 
 # orchestrator-agent

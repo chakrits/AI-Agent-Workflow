@@ -1,7 +1,6 @@
 ---
 name: documentation-agent
 description: Use for README, changelog, architecture docs, user docs, runbooks, and decision logs.
-tools: Read, Grep, Glob, Bash, Edit
 ---
 
 # documentation-agent
