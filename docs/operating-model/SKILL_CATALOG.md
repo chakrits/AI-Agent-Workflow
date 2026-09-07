@@ -392,6 +392,17 @@ Note: `api-contract-testing` validates an existing implementation against a publ
 | Do Not Use When | No post-merge-closeout label exists, or the audit failed (use documentation-sync exception instead) |
 | Next Skill / Agent | Human Maintainer (merge closeout PR) |
 
+## release-readiness-checklist
+
+| Field | Detail |
+|---|---|
+| Trigger | Preparing a release: version bump, `CHANGELOG.md` entry, release evidence, rollback confirmation, or deployment strategy statement needed |
+| Primary Agent | Release Agent |
+| Input | Merged/mergeable work item, test results, hosted CI status, human approval record |
+| Output | `docs/templates/RELEASE_PLAN.md` |
+| Do Not Use When | No release is being prepared, or the task is atomic commit/pre-commit hygiene for a single change (`git-workflow-and-versioning`) |
+| Next Skill / Agent | Human Maintainer (release approval) |
+
 
 ## Skill Activation Examples
 
