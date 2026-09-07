@@ -25,13 +25,13 @@
 - None.
 
 ## Blockers / Open Questions
-- Whether to reconstruct any of the 7 historical `RISKS.md` entries destroyed by the resets (despite no currently open Issue citing one by id) is an open data-restoration scope question, explicitly left to the Human Maintainer per Issue #214's routing comment. Not decided or guessed at in that diff.
+- Resolved by Human Maintainer decision (2026-09-07): the 7 historical `RISKS.md` entries destroyed by the resets will not be reconstructed, since no currently open Issue cites any of them by id. `RISKS.md` remains as-is; no further action.
 - Resolved by Issue #220: `validate-risk-register.mjs`'s `runRiskValidation` returning `passed: true` when `previousTotal === undefined` is now covered by a dedicated test and confirmed a deliberate design choice consistent with `adr-audit.mjs`'s identical precedent, not an oversight. QA additionally confirmed that dropping the `previousTotal !== undefined` conjunct is a genuine equivalent mutant (`total < undefined` is always `false` in JS) — there is no further test that could close this any tighter. If the Human Maintainer wants different fail-open behavior here or in `adr-audit.mjs`, that is a new design decision, not a residual gap.
 - Design Question from Issue #210's round-3 QA: `scripts/validate-ci-parity.mjs`'s `githubJobCommands` enumerates shapes that yield zero commands (missing job, empty steps, composite-action-only) rather than positively asserting job validity. No further gap was found after three rounds, but the recurring pattern is worth a design-level look independent of any further line-item fix. Owner: Human Maintainer.
 - Minor from the same review: the "yielded no comparable commands" error message in `scripts/validate-ci-parity.mjs` says "if the job was restructured... into a composite action," which is misleading for a job that legitimately runs only ignored commands (`npm test`/`npm ci`). Cosmetic wording only, not fixed.
 - Resolved by Issue #220: the two Minors from Issue #215's QA on `scripts/repin-source-matrix.mjs`'s test suite are fixed — the round-trip-guard test now uses a deliberately stale fixture hash so it proves write-prevention rather than just "throws," and the duplicate "stops after first occurrence" test was removed after confirming it had no unique discriminating power.
 - Framework assessment recorded at `docs/records/misc/2026-09-05-framework-sdlc-assessment.md`. Its two largest open items: the canonical context budget has 15 tokens of headroom, which blocks any new role or skill definition, and role adapters exist only under `.claude/agents/` with no parity gate (roadmap IMP-006 — now tracked as Issue #212, `phase:requirements`, blocked on a Human Maintainer design-option decision).
-- PR #204 carries a stale `post-merge-closeout` label from an earlier session; not addressed by this closeout.
+- Resolved (2026-09-07): PR #204's stale `post-merge-closeout` label removed.
 
 ## Required Artifacts
 - Self-review record (#208): `docs/records/qa/2026-09-05-issue-208-decision-log-preservation-code-review.md`
