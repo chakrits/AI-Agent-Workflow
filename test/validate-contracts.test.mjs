@@ -194,6 +194,13 @@ test('terminal handoffs require a receipt, an explicit routing outcome, and a Bo
   // location, rather than asserting it against a pointer sentence.
   const rolesWithTerminalDispatch = `${roles}\n${taskExecutionMode}`;
 
+  // Guards the pointer itself: without this, deleting the pointer sentence
+  // from role-definitions.md would still pass every assertion below, because
+  // the concatenated content is sourced from task-execution-mode.md either
+  // way. This assertion is what actually requires role-definitions.md to
+  // still point somewhere.
+  assert.match(roles, /task-execution-mode\.md/);
+
   const requiredFields = [
     'Next Action',
     'Next Owner',
