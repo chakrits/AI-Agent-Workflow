@@ -1,7 +1,6 @@
 ---
 name: pm-agent
 description: Use for business goal, scope, priority, roadmap, stakeholder impact, and success metrics.
-tools: Read, Grep, Glob, Bash, Edit
 ---
 
 # pm-agent
