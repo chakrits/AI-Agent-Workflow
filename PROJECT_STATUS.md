@@ -1,17 +1,17 @@
 # PROJECT_STATUS.md
 
 ## Current Work Item
-- None — repository is idle, awaiting the next assignment.
+- [Issue #236](https://github.com/chakrits/AI-Agent-Workflow/issues/236) (IMP-007 — local enforcement hook layer), AC-01 only: record SA Agent's approved evaluation as ADR-0022.
 
 ## Current Stage
-- Idle.
+- Recording the approved architecture decision. No implementation authorised by this change.
 
 ## Change Classification
-- Change Type: N/A
-- Risk Level: N/A
-- Code Change Required: N/A
-- Architecture Change Required: N/A
-- Security Review Required: N/A
+- Change Type: Framework / Meta Change (documentation only)
+- Risk Level: Low
+- Code Change Required: No
+- Architecture Change Required: No — this records a decision already taken
+- Security Review Required: No
 
 ## Completed
 - Blank-template reset completed through PR #205 (`aa2a871`); historical records remain recoverable from Git history.
