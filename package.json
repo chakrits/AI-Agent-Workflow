@@ -7,6 +7,7 @@
   },
   "scripts": {
     "test": "node --test",
+    "setup:hooks": "node scripts/setup-hooks.mjs",
     "validate:contracts": "node scripts/validate-contracts.mjs",
     "validate:ci-parity": "node scripts/validate-ci-parity.mjs",
     "validate:project-state": "node scripts/validate-project-state.mjs",
@@ -24,6 +25,7 @@
     "validate:metrics": "node scripts/validate-metrics.mjs",
     "validate:context-budget": "node scripts/validate-context-budget.mjs",
     "validate:context-compatibility": "node scripts/validate-context-compatibility.mjs",
+    "validate:pr-readiness": "node scripts/validate-pr-readiness.mjs",
     "cleanup:closeout-labels": "node scripts/cleanup-stale-closeout-labels.mjs",
     "backfill:work-items": "node scripts/backfill-work-item-records.mjs",
     "repin:source-matrix": "node scripts/repin-source-matrix.mjs"

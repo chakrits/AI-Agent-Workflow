@@ -1,0 +1,26 @@
+#!/bin/sh
+# Pre-flight the pull request body draft before it can reach `gh pr create`.
+# Issue #236, AC-04. Enable with: npm run setup:hooks
+#
+# This hook is a THIN CALLER. Every rule lives in scripts/validate-pr-readiness.mjs
+# (ADR-0022), which .claude/settings.json calls too, so neither caller can drift.
+#
+# A push carries no PR body, so there is nothing to check unless the author points
+# at a draft with PR_BODY_FILE. Without one this hook prints a reminder and exits 0:
+# refusing every push would rebuild the failure mode that got AC-10 withdrawn.
+
+if [ ! -f package.json ] || ! grep -q '"validate:pr-readiness"' package.json 2>/dev/null; then
+  exit 0
+fi
+
+if [ -z "$PR_BODY_FILE" ]; then
+  echo "[pre-push] No PR_BODY_FILE set — skipping PR readiness pre-flight."
+  echo "[pre-push] Before opening a PR, run: PR_BODY_FILE=<draft.md> npm run validate:pr-readiness"
+  exit 0
+fi
+
+echo "[pre-push] Checking PR readiness for $PR_BODY_FILE ..."
+if ! npm run --silent validate:pr-readiness; then
+  echo "[pre-push] Push refused: the PR body draft is not ready. Fix it or unset PR_BODY_FILE."
+  exit 1
+fi

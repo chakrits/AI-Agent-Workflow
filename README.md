@@ -83,7 +83,32 @@ npm run validate:contracts
 
 Both commands should exit clean. This is the same check hosted CI runs on every push and pull/merge request — on GitHub Actions ([.github/workflows/validate-contracts.yml](./.github/workflows/validate-contracts.yml)) and on GitLab CI ([.gitlab-ci.yml](./.gitlab-ci.yml)), whichever platform this repo is hosted on. For lifecycle labels and platform-specific readiness operations, see [Platform Readiness Operations](./docs/workflow/platform-readiness.md).
 
-### 3. Give your agent a safe first prompt
+### 3. Activate local git hooks
+
+```bash
+npm run setup:hooks
+```
+
+This sets `core.hooksPath` to `.githooks`, which ships this repo's hooks. It is idempotent — re-running it when the value already matches is a no-op — and it is a per-clone setting, so every fresh clone needs it once. Git does not read `.githooks/` until you run it.
+
+Two hooks become active:
+
+| Hook | Behaviour |
+|---|---|
+| `post-merge` | Informational. Lists prunable `.worktrees/` entries after a merge on `main`. |
+| `pre-push` | Blocking, opt-in. When `PR_BODY_FILE` names a pull request body draft, runs the readiness pre-flight below and refuses the push if the draft is incomplete. Without `PR_BODY_FILE` it prints a reminder and exits 0. |
+
+To check a pull request body draft before opening the PR:
+
+```bash
+PR_BODY_FILE=pr-body.md npm run validate:pr-readiness
+```
+
+This refuses a body missing its Work Item (Issue) URL, its QA evidence URL, a closing keyword (`Fixes #N`) referencing that Issue, or the `## Documentation Impact` section and its `<!-- documentation-impact: complete -->` marker — the same rules CI enforces after a PR exists, applied before one is opened. Label checks need `gh` auth; without network the body checks still run and the skipped label checks are named in a warning. GitHub only.
+
+Under Claude Code the same npm script also runs automatically as a `PreToolUse` hook on `gh pr create` ([.claude/settings.json](./.claude/settings.json)). That hook invokes the identical script rather than restating any rule, so no rule can exist for one host only.
+
+### 4. Give your agent a safe first prompt
 
 ```text
 Read AGENTS.md, PROJECT_STATUS.md, and the operating-model read order.
@@ -93,7 +118,7 @@ List required artifacts, required agents, skipped agents, quality gates,
 and any human approval gate before implementation begins.
 ```
 
-### 4. Work from the canonical layer
+### 5. Work from the canonical layer
 
 Use [PROJECT_INDEX.md](./PROJECT_INDEX.md) to navigate. Treat `docs/operating-model/` and `docs/workflow/` as the source of truth; do not let a platform adapter redefine policy.
 

@@ -1,0 +1,17 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "if": "Bash(gh pr create:*)",
+            "command": "npm run --silent validate:pr-readiness -- --hook",
+            "timeout": 30
+          }
+        ]
+      }
+    ]
+  }
+}
