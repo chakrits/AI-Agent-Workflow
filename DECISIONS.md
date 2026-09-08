@@ -7,6 +7,120 @@ Restored on 2026-09-05 under Issue #208. The blank-template resets of 2026-08-12
 that currently-open issues cite; ADR-0002 through ADR-0016 and ADR-0018 remain recoverable via
 `git show afe8091:DECISIONS.md` and were left out by Human Maintainer decision.
 
+### ADR-0022: Local enforcement hook layer — portable core with thin invokers; no blocking commit gate
+
+- Date: 2026-09-08
+- Work Items: [Issue #236](https://github.com/chakrits/AI-Agent-Workflow/issues/236) (IMP-007)
+- Status: Accepted
+
+#### Context
+
+Issue #236 (IMP-007 — local enforcement hook layer) requires AC-01 to decide, before
+implementation, three things: where hook logic lives given this repository's host-neutrality
+commitments; which hooks are blocking and which are advisory; and what escape hatch a blocking
+commit-time gate would need.
+
+The repository holds 15 `scripts/validate-*.mjs` validators and 6 GitHub workflows plus
+`.gitlab-ci.yml`, but **zero local enforcement points**. `.githooks/post-merge` exists, is
+executable, and documents its own activation, yet `git config core.hooksPath` is empty — it has
+never run since it was added on 2026-07-20. There is no `.claude/settings.json`, only a
+`settings.local.json` holding three permission entries. Every framework rule is therefore
+enforced only after a pull request exists.
+
+Five failures observed during the 2026-09-07 session motivated the Issue: PR #223 failed
+`work-item-readiness-freshness` twice and required Issue #224 to be opened retroactively;
+Issue #224 then stayed open because that PR used no closing keyword; editing a file pinned in
+`required-source-matrix.json` breaks seven tests with no hint; adapter and skill drift surface
+only in CI; and sandbox worktree isolation placed a dispatched agent on a different branch than
+its packet stated, three times in one session.
+
+SA Agent evaluated the Issue's proposed design against the tree rather than accepting it. Its
+load-bearing premises verified; two of the Issue's incidental counts did not, and two of its
+acceptance criteria were found to be wrongly scoped.
+
+#### Decision
+
+**Hook logic lives in `scripts/*.mjs` behind an npm script; `.githooks/` and CI invoke those
+scripts, and `.claude/settings.json` invokes them too.** This is already house style — 
+`validate-ci-parity.mjs`, `validate-adapter-parity.mjs`, `validate-context-budget.mjs`, and
+`validate-project-state.mjs` all export pure functions behind an
+`import.meta.url === pathToFileURL(process.argv[1]).href` CLI guard, so adding a caller class
+costs nothing incremental.
+
+SA established a fact the Issue did not: `.agents/` and `.agent/` contain only `agents/`,
+`skills/`, and `workflows/` — **no hook runtime exists outside Claude Code.** `.githooks/` is
+therefore the only portable enforcement point, and `.claude/settings.json` is a latency
+optimisation that moves feedback earlier for one host. That supports a sharper invariant than
+the Issue's original AC-12 stated, and it is adopted as governing:
+
+> `.claude/settings.json` may only invoke a rule that `.githooks/` or CI already enforces.
+> It may never be the origin of a rule.
+
+**Enforcement level is mostly determined by the hook point, not chosen.** `PostToolUse` fires
+after the write has landed, so the repin guard, the context-budget guard, and the parity guard
+cannot prevent an edit under any policy; they surface feedback. The session-context surface is a
+display, and blocking a `SubagentStop` would mean refusing subagent termination for a condition
+the parent can fix. **The PR readiness pre-flight is the only genuinely blocking gate**, justified
+by the failure mode that a published pull request cannot be cleanly withdrawn.
+
+**No blocking commit-time gate. The Issue's AC-10 is withdrawn rather than given an escape
+hatch.** `scripts/validate-project-state.mjs` greps `PROJECT_STATUS.md`'s `- Status:` lines for
+`uncommitted`, `pending review`, and `pending merge` — states that describe normal mid-work-item
+progress, not a commit-time invariant. Commit `3b49fca` (2026-07-15) legitimately committed
+`- Status: Implemented, uncommitted — pending review`; a blocking hook would have refused it and
+every commit until `826b980` cleared the marker. The validator keeps its place at closeout, where
+those markers genuinely indicate staleness.
+
+**Two acceptance criteria are re-pointed.** The Issue's AC-05 proposed testing that the local and
+CI readiness paths agree — vacuous, since both invoke the same imported pure function. The real
+drift surface is input derivation: CI builds `workItem` from octokit in `github-script`
+(`.github/workflows/work-item-readiness-refresh.yml:47`), while the local path must build it from
+`gh` and `git diff`. AC-05 now tests that documented input contract. AC-12 is re-pointed from npm
+resolvability to containment of the invariant above, and must additionally surface validators no
+entry point reaches.
+
+#### Alternatives Considered
+
+- **Hook logic inside `.claude/settings.json`** — rejected. Unreachable from the other two trees
+  and from a human running plain git; precisely the host asymmetry that `validate-adapter-parity`
+  (Issue #212) and `validate-ci-parity` (Issue #210) exist to close, and contrary to `CLAUDE.md`'s
+  rule that canonical workflow files win over Claude adapters.
+- **Blocking the repin, context-budget, and parity guards** — rejected as unimplementable.
+  `PostToolUse` runs after the write; the choice does not exist at that hook point.
+- **An escape hatch for a blocking commit gate — `--no-verify`, a `SKIP_HOOKS=1` environment
+  variable, or a `wip:` commit-message prefix** — all rejected. Each becomes habitual within a
+  single session, leaving the appearance of a gate without the gate. The problem is not a missing
+  hatch; it is that `validate-project-state.mjs` is not a commit-time invariant.
+- **Re-implementing readiness validation locally rather than importing it** — rejected.
+  `validateReadiness()` is already pure over `{body, draft, workItem, changedFiles,
+  sourcePullRequest}` and `findLinkedIssueNumber()` is already exported, so a second
+  implementation would buy nothing and create the divergence this repository repeatedly pays to
+  prevent.
+
+#### Consequences
+
+- AC-10 is closed as rejected; the Issue's success measure is corrected from "local enforcement
+  points 0 → 8", which counted displays and post-hoc feedback as gates, to separate counts for
+  blocking gates (1), advisory feedback points (4), and session-context surfaces (1).
+- Two counts in the Issue are corrected: **15** `scripts/validate-*.mjs` and **6** GitHub
+  workflows, not 21 and 7. The 21 was a count of all npm scripts.
+- The readiness pre-flight carries three unresolved design holes that its acceptance criterion now
+  states explicitly: a `PreToolUse` hook on `gh pr create` sees only the command string, so an
+  interactive editor body is invisible and the fail-closed-versus-fail-open choice must be stated;
+  `workItem.labels` requires `gh issue view`, meaning network and auth, whereas every other
+  validator here runs offline, which matters most for `.githooks/pre-push`; and
+  `findLinkedIssueNumber()` (`scripts/work-item-readiness-check.mjs:11`) hardcodes
+  `https://github\.com/` in its regex while this repository ships `.gitlab-ci.yml`.
+- A pre-existing counterexample to this Issue's own containment rule is recorded but not closed
+  here: `scripts/validate-qa-evidence.mjs` has no `package.json` script and no CI invocation, and
+  is reached only by `test/qa-evidence.test.mjs`. AC-12's test must surface it; whether to wire it
+  or document it as test-only is left open.
+- Recording this ADR moves `npm run adr:audit` from 3.50:1 (14/4) to 2.80:1 (14/5) — it improves
+  and stays far inside the 10:1 threshold. `DECISIONS.md` is not in `CANONICAL_FILES`, so this
+  costs nothing against the 466-token context headroom.
+- Owner: Human Maintainer (approval, granted 2026-09-08), then Developer Agent. This ADR authorises
+  no implementation on its own.
+
 ### ADR-0021: Role-adapter parity via body comparison (Option B); relocate role-definitions.md's Terminal Dispatch section for headroom
 
 - Date: 2026-09-07
