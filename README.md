@@ -83,7 +83,38 @@ npm run validate:contracts
 
 Both commands should exit clean. This is the same check hosted CI runs on every push and pull/merge request — on GitHub Actions ([.github/workflows/validate-contracts.yml](./.github/workflows/validate-contracts.yml)) and on GitLab CI ([.gitlab-ci.yml](./.gitlab-ci.yml)), whichever platform this repo is hosted on. For lifecycle labels and platform-specific readiness operations, see [Platform Readiness Operations](./docs/workflow/platform-readiness.md).
 
-### 3. Give your agent a safe first prompt
+### 3. Activate local git hooks
+
+```bash
+npm run setup:hooks
+```
+
+This sets `core.hooksPath` to `.githooks`, which ships this repo's hooks. It is idempotent — re-running it when the value already matches is a no-op — and it is a per-clone setting, so every fresh clone needs it once. Git does not read `.githooks/` until you run it.
+
+Two hooks become active:
+
+| Hook | Behaviour |
+|---|---|
+| `post-merge` | Informational. Lists prunable `.worktrees/` entries after a merge on `main`. |
+| `pre-push` | Blocking, opt-in. When `PR_BODY_FILE` names a pull request body draft, runs the readiness pre-flight below and refuses the push if the draft is incomplete, or if the named file cannot be read — a draft named but not read is not a draft checked. Without `PR_BODY_FILE` it prints a reminder and exits 0: a push with no PR body in play is never refused. |
+
+To check a pull request body draft before opening the PR:
+
+```bash
+PR_BODY_FILE=pr-body.md npm run validate:pr-readiness
+```
+
+This refuses a body missing its Work Item (Issue) URL, its QA evidence URL, a closing keyword (`Fixes #N`) referencing that Issue, or the `## Documentation Impact` section and its `<!-- documentation-impact: complete -->` marker — the same rules CI enforces after a PR exists, applied before one is opened. Label checks need `gh` auth; without network the body checks still run and the skipped label checks are named in a warning.
+
+A PR that advances a multi-AC Issue without closing it — which this repository opens routinely — declares that with `<!-- advances-only: issue-N -->`, naming the same Issue the body links. That suppresses the closing-keyword requirement and nothing else; every other rule still applies. The marker is checked, not trusted: naming an Issue other than the linked one is refused, so it cannot be copy-pasted between Issues or used as a blanket escape hatch. You can therefore declare that you are closing no Issue, but you cannot forget to close one. It waives only a *missing* keyword: a marker beside a keyword naming another Issue is still refused. Markers and closing keywords inside code fences or backticks are ignored, so prose documenting this syntax is inert.
+
+GitHub only, and it says so rather than blaming the body: if `git remote get-url origin` cannot be resolved to a `github.com` owner/repo — no remote, a non-GitHub host, an SSH host alias, an unusual worktree — the run reports the Issue-linkage checks as out of scope instead of reporting a missing Work Item URL that the body in fact contains.
+
+Under Claude Code the same npm script also runs automatically as a `PreToolUse` hook on `gh pr create` ([.claude/settings.json](./.claude/settings.json)). That hook invokes the identical script rather than restating any rule, so no rule can exist for one host only.
+
+The hook gates only the command a shell would actually execute. It parses the command string for quoting and heredocs, so writing a file, echoing a string, or grepping documentation that merely *mentions* the command is not intercepted — only a real invocation is. `--help` and `-h` pass through: they create no pull request and have no body to check. `--web`, `--fill` and `--template` are refused, because those do create a pull request whose body the hook cannot read.
+
+### 4. Give your agent a safe first prompt
 
 ```text
 Read AGENTS.md, PROJECT_STATUS.md, and the operating-model read order.
@@ -93,7 +124,7 @@ List required artifacts, required agents, skipped agents, quality gates,
 and any human approval gate before implementation begins.
 ```
 
-### 4. Work from the canonical layer
+### 5. Work from the canonical layer
 
 Use [PROJECT_INDEX.md](./PROJECT_INDEX.md) to navigate. Treat `docs/operating-model/` and `docs/workflow/` as the source of truth; do not let a platform adapter redefine policy.
 
