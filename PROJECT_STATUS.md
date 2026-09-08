@@ -1,17 +1,17 @@
 # PROJECT_STATUS.md
 
 ## Current Work Item
-- None — repository is idle. Two roadmap workstreams are filed and design-approved but not dispatched: [Issue #236](https://github.com/chakrits/AI-Agent-Workflow/issues/236) (IMP-007) and [Issue #237](https://github.com/chakrits/AI-Agent-Workflow/issues/237) (IMP-008).
+- [Issue #236](https://github.com/chakrits/AI-Agent-Workflow/issues/236) (IMP-007 — local enforcement hook layer), AC-02 through AC-05: activate the git hook layer and add the local PR readiness pre-flight.
 
 ## Current Stage
-- Idle, awaiting a Human Maintainer decision on whether to dispatch IMP-007's implementation.
+- Verification complete, awaiting human merge approval. AC-06 through AC-14 remain undispatched.
 
 ## Change Classification
-- Change Type: N/A
-- Risk Level: N/A
-- Code Change Required: N/A
-- Architecture Change Required: N/A
-- Security Review Required: N/A
+- Change Type: Framework / Meta Change
+- Risk Level: Medium — introduces a blocking local gate on `gh pr create`; a false positive obstructs real work, which round 1 demonstrated
+- Code Change Required: Yes
+- Architecture Change Required: No — design fixed by ADR-0022
+- Security Review Required: No — no auth, secrets, or trust-boundary change
 
 ## Completed
 - Blank-template reset completed through PR #205 (`aa2a871`); historical records remain recoverable from Git history.
