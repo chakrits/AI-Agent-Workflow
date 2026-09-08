@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { readFileSync } from 'node:fs';
+import { readFileSync, writeFileSync, rmSync } from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -16,7 +17,8 @@ import {
   shellCommandSegments,
   isHelpInvocation,
   CLOSEOUT_UNVERIFIABLE_ERRORS,
-  CLOSEOUT_FILE_ERROR
+  CLOSEOUT_FILE_ERROR,
+  advancesOnlyIssues
 } from '../scripts/validate-pr-readiness.mjs';
 import { validateReadiness } from '../scripts/work-item-readiness.mjs';
 import { buildReadinessCheck } from '../scripts/work-item-readiness-check.mjs';
@@ -650,4 +652,262 @@ test('Finding 4: an unset PR_BODY_FILE never refuses — no PR body is in play',
     }
   })();
   assert.equal(status, 0);
+});
+
+// ------------------------------------------ partial-progress PRs (decision 2026-09-08)
+
+const ADVANCES_ONLY = '<!-- advances-only: issue-236 -->';
+
+test('advances-only: a body declaring partial progress passes without a closing keyword', () => {
+  const { errors } = validatePrReadiness({
+    body: `${bodyFor({ closes: 0 })}\n\n${ADVANCES_ONLY}`,
+    workItem,
+    repository
+  });
+  assert.deepEqual(errors, []);
+});
+
+test('advances-only: the same body without the marker is still refused', () => {
+  // The #224 protection: you cannot *forget* a closing keyword, only declare its absence.
+  const { errors } = validatePrReadiness({ body: bodyFor({ closes: 0 }), workItem, repository });
+  assert.ok(
+    errors.some((e) => e.startsWith('closing keyword referencing the linked Issue #236')),
+    errors.join(', ')
+  );
+});
+
+test('advances-only: a marker naming a different Issue is refused, not honoured', () => {
+  // The marker cannot be copy-pasted between Issues without being wrong; if it were
+  // inert-but-silent it would be the blanket escape hatch the decision rejects.
+  const { errors } = validatePrReadiness({
+    body: `${bodyFor({ closes: 0 })}\n\n<!-- advances-only: issue-212 -->`,
+    workItem,
+    repository
+  });
+  assert.ok(
+    errors.some((e) => e.includes('advances-only marker naming the linked Issue #236')),
+    errors.join(', ')
+  );
+  // and the suppressed rule comes back, so a wrong marker is strictly worse than none
+  assert.ok(
+    errors.some((e) => e.startsWith('closing keyword referencing the linked Issue #236')),
+    errors.join(', ')
+  );
+});
+
+test('advances-only: a second marker naming another Issue cannot ride along with a correct one', () => {
+  const { errors } = validatePrReadiness({
+    body: `${bodyFor({ closes: 0 })}\n\n${ADVANCES_ONLY}\n<!-- advances-only: issue-999 -->`,
+    workItem,
+    repository
+  });
+  assert.ok(
+    errors.some((e) => e.includes('advances-only marker naming the linked Issue #236')),
+    errors.join(', ')
+  );
+});
+
+test('advances-only: it suppresses a wrong-Issue closing keyword too, since the whole rule is declared off', () => {
+  const { errors } = validatePrReadiness({
+    body: `${bodyFor({ closes: 999 })}\n\n${ADVANCES_ONLY}`,
+    workItem,
+    repository
+  });
+  assert.deepEqual(errors, []);
+});
+
+test('advances-only: every other body rule still applies', () => {
+  const missingQa = validatePrReadiness({
+    body: `${bodyFor({ closes: 0, qa: false })}\n\n${ADVANCES_ONLY}`,
+    workItem,
+    repository
+  }).errors;
+  assert.ok(missingQa.length, 'a missing QA evidence URL must still be refused');
+
+  const noHeading = validatePrReadiness({
+    body: `${bodyFor({ closes: 0, docHeading: false })}\n\n${ADVANCES_ONLY}`,
+    workItem,
+    repository
+  }).errors;
+  assert.ok(noHeading.includes('## Documentation Impact section'), noHeading.join(', '));
+
+  const noMarker = validatePrReadiness({
+    body: `${bodyFor({ closes: 0, docMarker: false })}\n\n${ADVANCES_ONLY}`,
+    workItem,
+    repository
+  }).errors;
+  assert.ok(noMarker.includes('<!-- documentation-impact: complete --> marker'), noMarker.join(', '));
+
+  const noIssueUrl = validatePrReadiness({
+    body: `## Documentation Impact\n<!-- documentation-impact: complete -->\n${ADVANCES_ONLY}`,
+    workItem,
+    repository
+  }).errors;
+  assert.ok(noIssueUrl.includes('Work Item (Issue) URL'), noIssueUrl.join(', '));
+});
+
+test('advances-only: it filters no label-derived error when the Issue is fetchable', () => {
+  const notReady = { isPullRequest: false, isSameRepository: true, labels: ['phase:development'] };
+  const { errors } = validatePrReadiness({
+    body: `${bodyFor({ closes: 0 })}\n\n${ADVANCES_ONLY}`,
+    workItem: notReady,
+    repository
+  });
+  assert.ok(
+    errors.some((e) => LABEL_DERIVED_ERRORS.includes(e)),
+    `label rules must survive the marker: ${errors.join(', ')}`
+  );
+});
+
+test('advances-only: the warning states what was suppressed rather than passing silently', () => {
+  const { warnings } = validatePrReadiness({
+    body: `${bodyFor({ closes: 0 })}\n\n${ADVANCES_ONLY}`,
+    workItem,
+    repository
+  });
+  assert.ok(warnings.some((w) => w.includes('advances-only')), warnings.join(' | '));
+  assert.ok(warnings.some((w) => w.includes('#236')), warnings.join(' | '));
+});
+
+test('advances-only: it does not weaken the closeout path, which stays a separate class', () => {
+  const closeoutBody = [
+    'Developer: Work Item (Issue) URL: https://github.com/chakrits/AI-Agent-Workflow/issues/236',
+    '<!-- post-merge-closeout: complete; source-pr-1 -->',
+    ADVANCES_ONLY,
+    '## Documentation Impact',
+    '<!-- documentation-impact: complete -->'
+  ].join('\n\n');
+  // an ordinary diff under a closeout marker is still refused: the authorized-file rule holds
+  const { errors } = validatePrReadiness({
+    body: closeoutBody,
+    workItem,
+    repository,
+    changedFiles: ['README.md']
+  });
+  assert.ok(errors.includes(CLOSEOUT_FILE_ERROR), errors.join(', '));
+  // and the Documentation Impact rules still apply under both markers
+  const noDocs = validatePrReadiness({
+    body: closeoutBody.replace('## Documentation Impact\n\n', ''),
+    workItem,
+    repository,
+    changedFiles: ['PROJECT_STATUS.md']
+  }).errors;
+  assert.ok(noDocs.includes('## Documentation Impact section'), noDocs.join(', '));
+});
+
+test('advances-only: advancesOnlyIssues() is the single parser both the gate and the docs pin', () => {
+  assert.deepEqual(advancesOnlyIssues(ADVANCES_ONLY), [236]);
+  assert.deepEqual(advancesOnlyIssues('<!--advances-only:issue-236-->'), [236]);
+  assert.deepEqual(advancesOnlyIssues('no marker here'), []);
+  assert.deepEqual(advancesOnlyIssues('<!-- advances-only: 236 -->'), []);
+  assert.deepEqual(advancesOnlyIssues('advances-only: issue-236'), []);
+  // the exported parser must be re-runnable: a shared global regex would drop the second call
+  assert.deepEqual(advancesOnlyIssues(ADVANCES_ONLY), [236]);
+});
+
+// ------------------------------------------------------ N1: runHookMode() coverage
+
+function runHook(command, { toolName = 'Bash', input, env = {} } = {}) {
+  const payload = input ?? JSON.stringify({ tool_name: toolName, tool_input: { command } });
+  const stdout = execFileSync(
+    process.execPath,
+    [path.join(repoRoot, 'scripts', 'validate-pr-readiness.mjs'), '--hook'],
+    {
+      cwd: repoRoot,
+      encoding: 'utf8',
+      input: payload,
+      stdio: 'pipe',
+      env: { ...process.env, PR_READINESS_OFFLINE: '1', ...env }
+    }
+  );
+  return JSON.parse(stdout);
+}
+
+function hookDecision(output) {
+  return output?.hookSpecificOutput?.permissionDecision;
+}
+
+const hookBody = (extra = '') => [
+  'Developer: Work Item (Issue) URL: https://github.com/chakrits/AI-Agent-Workflow/issues/236',
+  'QA: evidence comment or review URL: https://github.com/chakrits/AI-Agent-Workflow/issues/1#issuecomment-1',
+  extra,
+  '## Documentation Impact',
+  '<!-- documentation-impact: complete -->'
+].filter(Boolean).join('\n\n');
+
+test('N1/AC-04: a non-Bash tool call is allowed untouched', () => {
+  assert.deepEqual(runHook('gh pr create --body x', { toolName: 'Read' }), {});
+});
+
+test('N1/AC-04: malformed stdin allows rather than breaking the session', () => {
+  assert.deepEqual(runHook(undefined, { input: 'not json at all' }), {});
+});
+
+test('N1/AC-04: a Bash command that is not a pr create invocation is allowed', () => {
+  assert.deepEqual(runHook('git status && npm test'), {});
+});
+
+test('N1/AC-04: --help is allowed — it creates no PR and has no body (Finding 1)', () => {
+  // Mutant H3 deleted this guard with a green suite before this test existed.
+  assert.deepEqual(runHook('gh pr create --help'), {});
+  assert.deepEqual(runHook('gh pr create -h'), {});
+});
+
+test('N1/AC-04: an invocation with no --body or --body-file is denied with the deny shape', () => {
+  const out = runHook('gh pr create --title "x"');
+  assert.equal(hookDecision(out), 'deny');
+  assert.equal(out.hookSpecificOutput.hookEventName, 'PreToolUse');
+  assert.match(out.hookSpecificOutput.permissionDecisionReason, /neither --body nor --body-file/);
+  assert.equal(out.systemMessage, out.hookSpecificOutput.permissionDecisionReason);
+});
+
+test('N1/AC-04: an unreadable --body-file is denied, not allowed', () => {
+  const out = runHook('gh pr create --body-file /nonexistent-9c1f/body.md');
+  assert.equal(hookDecision(out), 'deny');
+  assert.match(out.hookSpecificOutput.permissionDecisionReason, /could not read --body-file/);
+});
+
+test('N1/AC-04: an incomplete --body is denied and names the missing rules', () => {
+  const out = runHook('gh pr create --title "t" --body "nothing useful here"');
+  assert.equal(hookDecision(out), 'deny');
+  assert.match(out.hookSpecificOutput.permissionDecisionReason, /Work Item \(Issue\) URL/);
+});
+
+test('N1/AC-04: a complete body is allowed, with the degraded-mode warning as systemMessage', () => {
+  const out = runHook(`gh pr create --title "t" --body "${hookBody('Fixes #236').replace(/\n/g, '\\n')}"`);
+  assert.equal(hookDecision(out), undefined, JSON.stringify(out));
+  assert.match(out.systemMessage ?? '', /Degraded mode/);
+});
+
+test('N1: the hook honours a correct advances-only marker', () => {
+  const out = runHook(
+    `gh pr create --title "t" --body "${hookBody(ADVANCES_ONLY).replace(/\n/g, '\\n')}"`
+  );
+  assert.equal(hookDecision(out), undefined, JSON.stringify(out));
+});
+
+test('N1: the hook denies an advances-only marker naming the wrong Issue', () => {
+  const out = runHook(
+    `gh pr create --title "t" --body "${hookBody('<!-- advances-only: issue-212 -->').replace(/\n/g, '\\n')}"`
+  );
+  assert.equal(hookDecision(out), 'deny');
+  assert.match(
+    out.hookSpecificOutput.permissionDecisionReason,
+    /advances-only marker naming the linked Issue #236/
+  );
+});
+
+test('N1/AC-04: a readable --body-file is read and validated — the shape the README recommends', () => {
+  const file = path.join(os.tmpdir(), `pr-readiness-hook-${process.pid}.md`);
+  writeFileSync(file, hookBody(ADVANCES_ONLY), 'utf8');
+  try {
+    assert.equal(hookDecision(runHook(`gh pr create --title "t" --body-file ${file}`)), undefined);
+    writeFileSync(file, hookBody('<!-- advances-only: issue-212 -->'), 'utf8');
+    const out = runHook(`gh pr create --title "t" --body-file ${file}`);
+    assert.equal(hookDecision(out), 'deny');
+    // and --draft is detected on the hook path, not only on the CLI path
+    assert.equal(hookDecision(runHook(`gh pr create --draft --body-file ${file}`)), 'deny');
+  } finally {
+    rmSync(file, { force: true });
+  }
 });

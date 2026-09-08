@@ -93,6 +93,39 @@ export const CLOSEOUT_UNVERIFIABLE_ERRORS = Object.freeze(['labeled source pull 
 /** Skipped only when no local changed-file set is available to derive it from. */
 export const CLOSEOUT_FILE_ERROR = 'closeout files are not authorized';
 
+/**
+ * The partial-progress marker (Human Maintainer decision, 2026-09-08).
+ *
+ * This repository routinely opens PRs that advance a multi-AC Issue without
+ * closing it, and the closing-keyword rule refused every one of them — PRs #232
+ * and #234 among them. The rule cannot simply be dropped: Issue #224 stayed open
+ * precisely because its PR carried no closing keyword, which is the failure this
+ * gate exists to prevent. So the author may *declare* that no Issue is being
+ * closed, but may not *forget* to close one.
+ *
+ * The marker names its Issue, and naming any other Issue is an error rather than
+ * a no-op. A marker that suppressed the rule regardless of the number it carries
+ * would be a blanket escape hatch, copy-pasteable between Issues without ever
+ * being wrong — which the decision explicitly rejects.
+ *
+ * Syntax mirrors the two markers already in the body vocabulary
+ * (`<!-- post-merge-closeout: complete; source-pr-N -->`,
+ * `<!-- documentation-impact: complete -->`): an HTML comment, `name: value`,
+ * with the `issue-N` form paralleling `source-pr-N`. Spelling the number as
+ * `issue-236` rather than `#236` keeps it out of GitHub's cross-reference
+ * rendering and out of CLOSING_KEYWORD's way.
+ */
+const ADVANCES_ONLY_MARKER = /<!--\s*advances-only:\s*issue-(\d+)\s*-->/gi;
+
+/** Every Issue number the body's advances-only markers name, in order. */
+export function advancesOnlyIssues(body = '') {
+  // A fresh regex per call: `matchAll` requires the global flag, and a shared
+  // global regex carries `lastIndex` between calls.
+  return [...String(body).matchAll(new RegExp(ADVANCES_ONLY_MARKER.source, 'gi'))].map((m) =>
+    Number(m[1])
+  );
+}
+
 const CLOSING_KEYWORD = /\b(?:fix(?:e[sd])?|close[sd]?|resolve[sd]?)\b\s*:?\s*#(\d+)/gi;
 const DOC_IMPACT_HEADING = '## Documentation Impact';
 const DOC_IMPACT_MARKER = '<!-- documentation-impact: complete -->';
@@ -450,9 +483,36 @@ export function validatePrReadiness({
   // present" would pass a body that closes the wrong Issue — which is exactly the
   // #224 failure this gate exists to prevent.
   const closed = [...body.matchAll(CLOSING_KEYWORD)].map((m) => Number(m[1]));
+
+  // A partial-progress declaration, and only for the Issue it names. When no Issue
+  // could be resolved from the body the marker is inert and silent: there is
+  // nothing to check it against, and that state already carries its own error
+  // ('Work Item (Issue) URL') or the out-of-scope warning above.
+  const declaredAdvances = advancesOnlyIssues(body);
+  const misnamedAdvances = linkedIssue ? declaredAdvances.filter((n) => n !== linkedIssue) : [];
+  const advancesOnly =
+    Boolean(linkedIssue) && declaredAdvances.length > 0 && misnamedAdvances.length === 0;
+  if (misnamedAdvances.length) {
+    errors.push(
+      `advances-only marker naming the linked Issue #${linkedIssue} ` +
+        `(found issue-${misnamedAdvances.join(', issue-')} instead)`
+    );
+  }
+
   if (isCloseout) {
     // Closeout PRs close no Issue by design: their source Issues are auto-closed by
     // the source PRs' own keywords, and the marker names the source PR instead.
+  } else if (advancesOnly) {
+    // Declared partial progress: the closing-keyword requirement is suppressed in
+    // full, including the wrong-Issue arm — the author has stated that this PR
+    // closes no Issue, so which other Issue a stray keyword mentions is not this
+    // rule's business. Nothing else is suppressed.
+    warnings.push(
+      `Partial-progress PR: the body carries \`<!-- advances-only: issue-${linkedIssue} -->\`, so ` +
+        `the closing-keyword requirement for Issue #${linkedIssue} was SKIPPED — this PR advances ` +
+        'that Issue without closing it, and the Issue must be closed by a later PR or by hand. ' +
+        'Every other readiness rule was enforced normally.'
+    );
   } else if (linkedIssue && !closed.includes(linkedIssue)) {
     errors.push(
       closed.length
