@@ -207,10 +207,17 @@ export function shellCommandSegments(command = '') {
 }
 
 const ENV_ASSIGNMENT = /^[A-Za-z_][A-Za-z0-9_]*=/;
-const COMMAND_PREFIXES = new Set(['command', 'sudo', 'env', 'time', 'nohup', 'exec']);
+// Reserved words are command positions too: `if true; then gh pr create ...` puts
+// the verb at token 1, not token 0. Wrappers behave the same way.
+const COMMAND_PREFIXES = new Set([
+  'command', 'sudo', 'env', 'time', 'nohup', 'exec',
+  'then', 'do', 'else', 'elif', '!', 'nice', 'timeout', 'stdbuf', 'xargs'
+]);
 
 function segmentTokens(segment) {
-  return String(segment).split(/\s+/).filter(Boolean);
+  // A `\`+newline line continuation is kept in the segment (splitting there would
+  // be wrong), so the stray backslash must not be read as a token.
+  return String(segment).split(/\s+/).filter((token) => token && token !== '\\');
 }
 
 /**
@@ -357,6 +364,19 @@ export function validatePrReadiness({
 
   const linkedIssue = repository ? findLinkedIssueNumber(body, repository) : undefined;
 
+  // Stated unconditionally, not only offline: suppressing the Issue-linkage rule
+  // without saying why would be a gate that silently passes when it cannot see its
+  // input — the shape decision 1 exists to reject (Issue #236, Finding 5).
+  if (!repositoryResolved) {
+    warnings.push(
+      'Out of scope: `git remote get-url origin` could not be resolved to a github.com ' +
+        'owner/repo (no remote, a non-GitHub host, an SSH host alias, or an unusual worktree ' +
+        'configuration), so no linked Issue could be identified and no Issue-linkage or ' +
+        'lifecycle label check could run. This validator supports GitHub only (Issue #236, ' +
+        'AC-03 decision 3). Body-only checks were fully enforced; CI still enforces the rest.'
+    );
+  }
+
   const isCloseout = CLOSEOUT_MARKER.test(body);
 
   const effectiveWorkItem = offline || !workItem
@@ -376,14 +396,8 @@ export function validatePrReadiness({
     // Name the cause honestly. A body with no Work Item URL leaves nothing to look
     // up, which is not a network failure — and that is the single most common
     // failure case, so blaming the network there would misdirect every author.
-    warnings.push(
-      !repositoryResolved
-        ? 'Out of scope: `git remote get-url origin` could not be resolved to a github.com ' +
-            'owner/repo (no remote, a non-GitHub host, an SSH host alias, or an unusual worktree ' +
-            'configuration), so no linked Issue could be identified and no Issue-linkage or ' +
-            'lifecycle label check could run. This validator supports GitHub only (Issue #236, ' +
-            'AC-03 decision 3). Body-only checks were fully enforced; CI still enforces the rest.'
-        : linkedIssue
+    if (repositoryResolved) warnings.push(
+      linkedIssue
         ? 'Degraded mode: the linked Issue\'s lifecycle label checks ' +
             `(${LABEL_DERIVED_ERRORS.join(', ')}) were NOT verified — they need \`gh issue view\`, ` +
             'i.e. network and auth, which were unavailable. Body-only checks were fully enforced. ' +

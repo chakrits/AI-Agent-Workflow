@@ -365,6 +365,13 @@ test('Finding 7: real invocations in every command position still gate', () => {
   assert.equal(isPrCreateCommand(`echo $(${CREATE} --body x)`), true, 'command substitutions are executed');
   assert.equal(isPrCreateCommand(`GH_TOKEN=x ${CREATE} --body x`), true, 'a leading env assignment is not the command');
   assert.equal(isPrCreateCommand([`${CREATE} --body x`, ''].join('\n')), true);
+  // Reserved words are command positions: the verb sits at token 1, not token 0.
+  assert.equal(isPrCreateCommand(`if true; then ${CREATE} --body x; fi`), true);
+  assert.equal(isPrCreateCommand(`for f in x; do ${CREATE} --body x; done`), true);
+  assert.equal(isPrCreateCommand(`! ${CREATE} --body x`), true);
+  assert.equal(isPrCreateCommand(`xargs ${CREATE} --body x`), true);
+  // A line continuation must not be read as a token between `gh` and `pr`.
+  assert.equal(isPrCreateCommand(['gh \\', 'pr create --body x'].join('\n')), true);
 });
 
 test('Finding 7: the lexer never throws and fails open on hostile input', () => {
@@ -474,6 +481,18 @@ test('Finding 5: an unresolvable origin reports out-of-scope, not a false body d
   assert.ok(/origin/.test(text) && /github\.com/.test(text), text);
   assert.ok(/ssh host alias/i.test(text),
     'origin may be an SSH alias for a GitHub repo, so the message must not assert "not GitHub"');
+});
+
+test('Finding 5: the out-of-scope reason is stated even when not running offline', () => {
+  // Suppressing the Issue-linkage rule without saying why would be a gate that
+  // silently passes when it cannot see its input.
+  const { errors, warnings } = validatePrReadiness({
+    body: bodyFor(), draft: false, workItem,
+    repository: undefined, repositoryResolved: false, offline: false
+  });
+  assert.ok(!errors.includes('Work Item (Issue) URL'), errors.join(', '));
+  assert.ok(/out of scope/i.test(warnings.join(' ')),
+    'the suppression must never be silent');
 });
 
 test('Finding 5: a resolvable origin still reports a genuinely missing Work Item URL', () => {
