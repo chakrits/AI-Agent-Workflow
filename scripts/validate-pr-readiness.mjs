@@ -117,13 +117,85 @@ export const CLOSEOUT_FILE_ERROR = 'closeout files are not authorized';
  */
 const ADVANCES_ONLY_MARKER = /<!--\s*advances-only:\s*issue-(\d+)\s*-->/gi;
 
-/** Every Issue number the body's advances-only markers name, in order. */
+/**
+ * Every Issue number the body's advances-only markers name, in order.
+ *
+ * Markers inside a fenced code block or an inline backtick span are ignored: this
+ * repository documents the marker syntax (README.md) and writes about its own
+ * gates constantly, so prose explaining the marker must neither waive the
+ * closing-keyword rule nor raise an error (Issue #236, M1).
+ *
+ * The fresh regex per call is *not* defensive against `lastIndex`: `matchAll`
+ * clones its argument and never advances the original's `lastIndex`, so sharing
+ * the global regex would be safe (Issue #236, M9 — an equivalent mutant, and the
+ * comment that stood here described a hazard that does not exist). It is kept
+ * only so the module-level literal stays a declaration rather than mutable state.
+ */
 export function advancesOnlyIssues(body = '') {
-  // A fresh regex per call: `matchAll` requires the global flag, and a shared
-  // global regex carries `lastIndex` between calls.
-  return [...String(body).matchAll(new RegExp(ADVANCES_ONLY_MARKER.source, 'gi'))].map((m) =>
+  return [...stripCodeSpans(body).matchAll(new RegExp(ADVANCES_ONLY_MARKER.source, 'gi'))].map((m) =>
     Number(m[1])
   );
+}
+
+/**
+ * Blanks out fenced code blocks and inline backtick spans (Issue #236, M1).
+ *
+ * Deliberately a scrubber, not a Markdown parser. What it covers: ``` and ~~~
+ * fences (any length >= 3, opened and closed at line start with optional
+ * indentation), and inline spans delimited by a matching run of backticks on one
+ * line. What it does NOT cover: indented (four-space) code blocks, HTML <code>
+ * or <pre> elements, fences nested inside list items or blockquotes at a deeper
+ * indent than three spaces, and backtick spans that straddle a newline. An
+ * unterminated fence blanks the remainder of the body. Both directions are then
+ * fail-closed: the marker stops waiving and the closing keyword stops satisfying,
+ * so such a body is refused rather than passed silently.
+ *
+ * Scrubbed: this parser and the closing-keyword scan, and only those. Read from
+ * the raw body, deliberately: findLinkedIssueNumber() (a fenced Work Item URL
+ * still resolves), validateReadiness()'s QA-evidence check, the Documentation
+ * Impact heading and marker, and CLOSEOUT_MARKER — scrubbing the last would
+ * change post-merge closeout behaviour, which Issue #236 cycle 3 puts out of
+ * scope. A fenced closeout marker therefore still flips the closeout branch.
+ *
+ * Content is replaced by spaces rather than removed so that surrounding text
+ * cannot be joined into a marker or keyword that the author never wrote.
+ */
+export function stripCodeSpans(body = '') {
+  const blank = (text) => text.replace(/[^\n]/g, ' ');
+  const lines = String(body).split('\n');
+  let fence;
+  const out = lines.map((line) => {
+    const opener = /^\s{0,3}(`{3,}|~{3,})/.exec(line);
+    if (fence) {
+      const closes = opener && opener[1][0] === fence[0] && opener[1].length >= fence.length;
+      if (closes) fence = undefined;
+      return blank(line);
+    }
+    if (opener) {
+      fence = opener[1];
+      return blank(line);
+    }
+    // Inline spans: a run of N backticks closed by the next run of exactly N.
+    return line.replace(/(`+)(?:(?!\1)[\s\S])*?\1/g, blank);
+  });
+  return out.join('\n');
+}
+
+/**
+ * Why `gh issue view` failed: the Issue does not exist, or it could not be reached.
+ *
+ * A 404 is a body defect the author must fix; anything else is the degraded mode
+ * AC-03 decision 2 requires. The match is deliberately narrow and positive: only
+ * an explicit not-found signal is classified as 'not-found', so a timeout, an
+ * auth failure, a rate limit or an unrecognised stderr all stay in the degraded
+ * lane. Getting that backwards would tell an author pushing offline that their
+ * Issue does not exist (Issue #236, M2).
+ */
+export function classifyIssueFetchFailure(stderr = '') {
+  const text = String(stderr);
+  return /could not resolve to an issue or pull request|HTTP 404/i.test(text)
+    ? 'not-found'
+    : 'unreachable';
 }
 
 const CLOSING_KEYWORD = /\b(?:fix(?:e[sd])?|close[sd]?|resolve[sd]?)\b\s*:?\s*#(\d+)/gi;
@@ -390,7 +462,12 @@ export function validatePrReadiness({
   sourcePullRequest,
   repository,
   repositoryResolved = repository !== undefined,
-  offline = false
+  offline = false,
+  /**
+   * How the linked Issue lookup ended: 'ok', 'not-found', 'unreachable', or
+   * undefined when no lookup was attempted (Issue #236, M2).
+   */
+  issueResolution
 } = {}) {
   const errors = [];
   const warnings = [];
@@ -429,7 +506,20 @@ export function validatePrReadiness({
     // Name the cause honestly. A body with no Work Item URL leaves nothing to look
     // up, which is not a network failure — and that is the single most common
     // failure case, so blaming the network there would misdirect every author.
-    if (repositoryResolved) warnings.push(
+    if (repositoryResolved && issueResolution === 'not-found' && linkedIssue) {
+      // A 404 is not a network failure. `fetchWorkItem()`'s bare catch used to
+      // collapse the two, so a fabricated Issue URL passed *with* network while
+      // the warning blamed the network (Issue #236, M2).
+      errors.push(
+        `Work Item (Issue) URL naming an Issue that exists (#${linkedIssue} was not found in ` +
+          'this repository)'
+      );
+      warnings.push(
+        `The linked Issue #${linkedIssue} does not exist in this repository, so its lifecycle ` +
+          'label checks could not run. This is NOT a network failure — correct the Work Item ' +
+          '(Issue) URL. Body-only checks were fully enforced.'
+      );
+    } else if (repositoryResolved) warnings.push(
       linkedIssue
         ? 'Degraded mode: the linked Issue\'s lifecycle label checks ' +
             `(${LABEL_DERIVED_ERRORS.join(', ')}) were NOT verified — they need \`gh issue view\`, ` +
@@ -482,7 +572,11 @@ export function validatePrReadiness({
   // Closing keyword must reference the *linked* Issue (AC-03). "Some Fixes #N is
   // present" would pass a body that closes the wrong Issue — which is exactly the
   // #224 failure this gate exists to prevent.
-  const closed = [...body.matchAll(CLOSING_KEYWORD)].map((m) => Number(m[1]));
+  // Read from the scrubbed body, not the raw one, so the two scans cannot drift
+  // apart in their code-fence awareness (Issue #236, M1). A `Fixes #N` that only
+  // appears inside a fence closes nothing on merge, so it must not satisfy the
+  // rule either.
+  const closed = [...stripCodeSpans(body).matchAll(CLOSING_KEYWORD)].map((m) => Number(m[1]));
 
   // A partial-progress declaration, and only for the Issue it names. When no Issue
   // could be resolved from the body the marker is inert and silent: there is
@@ -502,11 +596,15 @@ export function validatePrReadiness({
   if (isCloseout) {
     // Closeout PRs close no Issue by design: their source Issues are auto-closed by
     // the source PRs' own keywords, and the marker names the source PR instead.
-  } else if (advancesOnly) {
-    // Declared partial progress: the closing-keyword requirement is suppressed in
-    // full, including the wrong-Issue arm — the author has stated that this PR
-    // closes no Issue, so which other Issue a stray keyword mentions is not this
-    // rule's business. Nothing else is suppressed.
+  } else if (advancesOnly && closed.length === 0) {
+    // Declared partial progress, and only when no closing keyword is present at
+    // all (Human Maintainer decision, 2026-09-08 — Issue #236, B1). The marker
+    // waives the requirement that a keyword be *present*; it does not waive the
+    // requirement that a keyword which IS present point at the linked Issue.
+    // Suppressing the wrong-Issue arm too meant a body carrying `Fixes #212`
+    // passed while this very warning told the author the PR closed nothing — and
+    // merging it closed #212. The `closed.length === 0` guard is also what makes
+    // the wording below true: it can only be reached when no keyword stands.
     warnings.push(
       `Partial-progress PR: the body carries \`<!-- advances-only: issue-${linkedIssue} -->\`, so ` +
         `the closing-keyword requirement for Issue #${linkedIssue} was SKIPPED — this PR advances ` +
@@ -560,17 +658,33 @@ function changedFilesAgainstMain() {
   return out ? out.split('\n').filter(Boolean) : [];
 }
 
+/**
+ * Fetches the linked Issue, reporting *why* it failed rather than collapsing every
+ * failure into "offline" (Issue #236, M2).
+ *
+ * Returns `{ state, workItem }` where state is 'skipped' (no lookup attempted),
+ * 'ok', 'not-found' or 'unreachable'. stderr is captured rather than discarded
+ * because it carries the only signal distinguishing the last two.
+ */
 function fetchWorkItem(issueNumber, repository) {
-  if (!issueNumber || !repository || process.env.PR_READINESS_OFFLINE === '1') return undefined;
+  if (!issueNumber || !repository || process.env.PR_READINESS_OFFLINE === '1') {
+    return { state: 'skipped' };
+  }
+  let raw;
   try {
-    const raw = execFileSync(
+    raw = execFileSync(
       'gh',
       ['issue', 'view', String(issueNumber), '--repo', `${repository.owner}/${repository.repo}`, '--json', 'url,labels'],
-      { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], timeout: 10000 }
+      { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], timeout: 10000 }
     );
-    return workItemFromGhIssue(JSON.parse(raw), repository);
+  } catch (error) {
+    return { state: classifyIssueFetchFailure(error?.stderr ?? '') };
+  }
+  try {
+    return { state: 'ok', workItem: workItemFromGhIssue(JSON.parse(raw), repository) };
   } catch {
-    return undefined;
+    // Valid exit, unparseable payload: not a 404, so degrade rather than accuse.
+    return { state: 'unreachable' };
   }
 }
 
@@ -596,7 +710,8 @@ function readBodyDraft() {
 function evaluate({ body, draft }) {
   const repository = currentRepository();
   const linked = repository ? findLinkedIssueNumber(body, repository) : undefined;
-  const workItem = fetchWorkItem(linked, repository);
+  const resolution = fetchWorkItem(linked, repository);
+  const workItem = resolution.workItem;
   return validatePrReadiness({
     body,
     draft,
@@ -604,7 +719,8 @@ function evaluate({ body, draft }) {
     changedFiles: changedFilesAgainstMain(),
     repository,
     repositoryResolved: repository !== undefined,
-    offline: !workItem
+    offline: !workItem,
+    issueResolution: resolution.state
   });
 }
 

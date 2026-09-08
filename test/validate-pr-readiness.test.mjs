@@ -18,7 +18,9 @@ import {
   isHelpInvocation,
   CLOSEOUT_UNVERIFIABLE_ERRORS,
   CLOSEOUT_FILE_ERROR,
-  advancesOnlyIssues
+  advancesOnlyIssues,
+  stripCodeSpans,
+  classifyIssueFetchFailure
 } from '../scripts/validate-pr-readiness.mjs';
 import { validateReadiness } from '../scripts/work-item-readiness.mjs';
 import { buildReadinessCheck } from '../scripts/work-item-readiness-check.mjs';
@@ -707,9 +709,33 @@ test('advances-only: a second marker naming another Issue cannot ride along with
   );
 });
 
-test('advances-only: it suppresses a wrong-Issue closing keyword too, since the whole rule is declared off', () => {
-  const { errors } = validatePrReadiness({
+test('B1: the marker does NOT suppress a wrong-Issue closing keyword (decision 2026-09-08)', () => {
+  // Inverted from the assertion this test carried before cycle 3. The Human
+  // Maintainer confirmed the old behaviour a defect: merging that body closes
+  // #999 while the tool's own warning says the PR closes nothing. The marker
+  // waives the requirement that a keyword be *present*, not the requirement that
+  // a keyword present point at the linked Issue.
+  const { errors, warnings } = validatePrReadiness({
     body: `${bodyFor({ closes: 999 })}\n\n${ADVANCES_ONLY}`,
+    workItem,
+    repository
+  });
+  assert.ok(
+    errors.some((e) => e.startsWith('closing keyword referencing the linked Issue #236')),
+    errors.join(', ')
+  );
+  // and the warning must not claim the PR closes nothing while a keyword stands
+  assert.ok(
+    !warnings.some((w) => w.includes('advances that Issue without closing it')),
+    warnings.join(' | ')
+  );
+});
+
+test('B1: the marker still coexists with a CORRECT closing keyword, which is not an error', () => {
+  // The over-correction of B1 would be "a marker beside any keyword is refused".
+  // The decision does not ask for that, so it is pinned against.
+  const { errors } = validatePrReadiness({
+    body: `${bodyFor({ closes: 236 })}\n\n${ADVANCES_ONLY}`,
     workItem,
     repository
   });
@@ -805,6 +831,138 @@ test('advances-only: advancesOnlyIssues() is the single parser both the gate and
   assert.deepEqual(advancesOnlyIssues(ADVANCES_ONLY), [236]);
 });
 
+test('M1: a marker inside a fenced code block does not waive the closing-keyword rule', () => {
+  // README.md documents this syntax, so a PR body that *explains* the marker is a
+  // realistic input. The silent direction is the consequential one: prose must not
+  // quietly disable the #224 protection.
+  const { errors } = validatePrReadiness({
+    body: `${bodyFor({ closes: 0 })}\n\n\`\`\`\n${ADVANCES_ONLY}\n\`\`\`\n`,
+    workItem,
+    repository
+  });
+  assert.ok(
+    errors.some((e) => e.startsWith('closing keyword referencing the linked Issue #236')),
+    errors.join(', ')
+  );
+});
+
+test('M1: a wrong-Issue marker inside a fence or backticks is not a hard error on prose', () => {
+  const fenced = validatePrReadiness({
+    body: `${bodyFor()}\n\n\`\`\`\n<!-- advances-only: issue-999 -->\n\`\`\`\n`,
+    workItem,
+    repository
+  }).errors;
+  assert.deepEqual(fenced, []);
+
+  const inline = validatePrReadiness({
+    body: `${bodyFor()}\n\nUse \`<!-- advances-only: issue-999 -->\` to declare partial progress.`,
+    workItem,
+    repository
+  }).errors;
+  assert.deepEqual(inline, []);
+});
+
+test('M1: a fenced closing keyword does not satisfy the closing-keyword rule either', () => {
+  // Both scans read the same scrubbed body, so the awareness cannot drift apart.
+  const { errors } = validatePrReadiness({
+    body: `${bodyFor({ closes: 0 })}\n\n\`\`\`\nFixes #236\n\`\`\`\n`,
+    workItem,
+    repository
+  });
+  assert.ok(
+    errors.some((e) => e.startsWith('closing keyword referencing the linked Issue #236')),
+    errors.join(', ')
+  );
+});
+
+test('M1: stripCodeSpans removes fenced blocks and inline spans, and nothing else', () => {
+  assert.equal(stripCodeSpans('a\n```\nsecret\n```\nb').includes('secret'), false);
+  assert.equal(stripCodeSpans('a\n~~~\nsecret\n~~~\nb').includes('secret'), false);
+  assert.equal(stripCodeSpans('a `secret` b').includes('secret'), false);
+  assert.equal(stripCodeSpans('a ``x `secret` y`` b').includes('secret'), false);
+  assert.ok(stripCodeSpans('a\n```\nx\n```\nkeep me').includes('keep me'));
+  assert.ok(stripCodeSpans('plain text').includes('plain text'));
+  // an unterminated fence swallows the rest of the body — stated, not accidental
+  assert.equal(stripCodeSpans('a\n```\ntail').includes('tail'), false);
+});
+
+test('M3: a marker with no resolvable linked Issue is inert — the rule is NOT suppressed', () => {
+  const { errors } = validatePrReadiness({
+    body: `QA: evidence comment or review URL: https://github.com/chakrits/AI-Agent-Workflow/issues/1#issuecomment-1\n\n## Documentation Impact\n\n<!-- documentation-impact: complete -->\n\n${ADVANCES_ONLY}`,
+    workItem,
+    repository,
+    repositoryResolved: true
+  });
+  assert.ok(errors.includes('Work Item (Issue) URL'), errors.join(', '));
+  assert.ok(
+    errors.some((e) => e.startsWith('closing keyword referencing the linked Issue')),
+    errors.join(', ')
+  );
+});
+
+test('M4: a marker with no resolvable linked Issue is silent — no #undefined error', () => {
+  const { errors } = validatePrReadiness({
+    body: `QA: evidence comment or review URL: https://github.com/chakrits/AI-Agent-Workflow/issues/1#issuecomment-1\n\n## Documentation Impact\n\n<!-- documentation-impact: complete -->\n\n${ADVANCES_ONLY}`,
+    workItem,
+    repository,
+    repositoryResolved: true
+  });
+  assert.ok(!errors.some((e) => e.includes('advances-only marker naming')), errors.join(', '));
+  assert.ok(!errors.some((e) => e.includes('undefined')), errors.join(', '));
+});
+
+test('M8: the marker is case-insensitive', () => {
+  assert.deepEqual(advancesOnlyIssues('<!-- ADVANCES-ONLY: ISSUE-236 -->'), [236]);
+  assert.deepEqual(advancesOnlyIssues('<!-- Advances-Only: Issue-236 -->'), [236]);
+});
+
+test('M2: a linked Issue that does not exist is a body defect, not a network failure', () => {
+  const { errors, warnings } = validatePrReadiness({
+    body: bodyFor({ issue: 999999, closes: 999999 }),
+    workItem: undefined,
+    repository,
+    offline: true,
+    issueResolution: 'not-found'
+  });
+  assert.ok(
+    errors.some((e) => e.includes('#999999') && e.includes('not found')),
+    errors.join(', ')
+  );
+  // the misdiagnosis M2 filed: it must NOT blame network and auth
+  assert.ok(
+    !warnings.some((w) => w.includes('network and auth, which were unavailable')),
+    warnings.join(' | ')
+  );
+});
+
+test('M2: an unreachable host still degrades rather than claiming the Issue is absent', () => {
+  const { errors, warnings } = validatePrReadiness({
+    body: bodyFor(), workItem: undefined, repository, offline: true, issueResolution: 'unreachable'
+  });
+  assert.deepEqual(errors, []);
+  assert.ok(
+    warnings.some((w) => w.includes('network and auth, which were unavailable')),
+    warnings.join(' | ')
+  );
+});
+
+test('M2: classifyIssueFetchFailure separates a 404 from an unreachable host', () => {
+  // The literal stderr `gh issue view 999999` printed against this repository.
+  assert.equal(
+    classifyIssueFetchFailure(
+      'GraphQL: Could not resolve to an issue or pull request with the number of 999999. (repository.issue)'
+    ),
+    'not-found'
+  );
+  assert.equal(classifyIssueFetchFailure('HTTP 404: Not Found'), 'not-found');
+  // everything else must stay in the degraded lane — fail open, not "does not exist"
+  assert.equal(classifyIssueFetchFailure('dial tcp: lookup api.github.com: no such host'), 'unreachable');
+  assert.equal(classifyIssueFetchFailure('gh: authentication required'), 'unreachable');
+  assert.equal(classifyIssueFetchFailure('context deadline exceeded'), 'unreachable');
+  assert.equal(classifyIssueFetchFailure(''), 'unreachable');
+});
+
+
 // ------------------------------------------------------ N1: runHookMode() coverage
 
 function runHook(command, { toolName = 'Bash', input, env = {} } = {}) {
@@ -827,9 +985,9 @@ function hookDecision(output) {
   return output?.hookSpecificOutput?.permissionDecision;
 }
 
-const hookBody = (extra = '') => [
+const hookBody = (extra = '', { qa = true } = {}) => [
   'Developer: Work Item (Issue) URL: https://github.com/chakrits/AI-Agent-Workflow/issues/236',
-  'QA: evidence comment or review URL: https://github.com/chakrits/AI-Agent-Workflow/issues/1#issuecomment-1',
+  qa ? 'QA: evidence comment or review URL: https://github.com/chakrits/AI-Agent-Workflow/issues/1#issuecomment-1' : '',
   extra,
   '## Documentation Impact',
   '<!-- documentation-impact: complete -->'
@@ -905,8 +1063,26 @@ test('N1/AC-04: a readable --body-file is read and validated — the shape the R
     writeFileSync(file, hookBody('<!-- advances-only: issue-212 -->'), 'utf8');
     const out = runHook(`gh pr create --title "t" --body-file ${file}`);
     assert.equal(hookDecision(out), 'deny');
-    // and --draft is detected on the hook path, not only on the CLI path
-    assert.equal(hookDecision(runHook(`gh pr create --draft --body-file ${file}`)), 'deny');
+  } finally {
+    rmSync(file, { force: true });
+  }
+});
+
+test('M17: --draft is detected on the hook path — the assertion dies if the detection is removed', () => {
+  // The assertion this replaces claimed to pin `--draft` but asserted `deny` on a
+  // body that already denied for an unrelated reason, so deleting the detection
+  // left it green. `draft` only ever *relaxes* a rule (work-item-readiness.mjs
+  // skips the QA evidence URL), so the discriminating body is one that is complete
+  // except for QA evidence: it must deny without --draft and allow with it.
+  const file = path.join(os.tmpdir(), `pr-readiness-draft-${process.pid}.md`);
+  writeFileSync(file, hookBody('Fixes #236', { qa: false }), 'utf8');
+  try {
+    const withoutDraft = runHook(`gh pr create --title "t" --body-file ${file}`);
+    assert.equal(hookDecision(withoutDraft), 'deny', JSON.stringify(withoutDraft));
+    assert.match(withoutDraft.hookSpecificOutput.permissionDecisionReason, /QA evidence URL/);
+
+    const withDraft = runHook(`gh pr create --draft --title "t" --body-file ${file}`);
+    assert.equal(hookDecision(withDraft), undefined, JSON.stringify(withDraft));
   } finally {
     rmSync(file, { force: true });
   }
