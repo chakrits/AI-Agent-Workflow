@@ -63,6 +63,17 @@ export const WORK_ITEM_CONTRACT = Object.freeze({
     'issues. A GitLab-hosted clone gets no local PR readiness pre-flight.'
 });
 
+const CLOSEOUT_MARKER = /<!-- post-merge-closeout: complete; source-pr-\d+ -->/;
+
+/**
+ * Errors from `validateReadiness()`'s closeout branch that no local caller can
+ * verify: both need data outside the PR body.
+ */
+export const CLOSEOUT_UNVERIFIABLE_ERRORS = Object.freeze([
+  'labeled source pull request',
+  'closeout files are not authorized'
+]);
+
 const CLOSING_KEYWORD = /\b(?:fix(?:e[sd])?|close[sd]?|resolve[sd]?)\b\s*:?\s*#(\d+)/gi;
 const DOC_IMPACT_HEADING = '## Documentation Impact';
 const DOC_IMPACT_MARKER = '<!-- documentation-impact: complete -->';
@@ -90,10 +101,35 @@ function unquote(value) {
 export function extractBodyFromCommand(command = '') {
   const text = String(command);
   const bodyMatch = text.match(/(?:^|\s)(?:--body|-b)[= ]\s*("(?:[^"\\]|\\.)*"|'[^']*'|\S+)/);
-  if (bodyMatch) return { body: unquote(bodyMatch[1]).replace(/\\n/g, '\n').replace(/\\"/g, '"'), source: '--body' };
+  if (bodyMatch) {
+    const raw = unquote(bodyMatch[1]);
+    // The hook sees the command *before* the shell expands it, so `--body "$(cat
+    // body.md)"` yields the literal substitution. Validating that text would fail
+    // every rule and report "missing QA evidence URL" — fail-closed, but with a
+    // cause that is not true. Diagnose it instead.
+    if (/\$\(|`|\$\{/.test(raw)) {
+      return {
+        error:
+          'PR readiness pre-flight cannot read the pull request body: --body contains an ' +
+          'unexpanded shell substitution, so the hook sees the command text rather than the body. ' +
+          'Use --body-file <path> instead.'
+      };
+    }
+    return { body: raw.replace(/\\n/g, '\n').replace(/\\"/g, '"'), source: '--body' };
+  }
 
   const fileMatch = text.match(/(?:^|\s)(?:--body-file|-F)[= ]\s*("[^"]*"|'[^']*'|\S+)/);
-  if (fileMatch) return { bodyFile: unquote(fileMatch[1]), source: '--body-file' };
+  if (fileMatch) {
+    const file = unquote(fileMatch[1]);
+    if (file === '-') {
+      return {
+        error:
+          'PR readiness pre-flight cannot read the pull request body: --body-file - reads from ' +
+          'stdin, which the hook cannot observe. Write the body to a file and pass its path.'
+      };
+    }
+    return { bodyFile: file, source: '--body-file' };
+  }
 
   return {
     error:
@@ -149,6 +185,8 @@ export function validatePrReadiness({
 
   const linkedIssue = repository ? findLinkedIssueNumber(body, repository) : undefined;
 
+  const isCloseout = CLOSEOUT_MARKER.test(body);
+
   const effectiveWorkItem = offline || !workItem
     ? { isPullRequest: false, isSameRepository: true, labels: [] }
     : workItem;
@@ -163,10 +201,32 @@ export function validatePrReadiness({
 
   if (offline || !workItem) {
     readinessErrors = readinessErrors.filter((error) => !LABEL_DERIVED_ERRORS.includes(error));
+    // Name the cause honestly. A body with no Work Item URL leaves nothing to look
+    // up, which is not a network failure — and that is the single most common
+    // failure case, so blaming the network there would misdirect every author.
     warnings.push(
-      'Offline/degraded mode: the linked Issue\'s lifecycle label checks ' +
-        `(${LABEL_DERIVED_ERRORS.join(', ')}) were NOT verified — they need \`gh issue view\`, ` +
-        'i.e. network and auth. Body-only checks were fully enforced. CI still enforces the labels.'
+      linkedIssue
+        ? 'Degraded mode: the linked Issue\'s lifecycle label checks ' +
+            `(${LABEL_DERIVED_ERRORS.join(', ')}) were NOT verified — they need \`gh issue view\`, ` +
+            'i.e. network and auth, which were unavailable. Body-only checks were fully enforced. ' +
+            'CI still enforces the labels.'
+        : 'Degraded mode: no linked Issue was resolved from the body, so no lifecycle label check ' +
+            'could run. This is not a network failure — supply the Work Item (Issue) URL. ' +
+            'Body-only checks were fully enforced.'
+    );
+  }
+
+  // A post-merge closeout PR is a legitimate class this repository opens routinely
+  // (e.g. PR #242). validateReadiness short-circuits on the closeout marker into two
+  // rules that are not body-derivable: the source PR's label needs network, and the
+  // authorized-file list needs a changed-file set that is unreliable before a push.
+  // Refusing closeout PRs locally would rebuild the failure mode that got AC-10
+  // withdrawn, at a different hook point. They are reported as unverified, not failed.
+  if (isCloseout) {
+    readinessErrors = readinessErrors.filter((error) => !CLOSEOUT_UNVERIFIABLE_ERRORS.includes(error));
+    warnings.push(
+      'Post-merge closeout PR: the source pull request\'s label and the authorized closeout file ' +
+        'set were NOT verified locally — neither is derivable from the body. CI still enforces both.'
     );
   }
   errors.push(...readinessErrors);
@@ -180,7 +240,10 @@ export function validatePrReadiness({
   // present" would pass a body that closes the wrong Issue — which is exactly the
   // #224 failure this gate exists to prevent.
   const closed = [...body.matchAll(CLOSING_KEYWORD)].map((m) => Number(m[1]));
-  if (linkedIssue && !closed.includes(linkedIssue)) {
+  if (isCloseout) {
+    // Closeout PRs close no Issue by design: their source Issues are auto-closed by
+    // the source PRs' own keywords, and the marker names the source PR instead.
+  } else if (linkedIssue && !closed.includes(linkedIssue)) {
     errors.push(
       closed.length
         ? `closing keyword referencing the linked Issue #${linkedIssue} (found #${closed.join(', #')} instead)`

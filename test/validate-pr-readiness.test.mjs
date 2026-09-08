@@ -1,5 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 import {
   LABEL_DERIVED_ERRORS,
   WORK_ITEM_CONTRACT,
@@ -218,4 +222,92 @@ test('AC-05: a producer omitting a required field is reported, not silently acce
   assert.ok(validateWorkItemShape({ labels: [], isSameRepository: true }).length);
   assert.ok(validateWorkItemShape(undefined).length);
   assert.ok(validateWorkItemShape({ isPullRequest: false, isSameRepository: true, labels: 'nope' }).length);
+});
+
+// ------------------------------------------ post-merge closeout PR handling
+
+const closeoutBody = [
+  '<!-- post-merge-closeout: complete; source-pr-241 -->',
+  '<!-- documentation-impact: complete -->',
+  'Developer: Work Item (Issue) URL: https://github.com/chakrits/AI-Agent-Workflow/issues/240',
+  'QA: evidence comment or review URL: https://github.com/chakrits/AI-Agent-Workflow/issues/237#issuecomment-5581618794',
+  '## Documentation Impact',
+  'PROJECT_STATUS.md and TASK_LOG.md updated.'
+].join('\n\n');
+
+test('closeout: a real post-merge closeout PR body is not refused locally', () => {
+  // Body shape of merged PR #242. Its two readiness rules — the source PR's label
+  // and the authorized-file list — are not checkable from the body, and closeout
+  // PRs carry no closing keyword by design. Refusing them would rebuild the
+  // failure mode that got AC-10 withdrawn, at a different hook point.
+  const { errors, warnings } = validatePrReadiness({
+    body: closeoutBody,
+    draft: false,
+    workItem: undefined,
+    changedFiles: [],
+    repository,
+    offline: true
+  });
+  assert.deepEqual(errors, []);
+  assert.ok(warnings.some((w) => w.toLowerCase().includes('closeout')), warnings.join(', '));
+});
+
+test('closeout: the Documentation Impact rules still apply to a closeout PR', () => {
+  const { errors } = validatePrReadiness({
+    body: closeoutBody.replace('## Documentation Impact\n', ''),
+    draft: false,
+    repository,
+    offline: true
+  });
+  assert.ok(errors.includes('## Documentation Impact section'), errors.join(', '));
+});
+
+test('closeout: a closeout PR still needs its Work Item Issue URL', () => {
+  const { errors } = validatePrReadiness({
+    body: closeoutBody.replace(/Developer: Work Item .*\n/, ''),
+    draft: false,
+    repository,
+    offline: true
+  });
+  assert.ok(errors.includes('Work Item (Issue) URL'), errors.join(', '));
+});
+
+// ------------------------------------------------- degraded-mode diagnosis
+
+test('degraded mode names the real cause when there is no Issue to look up', () => {
+  const { warnings } = validatePrReadiness({ body: 'no traceability', draft: false, repository, offline: true });
+  const text = warnings.join(' ');
+  assert.ok(!/network and auth/i.test(text), `must not blame the network when no Issue was linked: ${text}`);
+  assert.ok(/not a network failure/i.test(text), text);
+  assert.ok(/Work Item \(Issue\) URL/.test(text), 'must name the real cause');
+});
+
+test('degraded mode blames network/auth only when an Issue was linked but unfetchable', () => {
+  const { warnings } = validatePrReadiness({ body: bodyFor(), draft: false, workItem: undefined, repository, offline: true });
+  assert.ok(/network|auth/i.test(warnings.join(' ')), warnings.join(' '));
+});
+
+// ------------------------------------ unexpanded shell substitution guard
+
+test('an unexpanded shell substitution in --body is diagnosed, not misreported', () => {
+  const result = extractBodyFromCommand('gh pr create --body "$(cat body.md)"');
+  assert.ok(result.error, 'must refuse rather than validate the literal $(cat body.md)');
+  assert.ok(/substitution|--body-file/.test(result.error), result.error);
+});
+
+test('--body-file - (stdin) is diagnosed rather than read as a path', () => {
+  const result = extractBodyFromCommand('gh pr create --body-file -');
+  assert.ok(result.error, result.error);
+});
+
+// ----------------------------------------------- AC-04 hook cwd anchoring
+
+test('AC-04: the PreToolUse hook anchors to the project directory', () => {
+  const settings = JSON.parse(readFileSync(path.join(repoRoot, '.claude', 'settings.json'), 'utf8'));
+  const command = settings.hooks.PreToolUse.flatMap((e) => e.hooks).map((h) => h.command).join(' ');
+  assert.ok(
+    command.includes('CLAUDE_PROJECT_DIR'),
+    'npm run resolves package.json from cwd, and a PreToolUse hook is not guaranteed to run at ' +
+      'the repo root; without an anchor the gate silently produces no output, which allows the tool call'
+  );
 });
