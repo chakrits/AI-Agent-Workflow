@@ -4,7 +4,7 @@
 - [Issue #236](https://github.com/chakrits/AI-Agent-Workflow/issues/236) (IMP-007 — local enforcement hook layer), AC-02 through AC-05: activate the git hook layer and add the local PR readiness pre-flight.
 
 ## Current Stage
-- Verification complete, awaiting human merge approval. AC-06 through AC-14 remain undispatched.
+- Verification complete after three rework cycles and four independent QA rounds; awaiting human merge approval. AC-06 through AC-14 remain undispatched.
 
 ## Change Classification
 - Change Type: Framework / Meta Change
