@@ -1,17 +1,17 @@
 # PROJECT_STATUS.md
 
 ## Current Work Item
-- [Issue #237](https://github.com/chakrits/AI-Agent-Workflow/issues/237) (IMP-008 — canonical duplication elimination), AC-01 only: record SA Agent's approved evaluation as ADR-0023.
+- None — repository is idle. Two roadmap workstreams are filed and design-approved but not dispatched: [Issue #236](https://github.com/chakrits/AI-Agent-Workflow/issues/236) (IMP-007) and [Issue #237](https://github.com/chakrits/AI-Agent-Workflow/issues/237) (IMP-008).
 
 ## Current Stage
-- Recording the approved architecture decision. No implementation authorised by this change.
+- Idle, awaiting a Human Maintainer decision on whether to dispatch IMP-007's implementation.
 
 ## Change Classification
-- Change Type: Framework / Meta Change (documentation only)
-- Risk Level: Low
-- Code Change Required: No
-- Architecture Change Required: No — this records a decision already taken
-- Security Review Required: No
+- Change Type: N/A
+- Risk Level: N/A
+- Code Change Required: N/A
+- Architecture Change Required: N/A
+- Security Review Required: N/A
 
 ## Completed
 - Blank-template reset completed through PR #205 (`aa2a871`); historical records remain recoverable from Git history.
@@ -28,10 +28,17 @@
 
 - Issue #239 — recorded ADR-0022, no code change: adopted the portable-core/thin-invoker design for Issue #236 (IMP-007)'s hook layer, with the governing invariant that `.claude/settings.json` may only invoke a rule `.githooks/` or CI already enforces, never originate one — grounded in SA Agent's finding that neither `.agents/` nor `.agent/` carries a hook runtime. Established that enforcement level is determined by hook point rather than chosen. Withdrew Issue #236's AC-10 blocking commit gate rather than designing an escape hatch, after verifying `validate-project-state.mjs`'s markers describe normal mid-work state and that commit `3b49fca` would have been refused by it. Re-pointed AC-05 to an input contract and AC-12 to containment; corrected two counts (15 validators, 6 workflows). Merged via PR #238 (squash) as `7632e7a`. Verified at `303c64a` (565/565, `validate:contracts`, `validate:project-state`, `validate:skill-usage`, `validate:context-budget`, `adr:audit` at 3.00:1 all PASS). Issue #236 remains open for AC-02–AC-12. Evidence: https://github.com/chakrits/AI-Agent-Workflow/issues/236#issuecomment-5581291338
 
+- Issue #240 — recorded ADR-0023, no code change: scoped Issue #237 (IMP-008)'s relocation set after SA Agent read both sides of every proposed move rather than accepting the Issue's table. **Approved** AC-02 (conditional on an imperative pointer — the one genuine boot→on-demand crossing, since `docs/templates/HANDOFF.md` is registered to no role in either load mode), AC-03, AC-05 (retargeted to `AGENT_OPERATING_MODEL.md#human-approval-gates` after the "same list in three files" premise was disproven — the section sharing the name carries a different list), and AC-07 (conditional on first moving `role-definitions.md:346`'s R-001 provenance sentence into the skill). **Rejected** AC-04, whose stated destination does not own the content — grep confirmed three backward-routing rules and the "Do not skip QA" prohibition exist only in `AGENTS.md`, so the pointer would have deleted policy — and AC-06, whose principles are cited by number four times inside the Boundaries index. **Corrected** AC-08 to a five-field row (`context-compatibility-v1.mjs:139` grants one registered skill per role, so `Next Skill / Agent` is unreachable if moved), AC-11 from ≤24,600 to ≤26,300 (the original was unachievable even accepting every AC verbatim), and AC-12 to resolve its contradiction with AC-09. **Kept** the Boundaries index as a recorded rejection. **Added** AC-13 and AC-14. Merged via PR #241 (squash) as `eeb896a`. Verified at `8874387` (565/565; `validate:contracts`, `validate:project-state`, `validate:skill-usage`, `validate:context-budget`, `adr:audit` at 2.83:1 all PASS; every load-bearing SA claim independently re-derived, including composing all 31 five-field catalog rows from real values to measure the collapse at 2,735 tokens rather than the Issue's ~1,500 estimate). Issue #237 remains open for AC-02–AC-14. Evidence: https://github.com/chakrits/AI-Agent-Workflow/issues/237#issuecomment-5581618794
+
 ## In Progress
 - None.
 
 ## Blockers / Open Questions
+- Issue #236 (IMP-007) is design-approved via ADR-0022 but not dispatched: AC-02 through AC-12 remain open. AC-07 (the `validate:context-budget` edit guard) is a binding prerequisite for Issue #237's implementation.
+- Issue #237 (IMP-008) is design-approved via ADR-0023 but not dispatched: AC-02 through AC-08 and AC-13/AC-14 remain open, all gated on Issue #236's AC-07. The approved set lands at ~26,262 against ADR-0023's ≤26,300 target — roughly 38 tokens of margin, so pointer wording must be terse and the budget re-measured after each relocation.
+- Recorded in ADR-0023, not closed by it: the "Stop Conditions" naming collision across `AGENTS.md`, `AGENT_OPERATING_MODEL.md`, and `dynamic-routing.md` — three sections sharing a name with different content — is an unguarded drift surface. A follow-up to rename one of them is recommended.
+- Recorded in ADR-0022, not closed by it: `scripts/validate-qa-evidence.mjs` has no `package.json` script and no CI invocation, and is reached only by `test/qa-evidence.test.mjs`. Issue #236's AC-12 test must surface it; whether to wire it or document it as test-only is open.
+- Issue #178's Scope Rules still state "IMP-001 is the only workstream authorized to start now", written 2026-08-15 before IMP-006 was authorised and completed. The rule needs refreshing regardless of the decision on #236/#237.
 - Deferred by Human Maintainer decision (2026-09-07, [ADR-0020](DECISIONS.md), Issue #226): SA Agent's `normaliseCommand`/`IGNORED_COMMAND_RE` finding in `scripts/validate-ci-parity.mjs` (a `run: |` multi-line step's non-global `.match()` only extracts the first command, and a block whose first line matches `IGNORED_COMMAND_RE` is discarded whole) is confirmed latent, not currently live — every `run:` step in `.github/workflows/validate-contracts.yml` is single-line. Deferred rather than fixed now; revisit if a multi-line `run:` block is ever introduced.
 - Minor from Issue #210's round-3 review: the "yielded no comparable commands" error message in `scripts/validate-ci-parity.mjs` says "if the job was restructured... into a composite action," which is misleading for a job that legitimately runs only ignored commands (`npm test`/`npm ci`). Cosmetic wording only, not fixed.
 
