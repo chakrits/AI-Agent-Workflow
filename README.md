@@ -96,7 +96,7 @@ Two hooks become active:
 | Hook | Behaviour |
 |---|---|
 | `post-merge` | Informational. Lists prunable `.worktrees/` entries after a merge on `main`. |
-| `pre-push` | Blocking, opt-in. When `PR_BODY_FILE` names a pull request body draft, runs the readiness pre-flight below and refuses the push if the draft is incomplete. Without `PR_BODY_FILE` it prints a reminder and exits 0. |
+| `pre-push` | Blocking, opt-in. When `PR_BODY_FILE` names a pull request body draft, runs the readiness pre-flight below and refuses the push if the draft is incomplete, or if the named file cannot be read — a draft named but not read is not a draft checked. Without `PR_BODY_FILE` it prints a reminder and exits 0: a push with no PR body in play is never refused. |
 
 To check a pull request body draft before opening the PR:
 
@@ -104,9 +104,13 @@ To check a pull request body draft before opening the PR:
 PR_BODY_FILE=pr-body.md npm run validate:pr-readiness
 ```
 
-This refuses a body missing its Work Item (Issue) URL, its QA evidence URL, a closing keyword (`Fixes #N`) referencing that Issue, or the `## Documentation Impact` section and its `<!-- documentation-impact: complete -->` marker — the same rules CI enforces after a PR exists, applied before one is opened. Label checks need `gh` auth; without network the body checks still run and the skipped label checks are named in a warning. GitHub only.
+This refuses a body missing its Work Item (Issue) URL, its QA evidence URL, a closing keyword (`Fixes #N`) referencing that Issue, or the `## Documentation Impact` section and its `<!-- documentation-impact: complete -->` marker — the same rules CI enforces after a PR exists, applied before one is opened. Label checks need `gh` auth; without network the body checks still run and the skipped label checks are named in a warning.
+
+GitHub only, and it says so rather than blaming the body: if `git remote get-url origin` cannot be resolved to a `github.com` owner/repo — no remote, a non-GitHub host, an SSH host alias, an unusual worktree — the run reports the Issue-linkage checks as out of scope instead of reporting a missing Work Item URL that the body in fact contains.
 
 Under Claude Code the same npm script also runs automatically as a `PreToolUse` hook on `gh pr create` ([.claude/settings.json](./.claude/settings.json)). That hook invokes the identical script rather than restating any rule, so no rule can exist for one host only.
+
+The hook gates only the command a shell would actually execute. It parses the command string for quoting and heredocs, so writing a file, echoing a string, or grepping documentation that merely *mentions* the command is not intercepted — only a real invocation is. `--help` and `-h` pass through: they create no pull request and have no body to check. `--web`, `--fill` and `--template` are refused, because those do create a pull request whose body the hook cannot read.
 
 ### 4. Give your agent a safe first prompt
 
