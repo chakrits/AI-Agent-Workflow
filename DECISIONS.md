@@ -7,6 +7,144 @@ Restored on 2026-09-05 under Issue #208. The blank-template resets of 2026-08-12
 that currently-open issues cite; ADR-0002 through ADR-0016 and ADR-0018 remain recoverable via
 `git show afe8091:DECISIONS.md` and were left out by Human Maintainer decision.
 
+### ADR-0023: Canonical duplication elimination — scoped relocation set, retained Boundaries index, five-field catalog row
+
+- Date: 2026-09-08
+- Work Items: [Issue #237](https://github.com/chakrits/AI-Agent-Workflow/issues/237) (IMP-008)
+- Status: Accepted
+
+#### Context
+
+Issue #237 (IMP-008 — canonical duplication elimination) requires AC-01 to decide, before
+implementation, three things: which of the proposed relocations are genuine duplication safe to
+replace with a pointer; whether `AGENTS.md`'s Boundaries (Always / Ask First / Never) index is
+kept, which is a rejected removal and therefore needs an ADR under the Completion Rule; and the
+target row shape for the collapsed `SKILL_CATALOG.md` table.
+
+The measured baseline on `main` @ `429c0da` is 29,534/30,000 tokens, leaving 466 of headroom, with
+565 tests passing, skill parity at 39 and adapter parity at 11. The Issue's premise was that four
+blocks of content are written twice across two files that are both counted against the budget,
+with no validator keeping the copies in sync — both a token cost and an unguarded drift surface,
+unlike skills and role adapters which have `validate-skill-parity` and `validate-adapter-parity`.
+
+SA Agent read both sides of every proposed relocation rather than accepting the Issue's table, and
+examined `scripts/lib/context-compatibility-v1.mjs`, which the Issue did not address and which
+partitions canonical files into `BOOT_SOURCES` (always loaded) and `ON_DEMAND_BASE_SOURCES`.
+**Three of the Issue's measurements and two of its acceptance criteria did not survive that
+check.** The parent independently re-derived every load-bearing finding before accepting it.
+
+The governing constraint beyond token count: a relocation that makes a rule harder to find at the
+moment it applies is a regression even when the budget improves.
+
+#### Decision
+
+**Approved relocations.** AC-02 (the 46-field handoff list into `handoff-contract.md`), verified as
+46/46 identical fields in the same order with none unique to either side, **conditional on the
+replacement pointer being imperative** — "load `docs/workflow/handoff-contract.md` before emitting
+any handoff" — because this is the one genuine boot→on-demand crossing and
+`docs/templates/HANDOFF.md`, which both files cite, is registered to no role in either load mode.
+AC-03 (Lifecycle Label Contract into `dynamic-routing.md:46-77`), a verified superset, measured at
+298 tokens rather than the Issue's 531. AC-07 (the Release Agent's four subsections into the
+`release-readiness-checklist` skill), **conditional on first moving `role-definitions.md:346`'s
+R-001 provenance sentence into the skill**, which does not currently carry it.
+
+**AC-05 approved only with a retargeted pointer.** The Issue's premise that the same list exists in
+three files is false. Three sections carry similar names and different content:
+`AGENTS.md:81-89`'s Stop Conditions lists subject-matter triggers;
+`AGENT_OPERATING_MODEL.md:91-100`'s **Stop Conditions** lists situational triggers — a different
+list; and `AGENT_OPERATING_MODEL.md:51-60`'s **Human Approval Gates** is the actual superset. The
+pointer must target `#human-approval-gates`, and the same change must retarget `AGENTS.md:104`'s
+reference, which the relocation would otherwise leave dangling.
+
+**AC-04 and AC-06 are rejected.** AC-04's stated destination does not own the content:
+`dynamic-routing.md`'s Standard and Backward Paths governs phase-label transitions, not
+role-to-role backward routing. Verified by grep across every counted file, three of the six
+backward rules and the prohibition "Do not skip QA for user-visible, business-rule, or production
+data/config changes" exist only in `AGENTS.md`. Executing AC-04 as written would delete policy,
+contradicting the Issue's own "Policy statements removed: 0" measure. AC-06's two lists overlap in
+substance but not in shape, and `AGENTS.md`'s numbered principles are cited **by number** four
+times inside the Boundaries index; 132 tokens does not justify four broken cross-references when
+repairing them costs nearly as much as the move saves.
+
+**AC-08 approved with a five-field row shape:**
+`Skill | Trigger | Primary Agent | Do Not Use When | Next Skill / Agent`, applied consistently
+across `## Current Skills` and `## Engineering Discipline` as well, so the file carries one row
+shape rather than three. `Next Skill / Agent` must remain in the catalog because
+`validateSourceMatrix()` (`context-compatibility-v1.mjs:139`) grants each role exactly one
+`allowedSkillId`, so an agent selecting among 31 skills cannot open the other 30 `SKILL.md` files
+as registered sources — chaining information is consumed at selection time and becomes unreachable
+if moved. Input and Output are execution detail and may move.
+
+**The Boundaries index is kept.** It is the only single-surface Always / Ask First / Never check in
+the tree, and boot mode carries just three files; converting a one-look stop check into a
+seven-section scan is a usability regression the 316 tokens do not buy back.
+
+**AC-11 is re-baselined from ≤24,600 to ≤26,300 tokens.** The original target was unachievable
+**even accepting every acceptance criterion verbatim** (~25,410, missing by ~810), because three
+estimates were high. #178's 30,000-token target is unchanged; only this Issue's interim waypoint
+moves. **AC-12 is restated** as "≥565 tests with no assertion removed without an equivalent
+replacement", resolving its contradiction with AC-09, which authorises consolidating assertion
+sites into fewer cases.
+
+#### Alternatives Considered
+
+- **Accept the relocation set as a block, per the Issue's table** — rejected. Two items fail
+  independent verification. Per-item judgment was required and produced two rejections.
+- **Execute AC-04 as written** — rejected; it deletes three backward-routing rules and one QA-skip
+  prohibition that exist nowhere else. The expand-then-point variant — add the missing rules to
+  `dynamic-routing.md` first, verify, then replace — is legitimate but is a content change rather
+  than a pointer swap, and is carried separately as AC-13.
+- **Point AC-05 at `AGENT_OPERATING_MODEL.md` without a section anchor** — rejected; the section
+  sharing the name carries different content, so the pointer would route an agent to the wrong
+  list at the moment a stop decision is being made.
+- **Remove the Boundaries index for 316 tokens** — rejected. It is the only consolidated boundary
+  check, and it would not rescue AC-11 regardless, since the gap is ~1,600 tokens. The choice was
+  never "usability versus passing AC-11".
+- **Collapse the catalog to Trigger / Primary Agent / Do Not Use When** — rejected. Measured at
+  2,216 tokens against the five-field shape's 2,735, it saves ~519 more and breaks skill chaining
+  for every role, because only one `SKILL.md` per role is a registered source.
+- **Relocate `AGENTS.md`'s nine change-type "Recommended flow" blocks** — considered as the only
+  unscoped lever large enough to close AC-11's original gap, and declined. Measured at 602 tokens
+  with only the flow arrows genuinely redundant against `dynamic-routing.md:83-96`'s Change Types
+  table; the Required-artifacts lists and the Security-sensitive enumeration exist nowhere else, so
+  realistic net is ~250-300. Recorded as revisitable if more headroom is needed later.
+- **Raise the 30,000-token target** — not considered; prohibited by Issue #178's standing scope rule.
+
+#### Consequences
+
+- AC-04 and AC-06 are closed as rejected; the Issue's `AGENTS.md` target falls from −1,165 tokens
+  to ~−590. AC-13 carries AC-04's safe expand-then-point variant and may be deferred without
+  blocking the Issue.
+- Measured landing for the approved set is **~26,262 against the ≤26,300 target — only ~38 tokens
+  of margin.** Pointer wording must be terse, and the budget must be re-measured after each
+  relocation rather than only at the end.
+- The AC-08 collapse was measured, not estimated: composing all 31 five-field rows from the current
+  catalog's real values yields 2,735 tokens at ~88 per row, against the region's 4,856 — a net
+  reduction of 2,121. The Issue's ~1,500 estimate was high by ~700.
+- AC-09's implementation note is corrected to **6 test cases across 11 assertion sites covering 20
+  skills**. Line 909's assertion is unanchored (`/## git-workflow-and-versioning/`) and will be
+  missed by a search for the anchored pattern, though it still breaks against a table row. The
+  `tokenPattern` safety claim is verified true, with the caveat that it guards only the 11 skills in
+  `ROLE_SOURCE_CONTRACT`, not all 31. `validate-contracts.test.mjs:1937` already asserts a table
+  row, so it is precedent for the target shape and constrains `## Current Skills`' column order.
+- AC-10's repin is a hard build dependency, not housekeeping: `required-source-matrix.json` pins the
+  six touched files by sha256 **99 times**.
+- AC-14 is added for five non-test consumers that read stale after the collapse and which the Issue
+  listed none of: `CONTEXT_BUDGET.md`, `operating-model/README.md`, `docs/vault/00-Index.md`,
+  `docs/workflows/stabilize-core.md`, and `AGENT_EVALUATION_CHECKLIST.md`.
+- AC-02's approved form leaves a residual: the handoff field enumeration is no longer reachable in
+  boot mode. Accepted because the list is a write-time checklist rather than a decision rule, and
+  mitigated by the imperative pointer wording.
+- Recorded but not closed here: the **"Stop Conditions" naming collision** across `AGENTS.md`,
+  `AGENT_OPERATING_MODEL.md`, and `dynamic-routing.md` — three sections sharing a name with
+  different content — is an unguarded drift surface. A follow-up to rename one of them is
+  recommended.
+- Implementation of AC-02 through AC-08, AC-13 and AC-14 is gated on Issue #236 (IMP-007 AC-07)
+  landing, so `validate:context-budget` guards canonical-file edits while the budget itself is edited.
+- Recording this ADR keeps `npm run adr:audit` far inside the 10:1 threshold.
+- Owner: Human Maintainer (approval, granted 2026-09-08), then Developer Agent. This ADR authorises
+  no implementation on its own.
+
 ### ADR-0022: Local enforcement hook layer — portable core with thin invokers; no blocking commit gate
 
 - Date: 2026-09-08
