@@ -39,7 +39,11 @@ export function buildReadinessCheck({
       draft: pull.draft,
       workItem,
       changedFiles,
-      sourcePullRequest
+      sourcePullRequest,
+      // Issue #246, AC-07: the closing-keyword rule is enforced here, in CI, for
+      // every host — not only in the Claude-specific PreToolUse hook, where it
+      // originated in violation of ADR-0022's invariant.
+      linkedIssueNumber
     }),
     ...(resolutionError ? [resolutionError] : [])
   ];

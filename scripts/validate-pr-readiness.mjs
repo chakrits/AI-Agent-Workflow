@@ -10,9 +10,16 @@
  * `findLinkedIssueNumber()` is imported unmodified (AC-03 decision 3).
  */
 import { readFileSync } from 'node:fs';
+import { isAbsolute } from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { pathToFileURL } from 'node:url';
-import { validateReadiness } from './work-item-readiness.mjs';
+import {
+  validateReadiness,
+  stripCodeSpans,
+  advancesOnlyIssues,
+  closingKeywordErrors,
+  closingKeywordIssues
+} from './work-item-readiness.mjs';
 import { findLinkedIssueNumber } from './work-item-readiness-check.mjs';
 
 /**
@@ -94,92 +101,16 @@ export const CLOSEOUT_UNVERIFIABLE_ERRORS = Object.freeze(['labeled source pull 
 export const CLOSEOUT_FILE_ERROR = 'closeout files are not authorized';
 
 /**
- * The partial-progress marker (Human Maintainer decision, 2026-09-08).
+ * Re-exported, not re-implemented (Issue #246, AC-07).
  *
- * This repository routinely opens PRs that advance a multi-AC Issue without
- * closing it, and the closing-keyword rule refused every one of them — PRs #232
- * and #234 among them. The rule cannot simply be dropped: Issue #224 stayed open
- * precisely because its PR carried no closing keyword, which is the failure this
- * gate exists to prevent. So the author may *declare* that no Issue is being
- * closed, but may not *forget* to close one.
- *
- * The marker names its Issue, and naming any other Issue is an error rather than
- * a no-op. A marker that suppressed the rule regardless of the number it carries
- * would be a blanket escape hatch, copy-pasteable between Issues without ever
- * being wrong — which the decision explicitly rejects.
- *
- * Syntax mirrors the two markers already in the body vocabulary
- * (`<!-- post-merge-closeout: complete; source-pr-N -->`,
- * `<!-- documentation-impact: complete -->`): an HTML comment, `name: value`,
- * with the `issue-N` form paralleling `source-pr-N`. Spelling the number as
- * `issue-236` rather than `#236` keeps it out of GitHub's cross-reference
- * rendering and out of CLOSING_KEYWORD's way.
+ * The `advances-only` marker, the code-span scrubber and the closing-keyword
+ * rule all moved into `work-item-readiness.mjs` so the rule is enforced by CI's
+ * `work-item-readiness-freshness` check for every host, not originated here in a
+ * Claude-only hook. ADR-0022's invariant — `.claude/settings.json` may invoke a
+ * rule but never originate one — holds again as a result. These names stay
+ * exported from this module because it is this gate's public surface.
  */
-const ADVANCES_ONLY_MARKER = /<!--\s*advances-only:\s*issue-(\d+)\s*-->/gi;
-
-/**
- * Every Issue number the body's advances-only markers name, in order.
- *
- * Markers inside a fenced code block or an inline backtick span are ignored: this
- * repository documents the marker syntax (README.md) and writes about its own
- * gates constantly, so prose explaining the marker must neither waive the
- * closing-keyword rule nor raise an error (Issue #236, M1).
- *
- * The fresh regex per call is *not* defensive against `lastIndex`: `matchAll`
- * clones its argument and never advances the original's `lastIndex`, so sharing
- * the global regex would be safe (Issue #236, M9 — an equivalent mutant, and the
- * comment that stood here described a hazard that does not exist). It is kept
- * only so the module-level literal stays a declaration rather than mutable state.
- */
-export function advancesOnlyIssues(body = '') {
-  return [...stripCodeSpans(body).matchAll(new RegExp(ADVANCES_ONLY_MARKER.source, 'gi'))].map((m) =>
-    Number(m[1])
-  );
-}
-
-/**
- * Blanks out fenced code blocks and inline backtick spans (Issue #236, M1).
- *
- * Deliberately a scrubber, not a Markdown parser. What it covers: ``` and ~~~
- * fences (any length >= 3, opened and closed at line start with optional
- * indentation), and inline spans delimited by a matching run of backticks on one
- * line. What it does NOT cover: indented (four-space) code blocks, HTML <code>
- * or <pre> elements, fences nested inside list items or blockquotes at a deeper
- * indent than three spaces, and backtick spans that straddle a newline. An
- * unterminated fence blanks the remainder of the body. Both directions are then
- * fail-closed: the marker stops waiving and the closing keyword stops satisfying,
- * so such a body is refused rather than passed silently.
- *
- * Scrubbed: this parser and the closing-keyword scan, and only those. Read from
- * the raw body, deliberately: findLinkedIssueNumber() (a fenced Work Item URL
- * still resolves), validateReadiness()'s QA-evidence check, the Documentation
- * Impact heading and marker, and CLOSEOUT_MARKER — scrubbing the last would
- * change post-merge closeout behaviour, which Issue #236 cycle 3 puts out of
- * scope. A fenced closeout marker therefore still flips the closeout branch.
- *
- * Content is replaced by spaces rather than removed so that surrounding text
- * cannot be joined into a marker or keyword that the author never wrote.
- */
-export function stripCodeSpans(body = '') {
-  const blank = (text) => text.replace(/[^\n]/g, ' ');
-  const lines = String(body).split('\n');
-  let fence;
-  const out = lines.map((line) => {
-    const opener = /^\s{0,3}(`{3,}|~{3,})/.exec(line);
-    if (fence) {
-      const closes = opener && opener[1][0] === fence[0] && opener[1].length >= fence.length;
-      if (closes) fence = undefined;
-      return blank(line);
-    }
-    if (opener) {
-      fence = opener[1];
-      return blank(line);
-    }
-    // Inline spans: a run of N backticks closed by the next run of exactly N.
-    return line.replace(/(`+)(?:(?!\1)[\s\S])*?\1/g, blank);
-  });
-  return out.join('\n');
-}
+export { stripCodeSpans, advancesOnlyIssues, closingKeywordErrors, closingKeywordIssues };
 
 /**
  * Why `gh issue view` failed: the Issue does not exist, or it could not be reached.
@@ -198,7 +129,6 @@ export function classifyIssueFetchFailure(stderr = '') {
     : 'unreachable';
 }
 
-const CLOSING_KEYWORD = /\b(?:fix(?:e[sd])?|close[sd]?|resolve[sd]?)\b\s*:?\s*#(\d+)/gi;
 const DOC_IMPACT_HEADING = '## Documentation Impact';
 const DOC_IMPACT_MARKER = '<!-- documentation-impact: complete -->';
 
@@ -383,7 +313,11 @@ function unquote(value) {
  */
 export function extractBodyFromCommand(command = '') {
   const text = String(command);
-  const bodyMatch = text.match(/(?:^|\s)(?:--body|-b)[= ]\s*("(?:[^"\\]|\\.)*"|'[^']*'|\S+)/);
+  // The attached short-flag form (`-b<value>`, `-F<value>`) is accepted because
+  // `gh` accepts it. Missing it made the flag invisible and fell through to the
+  // no-flag branch, which DENIES — a false deny of a command carrying a
+  // perfectly good body (found while implementing Issue #246, AC-08).
+  const bodyMatch = text.match(/(?:^|\s)(?:--body[= ]\s*|-b[= ]?\s*)("(?:[^"\\]|\\.)*"|'[^']*'|\S+)/);
   if (bodyMatch) {
     const raw = unquote(bodyMatch[1]);
     // The hook sees the command *before* the shell expands it, so `--body "$(cat
@@ -401,16 +335,58 @@ export function extractBodyFromCommand(command = '') {
     return { body: raw.replace(/\\n/g, '\n').replace(/\\"/g, '"'), source: '--body' };
   }
 
-  const fileMatch = text.match(/(?:^|\s)(?:--body-file|-F)[= ]\s*("[^"]*"|'[^']*'|\S+)/);
+  const fileMatch = text.match(/(?:^|\s)(?:--body-file[= ]\s*|-F[= ]?\s*)("[^"]*"|'[^']*'|\S+)/);
   if (fileMatch) {
     const file = unquote(fileMatch[1]);
     if (file === '-') {
+      // Unknowable at EVERY point in the command's life: stdin is consumed by
+      // `gh`, and no path exists that the hook could read later. Fail-closed is
+      // retained here, unchanged (ADR-0024 D1).
       return {
         error:
           'PR readiness pre-flight cannot read the pull request body: --body-file - reads from ' +
           'stdin, which the hook cannot observe. Write the body to a file and pass its path.'
       };
     }
+
+    // ORDER MATTERS (Issue #246, AC-08). An unexpandable path is classified
+    // BEFORE the relative-path refusal, because `$S/body.md` and `~/body.md` are
+    // not absolute *literals* and a naive "does not start with /" test would
+    // refuse them — re-creating shape 5 of the refuses-legitimate-work table
+    // while fixing shape 7. They are declined, not refused (AC-03 / D2).
+    if (/[$`~]/.test(file)) {
+      return {
+        bodyFile: file,
+        source: '--body-file',
+        unresolvable:
+          `PR readiness pre-flight did not check --body-file ${file}: the path contains shell ` +
+          'syntax (a variable, a command substitution, or ~) that only the shell can expand. ' +
+          'Expanding it here would need the environment of a shell that has not started yet, ' +
+          'including assignments made earlier in this same command string; a wrong guess would ' +
+          'read a different file than `gh` reads and could pass a bad body (Issue #246, AC-03 / ' +
+          'ADR-0024 D2). The pull request body was NOT validated locally. CI still enforces ' +
+          'every rule. To check it locally, pass an absolute literal path.'
+      };
+    }
+
+    if (!isAbsolute(file)) {
+      // A FALSE PASS, categorically worse than a false deny (ADR-0024 D4).
+      // `.claude/settings.json` runs `cd "${CLAUDE_PROJECT_DIR:-.}"`, so a
+      // relative path resolves against the project root here and against the
+      // calling shell's cwd for `gh`. Where the two differ the hook validates
+      // one file and `gh` submits another. Refusing is the narrowest fix: the
+      // alternative is guessing which cwd was meant, and skipping would stop
+      // checking every relative path, including the ones that resolve alike.
+      return {
+        error:
+          `PR readiness pre-flight refuses the relative --body-file path ${file}: this hook runs ` +
+          'from the project root, while `gh` runs from your shell\'s working directory, so the ' +
+          'two can resolve the same relative path to different files — and the gate would then ' +
+          'validate a file that `gh` never submits (Issue #246, AC-08). Pass an absolute path, ' +
+          `e.g. --body-file "$(pwd)/${file}".`
+      };
+    }
+
     return { bodyFile: file, source: '--body-file' };
   }
 
@@ -498,7 +474,11 @@ export function validatePrReadiness({
     draft,
     workItem: effectiveWorkItem,
     changedFiles,
-    sourcePullRequest
+    sourcePullRequest,
+    // The closing-keyword rule is evaluated by the shared core now (AC-07); this
+    // caller supplies the linked Issue and reports the result, rather than
+    // owning a second copy of the rule.
+    linkedIssueNumber: linkedIssue
   });
 
   if (offline || !workItem) {
@@ -569,29 +549,17 @@ export function validatePrReadiness({
   // scope in the warning above instead (Issue #236, Finding 5).
   if (repositoryResolved && !linkedIssue) errors.push('Work Item (Issue) URL');
 
-  // Closing keyword must reference the *linked* Issue (AC-03). "Some Fixes #N is
-  // present" would pass a body that closes the wrong Issue — which is exactly the
-  // #224 failure this gate exists to prevent.
-  // Read from the scrubbed body, not the raw one, so the two scans cannot drift
-  // apart in their code-fence awareness (Issue #236, M1). A `Fixes #N` that only
-  // appears inside a fence closes nothing on merge, so it must not satisfy the
-  // rule either.
-  const closed = [...stripCodeSpans(body).matchAll(CLOSING_KEYWORD)].map((m) => Number(m[1]));
-
-  // A partial-progress declaration, and only for the Issue it names. When no Issue
-  // could be resolved from the body the marker is inert and silent: there is
-  // nothing to check it against, and that state already carries its own error
-  // ('Work Item (Issue) URL') or the out-of-scope warning above.
+  // The closing-keyword rule itself is enforced by the shared core, which this
+  // caller invoked above with `linkedIssueNumber` (Issue #246, AC-07). What
+  // remains here is caller-local reporting: the warning that explains a waived
+  // requirement, and the one arm the core cannot express — no linked Issue at
+  // all, where the core returns [] because there is nothing to check against.
+  const closed = closingKeywordIssues(body);
   const declaredAdvances = advancesOnlyIssues(body);
-  const misnamedAdvances = linkedIssue ? declaredAdvances.filter((n) => n !== linkedIssue) : [];
   const advancesOnly =
-    Boolean(linkedIssue) && declaredAdvances.length > 0 && misnamedAdvances.length === 0;
-  if (misnamedAdvances.length) {
-    errors.push(
-      `advances-only marker naming the linked Issue #${linkedIssue} ` +
-        `(found issue-${misnamedAdvances.join(', issue-')} instead)`
-    );
-  }
+    Boolean(linkedIssue) &&
+    declaredAdvances.length > 0 &&
+    declaredAdvances.every((n) => n === linkedIssue);
 
   if (isCloseout) {
     // Closeout PRs close no Issue by design: their source Issues are auto-closed by
@@ -601,23 +569,15 @@ export function validatePrReadiness({
     // all (Human Maintainer decision, 2026-09-08 — Issue #236, B1). The marker
     // waives the requirement that a keyword be *present*; it does not waive the
     // requirement that a keyword which IS present point at the linked Issue.
-    // Suppressing the wrong-Issue arm too meant a body carrying `Fixes #212`
-    // passed while this very warning told the author the PR closed nothing — and
-    // merging it closed #212. The `closed.length === 0` guard is also what makes
-    // the wording below true: it can only be reached when no keyword stands.
+    // The `closed.length === 0` guard is also what makes the wording below true:
+    // it can only be reached when no keyword stands.
     warnings.push(
       `Partial-progress PR: the body carries \`<!-- advances-only: issue-${linkedIssue} -->\`, so ` +
         `the closing-keyword requirement for Issue #${linkedIssue} was SKIPPED — this PR advances ` +
         'that Issue without closing it, and the Issue must be closed by a later PR or by hand. ' +
         'Every other readiness rule was enforced normally.'
     );
-  } else if (linkedIssue && !closed.includes(linkedIssue)) {
-    errors.push(
-      closed.length
-        ? `closing keyword referencing the linked Issue #${linkedIssue} (found #${closed.join(', #')} instead)`
-        : `closing keyword referencing the linked Issue #${linkedIssue} (e.g. "Fixes #${linkedIssue}")`
-    );
-  } else if (!linkedIssue && !closed.length) {
+  } else if (!linkedIssue && !closed.length && !isCloseout) {
     errors.push('closing keyword referencing the linked Issue (e.g. "Fixes #N")');
   }
 
@@ -697,6 +657,22 @@ function fetchWorkItem(issueNumber, repository) {
  * identical condition denied in `runHookMode()` (Issue #236, Finding 4). An
  * author who typos the path was told their draft was checked when it was not.
  */
+/*
+ * Why this path does NOT adopt AC-02's allow-with-warning or AC-08's relative-path
+ * refusal (Issue #246 — stated because Issue #236's Finding 4 was exactly the two
+ * paths disagreeing about an identical-looking condition):
+ *
+ * Both of those rules exist because a `PreToolUse` hook inspects a command string.
+ * Neither condition can arise here.
+ *   - cwd: `PR_BODY_FILE` is resolved by the same process the author's own shell
+ *     started, so a relative path means what the author meant. The hook, by
+ *     contrast, runs after `cd "${CLAUDE_PROJECT_DIR:-.}"` and can resolve the
+ *     same path to a different file than `gh` would. No ambiguity here, so no
+ *     refusal here.
+ *   - timing: nothing executes after this check, so a named-but-missing draft is
+ *     never "not written yet" — it is simply wrong. Exiting non-zero costs a push,
+ *     not a `git commit` that shared a command line. Fail-closed stays.
+ */
 function readBodyDraft() {
   const file = process.env.PR_BODY_FILE;
   if (!file) return { state: 'unset' };
@@ -734,6 +710,11 @@ function runHookMode() {
   }
   const command = input?.tool_input?.command ?? '';
   const allow = () => process.stdout.write(JSON.stringify({}) + '\n');
+  // Allowing WITH a warning, never silently: the author is told exactly what went
+  // unchecked and why. `systemMessage` alone carries no permission decision, so
+  // the call proceeds.
+  const allowWith = (message) =>
+    process.stdout.write(JSON.stringify({ systemMessage: message }) + '\n');
 
   if (input.tool_name !== 'Bash') return allow();
 
@@ -750,15 +731,41 @@ function runHookMode() {
   if (isHelpInvocation(segment)) return allow();
 
   const extracted = extractBodyFromCommand(segment);
+
+  // Precedence, stated explicitly (Issue #246, AC-02):
+  //   1. error shapes            -> deny  (no flag at all; --body-file -)
+  //   2. unresolvable path       -> allow with a warning (AC-03 / D2)
+  //   3. declared-but-unreadable -> allow with a warning (AC-02 / D1)
+  //   4. readable file           -> full validation, and deny on any rule failure
+  if (extracted.error) return deny(extracted.error);
+  if (extracted.unresolvable) return allowWith(extracted.unresolvable);
+
   let body = extracted.body;
   if (extracted.bodyFile) {
     try {
       body = readFileSync(extracted.bodyFile, 'utf8');
     } catch {
-      return deny(`PR readiness pre-flight could not read --body-file ${extracted.bodyFile}.`);
+      // A PreToolUse hook fires BEFORE the command runs. When the body file is
+      // written and consumed in the same command string — `cat > body.md <<EOF
+      // ... EOF && gh pr create --body-file body.md` — the path is absolute and
+      // correct yet does not exist yet. Denying here was not merely a false
+      // deny: a PreToolUse deny discards the WHOLE tool call, so the `git
+      // commit` and `git push` earlier in that same string never ran (Issue
+      // #236, "Finding from live use", 2026-09-09).
+      //
+      // Fail-closed is retained for a body that is uncheckable at EVERY point in
+      // the command's life. This one is not unknowable, only not-yet-knowable,
+      // and CI enforces every rule on it minutes later (ADR-0024 D1).
+      return allowWith(
+        `PR readiness pre-flight did NOT validate the pull request body: --body-file ` +
+          `${extracted.bodyFile} does not exist yet at hook time — this hook runs before the ` +
+          'command does, so a body written earlier in this same command string is not on disk ' +
+          'when the hook looks. Allowing the call rather than refusing it (Issue #246, AC-02 / ' +
+          'ADR-0024 D1): refusing would discard the entire command, including any work before ' +
+          'the `gh pr create`. CI still enforces every readiness rule on the opened pull request.'
+      );
     }
   }
-  if (extracted.error) return deny(extracted.error);
 
   const draft = /\s--draft\b/.test(segment);
   const { errors, warnings } = evaluate({ body, draft });

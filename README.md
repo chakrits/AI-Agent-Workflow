@@ -114,6 +114,18 @@ Under Claude Code the same npm script also runs automatically as a `PreToolUse` 
 
 The hook gates only the command a shell would actually execute. It parses the command string for quoting and heredocs, so writing a file, echoing a string, or grepping documentation that merely *mentions* the command is not intercepted — only a real invocation is. `--help` and `-h` pass through: they create no pull request and have no body to check. `--web`, `--fill` and `--template` are refused, because those do create a pull request whose body the hook cannot read.
 
+A `PreToolUse` hook sees the command *text*, before a shell has expanded anything and before the command has run. That seam decides how each `--body-file` shape is treated (ADR-0024):
+
+| `--body-file` shape | Behaviour | Why |
+|---|---|---|
+| absolute path, readable | validated | the hook reads the same bytes `gh` will read |
+| absolute path, not written yet | **allowed, with a warning** | a body written earlier in the same command string is not on disk when the hook looks. It is not unknowable, only not-yet-knowable — and a `PreToolUse` refusal discards the *whole* tool call, so denying would throw away a `git commit` that shared the command line. CI enforces every rule minutes later. |
+| contains `$VAR`, `${VAR}`, `` ` `` or `~` | **allowed, with a warning** | expanding it is declined, not deferred. Correct expansion needs the environment of a shell that has not started, including assignments made earlier in the same command string. A wrong guess is strictly worse than not checking: the hook would read a different file than `gh` reads and could pass a bad body. Pass an absolute literal path to get it checked. |
+| relative path | **refused** | this hook runs from the project root, `gh` runs from your shell's working directory. Where the two differ the hook validates one file and `gh` submits another — a false pass, which is more dangerous than no gate because it is trusted. Pass `"$(pwd)/body.md"`. |
+| `--body-file -`, or neither `--body` nor `--body-file` | **refused** | uncheckable at every point in the command's life, and chosen by the author. A gate that passes when it can never see its input is not a gate. |
+
+Every rule the hook applies is also enforced by CI's `work-item-readiness-freshness` check, including the closing-keyword rule — the hook invokes rules, it never originates them, so no non-Claude host loses one (ADR-0022, ADR-0024).
+
 ### 4. Give your agent a safe first prompt
 
 ```text

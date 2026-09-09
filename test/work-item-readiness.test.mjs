@@ -355,3 +355,36 @@ test('allows only an authenticated closeout with authorized files', () => {
     ['labeled source pull request']
   );
 });
+
+// --------------------------------------------------- Issue #246, AC-07
+// `linkedIssueNumber` is additive: omitting it must reproduce pre-#246 behaviour
+// exactly, because every other caller of this live core omits it.
+
+test('AC-07: omitting linkedIssueNumber leaves the result unchanged', () => {
+  const args = {
+    body: 'QA: evidence comment or review URL: https://example.com/x',
+    draft: false,
+    workItem: {
+      isPullRequest: false,
+      isSameRepository: true,
+      labels: ['phase:verification', 'status:spec-ready', 'status:development-done', 'status:verification-done']
+    }
+  };
+  assert.deepEqual(validateReadiness(args), []);
+  assert.deepEqual(validateReadiness({ ...args, linkedIssueNumber: undefined }), []);
+  assert.deepEqual(validateReadiness({ ...args, linkedIssueNumber: 19 }), [
+    'closing keyword referencing the linked Issue #19 (e.g. "Fixes #19")'
+  ]);
+  assert.deepEqual(validateReadiness({ ...args, body: `${args.body}\nFixes #19`, linkedIssueNumber: 19 }), []);
+});
+
+test('AC-07: the closing-keyword rule is appended to, not substituted for, lifecycle errors', () => {
+  const errors = validateReadiness({
+    body: 'QA: evidence comment or review URL: https://example.com/x',
+    draft: false,
+    workItem: { isPullRequest: false, isSameRepository: true, labels: ['phase:verification'] },
+    linkedIssueNumber: 19
+  });
+  assert.ok(errors.includes('status:spec-ready'));
+  assert.ok(errors.some((e) => e.startsWith('closing keyword referencing the linked Issue #19')));
+});

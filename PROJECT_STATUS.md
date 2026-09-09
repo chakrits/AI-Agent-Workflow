@@ -1,17 +1,17 @@
 # PROJECT_STATUS.md
 
 ## Current Work Item
-- [Issue #246](https://github.com/chakrits/AI-Agent-Workflow/issues/246), AC-01 only: record SA Agent's approved evaluation as ADR-0024.
+- [Issue #246](https://github.com/chakrits/AI-Agent-Workflow/issues/246), AC-02 through AC-08: harden the PreToolUse hook seam and relocate the closing-keyword rule into CI.
 
 ## Current Stage
-- Recording the approved architecture decision. No implementation authorised by this change.
+- Verification complete; awaiting human merge approval.
 
 ## Change Classification
-- Change Type: Framework / Meta Change (documentation only)
-- Risk Level: Low
-- Code Change Required: No
-- Architecture Change Required: No — this records a decision already taken
-- Security Review Required: No
+- Change Type: Framework / Meta Change
+- Risk Level: Medium-High — edits `work-item-readiness.mjs`, live in the check that gates every PR in this repository. Once merged, every PR must carry a closing keyword or an `advances-only` marker.
+- Code Change Required: Yes
+- Architecture Change Required: No — design fixed by ADR-0024
+- Security Review Required: No — no auth, secrets, or trust-boundary change
 
 ## Completed
 - Blank-template reset completed through PR #205 (`aa2a871`); historical records remain recoverable from Git history.
