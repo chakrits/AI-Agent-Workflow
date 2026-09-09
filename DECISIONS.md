@@ -7,6 +7,117 @@ Restored on 2026-09-05 under Issue #208. The blank-template resets of 2026-08-12
 that currently-open issues cite; ADR-0002 through ADR-0016 and ADR-0018 remain recoverable via
 `git show afe8091:DECISIONS.md` and were left out by Human Maintainer decision.
 
+### ADR-0024: A `--body-file` the hook cannot yet read is allowed with a warning; decision 1's fail-closed rule is scoped to genuinely uncheckable bodies
+
+- Date: 2026-09-09
+- Work Items: [Issue #246](https://github.com/chakrits/AI-Agent-Workflow/issues/246) (AC-01), arising from [Issue #236](https://github.com/chakrits/AI-Agent-Workflow/issues/236) (IMP-007)
+- Status: Accepted
+
+#### Context
+
+Issue #236's AC-02–AC-05 shipped `scripts/validate-pr-readiness.mjs` as a `PreToolUse` hook on
+`gh pr create` and as `.githooks/pre-push` (PR #243, `0fa6c30`). Human Maintainer decision 1
+(2026-09-08) made the gate fail closed when the body cannot be read, reasoning that a gate which
+silently passes when it cannot see its input is not a gate. That decision was made about the
+interactive-editor case: no `--body` or `--body-file` is supplied, so no path exists on disk that
+the hook could read at any point, and the author chose that shape.
+
+Issue #246 reports the same rule firing on a different case. A body file written and consumed in
+one shell invocation does not exist when the hook runs, but does exist when the command runs.
+Reproduced at `51b4129`: an absolute, correct `--body-file` path preceded by its own heredoc write
+is refused.
+
+A denial blocks the entire tool call, not the offending command. SA Agent proved this with a
+canary: `touch <canary> && gh pr create --title t --body-file /nonexistent/nope.md` was denied and
+the canary did not exist afterwards. `findPrCreateSegment()` narrows what is inspected, not what is
+blocked; `permissionDecision` applies to the whole `tool_input.command`.
+
+Enforcement coverage was re-derived rather than assumed. `work-item-readiness-refresh.yml` runs the
+shared readiness core on pull-request `opened`/`synchronize`/`reopened`/`ready_for_review`/`edited`,
+and `documentation-impact-gate.yml` enforces both the `## Documentation Impact` heading and its
+completion marker. Of the four rules the local gate adds beyond CI, three are already total
+server-side. Only one is enforced nowhere else: the closing keyword must reference the linked
+Issue, with its `advances-only` qualification. `.githooks/pre-push` exits 0 unless `PR_BODY_FILE`
+is set, so it does not carry that rule either.
+
+Every pull request in this repository's recent history is opened with `--body-file`, so the rule's
+false-deny rate on the common path is effectively total.
+
+#### Decision
+
+1. **A declared `--body-file` that cannot be read at hook time is allowed with a warning** naming
+   the unread path and the checkable alternatives — write the draft in a prior tool call, or run
+   `PR_BODY_FILE=<path> npm run validate:pr-readiness`.
+2. **Fail-closed is retained, unchanged**, for bodies that are uncheckable at every point in the
+   command's life: no `--body`/`--body-file` flag at all, `--body-file -`, and any body file that
+   is readable and fails a readiness rule.
+3. **Decision 1 is scoped, not overridden.** Its rule governs bodies that are unknowable. A file
+   that will exist at execution time is not unknowable but not-yet-knowable, and enforcing it early
+   with a whole-call denial is a scheduling constraint imposed by the most destructive instrument
+   available.
+4. **Shell-variable expansion is declined.** No `$VAR`, `${VAR}`, `~`, or command substitution is
+   resolved at hook time. Correct expansion needs the environment of a shell that has not started,
+   including assignments made earlier in the same string; a wrong guess makes the hook validate a
+   different file than `gh` will read, which can pass a bad body. Decision 1 above removes the
+   symptom.
+5. **The closing-keyword-references-linked-Issue rule, including `advances-only` semantics, is
+   relocated into `work-item-readiness-refresh.yml`'s check.** This repairs ADR-0022's invariant,
+   which code merged in PR #243 already violates: that rule is originated in
+   `.claude/settings.json` today, because CI does not carry it and `.githooks/pre-push` is opt-in.
+6. **A relative `--body-file` path must not produce a false pass.** The hook command runs
+   `cd "${CLAUDE_PROJECT_DIR:-.}"`, so a relative path resolves against the project root while `gh`
+   resolves it against the calling shell's working directory. Where the two differ, the hook
+   validates one file while `gh` submits another. The narrowest correct behaviour is to refuse a
+   relative path rather than guess which working directory was meant.
+7. **Numeric test-count floors are not acceptance criteria** for this work. 101 tests written for
+   this gate missed six defects, and the defect behind this ADR survived four independent QA rounds
+   before being found by use. Criteria state what must hold, not how many assertions exist.
+
+#### Alternatives Considered
+
+- **Keep fail-closed and document the two-call workaround.** Rejected. It leaves a near-total
+  false-deny rate on the common path, enforced by a mechanism that destroys unrelated work in the
+  same tool call. This is the shape that has refused legitimate work seven times across Issue #236.
+- **Resolve and expand the `--body-file` path at hook time.** Rejected. It cannot address the case
+  at all, since the file genuinely does not exist yet, and it introduces a false-pass mode strictly
+  worse than the false-deny it would replace.
+- **Parse the command for a heredoc or redirect writing that same path, and allow only then.**
+  Rejected on principle. Every defect in this family stems from the hook parsing shell text it does
+  not own; adding more shell parsing to fix a shell-parsing bug enlarges the surface that produced
+  the bug.
+- **Prompt the human instead of denying.** Not adopted: host support was not verified in this
+  configuration, and it would stall non-interactive runs.
+- **Remove the hook and rely on `.githooks/pre-push`.** Rejected. `pre-push` is opt-in on
+  `PR_BODY_FILE` and fires on no ordinary push, so this would be a net loss of enforcement rather
+  than a relocation.
+- **Amend ADR-0022 to permit hook-originated rules.** Rejected. It would discard the portability
+  this repository paid for in Issues #210 and #212, and every non-Claude host would silently lose
+  the closing-keyword rule. Relocating the rule repairs the invariant instead.
+- **Guess a working directory for a relative `--body-file`.** Rejected. A gate that reports success
+  on the wrong input is more dangerous than no gate, because it is trusted.
+
+#### Consequences
+
+- The write-then-create shape stops being refused, and no longer risks destroying a `git commit` or
+  `git push` earlier in the same tool call.
+- A body passed via a not-yet-written file goes unchecked locally. Three of the four extra rules are
+  already total in CI; the fourth is relocated by decision 5.
+- **Residual, explicitly retained and out of this Issue's scope:** the no-flag deny is still
+  whole-call destructive. `git commit && gh pr create --title t` still loses the commit. Blast
+  radius is a property of the hook point, not of this defect, and that hazard is decision 1 working
+  as designed. Changing it is a separate decision about whether a `PreToolUse` deny is an acceptable
+  instrument at all.
+- **Residuals carried forward unchanged from Issue #236:** the `advances-only` marker parser scrubs
+  fenced and inline-backtick regions but not four-space indented blocks, HTML `<code>`/`<pre>`,
+  fences indented more than three spaces inside lists or blockquotes, or spans straddling a newline;
+  `isCloseout` reads the body unscrubbed, bounded by the authorized-file rule; and a `--title`
+  containing the literal `--body` hijacks body extraction, failing closed.
+- The relocated closing-keyword rule fires after the pull request is open rather than before it, so
+  it prevents a merge rather than a mistaken pull request.
+- Recording this ADR moves `npm run adr:audit` further inside the 10:1 threshold.
+- Owner: Human Maintainer (approval, granted 2026-09-09), then Developer Agent. This ADR authorises
+  no implementation on its own.
+
 ### ADR-0023: Canonical duplication elimination — scoped relocation set, retained Boundaries index, five-field catalog row
 
 - Date: 2026-09-08

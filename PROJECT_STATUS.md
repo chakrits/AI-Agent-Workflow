@@ -1,17 +1,17 @@
 # PROJECT_STATUS.md
 
 ## Current Work Item
-- None — repository is idle.
+- [Issue #246](https://github.com/chakrits/AI-Agent-Workflow/issues/246), AC-01 only: record SA Agent's approved evaluation as ADR-0024.
 
 ## Current Stage
-- Idle, awaiting a Human Maintainer decision on the next round: Issue #236's AC-06 through AC-12, or Issue #244's flaky test.
+- Recording the approved architecture decision. No implementation authorised by this change.
 
 ## Change Classification
-- Change Type: N/A
-- Risk Level: N/A
-- Code Change Required: N/A
-- Architecture Change Required: N/A
-- Security Review Required: N/A
+- Change Type: Framework / Meta Change (documentation only)
+- Risk Level: Low
+- Code Change Required: No
+- Architecture Change Required: No — this records a decision already taken
+- Security Review Required: No
 
 ## Completed
 - Blank-template reset completed through PR #205 (`aa2a871`); historical records remain recoverable from Git history.
