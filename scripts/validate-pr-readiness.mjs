@@ -10,6 +10,7 @@
  * `findLinkedIssueNumber()` is imported unmodified (AC-03 decision 3).
  */
 import { readFileSync } from 'node:fs';
+import { isAbsolute } from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { pathToFileURL } from 'node:url';
 import {
@@ -334,12 +335,54 @@ export function extractBodyFromCommand(command = '') {
   if (fileMatch) {
     const file = unquote(fileMatch[1]);
     if (file === '-') {
+      // Unknowable at EVERY point in the command's life: stdin is consumed by
+      // `gh`, and no path exists that the hook could read later. Fail-closed is
+      // retained here, unchanged (ADR-0024 D1).
       return {
         error:
           'PR readiness pre-flight cannot read the pull request body: --body-file - reads from ' +
           'stdin, which the hook cannot observe. Write the body to a file and pass its path.'
       };
     }
+
+    // ORDER MATTERS (Issue #246, AC-08). An unexpandable path is classified
+    // BEFORE the relative-path refusal, because `$S/body.md` and `~/body.md` are
+    // not absolute *literals* and a naive "does not start with /" test would
+    // refuse them — re-creating shape 5 of the refuses-legitimate-work table
+    // while fixing shape 7. They are declined, not refused (AC-03 / D2).
+    if (/[$`~]/.test(file)) {
+      return {
+        bodyFile: file,
+        source: '--body-file',
+        unresolvable:
+          `PR readiness pre-flight did not check --body-file ${file}: the path contains shell ` +
+          'syntax (a variable, a command substitution, or ~) that only the shell can expand. ' +
+          'Expanding it here would need the environment of a shell that has not started yet, ' +
+          'including assignments made earlier in this same command string; a wrong guess would ' +
+          'read a different file than `gh` reads and could pass a bad body (Issue #246, AC-03 / ' +
+          'ADR-0024 D2). The pull request body was NOT validated locally. CI still enforces ' +
+          'every rule. To check it locally, pass an absolute literal path.'
+      };
+    }
+
+    if (!isAbsolute(file)) {
+      // A FALSE PASS, categorically worse than a false deny (ADR-0024 D4).
+      // `.claude/settings.json` runs `cd "${CLAUDE_PROJECT_DIR:-.}"`, so a
+      // relative path resolves against the project root here and against the
+      // calling shell's cwd for `gh`. Where the two differ the hook validates
+      // one file and `gh` submits another. Refusing is the narrowest fix: the
+      // alternative is guessing which cwd was meant, and skipping would stop
+      // checking every relative path, including the ones that resolve alike.
+      return {
+        error:
+          `PR readiness pre-flight refuses the relative --body-file path ${file}: this hook runs ` +
+          'from the project root, while `gh` runs from your shell\'s working directory, so the ' +
+          'two can resolve the same relative path to different files — and the gate would then ' +
+          'validate a file that `gh` never submits (Issue #246, AC-08). Pass an absolute path, ' +
+          `e.g. --body-file "$(pwd)/${file}".`
+      };
+    }
+
     return { bodyFile: file, source: '--body-file' };
   }
 
@@ -647,6 +690,11 @@ function runHookMode() {
   }
   const command = input?.tool_input?.command ?? '';
   const allow = () => process.stdout.write(JSON.stringify({}) + '\n');
+  // Allowing WITH a warning, never silently: the author is told exactly what went
+  // unchecked and why. `systemMessage` alone carries no permission decision, so
+  // the call proceeds.
+  const allowWith = (message) =>
+    process.stdout.write(JSON.stringify({ systemMessage: message }) + '\n');
 
   if (input.tool_name !== 'Bash') return allow();
 
@@ -663,15 +711,41 @@ function runHookMode() {
   if (isHelpInvocation(segment)) return allow();
 
   const extracted = extractBodyFromCommand(segment);
+
+  // Precedence, stated explicitly (Issue #246, AC-02):
+  //   1. error shapes            -> deny  (no flag at all; --body-file -)
+  //   2. unresolvable path       -> allow with a warning (AC-03 / D2)
+  //   3. declared-but-unreadable -> allow with a warning (AC-02 / D1)
+  //   4. readable file           -> full validation, and deny on any rule failure
+  if (extracted.error) return deny(extracted.error);
+  if (extracted.unresolvable) return allowWith(extracted.unresolvable);
+
   let body = extracted.body;
   if (extracted.bodyFile) {
     try {
       body = readFileSync(extracted.bodyFile, 'utf8');
     } catch {
-      return deny(`PR readiness pre-flight could not read --body-file ${extracted.bodyFile}.`);
+      // A PreToolUse hook fires BEFORE the command runs. When the body file is
+      // written and consumed in the same command string — `cat > body.md <<EOF
+      // ... EOF && gh pr create --body-file body.md` — the path is absolute and
+      // correct yet does not exist yet. Denying here was not merely a false
+      // deny: a PreToolUse deny discards the WHOLE tool call, so the `git
+      // commit` and `git push` earlier in that same string never ran (Issue
+      // #236, "Finding from live use", 2026-09-09).
+      //
+      // Fail-closed is retained for a body that is uncheckable at EVERY point in
+      // the command's life. This one is not unknowable, only not-yet-knowable,
+      // and CI enforces every rule on it minutes later (ADR-0024 D1).
+      return allowWith(
+        `PR readiness pre-flight did NOT validate the pull request body: --body-file ` +
+          `${extracted.bodyFile} does not exist yet at hook time — this hook runs before the ` +
+          'command does, so a body written earlier in this same command string is not on disk ' +
+          'when the hook looks. Allowing the call rather than refusing it (Issue #246, AC-02 / ' +
+          'ADR-0024 D1): refusing would discard the entire command, including any work before ' +
+          'the `gh pr create`. CI still enforces every readiness rule on the opened pull request.'
+      );
     }
   }
-  if (extracted.error) return deny(extracted.error);
 
   const draft = /\s--draft\b/.test(segment);
   const { errors, warnings } = evaluate({ body, draft });

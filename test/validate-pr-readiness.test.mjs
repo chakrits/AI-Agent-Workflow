@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { readFileSync, writeFileSync, rmSync } from 'node:fs';
+import { readFileSync, writeFileSync, rmSync, mkdtempSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -397,9 +397,14 @@ test('Finding 7: the lexer never throws and fails open on hostile input', () => 
 });
 
 test('Finding 7: the matched segment is returned, so flags elsewhere are not read as the invocation\'s', () => {
-  const segment = findPrCreateSegment(`echo --body-file decoy.md; ${CREATE} --body-file real.md`);
+  // Absolute paths since Issue #246 AC-08 refuses relative ones; the assertion
+  // it carries — that the flag is read from the matched segment, not the whole
+  // string — is unchanged.
+  const segment = findPrCreateSegment(
+    `echo --body-file /tmp/decoy.md; ${CREATE} --body-file /tmp/real.md`
+  );
   assert.ok(segment.startsWith(CREATE), segment);
-  assert.equal(extractBodyFromCommand(segment).bodyFile, 'real.md');
+  assert.equal(extractBodyFromCommand(segment).bodyFile, '/tmp/real.md');
 });
 
 // -------------------------------------------------- Finding 1 — --help / -h
@@ -1019,10 +1024,17 @@ test('N1/AC-04: an invocation with no --body or --body-file is denied with the d
   assert.equal(out.systemMessage, out.hookSpecificOutput.permissionDecisionReason);
 });
 
-test('N1/AC-04: an unreadable --body-file is denied, not allowed', () => {
+// REPLACED, not removed (Issue #246, AC-02 / ADR-0024 D1). The original asserted
+// that an unreadable --body-file is DENIED. That rule refused legitimate work on
+// every body written and consumed in one command string, and a PreToolUse deny
+// discards the whole call. The equivalent assertion is that the author is still
+// told the body went unchecked — the gate must not fall silent, only stop being
+// destructive about a body it will be able to see minutes later in CI.
+test('AC-02: an unreadable --body-file is allowed WITH a warning, not denied', () => {
   const out = runHook('gh pr create --body-file /nonexistent-9c1f/body.md');
-  assert.equal(hookDecision(out), 'deny');
-  assert.match(out.hookSpecificOutput.permissionDecisionReason, /could not read --body-file/);
+  assert.equal(hookDecision(out), undefined, JSON.stringify(out));
+  assert.match(out.systemMessage ?? '', /did NOT validate the pull request body/);
+  assert.match(out.systemMessage ?? '', /does not exist yet at hook time/);
 });
 
 test('N1/AC-04: an incomplete --body is denied and names the missing rules', () => {
@@ -1086,4 +1098,99 @@ test('M17: --draft is detected on the hook path — the assertion dies if the de
   } finally {
     rmSync(file, { force: true });
   }
+});
+
+// ================================================== Issue #246, AC-02/03/08
+// The hook inspects a command string, not the state the command will see. Three
+// shapes follow from that, and ADR-0024 disposes of them differently.
+
+test('AC-02: a body file written earlier in the SAME command string is allowed', () => {
+  // Shape 6 of the refuses-legitimate-work table, and the destructive one: a
+  // PreToolUse deny discards the whole call, so the `git commit` before the
+  // `gh pr create` never ran.
+  const out = runHook(
+    "git commit -m x && cat > /tmp/ac02-not-yet-9c1f.md <<'EOF'\nbody\nEOF\n" +
+      'gh pr create --title t --body-file /tmp/ac02-not-yet-9c1f.md'
+  );
+  assert.equal(hookDecision(out), undefined, JSON.stringify(out));
+  assert.match(out.systemMessage ?? '', /does not exist yet at hook time/);
+});
+
+test('AC-02: fail-closed is RETAINED where the body is unknowable at every point', () => {
+  // No flag at all, and --body-file - : nothing exists on disk at any time that
+  // the hook could read later, and the author chose that shape (ADR-0024 D1).
+  assert.equal(hookDecision(runHook('gh pr create --title "x"')), 'deny');
+  const stdin = runHook('gh pr create --title "x" --body-file -');
+  assert.equal(hookDecision(stdin), 'deny');
+  assert.match(stdin.hookSpecificOutput.permissionDecisionReason, /reads from stdin/);
+});
+
+test('AC-02: a readable body file that fails a rule is still denied', () => {
+  const file = path.join(os.tmpdir(), `ac02-bad-${process.pid}.md`);
+  writeFileSync(file, 'nothing useful here');
+  try {
+    const out = runHook(`gh pr create --title t --body-file ${file}`);
+    assert.equal(hookDecision(out), 'deny');
+    assert.match(out.hookSpecificOutput.permissionDecisionReason, /Work Item \(Issue\) URL/);
+  } finally {
+    rmSync(file, { force: true });
+  }
+});
+
+test('AC-03: an unexpanded shell variable in --body-file is declined, not refused', () => {
+  const out = runHook('gh pr create --title t --body-file "$S/pr236f.md"');
+  assert.equal(hookDecision(out), undefined, JSON.stringify(out));
+  assert.match(out.systemMessage ?? '', /only the shell can expand/);
+});
+
+test('AC-03/AC-08 ORDERING: a shell-syntax path is classified before the relative refusal', () => {
+  // `$S/x.md` and `~/x.md` are not absolute literals. Testing relativeness first
+  // would refuse them and re-create shape 5 while fixing shape 7.
+  for (const p of ['$S/x.md', '${S}/x.md', '~/x.md', '$(pwd)/x.md']) {
+    const out = runHook(`gh pr create --title t --body-file "${p}"`);
+    assert.equal(hookDecision(out), undefined, `${p}: ${JSON.stringify(out)}`);
+  }
+});
+
+test('AC-08: a relative --body-file is refused rather than validated against the wrong cwd', () => {
+  // Reproduction of the false pass: two files named decoy.md, one at the project
+  // root and one in the shell's cwd. The hook runs `cd "${CLAUDE_PROJECT_DIR:-.}"`
+  // and read the project-root copy; `gh` would submit the other.
+  const rootDecoy = path.join(repoRoot, 'ac08-decoy.md');
+  const otherDir = mkdtempSync(path.join(os.tmpdir(), 'ac08-'));
+  writeFileSync(rootDecoy, hookBody('Fixes #236'));
+  writeFileSync(path.join(otherDir, 'ac08-decoy.md'), 'not a real PR body');
+  try {
+    const out = runHook('gh pr create --title t --body-file ac08-decoy.md');
+    assert.equal(hookDecision(out), 'deny');
+    assert.match(
+      out.hookSpecificOutput.permissionDecisionReason,
+      /refuses the relative --body-file path/
+    );
+    // The refusal names the one-token fix, so it cannot strand an author.
+    assert.match(out.hookSpecificOutput.permissionDecisionReason, /Pass an absolute path/);
+  } finally {
+    rmSync(rootDecoy, { force: true });
+    rmSync(otherDir, { recursive: true, force: true });
+  }
+});
+
+test('AC-08: an absolute --body-file is unaffected by the relative-path refusal', () => {
+  const file = path.join(os.tmpdir(), `ac08-ok-${process.pid}.md`);
+  writeFileSync(file, hookBody('Fixes #236'));
+  try {
+    assert.equal(hookDecision(runHook(`gh pr create --title t --body-file ${file}`)), undefined);
+  } finally {
+    rmSync(file, { force: true });
+  }
+});
+
+test('AC-08: the refusal fires only for --body-file — no other shape gains a refusal', () => {
+  // --body, --help and non-create commands must be untouched by AC-08.
+  assert.equal(
+    hookDecision(runHook(`gh pr create --title t --body "${hookBody('Fixes #236').replace(/\n/g, '\\n')}"`)),
+    undefined
+  );
+  assert.deepEqual(runHook('gh pr create --help'), {});
+  assert.deepEqual(runHook('git status'), {});
 });
