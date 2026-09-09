@@ -55,7 +55,7 @@ Two commits, deliberately separated because they are different kinds of change:
   #232, #234, #242, #243 and #245, with changed-file sets reconstructed from each merge commit
   rather than derived from the branch under work. Results are identical to the pre-change scripts
   at `b69d5b2` for every one of the five.
-- **AC-06** — 683 tests pass; no assertion removed without an equivalent replacement (see above).
+- **AC-06** — 685 tests pass; no assertion removed without an equivalent replacement (see above).
   All named validators PASS.
 - **AC-07** — the closing-keyword rule, the `advances-only` marker semantics and the code-span
   scrubber now live in `scripts/work-item-readiness.mjs` and are enforced by
@@ -111,9 +111,26 @@ That refusal is decision 1 working as designed and is reported, not routed aroun
 
 ## Verification
 
-`npm test` 683 pass / 0 fail (666 at `b69d5b2`) · `validate:contracts` PASS ·
+`npm test` 685 pass / 0 fail (666 at `b69d5b2`) · `validate:contracts` PASS ·
 `validate:ci-parity` PASS · `validate:project-state` PASS · `validate:context-budget` PASS ·
 `validate:review-gate` PASS.
+
+## Deviations and judgment calls
+
+- **The `.githooks/pre-push` path deliberately does NOT adopt either new rule.** A relative
+  `PR_BODY_FILE` is still validated (README.md documents `PR_BODY_FILE=pr-body.md`), and an
+  unreadable one still exits 1. Both new rules exist because a `PreToolUse` hook inspects a command
+  string: the pre-push caller resolves the path in the author's own shell, so there is no cwd
+  ambiguity, and nothing executes after the check, so there is no not-yet-written case. Stated
+  because Issue #236's Finding 4 was exactly these two paths disagreeing about an identical-looking
+  condition; the reasoning is recorded at `readBodyDraft()` and pinned by a test.
+- **`--body "$(cat x.md)"` remains a deny.** ADR-0024 D1 speaks about `--body-file`. Extending it
+  to `--body` substitutions was not decided, so it was not assumed.
+- **One defect fixed beyond the letter of the ACs.** `gh` accepts the attached short-flag form
+  `-F/tmp/body.md`; the classifier missed it, fell through to the no-flag branch and DENIED a
+  command that carried a good body file. Fixed rather than recorded, because AC-08 is the criterion
+  about `--body-file` shapes the hook mis-handles and leaving a known eighth false-deny shape in
+  place while fixing the seventh would be perverse.
 
 ## Known limitations carried forward, not fixed
 

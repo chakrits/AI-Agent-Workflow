@@ -1194,3 +1194,47 @@ test('AC-08: the refusal fires only for --body-file — no other shape gains a r
   assert.deepEqual(runHook('gh pr create --help'), {});
   assert.deepEqual(runHook('git status'), {});
 });
+
+test('AC-08: the attached short-flag forms -F<path> and -b<text> are seen, not denied as no-flag', () => {
+  // `gh` accepts `-F/tmp/x.md`. The classifier used to miss it, fall through to
+  // the no-flag branch and DENY a command that carried a good body file.
+  assert.equal(extractBodyFromCommand('gh pr create -F/tmp/x.md').bodyFile, '/tmp/x.md');
+  assert.equal(extractBodyFromCommand('gh pr create --body-file=/tmp/x.md').bodyFile, '/tmp/x.md');
+  assert.equal(extractBodyFromCommand('gh pr create -btext-body').body, 'text-body');
+  // Quoted paths containing a space are captured whole, so the path classified is
+  // the path read — a mis-capture would now go quiet (allow-with-warning) rather
+  // than refuse, which is the failure direction worth pinning.
+  assert.equal(
+    extractBodyFromCommand('gh pr create --title t --body-file "/tmp/my body.md"').bodyFile,
+    '/tmp/my body.md'
+  );
+  // -F - still denies: stdin is unknowable at every point in the command's life.
+  assert.match(extractBodyFromCommand('gh pr create -F -').error, /reads from stdin/);
+});
+
+test('pre-push path: a relative PR_BODY_FILE is still checked, not refused', () => {
+  // The pre-push caller resolves the path in the author's own shell, so AC-08's
+  // cwd ambiguity cannot arise and README.md's documented `PR_BODY_FILE=pr-body.md`
+  // must keep working. Pinned so the two callers cannot silently converge.
+  const dir = mkdtempSync(path.join(os.tmpdir(), 'prepush-'));
+  writeFileSync(path.join(dir, 'draft.md'), 'nothing useful here');
+  try {
+    const out = execFileSync(
+      process.execPath,
+      [path.join(repoRoot, 'scripts', 'validate-pr-readiness.mjs')],
+      {
+        cwd: dir,
+        encoding: 'utf8',
+        stdio: 'pipe',
+        env: { ...process.env, PR_READINESS_OFFLINE: '1', PR_BODY_FILE: 'draft.md' }
+      }
+    );
+    assert.fail(`expected a non-zero exit, got: ${out}`);
+  } catch (error) {
+    assert.equal(error.status, 1);
+    assert.match(error.stderr, /Work item readiness is incomplete/);
+    assert.doesNotMatch(error.stderr, /relative --body-file/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});

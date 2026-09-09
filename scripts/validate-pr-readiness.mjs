@@ -313,7 +313,11 @@ function unquote(value) {
  */
 export function extractBodyFromCommand(command = '') {
   const text = String(command);
-  const bodyMatch = text.match(/(?:^|\s)(?:--body|-b)[= ]\s*("(?:[^"\\]|\\.)*"|'[^']*'|\S+)/);
+  // The attached short-flag form (`-b<value>`, `-F<value>`) is accepted because
+  // `gh` accepts it. Missing it made the flag invisible and fell through to the
+  // no-flag branch, which DENIES — a false deny of a command carrying a
+  // perfectly good body (found while implementing Issue #246, AC-08).
+  const bodyMatch = text.match(/(?:^|\s)(?:--body[= ]\s*|-b[= ]?\s*)("(?:[^"\\]|\\.)*"|'[^']*'|\S+)/);
   if (bodyMatch) {
     const raw = unquote(bodyMatch[1]);
     // The hook sees the command *before* the shell expands it, so `--body "$(cat
@@ -331,7 +335,7 @@ export function extractBodyFromCommand(command = '') {
     return { body: raw.replace(/\\n/g, '\n').replace(/\\"/g, '"'), source: '--body' };
   }
 
-  const fileMatch = text.match(/(?:^|\s)(?:--body-file|-F)[= ]\s*("[^"]*"|'[^']*'|\S+)/);
+  const fileMatch = text.match(/(?:^|\s)(?:--body-file[= ]\s*|-F[= ]?\s*)("[^"]*"|'[^']*'|\S+)/);
   if (fileMatch) {
     const file = unquote(fileMatch[1]);
     if (file === '-') {
@@ -652,6 +656,22 @@ function fetchWorkItem(issueNumber, repository) {
  * made an unreadable `PR_BODY_FILE` fail open on the push path while the
  * identical condition denied in `runHookMode()` (Issue #236, Finding 4). An
  * author who typos the path was told their draft was checked when it was not.
+ */
+/*
+ * Why this path does NOT adopt AC-02's allow-with-warning or AC-08's relative-path
+ * refusal (Issue #246 — stated because Issue #236's Finding 4 was exactly the two
+ * paths disagreeing about an identical-looking condition):
+ *
+ * Both of those rules exist because a `PreToolUse` hook inspects a command string.
+ * Neither condition can arise here.
+ *   - cwd: `PR_BODY_FILE` is resolved by the same process the author's own shell
+ *     started, so a relative path means what the author meant. The hook, by
+ *     contrast, runs after `cd "${CLAUDE_PROJECT_DIR:-.}"` and can resolve the
+ *     same path to a different file than `gh` would. No ambiguity here, so no
+ *     refusal here.
+ *   - timing: nothing executes after this check, so a named-but-missing draft is
+ *     never "not written yet" — it is simply wrong. Exiting non-zero costs a push,
+ *     not a `git commit` that shared a command line. Fail-closed stays.
  */
 function readBodyDraft() {
   const file = process.env.PR_BODY_FILE;
