@@ -1,17 +1,17 @@
 # PROJECT_STATUS.md
 
 ## Current Work Item
-- [Issue #236](https://github.com/chakrits/AI-Agent-Workflow/issues/236) (IMP-007 — local enforcement hook layer), AC-02 through AC-05: activate the git hook layer and add the local PR readiness pre-flight.
+- None — repository is idle.
 
 ## Current Stage
-- Verification complete after three rework cycles and four independent QA rounds; awaiting human merge approval. AC-06 through AC-14 remain undispatched.
+- Idle, awaiting a Human Maintainer decision on the next round: Issue #236's AC-06 through AC-12, or Issue #244's flaky test.
 
 ## Change Classification
-- Change Type: Framework / Meta Change
-- Risk Level: Medium — introduces a blocking local gate on `gh pr create`; a false positive obstructs real work, which round 1 demonstrated
-- Code Change Required: Yes
-- Architecture Change Required: No — design fixed by ADR-0022
-- Security Review Required: No — no auth, secrets, or trust-boundary change
+- Change Type: N/A
+- Risk Level: N/A
+- Code Change Required: N/A
+- Architecture Change Required: N/A
+- Security Review Required: N/A
 
 ## Completed
 - Blank-template reset completed through PR #205 (`aa2a871`); historical records remain recoverable from Git history.
@@ -30,11 +30,15 @@
 
 - Issue #240 — recorded ADR-0023, no code change: scoped Issue #237 (IMP-008)'s relocation set after SA Agent read both sides of every proposed move rather than accepting the Issue's table. **Approved** AC-02 (conditional on an imperative pointer — the one genuine boot→on-demand crossing, since `docs/templates/HANDOFF.md` is registered to no role in either load mode), AC-03, AC-05 (retargeted to `AGENT_OPERATING_MODEL.md#human-approval-gates` after the "same list in three files" premise was disproven — the section sharing the name carries a different list), and AC-07 (conditional on first moving `role-definitions.md:346`'s R-001 provenance sentence into the skill). **Rejected** AC-04, whose stated destination does not own the content — grep confirmed three backward-routing rules and the "Do not skip QA" prohibition exist only in `AGENTS.md`, so the pointer would have deleted policy — and AC-06, whose principles are cited by number four times inside the Boundaries index. **Corrected** AC-08 to a five-field row (`context-compatibility-v1.mjs:139` grants one registered skill per role, so `Next Skill / Agent` is unreachable if moved), AC-11 from ≤24,600 to ≤26,300 (the original was unachievable even accepting every AC verbatim), and AC-12 to resolve its contradiction with AC-09. **Kept** the Boundaries index as a recorded rejection. **Added** AC-13 and AC-14. Merged via PR #241 (squash) as `eeb896a`. Verified at `8874387` (565/565; `validate:contracts`, `validate:project-state`, `validate:skill-usage`, `validate:context-budget`, `adr:audit` at 2.83:1 all PASS; every load-bearing SA claim independently re-derived, including composing all 31 five-field catalog rows from real values to measure the collapse at 2,735 tokens rather than the Issue's ~1,500 estimate). Issue #237 remains open for AC-02–AC-14. Evidence: https://github.com/chakrits/AI-Agent-Workflow/issues/237#issuecomment-5581618794
 
+- Issue #236 (IMP-007) — AC-02 through AC-05 implemented. `npm run setup:hooks` activates the `.githooks` layer, which had never run since 2026-07-20 because `core.hooksPath` was unset; `scripts/validate-pr-readiness.mjs` (`npm run validate:pr-readiness`) validates a local PR body draft, importing `validateReadiness()` and `findLinkedIssueNumber()` rather than re-implementing them, and adding four rules CI does not carry — a closing keyword, the `## Documentation Impact` heading, its completion marker, and an explicit Work Item URL error. Wired as a blocking `PreToolUse` hook on `gh pr create` and as `.githooks/pre-push`, both thin callers of the same npm script, so ADR-0022's invariant holds. Introduces the `<!-- advances-only: issue-N -->` marker so a PR that advances a multi-AC Issue without closing it can declare that instead of being refused. Merged via PR #243 (squash) as `0fa6c30`. **Three rework cycles and four independent QA rounds**, cycle 3 authorised past the two-cycle ceiling by explicit Human Maintainer decision (Issue #210 precedent). Round 1 found a Blocker the implementer's tests missed — the command matcher denied any text where the create verb followed `;`/`&`/`|`, heredoc content included — discovered when the gate blocked QA from writing its own report. Dogfooding then found the gate refused partial-progress PRs, including PRs #232 and #234 retroactively. Round 3 found a second Blocker: a valid marker also suppressed a closing keyword naming a different Issue. Round 4 passed at `6c70a4b` (666/666, every fix confirmed by applying its mutant to the shipped code, not by test count) with five Minors and one Question left open. Self-review record: `docs/records/qa/2026-09-08-issue-236-pr-readiness-preflight-code-review.md`. AC-06 through AC-14 remain open. Evidence: https://github.com/chakrits/AI-Agent-Workflow/issues/236#issuecomment-5586276405
+
 ## In Progress
 - None.
 
 ## Blockers / Open Questions
-- Issue #236 (IMP-007) is design-approved via ADR-0022 but not dispatched: AC-02 through AC-12 remain open. AC-07 (the `validate:context-budget` edit guard) is a binding prerequisite for Issue #237's implementation.
+- Issue #236 (IMP-007): AC-02 through AC-05 are merged; **AC-06 through AC-12 remain open**. AC-07 (the `validate:context-budget` edit guard) is still the binding prerequisite for Issue #237's implementation. Round-4 QA flagged **N1** — `runHookMode()`'s uncovered paths — as the item to address first, since AC-06, AC-07 and AC-08 all inherit the same invocation seam.
+- Minor findings carried forward from Issue #236, none blocking: the marker parser scrubs fenced and inline-backtick regions but not four-space indented blocks, HTML `<code>`/`<pre>`, fences indented more than three spaces inside lists or blockquotes, or spans straddling a newline; `isCloseout` reads the body unscrubbed, bounded by the authorized-file rule to the residual round 2 accepted; a `--title` containing the literal `--body` hijacks body extraction (fail-closed); shell variables in a `--body-file` path reach the hook unexpanded and are refused; and `validate:pr-readiness` is deliberately in no CI file, which is input to AC-12.
+- [Issue #244](https://github.com/chakrits/AI-Agent-Workflow/issues/244) — `validate-review-gate.test.mjs:133` fails intermittently in CI. Pre-existing on `main` from `bd25b7c` (Issue #172), not caused by Issue #236's branch. Two runs on the identical commit `a61f7e5` disagreed (pull_request 666/666, push 665/666) and a re-run of the failed job passed. Not reproducible locally in three attempts; cause undetermined, evidence recorded rather than guessed at.
 - Issue #237 (IMP-008) is design-approved via ADR-0023 but not dispatched: AC-02 through AC-08 and AC-13/AC-14 remain open, all gated on Issue #236's AC-07. The approved set lands at ~26,262 against ADR-0023's ≤26,300 target — roughly 38 tokens of margin, so pointer wording must be terse and the budget re-measured after each relocation.
 - Recorded in ADR-0023, not closed by it: the "Stop Conditions" naming collision across `AGENTS.md`, `AGENT_OPERATING_MODEL.md`, and `dynamic-routing.md` — three sections sharing a name with different content — is an unguarded drift surface. A follow-up to rename one of them is recommended.
 - Recorded in ADR-0022, not closed by it: `scripts/validate-qa-evidence.mjs` has no `package.json` script and no CI invocation, and is reached only by `test/qa-evidence.test.mjs`. Issue #236's AC-12 test must surface it; whether to wire it or document it as test-only is open.
