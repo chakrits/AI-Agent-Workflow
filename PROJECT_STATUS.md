@@ -1,17 +1,17 @@
 # PROJECT_STATUS.md
 
 ## Current Work Item
-- None — repository is idle.
+- Issue #249 — token-aware PR body extraction (ADR-0025 clarification approved).
 
 ## Current Stage
-- Idle. Three work items are open and unstarted: Issue #249 (the body-extraction seam), Issue #244 (a flaky test), and Issue #236's AC-06 onward.
+- Issue #249: Developer verification; independent QA next. Issue #244 and Issue #236 AC-06 onward remain unstarted.
 
 ## Change Classification
-- Change Type: N/A
-- Risk Level: N/A
-- Code Change Required: N/A
-- Architecture Change Required: N/A
-- Security Review Required: N/A
+- Change Type: Bug Fix
+- Risk Level: Medium
+- Code Change Required: Yes
+- Architecture Change Required: No — ADR-0025 clarifies existing lexer output
+- Security Review Required: Yes — input-validation review before merge
 
 ## Completed
 - Blank-template reset completed through PR #205 (`aa2a871`); historical records remain recoverable from Git history.

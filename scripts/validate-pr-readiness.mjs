@@ -145,15 +145,28 @@ const DOC_IMPACT_MARKER = '<!-- documentation-impact: complete -->';
  * entirely, and breaks on unquoted separators, so only text a shell would treat
  * as a command position is ever considered. Command substitutions are treated as
  * boundaries rather than skipped, because their contents *are* executed.
+ * With { tokens: true }, emit argument words from this same pass; otherwise
+ * preserve the command-string API used by invocation detection (ADR-0025).
  */
-export function shellCommandSegments(command = '') {
+export function shellCommandSegments(command = '', { tokens = false } = {}) {
   const text = String(command);
   const segments = [];
   const pendingHeredocs = [];
   let current = '';
+  let words = [];
+  let word = '';
+  let wordStarted = false;
+  const appendWord = (value) => { word += value; wordStarted = true; };
+  const endWord = () => {
+    if (wordStarted) words.push(word);
+    word = '';
+    wordStarted = false;
+  };
   let i = 0;
   const push = () => {
-    if (current.trim()) segments.push(current.trim());
+    endWord();
+    if (current.trim()) segments.push(tokens ? words : current.trim());
+    words = [];
     current = '';
   };
 
@@ -162,6 +175,7 @@ export function shellCommandSegments(command = '') {
 
     if (ch === '\\') {
       current += ch + (text[i + 1] ?? '');
+      if (text[i + 1] !== '\n') appendWord(text[i + 1] ?? ch);
       i += 2;
       continue;
     }
@@ -170,13 +184,23 @@ export function shellCommandSegments(command = '') {
       let end = text.indexOf("'", i + 1);
       if (end === -1) end = text.length;
       current += text.slice(i, end + 1);
+      appendWord(text.slice(i + 1, end));
       i = end + 1;
       continue;
     }
 
     if (ch === '"') {
       let j = i + 1;
-      while (j < text.length && text[j] !== '"') j += text[j] === '\\' ? 2 : 1;
+      appendWord('');
+      while (j < text.length && text[j] !== '"') {
+        if (text[j] === '\\' && /[$`"\\\n]/.test(text[j + 1] ?? '')) {
+          if (text[j + 1] !== '\n') appendWord(text[j + 1]);
+          j += 2;
+        } else {
+          appendWord(text[j]);
+          j += 1;
+        }
+      }
       current += text.slice(i, j + 1);
       i = j + 1;
       continue;
@@ -234,6 +258,8 @@ export function shellCommandSegments(command = '') {
     }
 
     current += ch;
+    if (/\s/.test(ch)) endWord();
+    else appendWord(ch);
     i += 1;
   }
 
@@ -296,13 +322,6 @@ export function isHelpInvocation(segment = '') {
   return segmentTokens(segment).some((token) => token === '--help' || token === '-h');
 }
 
-function unquote(value) {
-  if (!value) return value;
-  const first = value[0];
-  if ((first === '"' || first === "'") && value.at(-1) === first) return value.slice(1, -1);
-  return value;
-}
-
 /**
  * Reads the PR body out of a `gh pr create` command string.
  *
@@ -312,14 +331,40 @@ function unquote(value) {
  * a gate that passes when it cannot read its input is not a gate.
  */
 export function extractBodyFromCommand(command = '') {
-  const text = String(command);
-  // The attached short-flag form (`-b<value>`, `-F<value>`) is accepted because
-  // `gh` accepts it. Missing it made the flag invisible and fell through to the
-  // no-flag branch, which DENIES — a false deny of a command carrying a
-  // perfectly good body (found while implementing Issue #246, AC-08).
-  const bodyMatch = text.match(/(?:^|\s)(?:--body[= ]\s*|-b[= ]?\s*)("(?:[^"\\]|\\.)*"|'[^']*'|\S+)/);
-  if (bodyMatch) {
-    const raw = unquote(bodyMatch[1]);
+  const args = shellCommandSegments(command, { tokens: true })[0] ?? [];
+  let body;
+  let bodyFile;
+  // gh/pflag value flags consume the following word even when it looks like a
+  // flag. Boolean shorthand flags may precede a value flag in one cluster.
+  const longValues = new Set(['body', 'body-file', 'title', 'base', 'head', 'assignee',
+    'label', 'milestone', 'project', 'reviewer', 'template', 'recover', 'repo']);
+  const shortValues = 'bFtBHalmprTR';
+  for (let i = 0; i < args.length; i += 1) {
+    const arg = args[i];
+    if (arg === '--') break;
+    let name;
+    let value;
+    if (arg.startsWith('--')) {
+      const equals = arg.indexOf('=');
+      name = arg.slice(2, equals < 0 ? undefined : equals);
+      if (!longValues.has(name)) continue;
+      value = equals < 0 ? args[++i] : arg.slice(equals + 1);
+    } else if (arg.startsWith('-')) {
+      for (let j = 1; j < arg.length; j += 1) {
+        const flag = arg[j];
+        if (!shortValues.includes(flag)) continue;
+        name = flag === 'b' ? 'body' : flag === 'F' ? 'body-file' : flag;
+        value = arg.slice(j + 1);
+        if (value.startsWith('=')) value = value.slice(1);
+        else if (!value) value = args[++i];
+        break;
+      }
+    }
+    if (name === 'body') body = value;
+    if (name === 'body-file') bodyFile = value;
+  }
+  if (!bodyFile && body !== undefined) {
+    const raw = body;
     // The hook sees the command *before* the shell expands it, so `--body "$(cat
     // body.md)"` yields the literal substitution. Validating that text would fail
     // every rule and report "missing QA evidence URL" — fail-closed, but with a
@@ -332,12 +377,11 @@ export function extractBodyFromCommand(command = '') {
           'Use --body-file <path> instead.'
       };
     }
-    return { body: raw.replace(/\\n/g, '\n').replace(/\\"/g, '"'), source: '--body' };
+    return { body: raw, source: '--body' };
   }
 
-  const fileMatch = text.match(/(?:^|\s)(?:--body-file[= ]\s*|-F[= ]?\s*)("[^"]*"|'[^']*'|\S+)/);
-  if (fileMatch) {
-    const file = unquote(fileMatch[1]);
+  if (bodyFile) {
+    const file = bodyFile;
     if (file === '-') {
       // Unknowable at EVERY point in the command's life: stdin is consumed by
       // `gh`, and no path exists that the hook could read later. Fail-closed is

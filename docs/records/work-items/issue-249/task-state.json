@@ -1,0 +1,56 @@
+{
+  "task_id": "issue-249",
+  "workflow_id": "bug-fix",
+  "contract_version": 1,
+  "change_type": "bug-fix",
+  "risk_level": "medium",
+  "state": "verifying",
+  "rework_count": 0,
+  "max_rework_attempts": 2,
+  "history": [
+    {
+      "from": "intake",
+      "to": "investigating",
+      "at": "2026-09-09",
+      "actor": "Developer Agent",
+      "evidence_refs": [
+        "failure_description",
+        "repro"
+      ]
+    },
+    {
+      "from": "investigating",
+      "to": "implementing",
+      "at": "2026-09-09",
+      "actor": "Developer Agent",
+      "evidence_refs": [
+        "fail_path",
+        "hypothesis_matrix"
+      ]
+    },
+    {
+      "from": "implementing",
+      "to": "verifying",
+      "at": "2026-09-09",
+      "actor": "Developer Agent",
+      "evidence_refs": [
+        "changed_files",
+        "validation_plan"
+      ]
+    }
+  ],
+  "evidence": {
+    "failure_description": "Issue #249: raw text flag extraction hijacked by quoted title",
+    "repro": "test/validate-pr-readiness.test.mjs: Issue #249 shapes 9–13 (all RED on baseline)",
+    "fail_path": "Raw regex in extractBodyFromCommand ignores quoted argument boundaries",
+    "hypothesis_matrix": "Direct extractor proof in docs/records/qa/2026-09-09-issue-249-token-body-code-review.md",
+    "changed_files": [
+      "scripts/validate-pr-readiness.mjs",
+      "test/validate-pr-readiness.test.mjs",
+      "README.md"
+    ],
+    "validation_plan": "docs/records/work-items/issue-249/developer-plan.md"
+  },
+  "next_route": "qa-agent",
+  "stop_reason": null
+}
