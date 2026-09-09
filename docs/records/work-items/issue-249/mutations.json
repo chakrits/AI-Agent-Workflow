@@ -1,0 +1,18 @@
+[
+  {
+    "mutation": "control",
+    "exit": 0
+  },
+  {
+    "mutation": "fence-close",
+    "exit": 1
+  },
+  {
+    "mutation": "fence-indent",
+    "exit": 1
+  },
+  {
+    "mutation": "empty-issue",
+    "exit": 1
+  }
+]

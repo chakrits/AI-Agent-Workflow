@@ -1044,7 +1044,7 @@ test('N1/AC-04: an incomplete --body is denied and names the missing rules', () 
 });
 
 test('N1/AC-04: a complete body is allowed, with the degraded-mode warning as systemMessage', () => {
-  const out = runHook(`gh pr create --title "t" --body "${hookBody('Fixes #236').replace(/\n/g, '\\n')}"`);
+  const out = runHook(`gh pr create --title "t" --body "${hookBody('Fixes #236')}"`);
   assert.equal(hookDecision(out), undefined, JSON.stringify(out));
   assert.match(out.systemMessage ?? '', /Degraded mode/);
 });
@@ -1188,7 +1188,7 @@ test('AC-08: an absolute --body-file is unaffected by the relative-path refusal'
 test('AC-08: the refusal fires only for --body-file — no other shape gains a refusal', () => {
   // --body, --help and non-create commands must be untouched by AC-08.
   assert.equal(
-    hookDecision(runHook(`gh pr create --title t --body "${hookBody('Fixes #236').replace(/\n/g, '\\n')}"`)),
+    hookDecision(runHook(`gh pr create --title t --body "${hookBody('Fixes #236')}"`)),
     undefined
   );
   assert.deepEqual(runHook('gh pr create --help'), {});
@@ -1237,4 +1237,50 @@ test('pre-push path: a relative PR_BODY_FILE is still checked, not refused', () 
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
+});
+
+// Issue #249: consume argument boundaries rather than flag-looking title text.
+for (const [shape, command, expected] of [
+  [9, 'gh pr create --body-file \\\n/tmp/real.md', '/tmp/real.md'],
+  [10, 'gh pr create --body-file /tmp/first.md --body-file /tmp/last.md', '/tmp/last.md'],
+  [11, 'gh pr create --body-file\t/tmp/real.md', '/tmp/real.md'],
+  [12, 'gh pr create -dF /tmp/real.md', '/tmp/real.md'],
+  [13, 'gh pr create --title "a --body fake title" --body-file /tmp/real.md', '/tmp/real.md']
+]) {
+  test(`Issue #249 shape ${shape}`, () => assert.equal(extractBodyFromCommand(command).bodyFile, expected));
+}
+for (const flag of ['--body "hello world"', '--body="hello world"', '-b "hello world"', '-b="hello world"', '-b"hello world"', '-db "hello world"']) {
+  test(`Issue #249 inline ${flag}`, () => assert.equal(extractBodyFromCommand(`gh pr create ${flag}`).body, 'hello world'));
+}
+for (const flag of ['--body-file "/tmp/my body.md"', '--body-file="/tmp/my body.md"', '-F "/tmp/my body.md"', '-F="/tmp/my body.md"', '-F"/tmp/my body.md"']) {
+  test(`Issue #249 file ${flag}`, () => assert.equal(extractBodyFromCommand(`gh pr create ${flag}`).bodyFile, '/tmp/my body.md'));
+}
+test('Issue #249 repeated inline body uses last and preserves quoted flag value', () => {
+  assert.equal(extractBodyFromCommand('gh pr create -b first --body "last --body literal"').body, 'last --body literal');
+  assert.equal(extractBodyFromCommand('gh pr create --title "--body" -b ""').body, '');
+});
+
+test('Issue #249 shell literals are preserved, and adjacent quotes concatenate', () => {
+  assert.equal(extractBodyFromCommand(`gh pr create -b 'literal\\ntext'`).body, 'literal\\ntext');
+  assert.equal(extractBodyFromCommand(`gh pr create -b 'hello'" world"`).body, 'hello world');
+});
+test('Issue #249 gh file precedence and empty file fallback', () => {
+  for (const flags of ['-b inline -F /tmp/body.md', '-F /tmp/body.md -b inline']) {
+    assert.equal(extractBodyFromCommand(`gh pr create ${flags}`).bodyFile, '/tmp/body.md');
+  }
+  assert.equal(extractBodyFromCommand('gh pr create -b inline -F /tmp/body.md -F=""').body, 'inline');
+});
+test('Issue #249 AC-05: longer fence closes; shorter does not; indentation is recognized', () => {
+  assert.equal(stripCodeSpans('```\nhidden\n```\nvisible').trim(), 'visible');
+  assert.equal(stripCodeSpans('```\nhidden\n````\nvisible').trim(), 'visible');
+  assert.equal(stripCodeSpans('````\nhidden\n```\nstill hidden').trim(), '');
+  for (const indent of [' ', '  ', '   ']) {
+    assert.deepEqual(advancesOnlyIssues(`${indent}~~~\n<!-- advances-only: issue-249 -->\n${indent}~~~`), []);
+  }
+  assert.deepEqual(advancesOnlyIssues('<!-- advances-only: issue- -->'), []);
+});
+test('Issue #249 token output preserves the default command-segment API', () => {
+  const command = 'echo "a; b" && gh pr create -b "hello world"';
+  assert.deepEqual(shellCommandSegments(command), ['echo "a; b"', 'gh pr create -b "hello world"']);
+  assert.deepEqual(shellCommandSegments(command, { tokens: true }), [['echo', 'a; b'], ['gh', 'pr', 'create', '-b', 'hello world']]);
 });

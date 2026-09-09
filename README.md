@@ -124,7 +124,7 @@ A `PreToolUse` hook sees the command *text*, before a shell has expanded anythin
 | relative path | **refused** | this hook runs from the project root, `gh` runs from your shell's working directory. Where the two differ the hook validates one file and `gh` submits another — a false pass, which is more dangerous than no gate because it is trusted. Pass `"$(pwd)/body.md"`. |
 | `--body-file -`, or neither `--body` nor `--body-file` | **refused** | uncheckable at every point in the command's life, and chosen by the author. A gate that passes when it can never see its input is not a gate. |
 
-Every rule the hook applies is also enforced by CI's `work-item-readiness-freshness` check, including the closing-keyword rule — the hook invokes rules, it never originates them, so no non-Claude host loses one (ADR-0022, ADR-0024).
+Every rule the hook applies is also enforced by CI: `work-item-readiness-freshness` enforces readiness and the closing-keyword rule; `documentation-impact-gate.yml` enforces Documentation Impact — the hook invokes rules, it never originates them, so no non-Claude host loses one (ADR-0022, ADR-0024).
 
 ### 4. Give your agent a safe first prompt
 

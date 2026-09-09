@@ -7,6 +7,45 @@ Restored on 2026-09-05 under Issue #208. The blank-template resets of 2026-08-12
 that currently-open issues cite; ADR-0002 through ADR-0016 and ADR-0018 remain recoverable via
 `git show afe8091:DECISIONS.md` and were left out by Human Maintainer decision.
 
+### ADR-0025: Expose argument tokens from the existing lexer for Issue #249
+
+- Date: 2026-09-09
+- Work Items: [Issue #249](https://github.com/chakrits/AI-Agent-Workflow/issues/249)
+- Status: Accepted — Human Maintainer approved in the continuing session on 2026-09-09
+
+#### Context
+
+AC-01 assumes `shellCommandSegments()` already produces argument tokens. At `a53c66f`
+it returns command-segment strings; `segmentTokens()` splits those strings on whitespace
+without preserving quoted argument boundaries. Parent and Developer independently reproduced
+a quoted title containing `--body` being mistaken for the actual body flag. Consuming that
+whitespace split cannot satisfy AC-02's quoted values or AC-03's title case.
+
+#### Decision
+
+Clarify AC-01: `extractBodyFromCommand()` consumes argument tokens exposed by the existing
+lexer. Extending that lexer to retain argument boundaries and quoted values is authorized,
+while preserving its existing command-segmentation behavior. No second shell parser, shell
+evaluation, variable expansion, or new dependency is authorized. All other Issue #249 ACs
+and ADR-0024's retained behavior remain binding. This approval permits implementation,
+not merge.
+
+#### Alternatives Considered
+
+- Consume the existing whitespace split unchanged — rejected because quoted argument
+  boundaries have already been lost, as the baseline repro demonstrates.
+- Add another parser or more body-extraction regex patches — rejected; this would retain
+  competing interpretations of the command, contrary to ADR-0024's rationale.
+
+#### Consequences
+
+The approved change has a larger lexer scope than the original AC-01 wording implied.
+Independent QA must check command detection and heredoc behavior as well as argument
+extraction, compare flag semantics with `gh`, and use real historical PR bodies with
+changed-file sets derived from their merge commits. AC-05's mutation requirements remain
+binding; numeric test-count floors remain prohibited. No implementation claim is made
+by this decision record.
+
 ### ADR-0024: A `--body-file` the hook cannot yet read is allowed with a warning; decision 1's fail-closed rule is scoped to genuinely uncheckable bodies
 
 - Date: 2026-09-09
