@@ -1,17 +1,17 @@
 # PROJECT_STATUS.md
 
 ## Current Work Item
-- [Issue #246](https://github.com/chakrits/AI-Agent-Workflow/issues/246), AC-02 through AC-08: harden the PreToolUse hook seam and relocate the closing-keyword rule into CI.
+- None — repository is idle.
 
 ## Current Stage
-- Verification complete; awaiting human merge approval.
+- Idle. Three work items are open and unstarted: Issue #249 (the body-extraction seam), Issue #244 (a flaky test), and Issue #236's AC-06 onward.
 
 ## Change Classification
-- Change Type: Framework / Meta Change
-- Risk Level: Medium-High — edits `work-item-readiness.mjs`, live in the check that gates every PR in this repository. Once merged, every PR must carry a closing keyword or an `advances-only` marker.
-- Code Change Required: Yes
-- Architecture Change Required: No — design fixed by ADR-0024
-- Security Review Required: No — no auth, secrets, or trust-boundary change
+- Change Type: N/A
+- Risk Level: N/A
+- Code Change Required: N/A
+- Architecture Change Required: N/A
+- Security Review Required: N/A
 
 ## Completed
 - Blank-template reset completed through PR #205 (`aa2a871`); historical records remain recoverable from Git history.
@@ -32,11 +32,14 @@
 
 - Issue #236 (IMP-007) — AC-02 through AC-05 implemented. `npm run setup:hooks` activates the `.githooks` layer, which had never run since 2026-07-20 because `core.hooksPath` was unset; `scripts/validate-pr-readiness.mjs` (`npm run validate:pr-readiness`) validates a local PR body draft, importing `validateReadiness()` and `findLinkedIssueNumber()` rather than re-implementing them, and adding four rules CI does not carry — a closing keyword, the `## Documentation Impact` heading, its completion marker, and an explicit Work Item URL error. Wired as a blocking `PreToolUse` hook on `gh pr create` and as `.githooks/pre-push`, both thin callers of the same npm script, so ADR-0022's invariant holds. Introduces the `<!-- advances-only: issue-N -->` marker so a PR that advances a multi-AC Issue without closing it can declare that instead of being refused. Merged via PR #243 (squash) as `0fa6c30`. **Three rework cycles and four independent QA rounds**, cycle 3 authorised past the two-cycle ceiling by explicit Human Maintainer decision (Issue #210 precedent). Round 1 found a Blocker the implementer's tests missed — the command matcher denied any text where the create verb followed `;`/`&`/`|`, heredoc content included — discovered when the gate blocked QA from writing its own report. Dogfooding then found the gate refused partial-progress PRs, including PRs #232 and #234 retroactively. Round 3 found a second Blocker: a valid marker also suppressed a closing keyword naming a different Issue. Round 4 passed at `6c70a4b` (666/666, every fix confirmed by applying its mutant to the shipped code, not by test count) with five Minors and one Question left open. Self-review record: `docs/records/qa/2026-09-08-issue-236-pr-readiness-preflight-code-review.md`. AC-06 through AC-14 remain open. Evidence: https://github.com/chakrits/AI-Agent-Workflow/issues/236#issuecomment-5586276405
 
+- Issue #246 — the PR readiness hook stopped refusing legitimate work and stopped validating the wrong file, and the closing-keyword rule moved into CI. A declared `--body-file` that will exist when the command runs is now allowed with a warning; a `PreToolUse` hook runs before the command and a denial blocks the whole tool call, so the previous rule could discard a `git commit` sharing a command line with `gh pr create`. A relative `--body-file` is refused rather than resolved against the wrong directory, closing a case where the hook validated one file while `gh` submitted another. Shell-variable expansion is declined, since correct expansion needs a shell that has not started. `-F<path>` attached short-flag forms are recognised. AC-01 recorded as ADR-0024 via PR #247 (`b69d5b2`); AC-02–AC-08 merged via PR #248 (squash) as `fd9f223`. **Behaviour change every future PR inherits: the closing-keyword rule now lives in `scripts/work-item-readiness.mjs`, so every PR must carry `Fixes #N` or an `<!-- advances-only: issue-N -->` marker or `work-item-readiness-freshness` fails.** That relocation repairs ADR-0022's invariant, which code merged in PR #243 had violated — the rule was originated in `.claude/settings.json`, carried by no other enforcement point. Independent QA passed at `8ed21a0` (685/685; 28 mutants killed, 3 survivors, 1 equivalent) after discarding its own first mutation run, having found the workspace it built was not green and made every mutant appear killed. QA measured the CI relocation against 30 real historical PR bodies: 13 flip success to failure, none the other way, and confirmed the carrying PR could not block itself because the workflow loads the module from the default branch. Three Majors left open, all pre-existing symptoms of one seam, now tracked as Issue #249. Self-review record: `docs/records/qa/2026-09-09-issue-246-hook-seam-hardening-code-review.md`. Evidence: https://github.com/chakrits/AI-Agent-Workflow/issues/246#issuecomment-5595552264
+
 ## In Progress
 - None.
 
 ## Blockers / Open Questions
-- Issue #236 (IMP-007): AC-02 through AC-05 are merged; **AC-06 through AC-12 remain open**. AC-07 (the `validate:context-budget` edit guard) is still the binding prerequisite for Issue #237's implementation. Round-4 QA flagged **N1** — `runHookMode()`'s uncovered paths — as the item to address first, since AC-06, AC-07 and AC-08 all inherit the same invocation seam.
+- Issue #236 (IMP-007): AC-02 through AC-05 are merged; **AC-06 through AC-12 remain open**. AC-07 (the `validate:context-budget` edit guard) is still the binding prerequisite for Issue #237's implementation. N1 is now closed by Issue #246, so the invocation seam AC-06/07/08 inherit is covered — but [Issue #249](https://github.com/chakrits/AI-Agent-Workflow/issues/249) should land first, since it rewrites how that seam reads a command.
+- [Issue #249](https://github.com/chakrits/AI-Agent-Workflow/issues/249) — body extraction is a regex over raw command text while command detection is token-aware. Thirteen flag shapes have passed through that gap: eight found one at a time by real use and fixed, five still open, including a whole-call destructive false deny on a backslash-newline continuation and a false pass when `--body-file` is repeated. Opened by Human Maintainer decision to fix the seam rather than continue fixing shapes.
 - Minor findings carried forward from Issue #236, none blocking: the marker parser scrubs fenced and inline-backtick regions but not four-space indented blocks, HTML `<code>`/`<pre>`, fences indented more than three spaces inside lists or blockquotes, or spans straddling a newline; `isCloseout` reads the body unscrubbed, bounded by the authorized-file rule to the residual round 2 accepted; a `--title` containing the literal `--body` hijacks body extraction (fail-closed); shell variables in a `--body-file` path reach the hook unexpanded and are refused; and `validate:pr-readiness` is deliberately in no CI file, which is input to AC-12.
 - [Issue #244](https://github.com/chakrits/AI-Agent-Workflow/issues/244) — `validate-review-gate.test.mjs:133` fails intermittently in CI. Pre-existing on `main` from `bd25b7c` (Issue #172), not caused by Issue #236's branch. Two runs on the identical commit `a61f7e5` disagreed (pull_request 666/666, push 665/666) and a re-run of the failed job passed. Not reproducible locally in three attempts; cause undetermined, evidence recorded rather than guessed at.
 - Issue #237 (IMP-008) is design-approved via ADR-0023 but not dispatched: AC-02 through AC-08 and AC-13/AC-14 remain open, all gated on Issue #236's AC-07. The approved set lands at ~26,262 against ADR-0023's ≤26,300 target — roughly 38 tokens of margin, so pointer wording must be terse and the budget re-measured after each relocation.
