@@ -4,14 +4,14 @@
 - Issue #249 — token-aware PR body extraction (ADR-0025 clarification approved).
 
 ## Current Stage
-- Issue #249: Developer verification; independent QA next. Issue #244 and Issue #236 AC-06 onward remain unstarted.
+- Issue #249: independent QA and security review complete; awaiting human merge approval. Issue #244 and Issue #236 AC-06 onward remain unstarted.
 
 ## Change Classification
 - Change Type: Bug Fix
 - Risk Level: Medium
 - Code Change Required: Yes
 - Architecture Change Required: No — ADR-0025 clarifies existing lexer output
-- Security Review Required: Yes — input-validation review before merge
+- Security Review Required: Yes — discharged 2026-09-09. PASS_WITH_FINDINGS, no Critical or High; the change narrows the wrong-answer input set. Evidence on Issue #249.
 
 ## Completed
 - Blank-template reset completed through PR #205 (`aa2a871`); historical records remain recoverable from Git history.
