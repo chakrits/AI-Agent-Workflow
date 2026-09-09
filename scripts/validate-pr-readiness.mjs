@@ -12,7 +12,13 @@
 import { readFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { pathToFileURL } from 'node:url';
-import { validateReadiness } from './work-item-readiness.mjs';
+import {
+  validateReadiness,
+  stripCodeSpans,
+  advancesOnlyIssues,
+  closingKeywordErrors,
+  closingKeywordIssues
+} from './work-item-readiness.mjs';
 import { findLinkedIssueNumber } from './work-item-readiness-check.mjs';
 
 /**
@@ -94,92 +100,16 @@ export const CLOSEOUT_UNVERIFIABLE_ERRORS = Object.freeze(['labeled source pull 
 export const CLOSEOUT_FILE_ERROR = 'closeout files are not authorized';
 
 /**
- * The partial-progress marker (Human Maintainer decision, 2026-09-08).
+ * Re-exported, not re-implemented (Issue #246, AC-07).
  *
- * This repository routinely opens PRs that advance a multi-AC Issue without
- * closing it, and the closing-keyword rule refused every one of them — PRs #232
- * and #234 among them. The rule cannot simply be dropped: Issue #224 stayed open
- * precisely because its PR carried no closing keyword, which is the failure this
- * gate exists to prevent. So the author may *declare* that no Issue is being
- * closed, but may not *forget* to close one.
- *
- * The marker names its Issue, and naming any other Issue is an error rather than
- * a no-op. A marker that suppressed the rule regardless of the number it carries
- * would be a blanket escape hatch, copy-pasteable between Issues without ever
- * being wrong — which the decision explicitly rejects.
- *
- * Syntax mirrors the two markers already in the body vocabulary
- * (`<!-- post-merge-closeout: complete; source-pr-N -->`,
- * `<!-- documentation-impact: complete -->`): an HTML comment, `name: value`,
- * with the `issue-N` form paralleling `source-pr-N`. Spelling the number as
- * `issue-236` rather than `#236` keeps it out of GitHub's cross-reference
- * rendering and out of CLOSING_KEYWORD's way.
+ * The `advances-only` marker, the code-span scrubber and the closing-keyword
+ * rule all moved into `work-item-readiness.mjs` so the rule is enforced by CI's
+ * `work-item-readiness-freshness` check for every host, not originated here in a
+ * Claude-only hook. ADR-0022's invariant — `.claude/settings.json` may invoke a
+ * rule but never originate one — holds again as a result. These names stay
+ * exported from this module because it is this gate's public surface.
  */
-const ADVANCES_ONLY_MARKER = /<!--\s*advances-only:\s*issue-(\d+)\s*-->/gi;
-
-/**
- * Every Issue number the body's advances-only markers name, in order.
- *
- * Markers inside a fenced code block or an inline backtick span are ignored: this
- * repository documents the marker syntax (README.md) and writes about its own
- * gates constantly, so prose explaining the marker must neither waive the
- * closing-keyword rule nor raise an error (Issue #236, M1).
- *
- * The fresh regex per call is *not* defensive against `lastIndex`: `matchAll`
- * clones its argument and never advances the original's `lastIndex`, so sharing
- * the global regex would be safe (Issue #236, M9 — an equivalent mutant, and the
- * comment that stood here described a hazard that does not exist). It is kept
- * only so the module-level literal stays a declaration rather than mutable state.
- */
-export function advancesOnlyIssues(body = '') {
-  return [...stripCodeSpans(body).matchAll(new RegExp(ADVANCES_ONLY_MARKER.source, 'gi'))].map((m) =>
-    Number(m[1])
-  );
-}
-
-/**
- * Blanks out fenced code blocks and inline backtick spans (Issue #236, M1).
- *
- * Deliberately a scrubber, not a Markdown parser. What it covers: ``` and ~~~
- * fences (any length >= 3, opened and closed at line start with optional
- * indentation), and inline spans delimited by a matching run of backticks on one
- * line. What it does NOT cover: indented (four-space) code blocks, HTML <code>
- * or <pre> elements, fences nested inside list items or blockquotes at a deeper
- * indent than three spaces, and backtick spans that straddle a newline. An
- * unterminated fence blanks the remainder of the body. Both directions are then
- * fail-closed: the marker stops waiving and the closing keyword stops satisfying,
- * so such a body is refused rather than passed silently.
- *
- * Scrubbed: this parser and the closing-keyword scan, and only those. Read from
- * the raw body, deliberately: findLinkedIssueNumber() (a fenced Work Item URL
- * still resolves), validateReadiness()'s QA-evidence check, the Documentation
- * Impact heading and marker, and CLOSEOUT_MARKER — scrubbing the last would
- * change post-merge closeout behaviour, which Issue #236 cycle 3 puts out of
- * scope. A fenced closeout marker therefore still flips the closeout branch.
- *
- * Content is replaced by spaces rather than removed so that surrounding text
- * cannot be joined into a marker or keyword that the author never wrote.
- */
-export function stripCodeSpans(body = '') {
-  const blank = (text) => text.replace(/[^\n]/g, ' ');
-  const lines = String(body).split('\n');
-  let fence;
-  const out = lines.map((line) => {
-    const opener = /^\s{0,3}(`{3,}|~{3,})/.exec(line);
-    if (fence) {
-      const closes = opener && opener[1][0] === fence[0] && opener[1].length >= fence.length;
-      if (closes) fence = undefined;
-      return blank(line);
-    }
-    if (opener) {
-      fence = opener[1];
-      return blank(line);
-    }
-    // Inline spans: a run of N backticks closed by the next run of exactly N.
-    return line.replace(/(`+)(?:(?!\1)[\s\S])*?\1/g, blank);
-  });
-  return out.join('\n');
-}
+export { stripCodeSpans, advancesOnlyIssues, closingKeywordErrors, closingKeywordIssues };
 
 /**
  * Why `gh issue view` failed: the Issue does not exist, or it could not be reached.
@@ -198,7 +128,6 @@ export function classifyIssueFetchFailure(stderr = '') {
     : 'unreachable';
 }
 
-const CLOSING_KEYWORD = /\b(?:fix(?:e[sd])?|close[sd]?|resolve[sd]?)\b\s*:?\s*#(\d+)/gi;
 const DOC_IMPACT_HEADING = '## Documentation Impact';
 const DOC_IMPACT_MARKER = '<!-- documentation-impact: complete -->';
 
@@ -498,7 +427,11 @@ export function validatePrReadiness({
     draft,
     workItem: effectiveWorkItem,
     changedFiles,
-    sourcePullRequest
+    sourcePullRequest,
+    // The closing-keyword rule is evaluated by the shared core now (AC-07); this
+    // caller supplies the linked Issue and reports the result, rather than
+    // owning a second copy of the rule.
+    linkedIssueNumber: linkedIssue
   });
 
   if (offline || !workItem) {
@@ -569,29 +502,17 @@ export function validatePrReadiness({
   // scope in the warning above instead (Issue #236, Finding 5).
   if (repositoryResolved && !linkedIssue) errors.push('Work Item (Issue) URL');
 
-  // Closing keyword must reference the *linked* Issue (AC-03). "Some Fixes #N is
-  // present" would pass a body that closes the wrong Issue — which is exactly the
-  // #224 failure this gate exists to prevent.
-  // Read from the scrubbed body, not the raw one, so the two scans cannot drift
-  // apart in their code-fence awareness (Issue #236, M1). A `Fixes #N` that only
-  // appears inside a fence closes nothing on merge, so it must not satisfy the
-  // rule either.
-  const closed = [...stripCodeSpans(body).matchAll(CLOSING_KEYWORD)].map((m) => Number(m[1]));
-
-  // A partial-progress declaration, and only for the Issue it names. When no Issue
-  // could be resolved from the body the marker is inert and silent: there is
-  // nothing to check it against, and that state already carries its own error
-  // ('Work Item (Issue) URL') or the out-of-scope warning above.
+  // The closing-keyword rule itself is enforced by the shared core, which this
+  // caller invoked above with `linkedIssueNumber` (Issue #246, AC-07). What
+  // remains here is caller-local reporting: the warning that explains a waived
+  // requirement, and the one arm the core cannot express — no linked Issue at
+  // all, where the core returns [] because there is nothing to check against.
+  const closed = closingKeywordIssues(body);
   const declaredAdvances = advancesOnlyIssues(body);
-  const misnamedAdvances = linkedIssue ? declaredAdvances.filter((n) => n !== linkedIssue) : [];
   const advancesOnly =
-    Boolean(linkedIssue) && declaredAdvances.length > 0 && misnamedAdvances.length === 0;
-  if (misnamedAdvances.length) {
-    errors.push(
-      `advances-only marker naming the linked Issue #${linkedIssue} ` +
-        `(found issue-${misnamedAdvances.join(', issue-')} instead)`
-    );
-  }
+    Boolean(linkedIssue) &&
+    declaredAdvances.length > 0 &&
+    declaredAdvances.every((n) => n === linkedIssue);
 
   if (isCloseout) {
     // Closeout PRs close no Issue by design: their source Issues are auto-closed by
@@ -601,23 +522,15 @@ export function validatePrReadiness({
     // all (Human Maintainer decision, 2026-09-08 — Issue #236, B1). The marker
     // waives the requirement that a keyword be *present*; it does not waive the
     // requirement that a keyword which IS present point at the linked Issue.
-    // Suppressing the wrong-Issue arm too meant a body carrying `Fixes #212`
-    // passed while this very warning told the author the PR closed nothing — and
-    // merging it closed #212. The `closed.length === 0` guard is also what makes
-    // the wording below true: it can only be reached when no keyword stands.
+    // The `closed.length === 0` guard is also what makes the wording below true:
+    // it can only be reached when no keyword stands.
     warnings.push(
       `Partial-progress PR: the body carries \`<!-- advances-only: issue-${linkedIssue} -->\`, so ` +
         `the closing-keyword requirement for Issue #${linkedIssue} was SKIPPED — this PR advances ` +
         'that Issue without closing it, and the Issue must be closed by a later PR or by hand. ' +
         'Every other readiness rule was enforced normally.'
     );
-  } else if (linkedIssue && !closed.includes(linkedIssue)) {
-    errors.push(
-      closed.length
-        ? `closing keyword referencing the linked Issue #${linkedIssue} (found #${closed.join(', #')} instead)`
-        : `closing keyword referencing the linked Issue #${linkedIssue} (e.g. "Fixes #${linkedIssue}")`
-    );
-  } else if (!linkedIssue && !closed.length) {
+  } else if (!linkedIssue && !closed.length && !isCloseout) {
     errors.push('closing keyword referencing the linked Issue (e.g. "Fixes #N")');
   }
 

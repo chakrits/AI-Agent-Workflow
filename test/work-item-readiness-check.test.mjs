@@ -16,8 +16,10 @@ const readyIssue = {
   ]
 };
 
+// Carries `Fixes #19` because the closing-keyword rule is enforced by this check
+// as of Issue #246 AC-07: a ready pull request must close its linked Issue.
 const pull = {
-  body: 'Developer: Work Item (Issue) URL: https://github.com/chakrits/AI-Agent-Workflow/issues/19\nQA: evidence comment or review URL: https://github.com/chakrits/AI-Agent-Workflow/issues/19#comment',
+  body: 'Developer: Work Item (Issue) URL: https://github.com/chakrits/AI-Agent-Workflow/issues/19\nQA: evidence comment or review URL: https://github.com/chakrits/AI-Agent-Workflow/issues/19#comment\nFixes #19',
   draft: false,
   head: { sha: 'abc123' }
 };
@@ -110,4 +112,89 @@ test('publishes a successful check for a valid post-merge closeout pull request'
     title: 'Work item readiness is current',
     summary: 'Linked Issue lifecycle state passed the trusted readiness evaluation.'
   });
+});
+
+// --------------------------------------------------- Issue #246, AC-07
+// The closing-keyword-references-linked-Issue rule, including advances-only
+// marker semantics, is enforced by the check that gates every pull request —
+// not originated in `.claude/settings.json` (ADR-0022's invariant, ADR-0024 D3).
+
+test('AC-07: CI fails a pull request whose body carries no closing keyword', () => {
+  const check = buildReadinessCheck({
+    pull: { ...pull, body: pull.body.replace('\nFixes #19', '') },
+    issue: readyIssue,
+    repository: { owner: 'chakrits', repo: 'AI-Agent-Workflow' }
+  });
+  assert.equal(check.conclusion, 'failure');
+  assert.match(check.summary, /closing keyword referencing the linked Issue #19/);
+});
+
+test('AC-07: CI fails a closing keyword that names a different Issue', () => {
+  const check = buildReadinessCheck({
+    pull: { ...pull, body: pull.body.replace('Fixes #19', 'Fixes #212') },
+    issue: readyIssue,
+    repository: { owner: 'chakrits', repo: 'AI-Agent-Workflow' }
+  });
+  assert.equal(check.conclusion, 'failure');
+  assert.match(check.summary, /found #212 instead/);
+});
+
+test('AC-07: CI honours the advances-only marker for the Issue it names', () => {
+  const check = buildReadinessCheck({
+    pull: {
+      ...pull,
+      body: pull.body.replace('Fixes #19', '<!-- advances-only: issue-19 -->')
+    },
+    issue: readyIssue,
+    repository: { owner: 'chakrits', repo: 'AI-Agent-Workflow' }
+  });
+  assert.equal(check.conclusion, 'success');
+});
+
+test('AC-07: CI rejects an advances-only marker naming another Issue', () => {
+  const check = buildReadinessCheck({
+    pull: {
+      ...pull,
+      body: pull.body.replace('Fixes #19', '<!-- advances-only: issue-212 -->')
+    },
+    issue: readyIssue,
+    repository: { owner: 'chakrits', repo: 'AI-Agent-Workflow' }
+  });
+  assert.equal(check.conclusion, 'failure');
+  assert.match(check.summary, /advances-only marker naming the linked Issue #19/);
+});
+
+test('AC-07: a marker inside a code fence neither waives the rule nor errors', () => {
+  const check = buildReadinessCheck({
+    pull: {
+      ...pull,
+      body: pull.body.replace('Fixes #19', '```\n<!-- advances-only: issue-212 -->\n```')
+    },
+    issue: readyIssue,
+    repository: { owner: 'chakrits', repo: 'AI-Agent-Workflow' }
+  });
+  assert.equal(check.conclusion, 'failure');
+  assert.match(check.summary, /closing keyword referencing the linked Issue #19/);
+  assert.doesNotMatch(check.summary, /advances-only marker naming/);
+});
+
+test('AC-07: a post-merge closeout pull request is exempt from the closing keyword', () => {
+  const check = buildReadinessCheck({
+    pull: {
+      body: '<!-- post-merge-closeout: complete; source-pr-17 -->',
+      head: { sha: 'closeout456' }
+    },
+    repository: { owner: 'chakrits', repo: 'AI-Agent-Workflow' },
+    sourcePullRequest: { isPullRequest: true, labels: ['post-merge-closeout'] },
+    changedFiles: ['PROJECT_STATUS.md']
+  });
+  assert.equal(check.conclusion, 'success');
+});
+
+test('AC-07: an unlinked pull request is unchanged — no closing-keyword error is added', () => {
+  const check = buildReadinessCheck({
+    pull: { ...pull, body: '' },
+    repository: { owner: 'chakrits', repo: 'AI-Agent-Workflow' }
+  });
+  assert.equal(check.summary, 'Linked Issue is missing: valid same-repository Issue.');
 });
