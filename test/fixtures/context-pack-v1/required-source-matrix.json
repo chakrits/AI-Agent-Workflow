@@ -290,7 +290,7 @@
         },
         {
           "path": "docs/operating-model/SKILL_CATALOG.md",
-          "sha256": "842c3dd09d25b0d1e4efa9e1ad73543cab496b6c3b27774621d0fb027bb64217"
+          "sha256": "50caa8b95ffeb1cb463f7fb499c2c775a3c262be976def5afc23c9514498b36b"
         },
         {
           "path": "docs/workflow/dispatch-packet-contract.md",
@@ -343,7 +343,7 @@
         },
         {
           "path": "docs/operating-model/SKILL_CATALOG.md",
-          "sha256": "842c3dd09d25b0d1e4efa9e1ad73543cab496b6c3b27774621d0fb027bb64217"
+          "sha256": "50caa8b95ffeb1cb463f7fb499c2c775a3c262be976def5afc23c9514498b36b"
         },
         {
           "path": "docs/contracts/new-feature-workflow.yaml",
@@ -396,7 +396,7 @@
         },
         {
           "path": "docs/operating-model/SKILL_CATALOG.md",
-          "sha256": "842c3dd09d25b0d1e4efa9e1ad73543cab496b6c3b27774621d0fb027bb64217"
+          "sha256": "50caa8b95ffeb1cb463f7fb499c2c775a3c262be976def5afc23c9514498b36b"
         },
         {
           "path": "docs/contracts/new-feature-workflow.yaml",
@@ -449,7 +449,7 @@
         },
         {
           "path": "docs/operating-model/SKILL_CATALOG.md",
-          "sha256": "842c3dd09d25b0d1e4efa9e1ad73543cab496b6c3b27774621d0fb027bb64217"
+          "sha256": "50caa8b95ffeb1cb463f7fb499c2c775a3c262be976def5afc23c9514498b36b"
         },
         {
           "path": "docs/workflow/testing-conventions.md",
@@ -502,7 +502,7 @@
         },
         {
           "path": "docs/operating-model/SKILL_CATALOG.md",
-          "sha256": "842c3dd09d25b0d1e4efa9e1ad73543cab496b6c3b27774621d0fb027bb64217"
+          "sha256": "50caa8b95ffeb1cb463f7fb499c2c775a3c262be976def5afc23c9514498b36b"
         },
         {
           "path": "docs/workflow/task-execution-mode.md",
@@ -555,7 +555,7 @@
         },
         {
           "path": "docs/operating-model/SKILL_CATALOG.md",
-          "sha256": "842c3dd09d25b0d1e4efa9e1ad73543cab496b6c3b27774621d0fb027bb64217"
+          "sha256": "50caa8b95ffeb1cb463f7fb499c2c775a3c262be976def5afc23c9514498b36b"
         },
         {
           "path": "docs/workflow/testing-conventions.md",
@@ -608,7 +608,7 @@
         },
         {
           "path": "docs/operating-model/SKILL_CATALOG.md",
-          "sha256": "842c3dd09d25b0d1e4efa9e1ad73543cab496b6c3b27774621d0fb027bb64217"
+          "sha256": "50caa8b95ffeb1cb463f7fb499c2c775a3c262be976def5afc23c9514498b36b"
         },
         {
           "path": "docs/contracts/new-feature-workflow.yaml",
@@ -661,7 +661,7 @@
         },
         {
           "path": "docs/operating-model/SKILL_CATALOG.md",
-          "sha256": "842c3dd09d25b0d1e4efa9e1ad73543cab496b6c3b27774621d0fb027bb64217"
+          "sha256": "50caa8b95ffeb1cb463f7fb499c2c775a3c262be976def5afc23c9514498b36b"
         },
         {
           "path": "docs/contracts/config-change-workflow.yaml",
@@ -714,7 +714,7 @@
         },
         {
           "path": "docs/operating-model/SKILL_CATALOG.md",
-          "sha256": "842c3dd09d25b0d1e4efa9e1ad73543cab496b6c3b27774621d0fb027bb64217"
+          "sha256": "50caa8b95ffeb1cb463f7fb499c2c775a3c262be976def5afc23c9514498b36b"
         },
         {
           "path": "docs/contracts/data-change-workflow.yaml",
@@ -767,7 +767,7 @@
         },
         {
           "path": "docs/operating-model/SKILL_CATALOG.md",
-          "sha256": "842c3dd09d25b0d1e4efa9e1ad73543cab496b6c3b27774621d0fb027bb64217"
+          "sha256": "50caa8b95ffeb1cb463f7fb499c2c775a3c262be976def5afc23c9514498b36b"
         },
         {
           "path": "docs/workflow/platform-readiness.md",
@@ -820,7 +820,7 @@
         },
         {
           "path": "docs/operating-model/SKILL_CATALOG.md",
-          "sha256": "842c3dd09d25b0d1e4efa9e1ad73543cab496b6c3b27774621d0fb027bb64217"
+          "sha256": "50caa8b95ffeb1cb463f7fb499c2c775a3c262be976def5afc23c9514498b36b"
         },
         {
           "path": "docs/workflow/reset-to-template.md",
