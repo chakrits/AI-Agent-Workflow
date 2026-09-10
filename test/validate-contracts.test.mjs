@@ -197,6 +197,21 @@ test('lifecycle label contract pointer preserves the boot-mode routing source', 
   assert.match(routing, /When work routes backward, remove the superseded current `phase:` label/);
 });
 
+test('Stop Conditions pointer targets the complete Human Approval Gates policy', async () => {
+  const [agents, operatingModel] = await Promise.all([
+    readFile('AGENTS.md', 'utf8'),
+    readFile('docs/operating-model/AGENT_OPERATING_MODEL.md', 'utf8')
+  ]);
+
+  assert.match(
+    agents,
+    /### Stop Conditions\n\nLoad \[`docs\/operating-model\/AGENT_OPERATING_MODEL\.md#human-approval-gates`\]\(docs\/operating-model\/AGENT_OPERATING_MODEL\.md#human-approval-gates\) before proceeding\./
+  );
+  assert.doesNotMatch(agents, /### Stop Conditions[\s\S]*?- Scope change[\s\S]*?- Weakening validation/);
+  assert.match(agents, /Every condition listed in the Human Approval Gates section of \[`docs\/operating-model\/AGENT_OPERATING_MODEL\.md#human-approval-gates`\]/);
+  assert.match(operatingModel, /## Human Approval Gates[\s\S]*?- Business scope change[\s\S]*?- Ambiguous requirement that materially changes expected behavior/);
+});
+
 test('terminal handoffs require a receipt, an explicit routing outcome, and a Boss-visible event', async () => {
   const [agents, contract, template, routing, qualityGates, roles, taskExecutionMode] = await Promise.all([
     readFile('AGENTS.md', 'utf8'),

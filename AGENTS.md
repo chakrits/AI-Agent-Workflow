@@ -78,15 +78,7 @@ A task is complete only when:
 
 ### Stop Conditions
 
-Stop and ask for human approval when the task touches:
-
-- Scope change
-- Major architecture decision
-- Auth/authz, secrets, privacy, payment, financial logic
-- Production data or destructive database change
-- Release/deployment decision
-- Security exception
-- Removing or weakening validation, controls, or tests
+Load [`docs/operating-model/AGENT_OPERATING_MODEL.md#human-approval-gates`](docs/operating-model/AGENT_OPERATING_MODEL.md#human-approval-gates) before proceeding.
 
 ### Boundaries (Always / Ask First / Never)
 
@@ -101,7 +93,7 @@ The rules above are stated once each, in the section that owns them. This sectio
 
 **Ask First**
 
-- Every condition listed in Stop Conditions above.
+- Every condition listed in the Human Approval Gates section of [`docs/operating-model/AGENT_OPERATING_MODEL.md#human-approval-gates`](docs/operating-model/AGENT_OPERATING_MODEL.md#human-approval-gates).
 - Any request that matches no defined change type (Orchestrator Agent's Unclassified Request Rule).
 
 **Never**
