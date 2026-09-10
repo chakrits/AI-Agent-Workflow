@@ -274,7 +274,7 @@
         },
         {
           "path": "docs/workflow/role-definitions.md",
-          "sha256": "a7d5b03a4e60f8f2e1092f95a51919f8df3242a2b44c3b228e2c594f6d07a8ef"
+          "sha256": "0ae5faa09094d434fcc004aabb34becbdaa94ea1d1c20af0ebd83381af6e0b0e"
         },
         {
           "path": "docs/workflow/quality-gates.md",
@@ -327,7 +327,7 @@
         },
         {
           "path": "docs/workflow/role-definitions.md",
-          "sha256": "a7d5b03a4e60f8f2e1092f95a51919f8df3242a2b44c3b228e2c594f6d07a8ef"
+          "sha256": "0ae5faa09094d434fcc004aabb34becbdaa94ea1d1c20af0ebd83381af6e0b0e"
         },
         {
           "path": "docs/workflow/quality-gates.md",
@@ -380,7 +380,7 @@
         },
         {
           "path": "docs/workflow/role-definitions.md",
-          "sha256": "a7d5b03a4e60f8f2e1092f95a51919f8df3242a2b44c3b228e2c594f6d07a8ef"
+          "sha256": "0ae5faa09094d434fcc004aabb34becbdaa94ea1d1c20af0ebd83381af6e0b0e"
         },
         {
           "path": "docs/workflow/quality-gates.md",
@@ -433,7 +433,7 @@
         },
         {
           "path": "docs/workflow/role-definitions.md",
-          "sha256": "a7d5b03a4e60f8f2e1092f95a51919f8df3242a2b44c3b228e2c594f6d07a8ef"
+          "sha256": "0ae5faa09094d434fcc004aabb34becbdaa94ea1d1c20af0ebd83381af6e0b0e"
         },
         {
           "path": "docs/workflow/quality-gates.md",
@@ -486,7 +486,7 @@
         },
         {
           "path": "docs/workflow/role-definitions.md",
-          "sha256": "a7d5b03a4e60f8f2e1092f95a51919f8df3242a2b44c3b228e2c594f6d07a8ef"
+          "sha256": "0ae5faa09094d434fcc004aabb34becbdaa94ea1d1c20af0ebd83381af6e0b0e"
         },
         {
           "path": "docs/workflow/quality-gates.md",
@@ -539,7 +539,7 @@
         },
         {
           "path": "docs/workflow/role-definitions.md",
-          "sha256": "a7d5b03a4e60f8f2e1092f95a51919f8df3242a2b44c3b228e2c594f6d07a8ef"
+          "sha256": "0ae5faa09094d434fcc004aabb34becbdaa94ea1d1c20af0ebd83381af6e0b0e"
         },
         {
           "path": "docs/workflow/quality-gates.md",
@@ -592,7 +592,7 @@
         },
         {
           "path": "docs/workflow/role-definitions.md",
-          "sha256": "a7d5b03a4e60f8f2e1092f95a51919f8df3242a2b44c3b228e2c594f6d07a8ef"
+          "sha256": "0ae5faa09094d434fcc004aabb34becbdaa94ea1d1c20af0ebd83381af6e0b0e"
         },
         {
           "path": "docs/workflow/quality-gates.md",
@@ -645,7 +645,7 @@
         },
         {
           "path": "docs/workflow/role-definitions.md",
-          "sha256": "a7d5b03a4e60f8f2e1092f95a51919f8df3242a2b44c3b228e2c594f6d07a8ef"
+          "sha256": "0ae5faa09094d434fcc004aabb34becbdaa94ea1d1c20af0ebd83381af6e0b0e"
         },
         {
           "path": "docs/workflow/quality-gates.md",
@@ -698,7 +698,7 @@
         },
         {
           "path": "docs/workflow/role-definitions.md",
-          "sha256": "a7d5b03a4e60f8f2e1092f95a51919f8df3242a2b44c3b228e2c594f6d07a8ef"
+          "sha256": "0ae5faa09094d434fcc004aabb34becbdaa94ea1d1c20af0ebd83381af6e0b0e"
         },
         {
           "path": "docs/workflow/quality-gates.md",
@@ -751,7 +751,7 @@
         },
         {
           "path": "docs/workflow/role-definitions.md",
-          "sha256": "a7d5b03a4e60f8f2e1092f95a51919f8df3242a2b44c3b228e2c594f6d07a8ef"
+          "sha256": "0ae5faa09094d434fcc004aabb34becbdaa94ea1d1c20af0ebd83381af6e0b0e"
         },
         {
           "path": "docs/workflow/quality-gates.md",
@@ -775,7 +775,7 @@
         },
         {
           "path": ".agents/skills/release-readiness-checklist/SKILL.md",
-          "sha256": "9c03bed7e0932e72b017c0a9209d1d6bc843f3e3244918d53af5695f8ea13bb0"
+          "sha256": "315150bd312aaaa0a4763fb39cadd349ee83f3ed6ae03b03f94fccf7d7616958"
         }
       ],
       "allowedTriggerReasons": [
@@ -804,7 +804,7 @@
         },
         {
           "path": "docs/workflow/role-definitions.md",
-          "sha256": "a7d5b03a4e60f8f2e1092f95a51919f8df3242a2b44c3b228e2c594f6d07a8ef"
+          "sha256": "0ae5faa09094d434fcc004aabb34becbdaa94ea1d1c20af0ebd83381af6e0b0e"
         },
         {
           "path": "docs/workflow/quality-gates.md",
