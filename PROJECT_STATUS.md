@@ -1,10 +1,10 @@
 # PROJECT_STATUS.md
 
 ## Current Work Item
-- Issue #236 (IMP-007), AC-09/AC-11/AC-12 — SessionStart display, advisory SubagentStop validators, and hook containment.
+- None — awaiting next assignment.
 
 ## Current Stage
-- Development. AC-09/AC-11/AC-12 implementation is on the Developer Agent branch; independent QA remains.
+- Idle after merge of Issue #236 AC-09/AC-11/AC-12 and its idle-state regression fix; Issue #236 is complete.
 
 ## Change Classification
 - Change Type: Framework / Meta Change
@@ -14,6 +14,7 @@
 - Security Review Required: No
 
 ## Completed
+- Issue #236 (IMP-007), AC-09/AC-11/AC-12 — SessionStart context display, advisory SubagentStop validators, and hook containment implemented and independently QA-verified. PR #258 merged as `00a256a`; the closeout exposed and PR #260 fixed an idle-state test regression, merged as `41087ff`. QA evidence: https://github.com/chakrits/AI-Agent-Workflow/issues/236#issuecomment-5614686573. AC-10 remains withdrawn; all remaining Issue #236 scope is complete.
 - Issue #237 (IMP-008), AC-02–AC-03 — canonical handoff and lifecycle policy pointers implemented and independently QA-verified. Squash-merged via PR #256 as `00ae6f4`. QA evidence: https://github.com/chakrits/AI-Agent-Workflow/issues/237#issuecomment-5613684934. AC-05 and AC-07–AC-14 remain open.
 - Issue #236 (IMP-007), AC-06–AC-08 — portable post-write edit guards implemented and independently QA-verified. Squash-merged via PR #254 as `108b7e7`. QA evidence: https://github.com/chakrits/AI-Agent-Workflow/issues/236#issuecomment-5613316594. AC-09–AC-12 remain open; AC-07 is now complete and unblocks Issue #237 design follow-through.
 - Blank-template reset completed through PR #205 (`aa2a871`); historical records remain recoverable from Git history.
@@ -39,10 +40,10 @@
 - Issue #249 — the PR readiness gate now extracts the body from argument tokens instead of raw command text, closing the last five shapes that had passed through the gap between token-aware command detection and regex-based extraction: a backslash continuation read as the path, a repeated `--body-file` validated at the wrong occurrence while `gh` reads the last, a tab-separated value, combined shorthand, and a quoted `--title` containing `--body` hijacking extraction. `shellCommandSegments()` emits argument words from the same pass while preserving the command-string API invocation detection uses; both raw-text regexes and `unquote()` were deleted rather than added to. Scope clarified by ADR-0025 after the Issue's original AC-01 assumed argument tokens the lexer did not yet produce. Merged via PR #251 (squash) as `0c4f790`. The implementation was produced by a prior session and found uncommitted on `main`; it was moved to a branch without functional change before review. Independent QA passed at `af79ba6` (706/706) and settled the two remaining backslash refusals as correct behaviour by experiment — a `gh` shim printing argv under both bash and zsh showed the shell hands `gh` a `\r` or a space rather than the intended path, so those denies are true, not false. AC-04 verified by byte-comparing full hook output base against HEAD across 5 shapes and 4 real merged PR bodies, 20/20 identical. Security review discharged the declared input-validation gate: PASS_WITH_FINDINGS, no Critical or High, and the change **narrows** the wrong-answer input set, closing two genuine false passes with no input found where the new code is wrong and the old was right. It also established independently that ruleset `Protect main` makes `work-item-readiness-freshness` a required check with no bypass actors, so no rule this gate applies exists only locally. Evidence: https://github.com/chakrits/AI-Agent-Workflow/issues/249#issuecomment-5596393014
 
 ## In Progress
-- Issue #236 AC-09/AC-11/AC-12 — SessionStart display, advisory SubagentStop validators, and containment tests are implemented on the Developer Agent branch; awaiting independent QA.
+- None — awaiting next assignment.
 
 ## Blockers / Open Questions
-- Issue #236 (IMP-007): AC-02 through AC-08 are merged; **AC-09, AC-11, and AC-12 remain open pending QA**, while AC-10 is withdrawn. AC-07 (the `validate:context-budget` edit guard) remains the binding prerequisite for Issue #237's implementation.
+- Issue #236 (IMP-007): AC-02 through AC-09, AC-11, and AC-12 are merged; AC-10 remains withdrawn. The Issue is complete and no longer blocks Issue #237.
 - Carried forward from Issue #249, none blocking. **Medium:** several allow-path warnings state a false cause — a glob or brace-expanded `--body-file` reports "does not exist yet at hook time" when the file exists and the token is simply wrong, and escaped-character paths render as `path \r` with no hint. This matters because ADR-0024 made that warning the compensating control for allowing unreadable bodies. **Low:** ANSI-C quoting (`$'…'`) is read literally, so the parser can validate text longer than what `gh` submits; and a TOCTOU where the hook reads the body file before an earlier command in the same string rewrites it, structural to the hook point. **Minor:** `extractBodyFromCommand()` narrowed to a single segment while its docstring still describes a full command string — not live, since the only caller passes one segment. Three mutation survivors remain on the new token path, which the implementer ran no mutant against.
 - Pre-existing and outside Issue #249's diff: `validate-documentation-impact` is not in the `Protect main` ruleset's required-check list, so a Documentation Impact failure is a visible red run but not merge-blocking.
 - Minor findings carried forward from Issue #236, none blocking: the marker parser scrubs fenced and inline-backtick regions but not four-space indented blocks, HTML `<code>`/`<pre>`, fences indented more than three spaces inside lists or blockquotes, or spans straddling a newline; `isCloseout` reads the body unscrubbed, bounded by the authorized-file rule to the residual round 2 accepted; a `--title` containing the literal `--body` hijacks body extraction (fail-closed); shell variables in a `--body-file` path reach the hook unexpanded and are refused; and `validate:pr-readiness` is deliberately in no CI file, which is input to AC-12.
