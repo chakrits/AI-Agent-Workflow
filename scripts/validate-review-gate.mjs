@@ -1,9 +1,49 @@
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
 import { pathToFileURL } from 'node:url';
 import path from 'node:path';
 
 const REVIEW_RECORD_DIR = 'docs/records/qa';
 const SCRIPT_EXTENSIONS = ['.mjs', '.js'];
+const REVIEW_GATE_DIAGNOSTICS = process.env.REVIEW_GATE_DIAGNOSTICS === '1';
+
+function diagnosticLog(event, fields) {
+  if (!REVIEW_GATE_DIAGNOSTICS) return;
+  process.stderr.write(`[issue-244-debug] ${JSON.stringify({ event, ...fields })}\n`);
+}
+
+function diagnosticGitCapture(cwd, args) {
+  try {
+    const stdout = execFileSync('git', args, {
+      cwd,
+      stdio: ['ignore', 'pipe', 'pipe']
+    }).toString().trim();
+    return { status: 0, signal: null, stdout, stderr: '' };
+  } catch (error) {
+    return {
+      status: error.status ?? null,
+      signal: error.signal ?? null,
+      stdout: error.stdout?.toString().trim() ?? '',
+      stderr: error.stderr?.toString().trim() ?? ''
+    };
+  }
+}
+
+function logDiagnosticRepositoryContext(cwd, refs, authoritative) {
+  if (!REVIEW_GATE_DIAGNOSTICS) return;
+  const topLevel = diagnosticGitCapture(cwd, ['rev-parse', '--show-toplevel']);
+  const remotes = diagnosticGitCapture(cwd, ['remote']);
+  const refsInRepo = diagnosticGitCapture(cwd, ['for-each-ref', '--format=%(refname)']);
+  diagnosticLog('resolve-diff-range', {
+    cwd,
+    githubBaseRef: process.env.GITHUB_BASE_REF ?? null,
+    gitTopLevel: topLevel.stdout || null,
+    gitTopLevelStatus: topLevel.status,
+    remotes: remotes.stdout ? remotes.stdout.split('\n').filter(Boolean) : [],
+    refsInRepo: refsInRepo.stdout ? refsInRepo.stdout.split('\n').filter(Boolean) : [],
+    candidates: refs,
+    authoritative
+  });
+}
 
 /**
  * Returns true when at least one of `changedFiles` is a script file
@@ -52,8 +92,30 @@ function baseRefCandidates(explicitBaseRef) {
 }
 
 function gitCapture(cwd, args) {
+  const isMergeBase = args[0] === 'merge-base';
+  if (isMergeBase && REVIEW_GATE_DIAGNOSTICS) {
+    const result = spawnSync('git', args, {
+      cwd,
+      stdio: ['ignore', 'pipe', 'pipe']
+    });
+    const stdout = result.stdout?.toString().trim() ?? '';
+    const stderr = result.stderr?.toString().trim() ?? '';
+    diagnosticLog('git-merge-base', {
+      cwd,
+      args,
+      status: result.status,
+      signal: result.signal,
+      stdout,
+      stderr
+    });
+    return result.status === 0 ? stdout || undefined : undefined;
+  }
+
   try {
-    const out = execFileSync('git', args, { cwd, stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim();
+    const out = execFileSync('git', args, {
+      cwd,
+      stdio: ['ignore', 'pipe', 'ignore']
+    }).toString().trim();
     return out || undefined;
   } catch {
     return undefined;
@@ -74,7 +136,9 @@ function gitCapture(cwd, args) {
  */
 export function resolveDiffRange(cwd, { baseRef } = {}) {
   const { refs, authoritative } = baseRefCandidates(baseRef);
+  logDiagnosticRepositoryContext(cwd, refs, authoritative);
   const head = gitCapture(cwd, ['rev-parse', 'HEAD']);
+  diagnosticLog('resolve-diff-range-head', { cwd, head: head ?? null });
 
   for (const candidate of refs) {
     const mergeBase = gitCapture(cwd, ['merge-base', candidate, 'HEAD']);

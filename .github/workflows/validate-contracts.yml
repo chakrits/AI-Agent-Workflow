@@ -3,6 +3,9 @@ on: [push, pull_request]
 jobs:
   validate:
     runs-on: ubuntu-latest
+    env:
+      # Temporary Issue #244 diagnostics. Remove after one CI observation.
+      REVIEW_GATE_DIAGNOSTICS: '1'
     steps:
       - uses: actions/checkout@v4
         with:
