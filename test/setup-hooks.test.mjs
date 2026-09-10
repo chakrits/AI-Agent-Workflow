@@ -124,3 +124,20 @@ test('AC-04: pre-push and the PreToolUse hook call the same npm script', () => {
   assert.ok(!/Documentation Impact|Fixes #|status:spec-ready/.test(prePush), 'pre-push must be a thin caller');
   assert.ok(!/Documentation Impact|Fixes #|status:spec-ready/.test(settings), 'settings.json must be a thin caller');
 });
+
+// ---------------------------------------------------------------- AC-06..08
+
+test('AC-06..08: PostToolUse invokes the portable edit-guard dispatcher for Edit and Write', () => {
+  const settings = JSON.parse(readFileSync(path.join(repoRoot, '.claude', 'settings.json'), 'utf8'));
+  const entries = settings.hooks?.PostToolUse ?? [];
+  const editEntry = entries.find((entry) => entry.matcher === 'Edit|Write');
+  assert.ok(editEntry, 'PostToolUse must match both Edit and Write');
+  assert.ok(editEntry.hooks.some((hook) => hook.command.includes('validate:edit-guards')));
+  assert.equal(editEntry.hooks[0].type, 'command');
+});
+
+test('AC-06..08: settings adds no rule logic or commit-time hook', () => {
+  const settings = readFileSync(path.join(repoRoot, '.claude', 'settings.json'), 'utf8');
+  assert.ok(!/repin:source-matrix|validate:context-budget|validate:adapter-parity|validate:skill-parity/.test(settings));
+  assert.ok(!/PreToolUse.*git commit|git commit.*PreToolUse|pre-commit/.test(settings));
+});

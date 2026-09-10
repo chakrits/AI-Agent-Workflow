@@ -26,6 +26,7 @@
     "validate:context-budget": "node scripts/validate-context-budget.mjs",
     "validate:context-compatibility": "node scripts/validate-context-compatibility.mjs",
     "validate:pr-readiness": "node scripts/validate-pr-readiness.mjs",
+    "validate:edit-guards": "node scripts/validate-edit-guards.mjs",
     "cleanup:closeout-labels": "node scripts/cleanup-stale-closeout-labels.mjs",
     "backfill:work-items": "node scripts/backfill-work-item-records.mjs",
     "repin:source-matrix": "node scripts/repin-source-matrix.mjs"
