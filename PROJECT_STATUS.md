@@ -1,10 +1,10 @@
 # PROJECT_STATUS.md
 
 ## Current Work Item
-- Issue #237 (IMP-008), AC-05 — Stop Conditions pointer relocation; awaiting independent QA.
+- None — awaiting next assignment.
 
 ## Current Stage
-- Development complete for AC-05; independent QA is next. Issue #236 is complete.
+- Idle after Issue #237 AC-05 closeout. Issue #236 is complete.
 
 ## Change Classification
 - Change Type: Framework / Meta Change
@@ -14,6 +14,7 @@
 - Security Review Required: No
 
 ## Completed
+- Issue #237 (IMP-008), AC-05 — replaced the duplicated Stop Conditions policy in `AGENTS.md` with an imperative pointer to `AGENT_OPERATING_MODEL.md#human-approval-gates`, retargeted the dependent Ask First reference, and passed independent QA. PR #262 merged as `3e30ae0`; readiness, documentation-impact, contract, and default-branch checks passed. QA evidence: https://github.com/chakrits/AI-Agent-Workflow/blob/c5bea9732ef4846413d3140afb50e8eb8ce66bbf/docs/records/qa/2026-09-10-issue-237-ac05-code-review.md. AC-07–AC-14 remain open.
 - Issue #237 (IMP-008), AC-05 — replaced the duplicated subject-matter Stop Conditions list in `AGENTS.md` with an imperative pointer to `AGENT_OPERATING_MODEL.md#human-approval-gates`, and retargeted the dependent Ask First reference. Focused pointer and destination-coverage tests pass; mutation probes killed both pointer and target-content mutations. Developer candidate is ready for independent QA.
 - Issue #236 (IMP-007), AC-09/AC-11/AC-12 — SessionStart context display, advisory SubagentStop validators, and hook containment implemented and independently QA-verified. PR #258 merged as `00a256a`; the closeout exposed and PR #260 fixed an idle-state test regression, merged as `41087ff`. QA evidence: https://github.com/chakrits/AI-Agent-Workflow/issues/236#issuecomment-5614686573. AC-10 remains withdrawn; all remaining Issue #236 scope is complete.
 - Issue #237 (IMP-008), AC-02–AC-03 — canonical handoff and lifecycle policy pointers implemented and independently QA-verified. Squash-merged via PR #256 as `00ae6f4`. QA evidence: https://github.com/chakrits/AI-Agent-Workflow/issues/237#issuecomment-5613684934. AC-05 and AC-07–AC-14 remain open.
