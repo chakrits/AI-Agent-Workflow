@@ -253,14 +253,7 @@ Use `git-workflow-and-versioning` for every commit: atomic commits, the type-pre
 
 ## Lifecycle Label Contract
 
-For Feature and Enhancement work items, use labels in two separate categories:
-
-- **Current phase** — exactly one `phase:` label identifies the active work stage: `phase:requirements`, `phase:design`, `phase:planning`, `phase:development`, `phase:verification`, `phase:human-review`, or `phase:blocked`.
-- **Evidence milestone** — `status:spec-ready`, `status:development-done`, and `status:verification-done` are additive evidence labels. They do not replace the current phase, their named owner, QA judgment, or human merge approval.
-
-`status:spec-ready` is required before a Developer begins implementation. The selected route decides whether the specification is a lightweight approved Issue record or an approved SDD/design; when an SDD/design is required, Draft or Review status is not sufficient. Documentation-only work follows its Documentation Agent route, and Bug Fix work continues to use `docs/contracts/bug-fix-workflow.yaml` rather than this lifecycle label contract.
-
-On backward routing, replace the current `phase:` label with the receiving stage and record the reason in the handoff. Do not leave multiple active phase labels on an open work item.
+Use the lifecycle label contract in [`dynamic-routing.md`](docs/workflow/dynamic-routing.md#lifecycle-labels-for-feature-and-enhancement-work), including its Specification Readiness and Standard and Backward Paths.
 
 ### New Feature
 
@@ -393,54 +386,7 @@ Security Reviewer must be included for:
 
 ## Required Handoff
 
-Every agent handoff must include:
-
-- From Agent
-- To Agent
-- Work Item
-- Work Item URL
-- Change Request URL
-- Change Type
-- Risk Level
-- Lifecycle Phase
-- Specification Readiness
-- Current Stage
-- Task State
-- Contract Version
-- Rework Count
-- Completed Work
-- Artifacts Produced
-- Files Changed
-- Verification Performed
-- Evidence References
-- Acceptance Criteria Verification Status
-- Acceptance Traceability Matrix URL
-- Reviewed Candidate SHA
-- Handoff Record Commit SHA
-- Platform Activation Record URL / Status
-- QA Evidence URL
-- Stop Reason
-- Known Limitations
-- Open Questions
-- QA / Review Focus
-- Recommended Next Step
-- Next Action
-- Next Owner
-- Orchestration Turn ID
-- Boss Event Required
-- Dispatch State
-- Source Agent
-- Target Agent
-- Dispatch Result
-- Acknowledgement Evidence
-- Boss Event
-- Handoff Event ID
-- Parent Orchestrator ID
-- Child Task ID
-- Terminal Result ID
-- Completion Event Evidence
-- Consumption Evidence
-- Timeout / Cancellation Reason
+Load [`docs/workflow/handoff-contract.md`](docs/workflow/handoff-contract.md) before emitting any handoff.
 
 Use `docs/templates/HANDOFF.md`.
 

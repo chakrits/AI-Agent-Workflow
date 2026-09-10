@@ -1,16 +1,16 @@
 # PROJECT_STATUS.md
 
 ## Current Work Item
-- None — awaiting next assignment.
+- Issue #237 (IMP-008), AC-02 through AC-03 — first implementation slice.
 
 ## Current Stage
-- Idle after merge of Issue #236 AC-06–AC-08; AC-09–AC-12 remain open.
+- Development complete for AC-02/AC-03; independent QA and Human Maintainer review remain. Issue #236 AC-09–AC-12 remains open.
 
 ## Change Classification
 - Change Type: Framework / Meta Change
 - Risk Level: Medium
-- Code Change Required: Yes
-- Architecture Change Required: No — follows ADR-0022's portable-core/thin-invoker design
+- Code Change Required: Tests and canonical policy documentation
+- Architecture Change Required: No
 - Security Review Required: No
 
 ## Completed
