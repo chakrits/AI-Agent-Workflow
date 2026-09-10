@@ -1,10 +1,10 @@
 # PROJECT_STATUS.md
 
 ## Current Work Item
-- None — awaiting next assignment.
+- Issue #237 (IMP-008), AC-05 — Stop Conditions pointer relocation; awaiting independent QA.
 
 ## Current Stage
-- Idle after merge of Issue #236 AC-09/AC-11/AC-12 and its idle-state regression fix; Issue #236 is complete.
+- Development complete for AC-05; independent QA is next. Issue #236 is complete.
 
 ## Change Classification
 - Change Type: Framework / Meta Change
@@ -14,6 +14,7 @@
 - Security Review Required: No
 
 ## Completed
+- Issue #237 (IMP-008), AC-05 — replaced the duplicated subject-matter Stop Conditions list in `AGENTS.md` with an imperative pointer to `AGENT_OPERATING_MODEL.md#human-approval-gates`, and retargeted the dependent Ask First reference. Focused pointer and destination-coverage tests pass; mutation probes killed both pointer and target-content mutations. Developer candidate is ready for independent QA.
 - Issue #236 (IMP-007), AC-09/AC-11/AC-12 — SessionStart context display, advisory SubagentStop validators, and hook containment implemented and independently QA-verified. PR #258 merged as `00a256a`; the closeout exposed and PR #260 fixed an idle-state test regression, merged as `41087ff`. QA evidence: https://github.com/chakrits/AI-Agent-Workflow/issues/236#issuecomment-5614686573. AC-10 remains withdrawn; all remaining Issue #236 scope is complete.
 - Issue #237 (IMP-008), AC-02–AC-03 — canonical handoff and lifecycle policy pointers implemented and independently QA-verified. Squash-merged via PR #256 as `00ae6f4`. QA evidence: https://github.com/chakrits/AI-Agent-Workflow/issues/237#issuecomment-5613684934. AC-05 and AC-07–AC-14 remain open.
 - Issue #236 (IMP-007), AC-06–AC-08 — portable post-write edit guards implemented and independently QA-verified. Squash-merged via PR #254 as `108b7e7`. QA evidence: https://github.com/chakrits/AI-Agent-Workflow/issues/236#issuecomment-5613316594. AC-09–AC-12 remain open; AC-07 is now complete and unblocks Issue #237 design follow-through.
