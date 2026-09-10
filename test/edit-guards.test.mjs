@@ -1,11 +1,15 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { mkdtempSync, writeFileSync, mkdirSync } from 'node:fs';
+import { mkdtempSync, writeFileSync, mkdirSync, rmSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 import { CANONICAL_FILES } from '../scripts/validate-context-budget.mjs';
 import { planEditGuards, runEditGuards } from '../scripts/validate-edit-guards.mjs';
+
+const repoRoot = path.resolve(fileURLToPath(new URL('..', import.meta.url)));
 
 function fixtureRoot() {
   const root = mkdtempSync(path.join(tmpdir(), 'edit-guards-'));
@@ -76,4 +80,40 @@ test('AC-06..08: runs every applicable validator and remains advisory when one f
   assert.equal(result.advisory, true);
   assert.equal(result.failed.length, 1);
   assert.equal(result.failed[0].script, 'validate:adapter-parity');
+});
+
+test('F1: missing matrix is surfaced as an advisory diagnostic and keeps exit 0', () => {
+  const root = fixtureRoot();
+  rmSync(path.join(root, 'test/fixtures/context-pack-v1/required-source-matrix.json'));
+  const payload = JSON.stringify({
+    tool_name: 'Edit',
+    tool_input: { file_path: path.join(root, 'README.md') }
+  });
+  const result = spawnSync(process.execPath, ['scripts/validate-edit-guards.mjs'], {
+    cwd: repoRoot,
+    env: { ...process.env, CLAUDE_PROJECT_DIR: root },
+    input: payload,
+    encoding: 'utf8'
+  });
+  assert.equal(result.status, 0);
+  assert.match(result.stderr, /required-source-matrix\.json is missing/);
+  assert.match(result.stderr, /AC-06 path discovery was skipped/);
+});
+
+test('F1: malformed matrix is surfaced without changing valid guard behavior', () => {
+  const root = fixtureRoot();
+  writeFileSync(
+    path.join(root, 'test/fixtures/context-pack-v1/required-source-matrix.json'),
+    '{ malformed\n',
+    'utf8'
+  );
+  const result = runEditGuards({
+    tool_name: 'Edit',
+    tool_input: { file_path: path.join(root, '.claude/agents/developer-agent.md') }
+  }, root, () => 0);
+  assert.deepEqual(result.guards.map((guard) => guard.script), ['validate:adapter-parity', 'validate:skill-parity']);
+  assert.equal(result.advisory, true);
+  assert.deepEqual(result.diagnostics, [
+    'Edit guards advisory: test/fixtures/context-pack-v1/required-source-matrix.json is malformed JSON; AC-06 path discovery was skipped.'
+  ]);
 });

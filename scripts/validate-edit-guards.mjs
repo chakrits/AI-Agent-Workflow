@@ -27,6 +27,20 @@ export function readPinnedSourcePaths(rootDir) {
   );
 }
 
+function readPinnedSourcePathsWithDiagnostic(rootDir) {
+  try {
+    return { paths: readPinnedSourcePaths(rootDir), diagnostic: undefined };
+  } catch (error) {
+    let reason = 'could not be read';
+    if (error?.code === 'ENOENT') reason = 'is missing';
+    else if (error instanceof SyntaxError) reason = 'is malformed JSON';
+    return {
+      paths: new Set(),
+      diagnostic: `Edit guards advisory: ${MATRIX_RELATIVE_PATH} ${reason}; AC-06 path discovery was skipped.`
+    };
+  }
+}
+
 function isUnder(relative, prefix) {
   return relative === prefix || relative.startsWith(`${prefix}/`);
 }
@@ -36,22 +50,16 @@ function isUnder(relative, prefix) {
  * Multiple guards are intentionally retained: a canonical adapter or skill
  * source may need both the budget/parity and source-matrix feedback.
  */
-export function planEditGuards(payload, rootDir = process.cwd()) {
+export function planEditGuardsDetailed(payload, rootDir = process.cwd()) {
   const toolName = payload?.tool_name;
   const filePath = payload?.tool_input?.file_path ?? payload?.tool_input?.path;
-  if (!EDIT_TOOLS.has(toolName) || typeof filePath !== 'string' || filePath.length === 0) return [];
+  if (!EDIT_TOOLS.has(toolName) || typeof filePath !== 'string' || filePath.length === 0) {
+    return { guards: [], diagnostics: [] };
+  }
 
   const relative = relativePath(filePath, rootDir);
   const guards = [];
-  let pinnedPaths;
-  try {
-    pinnedPaths = readPinnedSourcePaths(rootDir);
-  } catch {
-    // The edit has already landed. A malformed/missing matrix must not turn a
-    // post-write advisory into a blocking gate; the validator reports it when
-    // explicitly invoked by the author or CI.
-    pinnedPaths = new Set();
-  }
+  const { paths: pinnedPaths, diagnostic } = readPinnedSourcePathsWithDiagnostic(rootDir);
 
   if (pinnedPaths.has(relative)) {
     guards.push({ script: 'repin:source-matrix', reason: 'the edited path is pinned in required-source-matrix.json' });
@@ -63,7 +71,11 @@ export function planEditGuards(payload, rootDir = process.cwd()) {
     guards.push({ script: 'validate:adapter-parity', reason: 'the edited path is under a Claude adapter or skill tree' });
     guards.push({ script: 'validate:skill-parity', reason: 'the edited path is under a Claude adapter or skill tree' });
   }
-  return guards;
+  return { guards, diagnostics: diagnostic ? [diagnostic] : [] };
+}
+
+export function planEditGuards(payload, rootDir = process.cwd()) {
+  return planEditGuardsDetailed(payload, rootDir).guards;
 }
 
 function defaultRunner(script, rootDir) {
@@ -80,13 +92,13 @@ function defaultRunner(script, rootDir) {
  * commit-time gate. Validators still report their own failures verbatim.
  */
 export function runEditGuards(payload, rootDir = process.cwd(), runner = (script) => defaultRunner(script, rootDir)) {
-  const guards = planEditGuards(payload, rootDir);
+  const { guards, diagnostics } = planEditGuardsDetailed(payload, rootDir);
   const failed = [];
   for (const guard of guards) {
     const status = runner(guard.script, guard);
     if (status !== 0) failed.push({ ...guard, status });
   }
-  return { advisory: true, guards, failed };
+  return { advisory: true, guards, diagnostics, failed };
 }
 
 function main() {
@@ -100,6 +112,7 @@ function main() {
 
   const rootDir = process.env.CLAUDE_PROJECT_DIR ? path.resolve(process.env.CLAUDE_PROJECT_DIR) : process.cwd();
   const result = runEditGuards(payload, rootDir);
+  for (const diagnostic of result.diagnostics) console.error(diagnostic);
   if (result.guards.length === 0) return;
 
   if (result.failed.length > 0) {

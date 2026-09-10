@@ -5,6 +5,31 @@ covers the portable PostToolUse dispatcher, its npm entry point, the Claude
 thin invoker, the opt-in portable hook reachability path, and focused tests.
 Design authority: `DECISIONS.md` ADR-0022. Independent QA has not run.
 
+## Task-review rework cycle 1 — QA F1
+
+QA reported F1 (Low): a missing or malformed
+`test/fixtures/context-pack-v1/required-source-matrix.json` was converted to an
+empty path set with no visible warning. The approved rework keeps the valid
+matrix path set unchanged and adds an advisory diagnostic containing the matrix
+path and whether it is missing or malformed. The dispatcher still exits 0 and
+does not invent or run a validator for a path it cannot derive.
+
+Before the rework, this payload exited silently with status 0:
+
+```text
+{"tool_name":"Edit","tool_input":{"file_path":"<root>/README.md"}}
+```
+
+After the rework, the same payload with the matrix absent emits:
+
+```text
+Edit guards advisory: test/fixtures/context-pack-v1/required-source-matrix.json is missing; AC-06 path discovery was skipped.
+```
+
+The malformed case emits the same diagnostic with `is malformed JSON`, while
+an adapter path still runs both parity validators. No exit status or valid
+matrix guard selection changed.
+
 ## Acceptance criteria verification
 
 - **AC-06** — `scripts/validate-edit-guards.mjs` reads every
@@ -54,11 +79,12 @@ npm run validate:context-budget
 npm run validate:skill-parity
 npm run validate:adapter-parity
 npm run validate:contracts
+npm run validate:review-gate
 npm run validate:project-state
 git diff --check
 ```
 
-Full suite result: 713 passed, 0 failed. Context budget: 29,534 / 30,000
+Full suite result after rework: 715 passed, 0 failed. Context budget: 29,534 / 30,000
 estimated tokens. Real stdin probes ran the adapter/skill, canonical, and
 repin paths; the relevant validators passed and repin reported no stale hashes.
 
@@ -67,16 +93,17 @@ repin paths; the relevant validators passed and repin reported no stale hashes.
 - AC-09, AC-10, AC-11, and AC-12 are untouched.
 - No `pre-commit` hook or commit blocking behavior was added; `core.hooksPath`
   was not changed by the implementation.
-- A malformed or missing matrix causes the dispatcher to skip AC-06 discovery;
-  explicit `repin:source-matrix` remains fail-closed. This prevents a post-write
-  advisory from becoming a blocking gate and should be checked by independent
-  QA for the desired failure visibility.
+- A malformed or missing matrix causes the dispatcher to skip AC-06 discovery
+  with an explicit advisory diagnostic; explicit `repin:source-matrix` remains
+  fail-closed. This prevents a post-write advisory from becoming a blocking
+  gate while keeping the failure visible.
 - The settings hook's payload contract assumes Claude supplies
   `tool_input.file_path` (with `path` accepted as a compatibility fallback).
 
 ## Handoff
 
 Developer Agent → independent Code Review → independent QA → Human Maintainer.
-QA should mutate path discovery, canonical export usage, multi-match execution,
-advisory failure continuation, malformed payload handling, and the absence of a
-commit gate. No QA verdict is claimed by this record.
+QA should re-run F1's missing/malformed matrix probes and mutate path discovery,
+canonical export usage, multi-match execution, advisory failure continuation,
+diagnostic emission, and the absence of a commit gate. No QA verdict is claimed
+by this record.
