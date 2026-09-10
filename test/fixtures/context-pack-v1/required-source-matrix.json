@@ -20,7 +20,7 @@
       "requiredSources": [
         {
           "path": "AGENTS.md",
-          "sha256": "057f1b73296c7bf39119cfa1253490b1fb1c4313ee3aa91e91c3f0dcb06a1aa4"
+          "sha256": "8c8798f4f28d893d15bcce6d710353aac55a0ccc322251d1a733be812f5fb860"
         },
         {
           "path": "docs/operating-model/AGENT_OPERATING_MODEL.md",
@@ -28,7 +28,7 @@
         },
         {
           "path": "docs/workflow/dynamic-routing.md",
-          "sha256": "4d95654fdecd5d45da811800f6b9fdfb6d84bb33577100129e696239a418152d"
+          "sha256": "633f1ee7f095e6366cfb0d84b9d15fed3da240d968bcddb52e14ad19e4f8538e"
         }
       ],
       "allowedTriggerReasons": [
@@ -42,7 +42,7 @@
       "requiredSources": [
         {
           "path": "AGENTS.md",
-          "sha256": "057f1b73296c7bf39119cfa1253490b1fb1c4313ee3aa91e91c3f0dcb06a1aa4"
+          "sha256": "8c8798f4f28d893d15bcce6d710353aac55a0ccc322251d1a733be812f5fb860"
         },
         {
           "path": "docs/operating-model/AGENT_OPERATING_MODEL.md",
@@ -50,7 +50,7 @@
         },
         {
           "path": "docs/workflow/dynamic-routing.md",
-          "sha256": "4d95654fdecd5d45da811800f6b9fdfb6d84bb33577100129e696239a418152d"
+          "sha256": "633f1ee7f095e6366cfb0d84b9d15fed3da240d968bcddb52e14ad19e4f8538e"
         }
       ],
       "allowedTriggerReasons": [
@@ -64,7 +64,7 @@
       "requiredSources": [
         {
           "path": "AGENTS.md",
-          "sha256": "057f1b73296c7bf39119cfa1253490b1fb1c4313ee3aa91e91c3f0dcb06a1aa4"
+          "sha256": "8c8798f4f28d893d15bcce6d710353aac55a0ccc322251d1a733be812f5fb860"
         },
         {
           "path": "docs/operating-model/AGENT_OPERATING_MODEL.md",
@@ -72,7 +72,7 @@
         },
         {
           "path": "docs/workflow/dynamic-routing.md",
-          "sha256": "4d95654fdecd5d45da811800f6b9fdfb6d84bb33577100129e696239a418152d"
+          "sha256": "633f1ee7f095e6366cfb0d84b9d15fed3da240d968bcddb52e14ad19e4f8538e"
         }
       ],
       "allowedTriggerReasons": [
@@ -86,7 +86,7 @@
       "requiredSources": [
         {
           "path": "AGENTS.md",
-          "sha256": "057f1b73296c7bf39119cfa1253490b1fb1c4313ee3aa91e91c3f0dcb06a1aa4"
+          "sha256": "8c8798f4f28d893d15bcce6d710353aac55a0ccc322251d1a733be812f5fb860"
         },
         {
           "path": "docs/operating-model/AGENT_OPERATING_MODEL.md",
@@ -94,7 +94,7 @@
         },
         {
           "path": "docs/workflow/dynamic-routing.md",
-          "sha256": "4d95654fdecd5d45da811800f6b9fdfb6d84bb33577100129e696239a418152d"
+          "sha256": "633f1ee7f095e6366cfb0d84b9d15fed3da240d968bcddb52e14ad19e4f8538e"
         }
       ],
       "allowedTriggerReasons": [
@@ -108,7 +108,7 @@
       "requiredSources": [
         {
           "path": "AGENTS.md",
-          "sha256": "057f1b73296c7bf39119cfa1253490b1fb1c4313ee3aa91e91c3f0dcb06a1aa4"
+          "sha256": "8c8798f4f28d893d15bcce6d710353aac55a0ccc322251d1a733be812f5fb860"
         },
         {
           "path": "docs/operating-model/AGENT_OPERATING_MODEL.md",
@@ -116,7 +116,7 @@
         },
         {
           "path": "docs/workflow/dynamic-routing.md",
-          "sha256": "4d95654fdecd5d45da811800f6b9fdfb6d84bb33577100129e696239a418152d"
+          "sha256": "633f1ee7f095e6366cfb0d84b9d15fed3da240d968bcddb52e14ad19e4f8538e"
         }
       ],
       "allowedTriggerReasons": [
@@ -130,7 +130,7 @@
       "requiredSources": [
         {
           "path": "AGENTS.md",
-          "sha256": "057f1b73296c7bf39119cfa1253490b1fb1c4313ee3aa91e91c3f0dcb06a1aa4"
+          "sha256": "8c8798f4f28d893d15bcce6d710353aac55a0ccc322251d1a733be812f5fb860"
         },
         {
           "path": "docs/operating-model/AGENT_OPERATING_MODEL.md",
@@ -138,7 +138,7 @@
         },
         {
           "path": "docs/workflow/dynamic-routing.md",
-          "sha256": "4d95654fdecd5d45da811800f6b9fdfb6d84bb33577100129e696239a418152d"
+          "sha256": "633f1ee7f095e6366cfb0d84b9d15fed3da240d968bcddb52e14ad19e4f8538e"
         }
       ],
       "allowedTriggerReasons": [
@@ -152,7 +152,7 @@
       "requiredSources": [
         {
           "path": "AGENTS.md",
-          "sha256": "057f1b73296c7bf39119cfa1253490b1fb1c4313ee3aa91e91c3f0dcb06a1aa4"
+          "sha256": "8c8798f4f28d893d15bcce6d710353aac55a0ccc322251d1a733be812f5fb860"
         },
         {
           "path": "docs/operating-model/AGENT_OPERATING_MODEL.md",
@@ -160,7 +160,7 @@
         },
         {
           "path": "docs/workflow/dynamic-routing.md",
-          "sha256": "4d95654fdecd5d45da811800f6b9fdfb6d84bb33577100129e696239a418152d"
+          "sha256": "633f1ee7f095e6366cfb0d84b9d15fed3da240d968bcddb52e14ad19e4f8538e"
         }
       ],
       "allowedTriggerReasons": [
@@ -174,7 +174,7 @@
       "requiredSources": [
         {
           "path": "AGENTS.md",
-          "sha256": "057f1b73296c7bf39119cfa1253490b1fb1c4313ee3aa91e91c3f0dcb06a1aa4"
+          "sha256": "8c8798f4f28d893d15bcce6d710353aac55a0ccc322251d1a733be812f5fb860"
         },
         {
           "path": "docs/operating-model/AGENT_OPERATING_MODEL.md",
@@ -182,7 +182,7 @@
         },
         {
           "path": "docs/workflow/dynamic-routing.md",
-          "sha256": "4d95654fdecd5d45da811800f6b9fdfb6d84bb33577100129e696239a418152d"
+          "sha256": "633f1ee7f095e6366cfb0d84b9d15fed3da240d968bcddb52e14ad19e4f8538e"
         }
       ],
       "allowedTriggerReasons": [
@@ -196,7 +196,7 @@
       "requiredSources": [
         {
           "path": "AGENTS.md",
-          "sha256": "057f1b73296c7bf39119cfa1253490b1fb1c4313ee3aa91e91c3f0dcb06a1aa4"
+          "sha256": "8c8798f4f28d893d15bcce6d710353aac55a0ccc322251d1a733be812f5fb860"
         },
         {
           "path": "docs/operating-model/AGENT_OPERATING_MODEL.md",
@@ -204,7 +204,7 @@
         },
         {
           "path": "docs/workflow/dynamic-routing.md",
-          "sha256": "4d95654fdecd5d45da811800f6b9fdfb6d84bb33577100129e696239a418152d"
+          "sha256": "633f1ee7f095e6366cfb0d84b9d15fed3da240d968bcddb52e14ad19e4f8538e"
         }
       ],
       "allowedTriggerReasons": [
@@ -218,7 +218,7 @@
       "requiredSources": [
         {
           "path": "AGENTS.md",
-          "sha256": "057f1b73296c7bf39119cfa1253490b1fb1c4313ee3aa91e91c3f0dcb06a1aa4"
+          "sha256": "8c8798f4f28d893d15bcce6d710353aac55a0ccc322251d1a733be812f5fb860"
         },
         {
           "path": "docs/operating-model/AGENT_OPERATING_MODEL.md",
@@ -226,7 +226,7 @@
         },
         {
           "path": "docs/workflow/dynamic-routing.md",
-          "sha256": "4d95654fdecd5d45da811800f6b9fdfb6d84bb33577100129e696239a418152d"
+          "sha256": "633f1ee7f095e6366cfb0d84b9d15fed3da240d968bcddb52e14ad19e4f8538e"
         }
       ],
       "allowedTriggerReasons": [
@@ -240,7 +240,7 @@
       "requiredSources": [
         {
           "path": "AGENTS.md",
-          "sha256": "057f1b73296c7bf39119cfa1253490b1fb1c4313ee3aa91e91c3f0dcb06a1aa4"
+          "sha256": "8c8798f4f28d893d15bcce6d710353aac55a0ccc322251d1a733be812f5fb860"
         },
         {
           "path": "docs/operating-model/AGENT_OPERATING_MODEL.md",
@@ -248,7 +248,7 @@
         },
         {
           "path": "docs/workflow/dynamic-routing.md",
-          "sha256": "4d95654fdecd5d45da811800f6b9fdfb6d84bb33577100129e696239a418152d"
+          "sha256": "633f1ee7f095e6366cfb0d84b9d15fed3da240d968bcddb52e14ad19e4f8538e"
         }
       ],
       "allowedTriggerReasons": [
@@ -262,7 +262,7 @@
       "requiredSources": [
         {
           "path": "AGENTS.md",
-          "sha256": "057f1b73296c7bf39119cfa1253490b1fb1c4313ee3aa91e91c3f0dcb06a1aa4"
+          "sha256": "8c8798f4f28d893d15bcce6d710353aac55a0ccc322251d1a733be812f5fb860"
         },
         {
           "path": "docs/operating-model/AGENT_OPERATING_MODEL.md",
@@ -270,7 +270,7 @@
         },
         {
           "path": "docs/workflow/dynamic-routing.md",
-          "sha256": "4d95654fdecd5d45da811800f6b9fdfb6d84bb33577100129e696239a418152d"
+          "sha256": "633f1ee7f095e6366cfb0d84b9d15fed3da240d968bcddb52e14ad19e4f8538e"
         },
         {
           "path": "docs/workflow/role-definitions.md",
@@ -315,7 +315,7 @@
       "requiredSources": [
         {
           "path": "AGENTS.md",
-          "sha256": "057f1b73296c7bf39119cfa1253490b1fb1c4313ee3aa91e91c3f0dcb06a1aa4"
+          "sha256": "8c8798f4f28d893d15bcce6d710353aac55a0ccc322251d1a733be812f5fb860"
         },
         {
           "path": "docs/operating-model/AGENT_OPERATING_MODEL.md",
@@ -323,7 +323,7 @@
         },
         {
           "path": "docs/workflow/dynamic-routing.md",
-          "sha256": "4d95654fdecd5d45da811800f6b9fdfb6d84bb33577100129e696239a418152d"
+          "sha256": "633f1ee7f095e6366cfb0d84b9d15fed3da240d968bcddb52e14ad19e4f8538e"
         },
         {
           "path": "docs/workflow/role-definitions.md",
@@ -368,7 +368,7 @@
       "requiredSources": [
         {
           "path": "AGENTS.md",
-          "sha256": "057f1b73296c7bf39119cfa1253490b1fb1c4313ee3aa91e91c3f0dcb06a1aa4"
+          "sha256": "8c8798f4f28d893d15bcce6d710353aac55a0ccc322251d1a733be812f5fb860"
         },
         {
           "path": "docs/operating-model/AGENT_OPERATING_MODEL.md",
@@ -376,7 +376,7 @@
         },
         {
           "path": "docs/workflow/dynamic-routing.md",
-          "sha256": "4d95654fdecd5d45da811800f6b9fdfb6d84bb33577100129e696239a418152d"
+          "sha256": "633f1ee7f095e6366cfb0d84b9d15fed3da240d968bcddb52e14ad19e4f8538e"
         },
         {
           "path": "docs/workflow/role-definitions.md",
@@ -421,7 +421,7 @@
       "requiredSources": [
         {
           "path": "AGENTS.md",
-          "sha256": "057f1b73296c7bf39119cfa1253490b1fb1c4313ee3aa91e91c3f0dcb06a1aa4"
+          "sha256": "8c8798f4f28d893d15bcce6d710353aac55a0ccc322251d1a733be812f5fb860"
         },
         {
           "path": "docs/operating-model/AGENT_OPERATING_MODEL.md",
@@ -429,7 +429,7 @@
         },
         {
           "path": "docs/workflow/dynamic-routing.md",
-          "sha256": "4d95654fdecd5d45da811800f6b9fdfb6d84bb33577100129e696239a418152d"
+          "sha256": "633f1ee7f095e6366cfb0d84b9d15fed3da240d968bcddb52e14ad19e4f8538e"
         },
         {
           "path": "docs/workflow/role-definitions.md",
@@ -474,7 +474,7 @@
       "requiredSources": [
         {
           "path": "AGENTS.md",
-          "sha256": "057f1b73296c7bf39119cfa1253490b1fb1c4313ee3aa91e91c3f0dcb06a1aa4"
+          "sha256": "8c8798f4f28d893d15bcce6d710353aac55a0ccc322251d1a733be812f5fb860"
         },
         {
           "path": "docs/operating-model/AGENT_OPERATING_MODEL.md",
@@ -482,7 +482,7 @@
         },
         {
           "path": "docs/workflow/dynamic-routing.md",
-          "sha256": "4d95654fdecd5d45da811800f6b9fdfb6d84bb33577100129e696239a418152d"
+          "sha256": "633f1ee7f095e6366cfb0d84b9d15fed3da240d968bcddb52e14ad19e4f8538e"
         },
         {
           "path": "docs/workflow/role-definitions.md",
@@ -527,7 +527,7 @@
       "requiredSources": [
         {
           "path": "AGENTS.md",
-          "sha256": "057f1b73296c7bf39119cfa1253490b1fb1c4313ee3aa91e91c3f0dcb06a1aa4"
+          "sha256": "8c8798f4f28d893d15bcce6d710353aac55a0ccc322251d1a733be812f5fb860"
         },
         {
           "path": "docs/operating-model/AGENT_OPERATING_MODEL.md",
@@ -535,7 +535,7 @@
         },
         {
           "path": "docs/workflow/dynamic-routing.md",
-          "sha256": "4d95654fdecd5d45da811800f6b9fdfb6d84bb33577100129e696239a418152d"
+          "sha256": "633f1ee7f095e6366cfb0d84b9d15fed3da240d968bcddb52e14ad19e4f8538e"
         },
         {
           "path": "docs/workflow/role-definitions.md",
@@ -580,7 +580,7 @@
       "requiredSources": [
         {
           "path": "AGENTS.md",
-          "sha256": "057f1b73296c7bf39119cfa1253490b1fb1c4313ee3aa91e91c3f0dcb06a1aa4"
+          "sha256": "8c8798f4f28d893d15bcce6d710353aac55a0ccc322251d1a733be812f5fb860"
         },
         {
           "path": "docs/operating-model/AGENT_OPERATING_MODEL.md",
@@ -588,7 +588,7 @@
         },
         {
           "path": "docs/workflow/dynamic-routing.md",
-          "sha256": "4d95654fdecd5d45da811800f6b9fdfb6d84bb33577100129e696239a418152d"
+          "sha256": "633f1ee7f095e6366cfb0d84b9d15fed3da240d968bcddb52e14ad19e4f8538e"
         },
         {
           "path": "docs/workflow/role-definitions.md",
@@ -633,7 +633,7 @@
       "requiredSources": [
         {
           "path": "AGENTS.md",
-          "sha256": "057f1b73296c7bf39119cfa1253490b1fb1c4313ee3aa91e91c3f0dcb06a1aa4"
+          "sha256": "8c8798f4f28d893d15bcce6d710353aac55a0ccc322251d1a733be812f5fb860"
         },
         {
           "path": "docs/operating-model/AGENT_OPERATING_MODEL.md",
@@ -641,7 +641,7 @@
         },
         {
           "path": "docs/workflow/dynamic-routing.md",
-          "sha256": "4d95654fdecd5d45da811800f6b9fdfb6d84bb33577100129e696239a418152d"
+          "sha256": "633f1ee7f095e6366cfb0d84b9d15fed3da240d968bcddb52e14ad19e4f8538e"
         },
         {
           "path": "docs/workflow/role-definitions.md",
@@ -686,7 +686,7 @@
       "requiredSources": [
         {
           "path": "AGENTS.md",
-          "sha256": "057f1b73296c7bf39119cfa1253490b1fb1c4313ee3aa91e91c3f0dcb06a1aa4"
+          "sha256": "8c8798f4f28d893d15bcce6d710353aac55a0ccc322251d1a733be812f5fb860"
         },
         {
           "path": "docs/operating-model/AGENT_OPERATING_MODEL.md",
@@ -694,7 +694,7 @@
         },
         {
           "path": "docs/workflow/dynamic-routing.md",
-          "sha256": "4d95654fdecd5d45da811800f6b9fdfb6d84bb33577100129e696239a418152d"
+          "sha256": "633f1ee7f095e6366cfb0d84b9d15fed3da240d968bcddb52e14ad19e4f8538e"
         },
         {
           "path": "docs/workflow/role-definitions.md",
@@ -739,7 +739,7 @@
       "requiredSources": [
         {
           "path": "AGENTS.md",
-          "sha256": "057f1b73296c7bf39119cfa1253490b1fb1c4313ee3aa91e91c3f0dcb06a1aa4"
+          "sha256": "8c8798f4f28d893d15bcce6d710353aac55a0ccc322251d1a733be812f5fb860"
         },
         {
           "path": "docs/operating-model/AGENT_OPERATING_MODEL.md",
@@ -747,7 +747,7 @@
         },
         {
           "path": "docs/workflow/dynamic-routing.md",
-          "sha256": "4d95654fdecd5d45da811800f6b9fdfb6d84bb33577100129e696239a418152d"
+          "sha256": "633f1ee7f095e6366cfb0d84b9d15fed3da240d968bcddb52e14ad19e4f8538e"
         },
         {
           "path": "docs/workflow/role-definitions.md",
@@ -792,7 +792,7 @@
       "requiredSources": [
         {
           "path": "AGENTS.md",
-          "sha256": "057f1b73296c7bf39119cfa1253490b1fb1c4313ee3aa91e91c3f0dcb06a1aa4"
+          "sha256": "8c8798f4f28d893d15bcce6d710353aac55a0ccc322251d1a733be812f5fb860"
         },
         {
           "path": "docs/operating-model/AGENT_OPERATING_MODEL.md",
@@ -800,7 +800,7 @@
         },
         {
           "path": "docs/workflow/dynamic-routing.md",
-          "sha256": "4d95654fdecd5d45da811800f6b9fdfb6d84bb33577100129e696239a418152d"
+          "sha256": "633f1ee7f095e6366cfb0d84b9d15fed3da240d968bcddb52e14ad19e4f8538e"
         },
         {
           "path": "docs/workflow/role-definitions.md",
