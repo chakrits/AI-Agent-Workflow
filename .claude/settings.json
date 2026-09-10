@@ -24,6 +24,28 @@
           }
         ]
       }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd \"${CLAUDE_PROJECT_DIR:-.}\" && npm run --silent show:session-context",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd \"${CLAUDE_PROJECT_DIR:-.}\" && npm run --silent validate:dispatch-receipts || true; npm run --silent validate:skill-usage || true",
+            "timeout": 30
+          }
+        ]
+      }
     ]
   }
 }

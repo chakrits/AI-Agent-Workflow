@@ -104,12 +104,15 @@ test('AC-04: every rule .claude/settings.json invokes is also reachable from .gi
   const settings = readFileSync(path.join(repoRoot, '.claude', 'settings.json'), 'utf8');
   const hooksDir = execFileSync('ls', [path.join(repoRoot, '.githooks')], { encoding: 'utf8' }).split('\n').filter(Boolean);
   const hookScripts = hooksDir.map((f) => readFileSync(path.join(repoRoot, '.githooks', f), 'utf8')).join('\n');
+  const workflowScripts = execFileSync('find', [path.join(repoRoot, '.github', 'workflows'), '-type', 'f'], { encoding: 'utf8' })
+    .trim().split('\n').filter(Boolean)
+    .map((f) => readFileSync(f, 'utf8')).join('\n');
   const invoked = [...settings.matchAll(/npm run (?:--silent )?([a-zA-Z0-9:_-]+)/g)].map((m) => m[1]);
   assert.ok(invoked.length, 'expected settings.json to invoke at least one npm script');
   for (const script of invoked) {
     assert.ok(
-      hookScripts.includes(script),
-      `.claude/settings.json invokes "${script}" but no .githooks/ hook does; ` +
+      hookScripts.includes(script) || workflowScripts.includes(script),
+      `.claude/settings.json invokes "${script}" but no .githooks/ hook or CI workflow does; ` +
         'ADR-0022 forbids .claude/settings.json originating a rule'
     );
   }

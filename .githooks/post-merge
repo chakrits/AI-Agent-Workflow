@@ -16,3 +16,6 @@ echo ""
 echo "[post-merge] Checking for prunable worktrees..."
 npm run --silent housekeeping:worktrees 2>/dev/null | grep -A 100 "prunable" || true
 echo "[post-merge] Run 'npm run housekeeping:worktrees -- --prune' to clean up. (informational only)"
+
+# Keep the SessionStart display rule reachable from the portable hook layer.
+npm run --silent show:session-context || true
