@@ -361,20 +361,11 @@ Security Reviewer must be included for:
 
 ## Backward Routing Rules
 
-- QA may route back to BA when acceptance criteria are unclear.
-- QA may route back to Developer when implementation fails tests.
-- Developer may route back to SA when architecture or API contract is insufficient.
-- SA may route back to BA when requirements are technically ambiguous.
-- Security Reviewer may route back to SA or Developer when trust boundaries or controls are missing.
-- Release Agent may route back to QA when evidence is incomplete.
+Load [`docs/workflow/dynamic-routing.md#backward-routing-and-qa-skip-policy`](docs/workflow/dynamic-routing.md#backward-routing-and-qa-skip-policy) before routing work backward or deciding whether QA may be skipped.
 
 ## Skip Rules
 
-- Skip Developer when there is no code change.
-- Skip SA for low-risk config/reference-data changes unless integration, data model, NFR, or security impact exists.
-- Skip PM for small approved operational changes.
-- Do not skip QA for user-visible, business-rule, or production data/config changes.
-- Do not skip Security Reviewer for sensitive changes.
+Load [`docs/workflow/dynamic-routing.md#backward-routing-and-qa-skip-policy`](docs/workflow/dynamic-routing.md#backward-routing-and-qa-skip-policy) before selecting skipped stages.
 
 ## Required Handoff
 

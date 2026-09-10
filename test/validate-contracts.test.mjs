@@ -2088,3 +2088,32 @@ test('THIRD_PARTY_NOTICES.md attributes microsoft/skills (Issue #152)', async ()
   assert.match(notices, /microsoft\/skills/);
   assert.match(notices, /github-issue-creator/);
 });
+
+
+
+test('AC-13 keeps backward routing and QA skip policy canonical in dynamic-routing.md', async () => {
+  const [agents, routing] = await Promise.all([
+    readFile('AGENTS.md', 'utf8'),
+    readFile('docs/workflow/dynamic-routing.md', 'utf8')
+  ]);
+  const destination = routing.match(/## Backward Routing and QA Skip Policy[\s\S]*?(?=\n## )/u)?.[0] ?? '';
+  const rules = [
+    'QA may route back to BA when acceptance criteria are unclear.',
+    'QA may route back to Developer when implementation fails tests.',
+    'Developer may route back to SA when architecture or API contract is insufficient.',
+    'SA may route back to BA when requirements are technically ambiguous.',
+    'Security Reviewer may route back to SA or Developer when trust boundaries or controls are missing.',
+    'Release Agent may route back to QA when evidence is incomplete.',
+    'Skip Developer when there is no code change.',
+    'Skip SA for low-risk config/reference-data changes unless integration, data model, NFR, or security impact exists.',
+    'Skip PM for small approved operational changes.',
+    'Do not skip QA for user-visible, business-rule, or production data/config changes.',
+    'Do not skip Security Reviewer for sensitive changes.'
+  ];
+  assert.ok(destination, 'dynamic-routing.md must own the AC-13 policy');
+  for (const rule of rules) assert.match(destination, new RegExp(rule.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+  assert.match(agents, /## Backward Routing Rules\n\nLoad .*dynamic-routing\.md#backward-routing-and-qa-skip-policy/);
+  assert.match(agents, /## Skip Rules\n\nLoad .*dynamic-routing\.md#backward-routing-and-qa-skip-policy/);
+  assert.doesNotMatch(agents, /## Backward Routing Rules[\s\S]*?QA may route back to BA when acceptance criteria are unclear\./);
+  assert.doesNotMatch(agents, /## Skip Rules[\s\S]*?Skip Developer when there is no code change\./);
+});

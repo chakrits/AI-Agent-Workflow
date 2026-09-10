@@ -19,6 +19,22 @@ Route work by change type, risk, and required artifacts instead of forcing a lin
 10. Update PROJECT_STATUS.md and TASK_LOG.md
 ```
 
+## Backward Routing and QA Skip Policy
+
+Use these rules when a handoff must move backward or when selecting stages to skip:
+
+- QA may route back to BA when acceptance criteria are unclear.
+- QA may route back to Developer when implementation fails tests.
+- Developer may route back to SA when architecture or API contract is insufficient.
+- SA may route back to BA when requirements are technically ambiguous.
+- Security Reviewer may route back to SA or Developer when trust boundaries or controls are missing.
+- Release Agent may route back to QA when evidence is incomplete.
+- Skip Developer when there is no code change.
+- Skip SA for low-risk config/reference-data changes unless integration, data model, NFR, or security impact exists.
+- Skip PM for small approved operational changes.
+- Do not skip QA for user-visible, business-rule, or production data/config changes.
+- Do not skip Security Reviewer for sensitive changes.
+
 ## Terminal Routing and Dispatch Receipt
 
 A terminal handoff must end with exactly one `Next Action`: `Dispatch`, `Human review`, or `Blocked`. `Next Owner` is mandatory: a named non-human agent for `Dispatch`, the human gate owner for `Human review`, or the resolution owner for `Blocked`.

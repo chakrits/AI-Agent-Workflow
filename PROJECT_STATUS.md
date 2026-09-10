@@ -1,17 +1,20 @@
 # PROJECT_STATUS.md
 
 ## Current Work Item
-- None — awaiting next assignment.
+- Issue #237 (IMP-008), AC-13 — canonicalize backward-routing and QA-skip policy.
 
 ## Current Stage
-- Idle after Issue #237 AC-08/AC-09 closeout. Issue #236 is complete.
+- Development. AC-08/AC-09 closeout is preserved; AC-11 is verified at 26,065/30,000 (headroom 3,935), and the AC-13 candidate awaits independent QA. Issue #236 is complete.
 
 ## Change Classification
 - Change Type: Framework / Meta Change
-- Risk Level: Medium
-- Code Change Required: Tests and canonical policy documentation
+- Risk Level: High — routing and QA-skip policy ownership
+- Code Change Required: Contract test and canonical policy documentation
 - Architecture Change Required: No
 - Security Review Required: No
+
+## Active Candidate
+- Issue #237 AC-13 follows ADR-0023's expand-then-point sequence. `docs/workflow/dynamic-routing.md#backward-routing-and-qa-skip-policy` owns the 11 policy sentences; `AGENTS.md` keeps imperative boot pointers. AC-11 evidence remains 26,065/30,000. Independent QA is pending.
 
 ## Completed
 - Issue #237 (IMP-008), AC-08/AC-09 — collapsed the 31 skill detail blocks and aligned Current Skills/Engineering Discipline to the approved five-column table shape; updated catalog contract assertions and repinned the source matrix. PR #266 merged as `16c4cca`; independent QA passed with a non-blocking test-strengthening concern. AC-11, AC-13, and AC-14 remain open.

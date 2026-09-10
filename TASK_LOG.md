@@ -1,3 +1,4 @@
+| 2026-09-10 | Issue #237 AC-13 | Developer Agent | Reapplied approved expand-then-point policy relocation on exact main after AC-08/AC-09 closeout | Added canonical backward-routing and QA-skip policy, replaced duplicated AGENTS sections with imperative pointers, added AC-13 contract coverage, preserved AC-08/AC-09 closeout and AC-11 evidence, and repinned the source matrix. | QA Agent | Next Action: independent QA; no PR or merge. Rework 0/2. Skill Used: implementation-planning, tdd-implementation, mutation-testing, code-review-gate, verification-before-completion, git-workflow-and-versioning |
 # TASK_LOG.md
 
 | Date | Work Item | Agent | Action | Result | Next Agent | Notes |
