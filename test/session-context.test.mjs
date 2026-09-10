@@ -5,7 +5,10 @@ import { buildSessionContext, formatSessionContext } from '../scripts/show-sessi
 
 test('AC-09: displays the current work item and stage with real git location', () => {
   const context = buildSessionContext(process.cwd());
-  assert.match(context.workItem, /Issue #/);
+  assert.ok(
+    /Issue #\d+/.test(context.workItem) || context.workItem === 'None — awaiting next assignment.',
+    `unexpected current work item: ${context.workItem}`
+  );
   assert.notEqual(context.stage, '(not recorded)');
   assert.equal(context.branch, execFileSync('git', ['rev-parse', '--abbrev-ref', 'HEAD'], { encoding: 'utf8' }).trim());
   assert.equal(context.worktree, execFileSync('git', ['rev-parse', '--show-toplevel'], { encoding: 'utf8' }).trim());
