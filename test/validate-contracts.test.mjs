@@ -112,7 +112,7 @@ test('Bug Fix documentation points to the canonical contract and uses the two-re
   assert.doesNotMatch(routing, /more than 3 fix attempts/);
 });
 
-test('handoff vocabulary stays in parity across AGENTS, contract, and template', async () => {
+test('handoff contract pointer preserves the canonical 46-field vocabulary', async () => {
   const [agents, contract, template] = await Promise.all([
     readFile('AGENTS.md', 'utf8'),
     readFile('docs/workflow/handoff-contract.md', 'utf8'),
@@ -172,9 +172,29 @@ test('handoff vocabulary stays in parity across AGENTS, contract, and template',
     .map((field) => field.slice(2));
   const templateFields = [...template.matchAll(/^## (.+)$/gm)].map(([, field]) => field);
 
-  assert.deepEqual(listFields(agents, 'Required Handoff'), requiredFields);
+  assert.match(
+    agents,
+    /## Required Handoff\n\nLoad \[`docs\/workflow\/handoff-contract\.md`\]\(docs\/workflow\/handoff-contract\.md\) before emitting any handoff\./
+  );
+  assert.doesNotMatch(agents, /## Required Handoff[\s\S]*?^- From Agent$/m);
   assert.deepEqual(listFields(contract, 'Required Fields'), requiredFields);
   assert.deepEqual(templateFields, requiredFields);
+});
+
+test('lifecycle label contract pointer preserves the boot-mode routing source', async () => {
+  const [agents, routing] = await Promise.all([
+    readFile('AGENTS.md', 'utf8'),
+    readFile('docs/workflow/dynamic-routing.md', 'utf8')
+  ]);
+
+  assert.match(
+    agents,
+    /## Lifecycle Label Contract\n\nUse the lifecycle label contract in \[`dynamic-routing\.md`\]\(docs\/workflow\/dynamic-routing\.md#lifecycle-labels-for-feature-and-enhancement-work\), including its Specification Readiness and Standard and Backward Paths\./
+  );
+  assert.match(routing, /## Lifecycle Labels for Feature and Enhancement Work/);
+  assert.match(routing, /### Specification Readiness/);
+  assert.match(routing, /### Standard and Backward Paths/);
+  assert.match(routing, /When work routes backward, remove the superseded current `phase:` label/);
 });
 
 test('terminal handoffs require a receipt, an explicit routing outcome, and a Boss-visible event', async () => {
@@ -230,8 +250,8 @@ test('terminal handoffs require a receipt, an explicit routing outcome, and a Bo
   for (const field of requiredFields) {
     assert.ok(handoffFields.includes(field), `handoff contract is missing ${field}`);
     assert.ok(templateFields.includes(field), `handoff template is missing ${field}`);
-    assert.match(agents, new RegExp(`- ${field.replace(/[\\/]/g, '\\$&')}`));
   }
+  assert.match(agents, /docs\/workflow\/handoff-contract\.md/);
   for (const content of [contract, routing, qualityGates, rolesWithTerminalDispatch]) {
     assert.match(content, /exactly one.*Dispatch.*Human review.*Blocked|Dispatch.*Human review.*Blocked/i);
     assert.match(content, /same active (Orchestrator )?turn/i);
@@ -313,10 +333,11 @@ test('lifecycle stages make specification readiness a portable pre-development g
   for (const phase of expectedPhases) {
     assert.match(routing, new RegExp(phase.replace(':', '\\:')));
   }
-  for (const content of [agents, routing, roles, qualityGates]) {
+  for (const content of [routing, roles, qualityGates]) {
     assert.match(content, /status:spec-ready/);
     assert.match(content, /mutually exclusive|exactly one/i);
   }
+  assert.match(agents, /dynamic-routing\.md#lifecycle-labels-for-feature-and-enhancement-work/);
   assert.match(qualityGates, /## Specification Readiness Gate/);
   assert.match(roles, /Developer.*must not.*begin implementation/i);
   assert.match(roles, /Developer.*QA|QA.*Developer/i);
