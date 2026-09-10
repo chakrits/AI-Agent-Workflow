@@ -38,7 +38,8 @@ Before final handoff, confirm and record:
 
 - All required tests passed (unit, integration, and any contract validation for the work item).
 - The hosted CI run for the merge commit is green and referenced — a local-only result is not
-  sufficient.
+  sufficient. (This is the standing rule R-001 exists to enforce: the first hosted CI run on
+  `main` had gone unrecorded.)
 - Human approval for the release is recorded, not implied.
 - Documentation Impact assessment is complete for every merge included in this release, and any
   post-merge audit exception is closed with evidence.

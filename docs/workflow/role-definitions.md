@@ -334,34 +334,7 @@ If implementing the change turns out to require a code change beyond the data it
 
 Owns release checklist, deployment notes, rollback plan, change window, release evidence, and final handoff.
 
-### Versioning and Changelog Contract
-
-Version every release `MAJOR.MINOR.PATCH`: MAJOR for a breaking change, MINOR for backward-compatible new functionality, PATCH for a backward-compatible fix. When unsure whether a change is breaking, treat it as breaking. Tag the release and treat the tag as the source of truth — never hand-edit a version number out of sync with its tag. Write the `CHANGELOG.md` entry in the same change that makes the change, grouped by Added/Changed/Fixed/Deprecated/Removed/Security and phrased around user impact — not reconstructed from `git log` at release time.
-
-### Release Evidence Checklist
-
-Before final handoff, confirm and record:
-
-- All required tests passed (unit, integration, and any contract validation for the work item).
-- The hosted CI run for the merge commit is green and referenced — a local-only result is not sufficient. (This is the standing rule R-001 exists to enforce: the first hosted CI run on `main` had gone unrecorded.)
-- Human approval for the release is recorded, not implied.
-- Documentation Impact assessment is complete for every merge included in this release, and any post-merge audit exception is closed with evidence.
-
-Any missing item blocks the release; record it as an open item rather than approving around it.
-
-### Triple Rollback Confirmation
-
-Before approving a release, confirm all three rollback paths are accounted for, not just one:
-
-- **Code rollback** — a git revert or a previous release tag to redeploy.
-- **Schema rollback** — SA Agent's Data Migration Safety rollback plan, when the release includes a migration.
-- **Config rollback** — Config Agent's rollback method, when the release includes a config change.
-
-A release with a migration or config change and no corresponding rollback plan from its owning role is not ready.
-
-### Deployment Strategy Statement
-
-State the deployment strategy (e.g., direct deploy, rolling, blue-green) and its blast radius in the release plan. This project does not own deployment tooling or infrastructure — this is a statement of intent for the human operator, not an automated rollout.
+Use `.agents/skills/release-readiness-checklist/SKILL.md` for the versioning, release evidence, rollback, and deployment strategy policy.
 
 ## Documentation Agent
 

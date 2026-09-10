@@ -1075,22 +1075,29 @@ test('Security Reviewer carries the scan checklist, severity scale, and fix-befo
   assert.match(template, /Fix-Before-Merge\?/);
 });
 
-test('Release Agent carries versioning contract, evidence checklist, and triple rollback confirmation', async () => {
-  const [roleDefinition, adapter, template] = await Promise.all([
+test('Release Agent routes release policy to its canonical skill', async () => {
+  const [roleDefinition, skill, template] = await Promise.all([
     readFile('docs/workflow/role-definitions.md', 'utf8'),
-    readFile('.claude/agents/release-agent.md', 'utf8'),
+    readFile('.agents/skills/release-readiness-checklist/SKILL.md', 'utf8'),
     readFile('docs/templates/RELEASE_PLAN.md', 'utf8')
   ]);
 
-  for (const content of [roleDefinition, adapter]) {
+  assert.match(roleDefinition, /release-readiness-checklist\/SKILL\.md/);
+  assert.doesNotMatch(roleDefinition, /### Versioning and Changelog Contract/);
+  assert.doesNotMatch(roleDefinition, /### Release Evidence Checklist/);
+  assert.doesNotMatch(roleDefinition, /### Triple Rollback Confirmation/);
+  assert.doesNotMatch(roleDefinition, /### Deployment Strategy Statement/);
+
+  for (const content of [skill]) {
     assert.match(content, /MAJOR\.MINOR\.PATCH/);
     assert.match(content, /tag/i);
     assert.match(content, /hosted CI/i);
-    assert.match(content, /Documentation Agent/);
+    assert.match(content, /Documentation Impact assessment/);
     assert.match(content, /code rollback/i);
     assert.match(content, /schema rollback/i);
     assert.match(content, /config rollback/i);
     assert.match(content, /blast radius/i);
+    assert.match(content, /standing rule R-001 exists to enforce/);
   }
 
   assert.match(template, /## Version/);
