@@ -4,7 +4,7 @@
 - None — awaiting next assignment.
 
 ## Current Stage
-- Idle after Issue #237 AC-05 closeout. Issue #236 is complete.
+- Idle after Issue #237 AC-07 closeout. Issue #236 is complete.
 
 ## Change Classification
 - Change Type: Framework / Meta Change
@@ -14,7 +14,7 @@
 - Security Review Required: No
 
 ## Completed
-- Issue #237 (IMP-008), AC-07 — moved the R-001 provenance sentence into the canonical `release-readiness-checklist` skill, replaced the duplicated Release Agent policy block in `role-definitions.md` with an imperative pointer, and updated the contract test to require canonical ownership. Candidate is based on current main `76b48c2`; independent QA is next.
+- Issue #237 (IMP-008), AC-07 — moved the R-001 provenance sentence into the canonical `release-readiness-checklist` skill, replaced the duplicated Release Agent policy block in `role-definitions.md` with an imperative pointer, and updated the contract test to require canonical ownership. PR #264 merged as `17880fa`; independent QA passed after one baseline rework cycle. QA evidence: https://github.com/chakrits/AI-Agent-Workflow/blob/170f49ba7d3fbac75e9190fe6d9ed89454a87516/docs/records/qa/2026-09-10-issue-237-ac07-code-review.md. AC-08–AC-14 remain open.
 - Issue #237 (IMP-008), AC-05 — replaced the duplicated Stop Conditions policy in `AGENTS.md` with an imperative pointer to `AGENT_OPERATING_MODEL.md#human-approval-gates`, retargeted the dependent Ask First reference, and passed independent QA. PR #262 merged as `3e30ae0`; readiness, documentation-impact, contract, and default-branch checks passed. QA evidence: https://github.com/chakrits/AI-Agent-Workflow/blob/c5bea9732ef4846413d3140afb50e8eb8ce66bbf/docs/records/qa/2026-09-10-issue-237-ac05-code-review.md. AC-07–AC-14 remain open.
 - Issue #237 (IMP-008), AC-05 — replaced the duplicated subject-matter Stop Conditions list in `AGENTS.md` with an imperative pointer to `AGENT_OPERATING_MODEL.md#human-approval-gates`, and retargeted the dependent Ask First reference. Focused pointer and destination-coverage tests pass; mutation probes killed both pointer and target-content mutations. Developer candidate is ready for independent QA.
 - Issue #236 (IMP-007), AC-09/AC-11/AC-12 — SessionStart context display, advisory SubagentStop validators, and hook containment implemented and independently QA-verified. PR #258 merged as `00a256a`; the closeout exposed and PR #260 fixed an idle-state test regression, merged as `41087ff`. QA evidence: https://github.com/chakrits/AI-Agent-Workflow/issues/236#issuecomment-5614686573. AC-10 remains withdrawn; all remaining Issue #236 scope is complete.
@@ -51,7 +51,7 @@
 - Pre-existing and outside Issue #249's diff: `validate-documentation-impact` is not in the `Protect main` ruleset's required-check list, so a Documentation Impact failure is a visible red run but not merge-blocking.
 - Minor findings carried forward from Issue #236, none blocking: the marker parser scrubs fenced and inline-backtick regions but not four-space indented blocks, HTML `<code>`/`<pre>`, fences indented more than three spaces inside lists or blockquotes, or spans straddling a newline; `isCloseout` reads the body unscrubbed, bounded by the authorized-file rule to the residual round 2 accepted; a `--title` containing the literal `--body` hijacks body extraction (fail-closed); shell variables in a `--body-file` path reach the hook unexpanded and are refused; and `validate:pr-readiness` is deliberately in no CI file, which is input to AC-12.
 - [Issue #244](https://github.com/chakrits/AI-Agent-Workflow/issues/244) — `validate-review-gate.test.mjs:133` fails intermittently in CI. Pre-existing on `main` from `bd25b7c` (Issue #172), not caused by Issue #236's branch. Two runs on the identical commit `a61f7e5` disagreed (pull_request 666/666, push 665/666) and a re-run of the failed job passed. Not reproducible locally in three attempts; cause undetermined, evidence recorded rather than guessed at.
-- Issue #237 (IMP-008): AC-02–AC-03 are merged; AC-05 and AC-07–AC-14 remain open. The approved set lands at ~26,262 against ADR-0023's ≤26,300 target — roughly 38 tokens of margin, so pointer wording must remain terse and the budget must be re-measured after each relocation.
+- Issue #237 (IMP-008): AC-02–AC-03, AC-05, and AC-07 are merged; AC-08–AC-14 remain open. The approved set lands at ~26,262 against ADR-0023's ≤26,300 target — roughly 38 tokens of margin, so pointer wording must remain terse and the budget must be re-measured after each relocation.
 - Recorded in ADR-0023, not closed by it: the "Stop Conditions" naming collision across `AGENTS.md`, `AGENT_OPERATING_MODEL.md`, and `dynamic-routing.md` — three sections sharing a name with different content — is an unguarded drift surface. A follow-up to rename one of them is recommended.
 - Recorded in ADR-0022 and surfaced by Issue #236 AC-12: `scripts/validate-qa-evidence.mjs` has no `package.json` script and no CI invocation, and is deliberately test-only through `test/qa-evidence.test.mjs`.
 - Issue #178's Scope Rules still state "IMP-001 is the only workstream authorized to start now", written 2026-08-15 before IMP-006 was authorised and completed. The rule needs refreshing regardless of the decision on #236/#237.
