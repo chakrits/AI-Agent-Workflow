@@ -13,6 +13,13 @@ if [ ! -f package.json ] || ! grep -q '"validate:pr-readiness"' package.json 2>/
   exit 0
 fi
 
+# The PostToolUse edit dispatcher is also reachable from this portable hook
+# when a caller supplies a captured hook payload. Normal pushes have no such
+# payload, so this remains advisory and does not become a commit gate.
+if [ -n "$EDIT_GUARD_PAYLOAD_FILE" ] && [ -f "$EDIT_GUARD_PAYLOAD_FILE" ]; then
+  npm run --silent validate:edit-guards < "$EDIT_GUARD_PAYLOAD_FILE" || true
+fi
+
 if [ -z "$PR_BODY_FILE" ]; then
   echo "[pre-push] No PR_BODY_FILE set — skipping PR readiness pre-flight."
   echo "[pre-push] Before opening a PR, run: PR_BODY_FILE=<draft.md> npm run validate:pr-readiness"

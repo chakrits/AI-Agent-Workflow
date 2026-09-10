@@ -1,17 +1,17 @@
 # PROJECT_STATUS.md
 
 ## Current Work Item
-- None — repository is idle.
+- Issue #236 (IMP-007), AC-06–AC-08 — portable post-write file guards.
 
 ## Current Stage
-- Idle. Two work items remain open and unstarted: Issue #244 (a flaky test) and Issue #236's AC-06 onward.
+- Development. AC-06–AC-08 implementation is on branch `codex/issue-236-ac06-ac08`; independent code review and QA remain.
 
 ## Change Classification
-- Change Type: N/A
-- Risk Level: N/A
-- Code Change Required: N/A
-- Architecture Change Required: N/A
-- Security Review Required: N/A
+- Change Type: Framework / Meta Change
+- Risk Level: Medium
+- Code Change Required: Yes
+- Architecture Change Required: No — follows ADR-0022's portable-core/thin-invoker design
+- Security Review Required: No
 
 ## Completed
 - Blank-template reset completed through PR #205 (`aa2a871`); historical records remain recoverable from Git history.
@@ -37,10 +37,10 @@
 - Issue #249 — the PR readiness gate now extracts the body from argument tokens instead of raw command text, closing the last five shapes that had passed through the gap between token-aware command detection and regex-based extraction: a backslash continuation read as the path, a repeated `--body-file` validated at the wrong occurrence while `gh` reads the last, a tab-separated value, combined shorthand, and a quoted `--title` containing `--body` hijacking extraction. `shellCommandSegments()` emits argument words from the same pass while preserving the command-string API invocation detection uses; both raw-text regexes and `unquote()` were deleted rather than added to. Scope clarified by ADR-0025 after the Issue's original AC-01 assumed argument tokens the lexer did not yet produce. Merged via PR #251 (squash) as `0c4f790`. The implementation was produced by a prior session and found uncommitted on `main`; it was moved to a branch without functional change before review. Independent QA passed at `af79ba6` (706/706) and settled the two remaining backslash refusals as correct behaviour by experiment — a `gh` shim printing argv under both bash and zsh showed the shell hands `gh` a `\r` or a space rather than the intended path, so those denies are true, not false. AC-04 verified by byte-comparing full hook output base against HEAD across 5 shapes and 4 real merged PR bodies, 20/20 identical. Security review discharged the declared input-validation gate: PASS_WITH_FINDINGS, no Critical or High, and the change **narrows** the wrong-answer input set, closing two genuine false passes with no input found where the new code is wrong and the old was right. It also established independently that ruleset `Protect main` makes `work-item-readiness-freshness` a required check with no bypass actors, so no rule this gate applies exists only locally. Evidence: https://github.com/chakrits/AI-Agent-Workflow/issues/249#issuecomment-5596393014
 
 ## In Progress
-- None.
+- Issue #236 AC-06–AC-08 — edit guards are implemented on `codex/issue-236-ac06-ac08`; awaiting independent review and QA.
 
 ## Blockers / Open Questions
-- Issue #236 (IMP-007): AC-02 through AC-05 are merged; **AC-06 through AC-12 remain open**. AC-07 (the `validate:context-budget` edit guard) is still the binding prerequisite for Issue #237's implementation. N1 is now closed by Issue #246, so the invocation seam AC-06/07/08 inherit is covered — but [Issue #249](https://github.com/chakrits/AI-Agent-Workflow/issues/249) should land first, since it rewrites how that seam reads a command.
+- Issue #236 (IMP-007): AC-02 through AC-05 are merged; **AC-06 through AC-12 remain open**. AC-07 (the `validate:context-budget` edit guard) remains the binding prerequisite for Issue #237's implementation. AC-06–AC-08 are implemented on an isolated branch and await independent review and QA.
 - Carried forward from Issue #249, none blocking. **Medium:** several allow-path warnings state a false cause — a glob or brace-expanded `--body-file` reports "does not exist yet at hook time" when the file exists and the token is simply wrong, and escaped-character paths render as `path \r` with no hint. This matters because ADR-0024 made that warning the compensating control for allowing unreadable bodies. **Low:** ANSI-C quoting (`$'…'`) is read literally, so the parser can validate text longer than what `gh` submits; and a TOCTOU where the hook reads the body file before an earlier command in the same string rewrites it, structural to the hook point. **Minor:** `extractBodyFromCommand()` narrowed to a single segment while its docstring still describes a full command string — not live, since the only caller passes one segment. Three mutation survivors remain on the new token path, which the implementer ran no mutant against.
 - Pre-existing and outside Issue #249's diff: `validate-documentation-impact` is not in the `Protect main` ruleset's required-check list, so a Documentation Impact failure is a visible red run but not merge-blocking.
 - Minor findings carried forward from Issue #236, none blocking: the marker parser scrubs fenced and inline-backtick regions but not four-space indented blocks, HTML `<code>`/`<pre>`, fences indented more than three spaces inside lists or blockquotes, or spans straddling a newline; `isCloseout` reads the body unscrubbed, bounded by the authorized-file rule to the residual round 2 accepted; a `--title` containing the literal `--body` hijacks body extraction (fail-closed); shell variables in a `--body-file` path reach the hook unexpanded and are refused; and `validate:pr-readiness` is deliberately in no CI file, which is input to AC-12.
