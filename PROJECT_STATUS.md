@@ -1,10 +1,10 @@
 # PROJECT_STATUS.md
 
 ## Current Work Item
-- Issue #237 (IMP-008), AC-02 through AC-03 — first implementation slice.
+- None — awaiting next assignment.
 
 ## Current Stage
-- Development complete for AC-02/AC-03; independent QA and Human Maintainer review remain. Issue #236 AC-09–AC-12 remains open.
+- Idle after merge of Issue #237 AC-02–AC-03; remaining ACs are open.
 
 ## Change Classification
 - Change Type: Framework / Meta Change
@@ -14,6 +14,7 @@
 - Security Review Required: No
 
 ## Completed
+- Issue #237 (IMP-008), AC-02–AC-03 — canonical handoff and lifecycle policy pointers implemented and independently QA-verified. Squash-merged via PR #256 as `00ae6f4`. QA evidence: https://github.com/chakrits/AI-Agent-Workflow/issues/237#issuecomment-5613684934. AC-05 and AC-07–AC-14 remain open.
 - Issue #236 (IMP-007), AC-06–AC-08 — portable post-write edit guards implemented and independently QA-verified. Squash-merged via PR #254 as `108b7e7`. QA evidence: https://github.com/chakrits/AI-Agent-Workflow/issues/236#issuecomment-5613316594. AC-09–AC-12 remain open; AC-07 is now complete and unblocks Issue #237 design follow-through.
 - Blank-template reset completed through PR #205 (`aa2a871`); historical records remain recoverable from Git history.
 - Issue #208 — `reset-to-template` no longer destroys the decision log, and `adr-audit` fails closed when the ADR count drops. Merged via PR #209 (squash) as `e820389`. Independent QA passed at `31b0b13` (518/518, mutation-verified). ADR-0017 and ADR-0019 restored to `DECISIONS.md`; the remaining 16 are recoverable via the command recorded there, by explicit Human Maintainer decision. Evidence: https://github.com/chakrits/AI-Agent-Workflow/issues/208#issuecomment-5551564975
@@ -41,12 +42,12 @@
 - Issue #236 AC-09–AC-12 remain open for the next implementation slice.
 
 ## Blockers / Open Questions
-- Issue #236 (IMP-007): AC-02 through AC-08 are merged; **AC-09 through AC-12 remain open**. AC-07 is complete and no longer blocks Issue #237's implementation.
+- Issue #236 (IMP-007): AC-02 through AC-08 are merged; **AC-09 through AC-12 remain open**.
 - Carried forward from Issue #249, none blocking. **Medium:** several allow-path warnings state a false cause — a glob or brace-expanded `--body-file` reports "does not exist yet at hook time" when the file exists and the token is simply wrong, and escaped-character paths render as `path \r` with no hint. This matters because ADR-0024 made that warning the compensating control for allowing unreadable bodies. **Low:** ANSI-C quoting (`$'…'`) is read literally, so the parser can validate text longer than what `gh` submits; and a TOCTOU where the hook reads the body file before an earlier command in the same string rewrites it, structural to the hook point. **Minor:** `extractBodyFromCommand()` narrowed to a single segment while its docstring still describes a full command string — not live, since the only caller passes one segment. Three mutation survivors remain on the new token path, which the implementer ran no mutant against.
 - Pre-existing and outside Issue #249's diff: `validate-documentation-impact` is not in the `Protect main` ruleset's required-check list, so a Documentation Impact failure is a visible red run but not merge-blocking.
 - Minor findings carried forward from Issue #236, none blocking: the marker parser scrubs fenced and inline-backtick regions but not four-space indented blocks, HTML `<code>`/`<pre>`, fences indented more than three spaces inside lists or blockquotes, or spans straddling a newline; `isCloseout` reads the body unscrubbed, bounded by the authorized-file rule to the residual round 2 accepted; a `--title` containing the literal `--body` hijacks body extraction (fail-closed); shell variables in a `--body-file` path reach the hook unexpanded and are refused; and `validate:pr-readiness` is deliberately in no CI file, which is input to AC-12.
 - [Issue #244](https://github.com/chakrits/AI-Agent-Workflow/issues/244) — `validate-review-gate.test.mjs:133` fails intermittently in CI. Pre-existing on `main` from `bd25b7c` (Issue #172), not caused by Issue #236's branch. Two runs on the identical commit `a61f7e5` disagreed (pull_request 666/666, push 665/666) and a re-run of the failed job passed. Not reproducible locally in three attempts; cause undetermined, evidence recorded rather than guessed at.
-- Issue #237 (IMP-008) is design-approved via ADR-0023 but not dispatched: AC-02 through AC-08 and AC-13/AC-14 remain open, all gated on Issue #236's AC-07. The approved set lands at ~26,262 against ADR-0023's ≤26,300 target — roughly 38 tokens of margin, so pointer wording must be terse and the budget re-measured after each relocation.
+- Issue #237 (IMP-008): AC-02–AC-03 are merged; AC-05 and AC-07–AC-14 remain open. The approved set lands at ~26,262 against ADR-0023's ≤26,300 target — roughly 38 tokens of margin, so pointer wording must remain terse and the budget must be re-measured after each relocation.
 - Recorded in ADR-0023, not closed by it: the "Stop Conditions" naming collision across `AGENTS.md`, `AGENT_OPERATING_MODEL.md`, and `dynamic-routing.md` — three sections sharing a name with different content — is an unguarded drift surface. A follow-up to rename one of them is recommended.
 - Recorded in ADR-0022, not closed by it: `scripts/validate-qa-evidence.mjs` has no `package.json` script and no CI invocation, and is reached only by `test/qa-evidence.test.mjs`. Issue #236's AC-12 test must surface it; whether to wire it or document it as test-only is open.
 - Issue #178's Scope Rules still state "IMP-001 is the only workstream authorized to start now", written 2026-08-15 before IMP-006 was authorised and completed. The rule needs refreshing regardless of the decision on #236/#237.
