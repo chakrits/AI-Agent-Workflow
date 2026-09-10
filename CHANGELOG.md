@@ -3,6 +3,7 @@
 ## Unreleased
 
 ### Added
+- Issue #237 AC-07 now owns the Release Agent policy in `release-readiness-checklist`; `role-definitions.md` retains an imperative pointer and the R-001 provenance sentence is preserved. PR #264 merged as `17880fa`; AC-08–AC-14 remain open.
 - Issue #237 AC-05 now points `AGENTS.md` Stop Conditions to the canonical Human Approval Gates section and retargets the dependent Ask First reference. PR #262 merged as `3e30ae0`; AC-07–AC-14 remain open.
 - The local hook layer is complete: `SessionStart` displays current work context, `SubagentStop` runs dispatch-receipt and skill-usage validators advisory-only, and containment tests prove Claude rules are reachable from portable hooks or CI. PR #260 also corrected the AC-09 test for the documented idle state. (Issue #236, PRs #258 and #260; AC-10 remains withdrawn)
 - Canonical workflow policy in `AGENTS.md` now points to the authoritative handoff contract and lifecycle-label routing sections, preserving the 46-field handoff contract while removing duplicate policy text. (Issue #237, PR #256; AC-05 and AC-07–AC-14 remain open)
