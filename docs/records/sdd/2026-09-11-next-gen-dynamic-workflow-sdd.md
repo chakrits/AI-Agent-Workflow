@@ -73,6 +73,38 @@ flowchart TD
     WT1 & WT2 -->|PR Submission| FMG
 ```
 
+### Specification-Driven 5-Phase SDLC Lifecycle
+
+```mermaid
+flowchart TD
+    subgraph P1["1. Requirements Phase (BA Agent)"]
+        RD["docs/templates/REQUIREMENT_DISCOVERY.md\n(บันทึกโจทย์ทางธุรกิจ ขอบเขต User Stories และ AC-001 ถึง AC-008)"]
+    end
+
+    subgraph P2["2. Architecture & Design Phase (SA Agent)"]
+        SDD["docs/templates/SDD.md\n(สถาปัตยกรรม Component Design, JSON Schema, API Contract, Data Model)"]
+    end
+
+    subgraph P3["3. Implementation Planning Phase (Dev / SA)"]
+        IP["docs/templates/IMPLEMENTATION_PLAN.md\n(แตก Task ทางเทคนิค IMP-001..N, Affected Files, คำสั่ง Verification, Rollback)"]
+    end
+
+    subgraph P4["4. Quality & Traceability Phase (QA Agent)"]
+        TP["docs/templates/TEST_PLAN.md & AC_TRACEABILITY.md\n(ผูก AC ID -> Test Case -> Automated Script -> Evidence URL)"]
+    end
+
+    subgraph P5["5. Implementation Discipline (Developer Agent)"]
+        TDD["docs/templates/TDD_CHECKLIST.md\n(วงรอบ Red-Green-Refactor ก่อน Commit โค้ดจริง)"]
+    end
+
+    RD -->|ส่งมอบ Requirement & ACs| SDD
+    RD -.->|ดึง ACs ไปทำ Test Matrix ตั้งแต่เนิ่น ๆ| TP
+    SDD -->|ส่งมอบ Component Spec & Schemas| IP
+    IP -->|ส่งมอบ Task Breakdown & Test Strategy| TP
+    IP -->|บังคับวินัยการเขียนเทสต์| TDD
+    TDD -->|ส่งมอบ Code & Unit Test Evidence| TP
+```
+
 ### Asynchronous Checkpointed Lifecycle
 
 ```mermaid
@@ -126,7 +158,14 @@ sequenceDiagram
 - **Execution Hook**:
   - Run locally on demand (`npm run status:compile`).
   - Run in CI (`validate-contracts.yml`) to verify that the committed projection matches current shards (`npm run validate:status-projection`).
-  - Post-merge automation on `main` re-compiles root status atomically without branch conflict.
+
+#### 1.3 Archival Lifecycle & Post-Merge Closeout Integration (Addressing R-003 & Branch Protection)
+- **Problem**: Long-term accumulation of shards creates hundreds of stale JSON files, and automated direct pushes to `main` violate GitHub Branch Protection rules.
+- **Resolution**:
+  1. **Branch Isolation**: Active feature branches write *only* to `docs/records/work-items/{issue_id}/task-state.json`.
+  2. **Squash-Merge into `main`**: PR lands on `main` without root status conflicts.
+  3. **Documentation Closeout PR**: The existing `documentation-closeout` workflow runs `compile-status-projection.mjs`, recompiles root `PROJECT_STATUS.md`, moves closed shards to `docs/records/work-items/archive/{issue_id}/task-state.json`, and opens an authenticated Closeout PR (or commits via authorized app token).
+  4. Active shard count remains bounded ($\le 50$), and branch protection invariants are fully respected.
 
 ---
 
@@ -172,6 +211,15 @@ graph LR
 #### 2.3 Tier 3: Zero-Boot Skill Layer
 - Catalog of 31 skills is NOT injected at boot (BR-003).
 - The agent or host invokes skill-specific documentation on demand only when executing that specific skill discipline.
+
+#### 2.4 Reference Library Preservation & Dual-Budget Validation (Addressing R-001 & Codebase Invariants)
+- **Problem**: The existing 8 files in `CANONICAL_FILES` contain 26,196 tokens of detailed institutional knowledge, test fixtures, and link anchors. Replacing them or deleting them would break cross-file links, unit tests, and risk AI rule amnesia.
+- **Resolution**:
+  - The 8 canonical files remain in place as the **Canonical Reference Library** (Tier 3 on-demand library).
+  - `docs/workflow/core-bootloader.md` is created as the **Active Execution Bootloader** (Tier 1 $\le 3,500$ tokens).
+  - `scripts/validate-context-budget.mjs` is updated with a dual-budget validator:
+    - Mode 1: Core Bootloader Budget ($\le 3,500$ tokens)
+    - Mode 2: Canonical Reference Library Budget ($\le 30,000$ tokens)
 
 ---
 
@@ -228,12 +276,20 @@ The state machine supports 11 discrete states:
   - The engine hashes the current file content using RFC 8785 JCS + SHA-256.
   - If current hash $\ne$ `expected_digest`, the write is rejected with `CAS_CONFLICT`.
 
+#### 3.4 Envelope Container Pattern & Polymorphic Contract Validation
+- **Problem**: The repository already contains fine-grained domain contracts (`bug-fix-workflow.yaml`, `new-feature-workflow.yaml`, `config-change-workflow.yaml`, `data-change-workflow.yaml`) and schemas (`task-state.schema.json`, `new-feature-state.schema.json`, etc.). Flattening them into a single 11-state enum destroys domain-specific rules (e.g., Bug Fix max 2 reworks vs New Feature max 1 rework, or specialized states like `staging-validation`).
+- **Resolution**:
+  - `task-state.json` acts as an **Envelope Container**:
+    - **Header (Universal)**: `task_id`, `workflow_id`, `contract_version`, `sequence_number`, `state_digest`, `history`, `stop_reason`.
+    - **Payload (Polymorphic)**: The allowed `state` enum, allowed transitions, and retry ceilings (`max_rework_attempts`) are resolved dynamically against the respective workflow YAML contract (`docs/contracts/{workflow_id}-workflow.yaml`).
+  - This ensures 100% backward compatibility with `validate-contracts.mjs` while unlocking durable state machine checkpointing.
+
 ---
 
 ### Component 4: Frontmatter-First Safety Gates (Pillar 4)
 
 #### 4.1 Specification
-- All PR bodies MUST contain a YAML frontmatter block starting on line 1 with `---` and closed by `---`.
+- All PR bodies SHOULD contain a YAML frontmatter block starting on line 1 with `---` and closed by `---`.
 - Markdown prose is located strictly below the closing `---`.
 
 ```yaml
@@ -259,11 +315,16 @@ Prose content, code blocks, and markdown go here.
 3. Extract the frontmatter substring.
 4. Parse using a strict YAML AST parser (safe mode, no code execution).
 5. Validate the parsed object against `pr-frontmatter.schema.json`.
-6. **Fail-Closed (AC-008)**:
-   - If line 1 is not `---` $\implies$ Fail Closed.
-   - If YAML syntax has an indentation or formatting error $\implies$ Fail Closed.
-   - If required fields (`work_item`, `governing_workflow`, `closing_action`) are missing or invalid enum $\implies$ Fail Closed.
-   - The prose below the frontmatter is completely ignored during metadata validation, eliminating 100% of regex collision bugs (AC-007).
+6. The prose below the frontmatter is completely ignored during metadata validation, eliminating 100% of regex collision bugs (AC-007).
+
+#### 4.3 Expand/Contract Dual-Compatibility Migration Strategy (Addressing R-004 & 725 Unit Tests)
+- **Problem**: Over 70 unit tests in `test/work-item-readiness.test.mjs` and existing PR templates (`.github/PULL_REQUEST_TEMPLATE.md`) rely on legacy markdown markers (`Governing workflow: Bug Fix`, `<!-- advances-only: ... -->`). Immediately failing closed on missing frontmatter will break existing tests and in-flight PRs.
+- **Resolution (3-Phase Rollout)**:
+  - **Phase 1 (Expand - Dual Mode)**: `scripts/work-item-readiness.mjs` inspects line 1 for `---`.
+    - If frontmatter is present $\implies$ Execute strict AST parser (validates against schema, fail-closed if malformed).
+    - If frontmatter is absent $\implies$ Fall back to legacy regex engine with a non-fatal deprecation warning (`ADVISORY: PR body lacks YAML frontmatter; falling back to legacy regex parser`).
+  - **Phase 2 (Templates & Parity)**: Update `.github/PULL_REQUEST_TEMPLATE.md` and `.gitlab/merge_request_templates/default.md` to ship with frontmatter scaffolding. Validate with `validate:ci-parity`.
+  - **Phase 3 (Contract - Strict Mode)**: After active feature branches land, flip default to strict fail-closed (`--strict-frontmatter`).
 
 ---
 
