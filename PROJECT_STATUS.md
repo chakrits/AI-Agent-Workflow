@@ -1,19 +1,20 @@
 # PROJECT_STATUS.md
 
 ## Current Work Item
-- None — awaiting next assignment.
+- Issue #237 (IMP-008), AC-14 — reviewing five non-test consumers after the SKILL_CATALOG five-column collapse.
 
 ## Current Stage
-- Idle after Issue #237 AC-13 closeout. Issue #236 is complete.
+- Developer implementation on exact main baseline after Issue #237 AC-13 closeout. Issue #236 is complete.
 
 ## Change Classification
-- Change Type: Framework / Meta Change
-- Risk Level: High — routing and QA-skip policy ownership
-- Code Change Required: Contract test and canonical policy documentation
+- Change Type: Framework / Meta Change — documentation consumer compatibility review
+- Risk Level: Medium
+- Code Change Required: Focused documentation-consumer contract test only
 - Architecture Change Required: No
 - Security Review Required: No
 
 ## Completed
+- Issue #237 (IMP-008), AC-11 — independently verified the post-AC-08/09 context budget at 26,065 / 30,000. AC-14 is now under implementation to inspect the five named non-test catalog consumers.
 - Issue #237 (IMP-008), AC-13 — added the canonical Backward Routing and QA Skip Policy to `dynamic-routing.md` and replaced duplicated `AGENTS.md` sections with imperative pointers. PR #268 merged as `e62de7b`; independent QA passed after one state-artifact rework cycle. AC-14 remains open.
 - Issue #237 (IMP-008), AC-08/AC-09 — collapsed the 31 skill detail blocks and aligned Current Skills/Engineering Discipline to the approved five-column table shape; updated catalog contract assertions and repinned the source matrix. PR #266 merged as `16c4cca`; independent QA passed with a non-blocking test-strengthening concern. AC-11, AC-13, and AC-14 remain open.
 - Issue #237 (IMP-008), AC-07 — moved the R-001 provenance sentence into the canonical `release-readiness-checklist` skill, replaced the duplicated Release Agent policy block in `role-definitions.md` with an imperative pointer, and updated the contract test to require canonical ownership. PR #264 merged as `17880fa`; independent QA passed after one baseline rework cycle. QA evidence: https://github.com/chakrits/AI-Agent-Workflow/blob/170f49ba7d3fbac75e9190fe6d9ed89454a87516/docs/records/qa/2026-09-10-issue-237-ac07-code-review.md. AC-08–AC-14 remain open.
