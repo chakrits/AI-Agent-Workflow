@@ -1,20 +1,21 @@
 # PROJECT_STATUS.md
 
 ## Current Work Item
-- Issue #237 (IMP-008), AC-14 — reviewing five non-test consumers after the SKILL_CATALOG five-column collapse.
+- None — awaiting next assignment.
 
 ## Current Stage
-- Developer implementation on exact main baseline after Issue #237 AC-13 closeout. Issue #236 is complete.
+- Idle after Issue #237 AC-14 closeout. Issue #236 is complete.
 
 ## Change Classification
-- Change Type: Framework / Meta Change — documentation consumer compatibility review
-- Risk Level: Medium
-- Code Change Required: Focused documentation-consumer contract test only
-- Architecture Change Required: No
-- Security Review Required: No
+- Change Type: N/A
+- Risk Level: N/A
+- Code Change Required: N/A
+- Architecture Change Required: N/A
+- Security Review Required: N/A
 
 ## Completed
-- Issue #237 (IMP-008), AC-11 — independently verified the post-AC-08/09 context budget at 26,196 / 30,000 (current baseline; the earlier 26,065 measurement is historical). AC-14 is under rework after QA found stale evidence; current exact-main verification is 719 passed / 6 environment-dependent pre-existing failures, and the current budget is 26,196 / 30,000.
+- Issue #237 (IMP-008) — **closed in full.** AC-14 reviewed five non-test consumers after the `SKILL_CATALOG.md` five-column collapse: refreshed `CONTEXT_BUDGET.md` to the measured 26,196 / 30,000 baseline, confirmed four catalog-link/inventory readers required no semantic change, and added a focused contract test covering all 31 skill IDs, resolved catalog links, and stale heading/column/routing dependencies. PR #270 merged as `3afe5fb`. Independent QA passed at the merged candidate with focused tests, link-target mutation coverage, validators, repin idempotence, and `git diff --check`; the full suite recorded 719 passed / 6 known clean-clone GitHub-origin-dependent hook failures. Evidence: https://github.com/chakrits/AI-Agent-Workflow/issues/237#issuecomment-5630763664
+- Issue #237 (IMP-008), AC-11 — independently verified the post-AC-08/09 context budget at 26,196 / 30,000 (current baseline; the earlier 26,065 measurement is historical). The current exact-main verification was 719 passed / 6 environment-dependent pre-existing failures, and the current budget is 26,196 / 30,000.
 - Issue #237 (IMP-008), AC-13 — added the canonical Backward Routing and QA Skip Policy to `dynamic-routing.md` and replaced duplicated `AGENTS.md` sections with imperative pointers. PR #268 merged as `e62de7b`; independent QA passed after one state-artifact rework cycle. AC-14 remains open.
 - Issue #237 (IMP-008), AC-08/AC-09 — collapsed the 31 skill detail blocks and aligned Current Skills/Engineering Discipline to the approved five-column table shape; updated catalog contract assertions and repinned the source matrix. PR #266 merged as `16c4cca`; independent QA passed with a non-blocking test-strengthening concern. AC-11, AC-13, and AC-14 remain open.
 - Issue #237 (IMP-008), AC-07 — moved the R-001 provenance sentence into the canonical `release-readiness-checklist` skill, replaced the duplicated Release Agent policy block in `role-definitions.md` with an imperative pointer, and updated the contract test to require canonical ownership. PR #264 merged as `17880fa`; independent QA passed after one baseline rework cycle. QA evidence: https://github.com/chakrits/AI-Agent-Workflow/blob/170f49ba7d3fbac75e9190fe6d9ed89454a87516/docs/records/qa/2026-09-10-issue-237-ac07-code-review.md. AC-08–AC-14 remain open.
@@ -54,7 +55,7 @@
 - Pre-existing and outside Issue #249's diff: `validate-documentation-impact` is not in the `Protect main` ruleset's required-check list, so a Documentation Impact failure is a visible red run but not merge-blocking.
 - Minor findings carried forward from Issue #236, none blocking: the marker parser scrubs fenced and inline-backtick regions but not four-space indented blocks, HTML `<code>`/`<pre>`, fences indented more than three spaces inside lists or blockquotes, or spans straddling a newline; `isCloseout` reads the body unscrubbed, bounded by the authorized-file rule to the residual round 2 accepted; a `--title` containing the literal `--body` hijacks body extraction (fail-closed); shell variables in a `--body-file` path reach the hook unexpanded and are refused; and `validate:pr-readiness` is deliberately in no CI file, which is input to AC-12.
 - [Issue #244](https://github.com/chakrits/AI-Agent-Workflow/issues/244) — `validate-review-gate.test.mjs:133` fails intermittently in CI. Pre-existing on `main` from `bd25b7c` (Issue #172), not caused by Issue #236's branch. Two runs on the identical commit `a61f7e5` disagreed (pull_request 666/666, push 665/666) and a re-run of the failed job passed. Not reproducible locally in three attempts; cause undetermined, evidence recorded rather than guessed at.
-- Issue #237 (IMP-008): AC-02–AC-03, AC-05, AC-07, AC-08/AC-09, and AC-13 are merged; AC-14 remains open. The approved set lands at ~26,262 against ADR-0023's ≤26,300 target — roughly 38 tokens of margin, so pointer wording must remain terse and the budget must be re-measured after each relocation.
+- Issue #237 (IMP-008) is complete. AC-02–AC-03, AC-05, AC-07, AC-08/AC-09, AC-13, and AC-14 are merged via PRs #256, #262, #264, #266, #268, and #270; the approved set remains within ADR-0023's ≤26,300 target.
 - Recorded in ADR-0023, not closed by it: the "Stop Conditions" naming collision across `AGENTS.md`, `AGENT_OPERATING_MODEL.md`, and `dynamic-routing.md` — three sections sharing a name with different content — is an unguarded drift surface. A follow-up to rename one of them is recommended.
 - Recorded in ADR-0022 and surfaced by Issue #236 AC-12: `scripts/validate-qa-evidence.mjs` has no `package.json` script and no CI invocation, and is deliberately test-only through `test/qa-evidence.test.mjs`.
 - Issue #178's Scope Rules still state "IMP-001 is the only workstream authorized to start now", written 2026-08-15 before IMP-006 was authorised and completed. The rule needs refreshing regardless of the decision on #236/#237.
