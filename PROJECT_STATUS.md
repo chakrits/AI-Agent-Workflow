@@ -3,6 +3,14 @@
 ## Current Work Item
 - Issue #272 — Next-Gen Autonomous Dynamic Workflow: Sharded State, Progressive Context, and Checkpointed Resumption.
 
+## Active Work Items
+<!-- active-work-items-table-start -->
+<!-- projection-digest: c045cfe8b4c4d0d5a50b5efa4a5825b8b6c43decde3aa319322aed3546a01d22 -->
+| Issue ID | Workflow | Current State | Next Route / Owner | Updated At |
+|---|---|---|---|---|
+| issue-249 | bug-fix | verifying | qa-agent | 2026-09-09 |
+<!-- active-work-items-table-end -->
+
 ## Current Stage
 - Phase 4: Implementation (`phase:development`, starting `IMP-001`). Maintainer approved by Boss; ready for TDD implementation of Progressive Context Loading.
 
