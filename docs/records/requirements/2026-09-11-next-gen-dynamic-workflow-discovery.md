@@ -75,14 +75,14 @@
 
 | AC ID | Related Story | Given | When | Then | Testable? |
 |---|---|---|---|---|---|
-| AC-001 | US-001 | มีชุดเอกสาร Core Bootloader พื้นฐาน | ตรวจสอบขนาด Token ของไฟล์อ่านบังคับเริ่มต้น | ปริมาตร Token รวมต้องมีขนาด $\le 3,500$ tokens | Yes |
+| AC-001 | US-001 | มีชุดเอกสาร Core Bootloader Tier 1 (`docs/workflow/core-bootloader.md`) และ Canonical Reference Library 8 ไฟล์เดิม | ตรวจสอบขนาด Token ของไฟล์ Core Bootloader เริ่มต้น | ปริมาตร Token รวมต้องมีขนาด $\le 3,500$ tokens โดยยังคงกฎเหล็กและ Human Gate ครบ 100% ขณะที่ Canonical Library ยังคงอยู่เป็นเอกสารอ้างอิง ($\le 30,000$ tokens) | Yes |
 | AC-002 | US-001 | มีคำสั่งดึงบริบทบทบาทเฉพาะงาน | รันคำสั่งดึงบริบทของบทบาทใดบทบาทหนึ่ง (เช่น `sa-agent` หรือ `developer-agent`) | ได้รับเฉพาะข้อกำหนดของบทบาทนั้น โดยมีขนาด $\le 1,500$ tokens | Yes |
 | AC-003 | US-001 | มีคำสั่งดึงบริบทบทบาทเฉพาะงาน | รันคำสั่งดึงบริบทด้วยชื่อบทบาทที่ไม่มีอยู่จริง (Invalid Role) | คำสั่งต้อง Fail-Closed (Exit Code $\ne 0$) พร้อมแสดง Error แจ้งเตือนชัดเจน | Yes |
-| AC-004 | US-002 | Worktree A ทำงาน Issue #301 และ Worktree B ทำงาน Issue #302 | ทั้งคู่บันทึกสถานะงานของตนเองและ Merge สู่กิ่ง `main` ตามลำดับ | ไม่มี Git Merge Conflict ในไฟล์สถานะ และสถานะของทั้งสอง Issue ถูกรวบรวมเข้ามุมมองภาพรวมอย่างถูกต้อง | Yes |
-| AC-005 | US-003 | มีไฟล์ State Machine ประจำ Work Item | Agent ทำการบันทึกการเปลี่ยนสถานะที่ถูกต้องตามกฎ (เช่น `implementing` $\to$ `verifying`) | ข้อมูลถูกบันทึกลงไฟล์พร้อม Timestamp, Actor, และ Evidence References ครบถ้วน | Yes |
-| AC-006 | US-003 | มีไฟล์ State Machine ประจำ Work Item | มีการพยายามบันทึกสถานะที่ผิดกฎ (เช่น ข้ามจาก `intake` ไป `verifying` โดยตรง) หรือขาด Evidence ที่จำเป็น | ระบบต้องปฏิเสธการ Transition (Reject) และแจ้งข้อผิดพลาดตาม Schema | Yes |
+| AC-004 | US-002 | Worktree A ทำงาน Issue #301 และ Worktree B ทำงาน Issue #302 ในโฟลเดอร์ shard ของตน | ทั้งคู่บันทึกสถานะงานของตนเองและ Merge สู่กิ่ง `main` ตามลำดับ | ไม่มี Git Merge Conflict ในไฟล์สถานะ และกระบวนการ Post-Merge Closeout รวบรวมสถานะเข้าสู่ root `PROJECT_STATUS.md` พร้อมจัดเก็บ shard เข้า archive อย่างถูกต้อง | Yes |
+| AC-005 | US-003 | มีไฟล์ State Machine ประจำ Work Item ในรูปแบบ Envelope Schema | Agent ทำการบันทึกการเปลี่ยนสถานะที่ถูกต้องตามกฎของ workflow นั้น ๆ (เช่น `implementing` $\to$ `verifying`) | ข้อมูล Header และ State ถูกบันทึกลงไฟล์พร้อม Timestamp, Actor, Sequence Number และ Evidence References ครบถ้วน | Yes |
+| AC-006 | US-003 | มีไฟล์ State Machine ประจำ Work Item ในรูปแบบ Envelope Schema | มีการพยายามบันทึกสถานะที่ผิดกฎตาม contract เฉพาะของ workflow (เช่น ผิด transition, เกิน retry limit, หรือขาด evidence บังคับ) | ระบบต้องปฏิเสธการ Transition (Reject) และคงสถานะเดิมตาม Polymorphic Contract | Yes |
 | AC-007 | US-004 | PR Body มี YAML Frontmatter ระบุ `work_item` และ `governing_workflow` ถูกต้อง | รันตัวตรวจสอบความพร้อมของ PR (PR Readiness Gate) | ตัวตรวจสอบอ่านค่าจาก Frontmatter ได้ถูกต้อง 100% แม้เนื้อหาด้านล่างจะมี Markdown Code Block หรือข้อความซับซ้อน | Yes |
-| AC-008 | US-004 | PR Body มี YAML Frontmatter ที่ไวยากรณ์ผิด (Malformed Syntax) หรือขาดฟิลด์บังคับ | รันตัวตรวจสอบความพร้อมของ PR (PR Readiness Gate) | ตัวตรวจสอบต้องปฏิเสธ PR นั้นทันที (Fail-Closed) พร้อมแสดงรายงานข้อผิดพลาดเชิงโครงสร้าง | Yes |
+| AC-008 | US-004 | PR Body อยู่ในโหมด Dual-Compatibility ช่วงเปลี่ยนผ่าน (Expand Phase) | ตรวจสอบ PR Body ทั้งแบบมี YAML Frontmatter และแบบไม่มี | แบบมี Frontmatter ตรวจสอบผ่าน AST แบบสมบูรณ์ ส่วนแบบเดิมผ่านด้วย Regex พร้อมแจ้ง Deprecation Warning และแบบ Malformed Frontmatter ต้อง Fail-Closed ทันที | Yes |
 
 ---
 
@@ -90,10 +90,10 @@
 
 | Rule ID | Rule | Source | Impacted Area |
 |---|---|---|---|
-| BR-001 | **No Root Status Mutation on Feature Branch:** Feature Branch มีสิทธิ์แก้ไขเฉพาะไฟล์สถานะ Shard ประจำ Issue ของตนเองเท่านั้น ห้ามแก้ไขไฟล์สถานะภาพรวมที่ Root โดยตรง | Concurrency Policy | Git Workflow, Hooks |
+| BR-001 | **No Root Status Mutation on Feature Branch & Post-Merge Projection:** Feature Branch มีสิทธิ์แก้ไขเฉพาะไฟล์สถานะ Shard ประจำ Issue ของตนเองเท่านั้น ห้ามแก้ไขไฟล์สถานะภาพรวมที่ Root โดยตรง การ Compile เข้าสู่ `PROJECT_STATUS.md` จะเกิดขึ้นในรอบ Post-Merge / Closeout เพื่อรักษา Branch Protection ของกิ่ง main | Concurrency & Governance Policy | Git Workflow, Hooks, Closeout Flow |
 | BR-002 | **Preserve All Human Gates:** การเปลี่ยนผ่านสถานะแบบ Asynchronous เมื่อถึงจุดอนุมัติของมนุษย์ ต้องตั้งสถานะเป็น `blocked` พร้อมระบุ `stop_reason: human_review_required` เสมอ ห้ามข้ามขั้นตอน | `AGENT_OPERATING_MODEL.md` | State Machine Schema |
 | BR-003 | **Zero-Boot Skill Content:** เนื้อหาคู่มือสกิล 31 สกิลหลักในระบบ จะต้องไม่ถูกโหลดเข้า Context ตั้งแต่เริ่มบูต แต่จะถูกเรียกอ่านผ่านเครื่องมือเฉพาะเมื่อเกิด Trigger เท่านั้น | Context Budget Policy | Tooling / Skills Layer |
-| BR-004 | **Deterministic Schema Validation:** ทุกไฟล์สถานะและ Frontmatter ต้องถูกตรวจสอบความถูกต้องผ่าน JSON Schema หรือ Type Contract ก่อนจะถือว่ามีผลสมบูรณ์ | Engineering Discipline | CI Validators, Local Hooks |
+| BR-004 | **Deterministic Schema & Contract Polymorphism:** ทุกไฟล์สถานะและ Frontmatter ต้องถูกตรวจสอบความถูกต้องผ่าน JSON Schema และ Workflow Policy YAML ประจำประเภทงานนั้น ๆ ก่อนจะถือว่ามีผลสมบูรณ์ | Engineering Discipline | CI Validators, Local Hooks |
 
 ---
 
@@ -101,10 +101,10 @@
 
 | Risk ID | Risk / Edge Case | Impact | Suggested Coverage |
 |---|---|---|---|
-| R-001 | **Context Degradation ใน Core Boot:** หากย่อเอกสารเริ่มต้นมากเกินไป AI อาจลืมกฎข้อห้ามสำคัญ | High | สร้าง Behavioral Equivalence Test เทียบการตัดสินใจของ Agent ระหว่าง Full vs Tier 1 |
-| R-002 | **Mid-Write File Corruption:** กระบวนการเขียนไฟล์สถานะขัดข้องกลางคัน ทำให้ไฟล์ JSON/YAML เสียหาย | Medium | ออกแบบ Atomic File Write หรือใช้ CAS (Check-and-Set) ในระดับสถาปัตยกรรม |
-| R-003 | **Orphan Status Shards:** กิ่งงานถูกยกเลิกหรือลบทิ้ง แต่ไฟล์สถานะยังค้างอยู่ | Medium | สร้างสคริปต์ Reconciliation ตรวจสอบกิ่งที่ Merge/Closed แล้ว และย้ายเข้าสู่หมวด Archive |
-| R-004 | **Legacy PR Compatibility:** PR เก่าที่ยังไม่ได้ใส่ YAML Frontmatter อาจถูกบล็อกกะทันหัน | Low | ออกแบบ Graceful Error Message และ Migration Script ใน SDD |
+| R-001 | **Context Degradation ใน Core Boot:** หากย่อเอกสารเริ่มต้นมากเกินไป AI อาจลืมกฎข้อห้ามสำคัญ | High | คงเอกสาร 8 ไฟล์เดิมไว้เป็น Reference Library และออกแบบ Tier 1 ให้คง Golden Rules + Human Gates 100% |
+| R-002 | **Mid-Write File Corruption:** กระบวนการเขียนไฟล์สถานะขัดข้องกลางคัน ทำให้ไฟล์ JSON/YAML เสียหาย | Medium | ออกแบบ POSIX Atomic File Write (`fsync` บน temp file แล้ว rename) พร้อมระบบ CAS (JCS + SHA-256) |
+| R-003 | **Orphan Status Shards & Accumulation:** Shards สะสมมากเกินไปเมื่อเวลาผ่านไป | Medium | ออกแบบ Lifecycle ย้าย Shards ของ Issue ที่ปิดแล้วเข้าสู่ `docs/records/work-items/archive/` ในช่วง Closeout |
+| R-004 | **Legacy PR & Test Suite Breakage:** PR เก่าและ Unit Tests กว่า 70+ ข้ออาจพังหากหักดิบใช้ Frontmatter | High | ใช้กลยุทธ์ Expand/Contract Migration โดยรองรับ Dual-Compatibility ใน Phase 1 และอัปเดต CI Parity ให้ตรงกัน |
 
 ---
 
