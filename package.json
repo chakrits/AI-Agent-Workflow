@@ -30,7 +30,8 @@
     "show:session-context": "node scripts/show-session-context.mjs",
     "cleanup:closeout-labels": "node scripts/cleanup-stale-closeout-labels.mjs",
     "backfill:work-items": "node scripts/backfill-work-item-records.mjs",
-    "repin:source-matrix": "node scripts/repin-source-matrix.mjs"
+    "repin:source-matrix": "node scripts/repin-source-matrix.mjs",
+    "inject:role-context": "node scripts/inject-role-context.mjs"
   },
   "devDependencies": {
     "ajv": "^8.17.1",
