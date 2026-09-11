@@ -5,15 +5,15 @@
 | Item | Detail |
 |---|---|
 | Change Type | Framework / Meta Change |
-| Business Goal | อัปเกรด AI Agent Dynamic Workflow จาก Policy & Validation Kit สู่ Autonomous SDLC Engine ที่แก้ปัญหา Context Window Bloat, Concurrency Conflict, In-turn Timeout และ Fragile Regex Gates โดยอ้างอิงบทเรียนจริงใน Repo และ Industry Benchmarks |
-| Target Users / Actors | AI Agents (Orchestrator, Dev, QA, SA ฯลฯ) และ Human Maintainer / Boss |
-| Business Criticality | High (โครงสร้างพื้นฐานหลักของการพัฒนาทั้ง Workspace) |
-| Code Change Required | Yes (Validators, Loaders, CLI Scripts, Hooks, Templates) |
-| Security/Data Sensitivity | Medium (แตะต้อง Local Hooks, PR Gates, และ State Machine Enforcement) |
+| Business Goal | ยกระดับ AI Agent Dynamic Workflow ให้ลดปัญหา Context Window บวม, ขจัดปัญหา Git Conflict จากการรันขนาน, รองรับการหยุดพักและทำต่อข้ามเซสชัน (Asynchronous Resumption), และเพิ่มความแม่นยำของ Safety Gates โดยอ้างอิงบทเรียนจริงใน Repo และ Best Practices สากล |
+| Target Users / Actors | Software Engineers, AI Agents (Orchestrator, Dev, QA, SA ฯลฯ), และ Human Maintainer / Boss |
+| Business Criticality | High |
+| Code Change Required | Yes |
+| Security/Data Sensitivity | Yes |
 
 ---
 
-## 2. Confirmed Facts (จากประวัติศาสตร์และโค้ดจริงใน Repo)
+## 2. Confirmed Facts
 
 | # | Fact | Source / Reference |
 |---|---|---|
@@ -29,9 +29,9 @@
 
 | # | Assumption | Impact if Wrong | Validation Needed |
 |---|---|---|---|
-| 1 | AI Client หลัก (Claude Code, Antigravity, Codex) สามารถอ่าน YAML Frontmatter ได้แม่นยำกว่าการสแกน Free-text Prose | หากไม่จริง ตัว Gate จะยังคงซับซ้อน | ทดสอบกับ Parser ใน `scripts/work-item-readiness.mjs` |
-| 2 | การแบ่ง Context เป็น Tier 1 (~2k tokens) จะไม่ทำให้ Agent พลาด Stop Conditions หรือ Human Approval Gates | หากตัดทอนผิด กฎความปลอดภัยอาจถูกละเลย | Equivalence Test ระหว่าง Full Context vs Progressive Context |
-| 3 | การใช้ Git Worktree แยกโฟลเดอร์สำหรับ Subagent แต่ละตัวสามารถทำได้บน Local Environment โดยไม่กระทบ Storage มากเกินไป | Storage อาจเพิ่มขึ้น | ตรวจสอบด้วย `scripts/housekeeping-worktrees.mjs` |
+| 1 | การใช้ Deterministic YAML/JSON Parser ใน Local Hooks และ CI จะขจัดปัญหา Regex Escaped Characters ได้ 100% | หากไม่จริง ตัว Gate จะยังคงเปราะบาง | ทดสอบกับ Node.js built-in / YAML library ใน `scripts/work-item-readiness.mjs` |
+| 2 | การย่อส่วนเอกสารอ่านเริ่มต้นให้เหลือ $\le$ 3,500 tokens ยังคงรักษากฎความปลอดภัยและ Stop Conditions สำคัญครบถ้วน | หากตัดทอนผิด กฎความปลอดภัยอาจถูกละเลย | Behavioral Equivalence Testing ระหว่าง Full Context vs Progressive Context |
+| 3 | การรัน Subagent แยกแต่ละ Git Worktree บนเครื่อง Local สามารถควบคุมพื้นที่ได้ด้วยสคริปต์ Housekeeping ที่มีอยู่ | พื้นที่ Hard Disk อาจบวม | ตรวจสอบด้วย `scripts/housekeeping-worktrees.mjs` |
 
 ---
 
@@ -39,118 +39,114 @@
 
 | # | Question | Owner | Blocks Progress? |
 |---|---|---|---|
-| 1 | ควรให้ Root `PROJECT_STATUS.md` ถูกสร้างอัตโนมัติเฉพาะบน `main` หลัง Merge หรือสร้างผ่าน Local Pre-push Hook? | SA / Boss | No (สามารถเริ่มที่ Shadow Compilation ก่อน) |
-| 2 | การเก็บ Task Checkpoint ควรเป็น JSON หรือ YAML ใน `docs/records/work-items/issue-<NN>/`? | SA / Dev | No (รองรับทั้งสองแบบผ่าน standard parser) |
+| 1 | การ Compile สถานะภาพรวมควรเกิดขึ้นใน CI เมื่อรวมร่างเข้า `main` หรือสร้างอัตโนมัติผ่าน Local Post-commit Hook? | SA / Boss | No (สามารถออกแบบใน SDD เป็นสองระดับได้) |
+| 2 | กลไกการกระตุ้น (Resume Trigger) สำหรับงานที่ติดสถานะ `blocked` หรือรอคนอนุมัติ ควรกำหนดผ่านคำสั่ง CLI ใดเป็นมาตรฐาน? | SA / Dev | No (กำหนดใน SDD & Implementation Plan) |
+| 3 | ช่วงเวลา Transition ระหว่าง PR Body แบบเดิมและแบบ Frontmatter ใหม่ ควรมี Grace Period ให้ Fallback หรือไม่? | SA / QA | No (กำหนดใน Migration Strategy ของ SDD) |
 
 ---
 
 ## 5. Scope
 
 ### In Scope
-- **Pillar 1: Worktree Sharded Status:** แยก `task-state.json` ประจำ Issue เพื่อขจัด Git Conflict และมี Projection Compiler สร้าง `PROJECT_STATUS.md`
-- **Pillar 2: Progressive Context Loading:** แยก Tier 1 Boot Core (~2,000 tokens) ออกจาก On-Demand Role/Skill Injections
-- **Pillar 3: Checkpointed Asynchronous Loop:** ปรับปรุง State Machine ให้รองรับการ Pause/Resume ข้าม Chat Turn ผ่าน Checkpoint บนไฟล์
-- **Pillar 4: YAML Frontmatter Verification:** ปรับ PR Body และ Record Templates ให้ใช้ Structured Frontmatter แทน Regex ในการตรวจ Lifecycle
+- **Pillar 1 (Worktree Sharded Status):** แยกไฟล์สถานะงานของแต่ละ Issue ให้เป็นอิสระต่อกัน เพื่อให้การทำงานแบบ Parallel Branches มี Git Merge Conflict เป็น 0% พร้อมระบบรวบรวมสถานะภาพรวมอัตโนมัติ
+- **Pillar 2 (Progressive Context Loading):** กำหนดข้อกำหนดให้การบูตเริ่มต้นอ่านเฉพาะกฎความปลอดภัยพื้นฐาน ($\le 3,500$ tokens) และดึงข้อมูลบทบาทและสกิลเฉพาะเมื่อถูกเรียกใช้งานจริง (On-Demand)
+- **Pillar 3 (Checkpointed Asynchronous State Machine):** บันทึกสถานะงานแบบ Checkpoint ลง Disk ในทุก State Transition เพื่อรองรับการพักรอบ (Pause) และทำต่อข้ามเซสชัน (Resume) โดยไม่ต้องผูกติดกับ Synchronous Chat Turn เดียว
+- **Pillar 4 (Frontmatter-First Safety Gates):** กำหนดให้การตรวจสอบสถานะและ Lifecycle ของ PR ดึงข้อมูลผ่าน Structured YAML Frontmatter ที่หัวไฟล์แทนการสแกน Regex จากเนื้อความ Prose
 
 ### Out of Scope
 - การแก้ไขกฎ Lifecycle Retry Budget ของ Bug Fix (คงเดิมที่ 2 ครั้ง)
-- การยกเลิก Human Approval Gates (Human Gates ยังคงเป็นจุดตัดขาดที่เข้มงวดเช่นเดิม)
-- การสร้างคลาวด์เซิร์ฟเวอร์ภายนอก (ยังคงเป็น File-based / Git-native / Local-first)
+- การลดหย่อนหรือยกเลิก Human Approval Gates (ข้อกำหนดความปลอดภัยยังคงเข้มงวด 100%)
+- การสร้าง Cloud Infrastructure หรือ External Database (ยังคงยึดหลัก Local-first, File-based, และ Git-native)
 
 ---
 
-## 6. Architecture & Workflow Comparison: As-Is vs To-Be
-
-### 6.1 As-Is Workflow (สถาปัตยกรรมปัจจุบันที่มีจุดคอขวด)
-
-```mermaid
-flowchart TD
-    subgraph AsIs_Session ["As-Is Session (Synchronous & Monolithic Context)"]
-        Boot["1. Bootstrapping Load (8 Mandatory Files)<br/>~26,196 Tokens (87.3% Budget)"] --> TurnStart["2. Active Chat Turn"]
-        TurnStart --> SingleRoot["3. Write to Root PROJECT_STATUS.md<br/>(Shared Mutable State)"]
-        TurnStart --> InTurnWait["4. Dispatch Child & In-Turn Synchronous Wait<br/>(Risk of Timeout & Context Exhaustion)"]
-        InTurnWait --> RegexGate["5. PR Readiness via Prose Regex Matching<br/>(Fragile to Quotes, Backticks, Formatting)"]
-    end
-
-    SingleRoot -.->|"Parallel Worktrees Merge"| GitConflict["💥 Git Merge Conflict 100%<br/>(PROJECT_STATUS.md Collision)"]
-    RegexGate -.->|"Quoted strings / Backticks"| FalseDenial["💥 Gate Bypass / Over-block Loop"]
-```
-
-### 6.2 To-Be Workflow (สถาปัตยกรรมใหม่: Modular, Sharded & Checkpointed)
-
-```mermaid
-flowchart TD
-    subgraph ToBe_Architecture ["To-Be Next-Gen Architecture"]
-        subgraph Tiered_Context ["Tiered Context Booting"]
-            Tier1["Tier 1: Micro-Core (~2,000t)<br/>AGENTS_CORE.md + Stop Gates"] --> Tier2["Tier 2: Role on Demand (~1,200t)<br/>get-context-pack.mjs"]
-            Tier2 --> Tier3["Tier 3: Skill on Trigger (0t boot)<br/>Dynamic view_file loading"]
-        end
-
-        subgraph Sharded_Execution ["Worktree & State Sharding"]
-            Worktree["Isolated Git Worktree<br/>.worktrees/issue-NN-role"] --> ShardedState["Sharded Task State<br/>docs/records/work-items/issue-NN/task-state.json"]
-            ShardedState --> Checkpoint["Checkpointed State Machine<br/>(Async Resume across Turns)"]
-        end
-
-        subgraph Deterministic_Verification ["Deterministic Gates & Projection"]
-            Checkpoint --> FrontmatterGate["Frontmatter-First Validator<br/>(100% Deterministic YAML AST)"]
-            FrontmatterGate --> PRMerge["PR Squash-Merge to main"]
-            PRMerge --> StatusCompiler["compile-project-status.mjs<br/>(Auto-generate root PROJECT_STATUS.md)"]
-        end
-    end
-
-    Tiered_Context -->|"Context Savings >85%"| Sharded_Execution
-    Sharded_Execution -->|"Zero Git Conflict"| Deterministic_Verification
-```
-
----
-
-## 7. User Stories
+## 6. User Stories
 
 | Story ID | As a | I want | So that | Priority |
 |---|---|---|---|---|
-| US-001 | AI Agent | บูตเซสชันด้วย Context ก้อนเล็ก (~3,500 tokens) | มีพื้นที่ Context Window เหลือสำหรับอ่านและวิเคราะห์โค้ดได้อย่างเต็มที่ ไม่เกิด Context Rot | High |
-| US-002 | Multi-Agent Team | แยกไฟล์สถานะงานเป็น `issue-<NN>/task-state.json` | รันงานบนหลาย Git Worktrees พร้อมกันได้โดยไม่มี Git Merge Conflict เมื่อรวมกิ่ง | High |
-| US-003 | Orchestrator | บันทึก Checkpoint สถานะงานลงไฟล์เมื่อจบแต่ละช่วง | สามารถพักรอบหรือส่งต่องานข้ามเซสชันได้โดยไม่ต้องรันแชทแช่ค้างไว้จน Timeout | High |
-| US-004 | Human Maintainer | ใช้ YAML Frontmatter ใน PR Body และ Work Item | ตัว Gate ใน CI และ Local Hook มีความแม่นยำ ไม่พังเพราะเรื่อง Regex หรือการจัดหน้า Markdown | Medium |
+| US-001 | Software Engineer / Agent | บูตเซสชันด้วย Context ก้อนเล็ก ($\le 3,500$ tokens) | ตัว Agent มีพื้นที่ Context Window ว่างสูงสุดสำหรับวิเคราะห์โค้ด โดยไม่เกิดอาการลืมคำสั่งในงานระยะยาว | High |
+| US-002 | Team Maintainer | แยกไฟล์สถานะงานของแต่ละ Issue ออกจากกันเป็นอิสระ | สามารถรัน Agent ทำงานขนานกันหลาย Worktrees ได้โดยไม่มีปัญหา Git Merge Conflict เมื่อรวมโค้ด | High |
+| US-003 | Workflow Orchestrator | บันทึก Checkpoint สถานะงานลง Disk ในทุกการเปลี่ยนสถานะ | งานสามารถหยุดรอการตัดสินใจของมนุษย์ หรือส่งต่องานข้ามเซสชันได้อย่างปลอดภัยโดยไม่ต้องแช่แชทค้างไว้จน Timeout | High |
+| US-004 | Quality / Security Reviewer | ตรวจสอบข้อมูล Lifecycle และ Evidence ผ่าน Structured Frontmatter | ตัว Gate ใน CI และ Local Hook ทำงานได้อย่างแม่นยำ 100% ไม่ถูกหลอกด้วยการจัดหน้า Markdown หรือ Quoted Strings | High |
 
 ---
 
-## 8. Acceptance Criteria
+## 7. Acceptance Criteria
 
 | AC ID | Related Story | Given | When | Then | Testable? |
 |---|---|---|---|---|---|
-| AC-001 | US-001 | มีไฟล์ `AGENTS_CORE.md` | รัน `scripts/validate-context-budget.mjs` ในโหมด Tier 1 | Token รวมของ Tier 1 ต้อง $\le$ 4,000 tokens | Yes |
-| AC-002 | US-001 | Agent ได้รับมอบหมายบทบาท SA Agent | รัน `scripts/get-context-pack.mjs --role=sa-agent` | ได้เฉพาะข้อกำหนดของ SA Agent ขนาด $\le$ 1,500 tokens | Yes |
-| AC-003 | US-002 | Worktree A ทำ Issue #301 และ Worktree B ทำ Issue #302 | ทั้งคู่แก้ไขสถานะงานของตนเองและ Merge สู่ main ตามลำดับ | เกิด Zero Git Merge Conflict ในไฟล์สถานะ และทั้งสอง Issue ปรากฏใน Status Dashboard | Yes |
-| AC-004 | US-003 | Agent ทำงานในขั้นตอน `implementing` สำเร็จ | ทำการ Transition สู่ `verifying` | `task-state.json` ถูกบันทึกประวัติ Actor, Timestamp, Evidence Refs ถูกต้องตาม Schema | Yes |
-| AC-005 | US-004 | PR Body มี YAML Frontmatter ระบุ `governing_workflow: bug-fix` | รัน `scripts/validate-pr-readiness.mjs` | ตัวตรวจสอบ Parse ข้อมูลผ่าน YAML Parser ได้ถูกต้อง 100% โดยไม่สนข้อความบรรยายด้านล่าง | Yes |
+| AC-001 | US-001 | มีชุดเอกสาร Core Bootloader พื้นฐาน | ตรวจสอบขนาด Token ของไฟล์อ่านบังคับเริ่มต้น | ปริมาตร Token รวมต้องมีขนาด $\le 3,500$ tokens | Yes |
+| AC-002 | US-001 | มีคำสั่งดึงบริบทบทบาทเฉพาะงาน | รันคำสั่งดึงบริบทของบทบาทใดบทบาทหนึ่ง (เช่น `sa-agent` หรือ `developer-agent`) | ได้รับเฉพาะข้อกำหนดของบทบาทนั้น โดยมีขนาด $\le 1,500$ tokens | Yes |
+| AC-003 | US-001 | มีคำสั่งดึงบริบทบทบาทเฉพาะงาน | รันคำสั่งดึงบริบทด้วยชื่อบทบาทที่ไม่มีอยู่จริง (Invalid Role) | คำสั่งต้อง Fail-Closed (Exit Code $\ne 0$) พร้อมแสดง Error แจ้งเตือนชัดเจน | Yes |
+| AC-004 | US-002 | Worktree A ทำงาน Issue #301 และ Worktree B ทำงาน Issue #302 | ทั้งคู่บันทึกสถานะงานของตนเองและ Merge สู่กิ่ง `main` ตามลำดับ | ไม่มี Git Merge Conflict ในไฟล์สถานะ และสถานะของทั้งสอง Issue ถูกรวบรวมเข้ามุมมองภาพรวมอย่างถูกต้อง | Yes |
+| AC-005 | US-003 | มีไฟล์ State Machine ประจำ Work Item | Agent ทำการบันทึกการเปลี่ยนสถานะที่ถูกต้องตามกฎ (เช่น `implementing` $\to$ `verifying`) | ข้อมูลถูกบันทึกลงไฟล์พร้อม Timestamp, Actor, และ Evidence References ครบถ้วน | Yes |
+| AC-006 | US-003 | มีไฟล์ State Machine ประจำ Work Item | มีการพยายามบันทึกสถานะที่ผิดกฎ (เช่น ข้ามจาก `intake` ไป `verifying` โดยตรง) หรือขาด Evidence ที่จำเป็น | ระบบต้องปฏิเสธการ Transition (Reject) และแจ้งข้อผิดพลาดตาม Schema | Yes |
+| AC-007 | US-004 | PR Body มี YAML Frontmatter ระบุ `work_item` และ `governing_workflow` ถูกต้อง | รันตัวตรวจสอบความพร้อมของ PR (PR Readiness Gate) | ตัวตรวจสอบอ่านค่าจาก Frontmatter ได้ถูกต้อง 100% แม้เนื้อหาด้านล่างจะมี Markdown Code Block หรือข้อความซับซ้อน | Yes |
+| AC-008 | US-004 | PR Body มี YAML Frontmatter ที่ไวยากรณ์ผิด (Malformed Syntax) หรือขาดฟิลด์บังคับ | รันตัวตรวจสอบความพร้อมของ PR (PR Readiness Gate) | ตัวตรวจสอบต้องปฏิเสธ PR นั้นทันที (Fail-Closed) พร้อมแสดงรายงานข้อผิดพลาดเชิงโครงสร้าง | Yes |
 
 ---
 
-## 9. Business & Operating Rules
+## 8. Business Rules
 
 | Rule ID | Rule | Source | Impacted Area |
 |---|---|---|---|
-| BR-001 | **No Root Status Mutation on Feature Branch:** ห้าม Feature Branch แก้ไขไฟล์ `PROJECT_STATUS.md` หน้า Root โดยตรง ต้องแก้ไขเฉพาะ Shard ของตนเองเท่านั้น | Architecture Decision | Git Workflow, Hooks |
-| BR-002 | **Preserve All Human Gates:** การทำ Asynchronous Checkpoint ห้ามข้ามขั้นตอน Human Approval Gate เมื่อถึง Gate ต้องตั้ง `state: blocked` พร้อม `stop_reason: human_review_required` | `AGENT_OPERATING_MODEL.md` | State Machine Schema |
-| BR-003 | **Zero-Boot Skill Content:** เนื้อหาคำสั่งของ 39 สกิลต้องไม่ถูกนับใน Boot Tier จะต้องโหลดผ่าน `view_file` เมื่อเกิด Trigger เท่านั้น | Context Budget Policy | Skills Architecture |
+| BR-001 | **No Root Status Mutation on Feature Branch:** Feature Branch มีสิทธิ์แก้ไขเฉพาะไฟล์สถานะ Shard ประจำ Issue ของตนเองเท่านั้น ห้ามแก้ไขไฟล์สถานะภาพรวมที่ Root โดยตรง | Concurrency Policy | Git Workflow, Hooks |
+| BR-002 | **Preserve All Human Gates:** การเปลี่ยนผ่านสถานะแบบ Asynchronous เมื่อถึงจุดอนุมัติของมนุษย์ ต้องตั้งสถานะเป็น `blocked` พร้อมระบุ `stop_reason: human_review_required` เสมอ ห้ามข้ามขั้นตอน | `AGENT_OPERATING_MODEL.md` | State Machine Schema |
+| BR-003 | **Zero-Boot Skill Content:** เนื้อหาคู่มือสกิล 31 สกิลหลักในระบบ จะต้องไม่ถูกโหลดเข้า Context ตั้งแต่เริ่มบูต แต่จะถูกเรียกอ่านผ่านเครื่องมือเฉพาะเมื่อเกิด Trigger เท่านั้น | Context Budget Policy | Tooling / Skills Layer |
+| BR-004 | **Deterministic Schema Validation:** ทุกไฟล์สถานะและ Frontmatter ต้องถูกตรวจสอบความถูกต้องผ่าน JSON Schema หรือ Type Contract ก่อนจะถือว่ามีผลสมบูรณ์ | Engineering Discipline | CI Validators, Local Hooks |
 
 ---
 
-## 10. Risk / Edge Case Notes
+## 9. Risk / Edge Case Notes
 
 | Risk ID | Risk / Edge Case | Impact | Suggested Coverage |
 |---|---|---|---|
-| R-001 | **Context Degradation ใน Tier 1:** หากย่อ `AGENTS_CORE.md` มากเกินไป Agent อาจลืมกฎสำคัญ | High | สร้าง Behavioral Equivalence Test เทียบผลการตัดสินใจระหว่าง Full vs Tier 1 |
-| R-002 | **Orphan Status Shards:** กิ่งถูกลบแต่ไฟล์สถานะใน `docs/records/work-items/` ยังค้างสถานะ active | Medium | เพิ่ม Reconciliation Script ใน CI ตรวจสอบกิ่งที่ปิดไปแล้วและย้ายเข้า archive |
-| R-003 | **Hook Environment Missing Parser:** เครื่องผู้ใช้อาจไม่มี YAML Parser ในบาง Node runtime เก่า | Low | ใช้ Node.js 22 built-in หรือ dependency `yaml` ที่มีอยู่แล้วใน `package.json` |
+| R-001 | **Context Degradation ใน Core Boot:** หากย่อเอกสารเริ่มต้นมากเกินไป AI อาจลืมกฎข้อห้ามสำคัญ | High | สร้าง Behavioral Equivalence Test เทียบการตัดสินใจของ Agent ระหว่าง Full vs Tier 1 |
+| R-002 | **Mid-Write File Corruption:** กระบวนการเขียนไฟล์สถานะขัดข้องกลางคัน ทำให้ไฟล์ JSON/YAML เสียหาย | Medium | ออกแบบ Atomic File Write หรือใช้ CAS (Check-and-Set) ในระดับสถาปัตยกรรม |
+| R-003 | **Orphan Status Shards:** กิ่งงานถูกยกเลิกหรือลบทิ้ง แต่ไฟล์สถานะยังค้างอยู่ | Medium | สร้างสคริปต์ Reconciliation ตรวจสอบกิ่งที่ Merge/Closed แล้ว และย้ายเข้าสู่หมวด Archive |
+| R-004 | **Legacy PR Compatibility:** PR เก่าที่ยังไม่ได้ใส่ YAML Frontmatter อาจถูกบล็อกกะทันหัน | Low | ออกแบบ Graceful Error Message และ Migration Script ใน SDD |
 
 ---
 
-## 11. Recommended Next Steps
+## 10. Recommended Next Step
 
 | Next Agent / Skill | Reason | Required Input |
 |---|---|---|
-| **Human Maintainer / Boss** | Review & อนุมัติสถาปัตยกรรม To-Be และ Acceptance Criteria ใน Requirement Discovery นี้ | เอกสาร Requirement Discovery และ GitHub Issue |
-| **SA Agent** | ออกแบบ System Design Document (SDD) และ JSON Schema สำหรับ `task-state.json` และ Frontmatter Contract | Requirement Discovery ที่ได้รับการอนุมัติ |
-| **Developer Agent** | เริ่มลงมือทำตามลำดับ Roadmap 4 Sprints เมื่อได้รับ `status:spec-ready` | Approved SDD & Implementation Plan |
+| **SA Agent (`sa-architecture-design`)** | ดำเนินการออกแบบสถาปัตยกรรมทางเทคนิค (Software Design Document - SDD) โดยใช้เทมเพลต [`docs/templates/SDD.md`](file:///Users/maclab/WorkSpace/GitHub%20Code/AI-Agent-Workflow/docs/templates/SDD.md) เพื่อแปลงโจทย์และ AC ทั้งหมดให้เป็น Component Design, JSON Schema, API Contract และ Data Model | Requirement Discovery นี้ที่ได้รับการยอมรับ |
+| **Developer Agent (`implementation-planning`)** | เมื่อ SDD ได้รับการอนุมัติ ให้จัดทำ Implementation Plan โดยใช้เทมเพลต [`docs/templates/IMPLEMENTATION_PLAN.md`](file:///Users/maclab/WorkSpace/GitHub%20Code/AI-Agent-Workflow/docs/templates/IMPLEMENTATION_PLAN.md) | Approved SDD |
+| **QA Agent (`functional-test-design`)** | สร้าง Test Plan และ Acceptance Traceability Matrix โดยใช้เทมเพลต [`docs/templates/TEST_PLAN.md`](file:///Users/maclab/WorkSpace/GitHub%20Code/AI-Agent-Workflow/docs/templates/TEST_PLAN.md) และ [`docs/templates/AC_TRACEABILITY.md`](file:///Users/maclab/WorkSpace/GitHub%20Code/AI-Agent-Workflow/docs/templates/AC_TRACEABILITY.md) | AC-001 ถึง AC-008 จาก Requirement Discovery |
+
+---
+
+## 11. Illustrative UX / Interaction Sketch
+
+> Illustrative — not a UI spec. Stops at what appears and in what order; no layout, component, or visual detail.
+
+### Asynchronous Checkpointed SDLC Flow
+
+```text
+[Human / GitHub Issue]
+        │
+        ▼ (Trigger: Dispatch Work Item)
+[Orchestrator Agent]
+   ├─ Loads Tier 1 Core Boot (<= 3,500 tokens)
+   ├─ Evaluates Issue & Selects Route
+   └─ Dispatches to SA Agent with Checkpoint State: "designing"
+        │
+        ▼ (Session Ends cleanly; Task Checkpointed on Disk)
+[SA Agent Session]
+   ├─ Loads SA Role Context on Demand (<= 1,500 tokens)
+   ├─ Authors SDD.md
+   └─ Checkpoints State: "human-approval-pending" (State: blocked)
+        │
+        ▼ (Human Maintainer Reviews & Approves)
+[Developer Agent Session]
+   ├─ Triggered by Approval
+   ├─ Loads Dev Role Context on Demand (<= 1,500 tokens)
+   ├─ Implements Code via Worktree Isolation
+   └─ Checkpoints State: "verifying"
+        │
+        ▼ (QA Agent Session)
+   ├─ Executes Acceptance Test Suite (AC-001 to AC-008)
+   └─ Emits Terminal QA Pass Evidence
+```
