@@ -30,7 +30,13 @@
     "show:session-context": "node scripts/show-session-context.mjs",
     "cleanup:closeout-labels": "node scripts/cleanup-stale-closeout-labels.mjs",
     "backfill:work-items": "node scripts/backfill-work-item-records.mjs",
-    "repin:source-matrix": "node scripts/repin-source-matrix.mjs"
+    "repin:source-matrix": "node scripts/repin-source-matrix.mjs",
+    "inject:role-context": "node scripts/inject-role-context.mjs",
+    "task:machine": "node scripts/task-machine-cli.mjs",
+    "compile:status-projection": "node scripts/compile-status-projection.mjs",
+    "archive:work-item": "node scripts/archive-work-item.mjs",
+    "status:compile": "node scripts/compile-status-projection.mjs",
+    "validate:status-projection": "node scripts/compile-status-projection.mjs --check"
   },
   "devDependencies": {
     "ajv": "^8.17.1",

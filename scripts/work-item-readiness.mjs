@@ -1,3 +1,16 @@
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import Ajv2020 from 'ajv/dist/2020.js';
+import YAML from 'yaml';
+
+const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const prFrontmatterSchemaPath = path.join(repoRoot, 'docs/contracts/schemas/pr-frontmatter.schema.json');
+const prFrontmatterSchema = JSON.parse(readFileSync(prFrontmatterSchemaPath, 'utf8'));
+
+const ajv = new Ajv2020({ allErrors: true });
+const validateFrontmatterSchema = ajv.compile(prFrontmatterSchema);
+
 const closeoutMarker = /<!-- post-merge-closeout: complete; source-pr-\d+ -->/;
 const qaEvidence = /QA: evidence comment or review URL:\s*https:\/\//i;
 // Anchored to line start (not merely "contains") so guidance prose that mentions this
@@ -9,54 +22,99 @@ const planOnlyFile = /^docs\/records\/implementation-plan\/[^/]+\.md$/;
 
 /**
  * The closing keyword that GitHub acts on when a pull request merges.
- *
- * This rule, and `advances-only` below, live HERE rather than in
- * `scripts/validate-pr-readiness.mjs` (Issue #246, AC-07 / ADR-0024 decision 3).
- * ADR-0022's invariant says `.claude/settings.json` may only invoke a rule that
- * `.githooks/` or CI already enforces and may never originate one. Of the four
- * rules the local pre-flight added beyond CI, three were already enforced
- * server-side; this was the one that existed nowhere else, so the Claude-only
- * hook originated it and every non-Claude host silently lost it. Placing it in
- * the shared core makes `work-item-readiness-refresh.yml`'s
- * `work-item-readiness-freshness` check enforce it for every host, and restores
- * the invariant.
  */
 const closingKeyword = /\b(?:fix(?:e[sd])?|close[sd]?|resolve[sd]?)\b\s*:?\s*#(\d+)/gi;
 
 /**
  * The partial-progress marker (Human Maintainer decision, 2026-09-08).
- *
- * This repository routinely opens pull requests that advance a multi-AC Issue
- * without closing it, and the closing-keyword rule refused every one of them —
- * PRs #232 and #234 among them. The rule cannot simply be dropped: Issue #224
- * stayed open precisely because its pull request carried no closing keyword.
- * So the author may *declare* that no Issue is being closed, but may not
- * *forget* to close one. The marker names its Issue, and naming any other Issue
- * is an error rather than a no-op: a marker that waived the rule regardless of
- * the number it carries would be a copy-pasteable blanket escape hatch.
  */
 const advancesOnlyMarker = /<!--\s*advances-only:\s*issue-(\d+)\s*-->/gi;
 
 /**
+ * Extracts and validates YAML frontmatter from a PR body.
+ *
+ * Algorithm:
+ * 1. Check if line 1 starts with '---' delimiter.
+ * 2. Find the second '---' starting on a line.
+ * 3. Extract substring between delimiters and parse using YAML.parse (safe, AST).
+ * 4. Validate against pr-frontmatter.schema.json.
+ */
+export function extractFrontmatter(body = '') {
+  const text = String(body);
+  const lines = text.split(/\r?\n/);
+  if (lines.length === 0 || lines[0].trim() !== '---') {
+    return { hasFrontmatter: false, data: null, prose: text, errors: [] };
+  }
+
+  // Find second '---' delimiter line
+  let closingIndex = -1;
+  for (let i = 1; i < lines.length; i++) {
+    if (lines[i].trim() === '---') {
+      closingIndex = i;
+      break;
+    }
+  }
+
+  if (closingIndex === -1) {
+    return {
+      hasFrontmatter: true,
+      data: null,
+      prose: '',
+      errors: ['malformed frontmatter: missing closing --- delimiter']
+    };
+  }
+
+  const rawFrontmatter = lines.slice(1, closingIndex).join('\n');
+  const prose = lines.slice(closingIndex + 1).join('\n');
+
+  let parsed;
+  try {
+    parsed = YAML.parse(rawFrontmatter, { schema: 'failsafe', merge: false });
+    // In yaml library, failsafe or core parser: let's use default YAML.parse with standard schemas
+    // Re-parse with standard YAML.parse to parse integers, booleans, etc. safely
+    parsed = YAML.parse(rawFrontmatter, { customTags: [] });
+  } catch (err) {
+    return {
+      hasFrontmatter: true,
+      data: null,
+      prose,
+      errors: [`malformed YAML frontmatter syntax: ${err.message}`]
+    };
+  }
+
+  if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    return {
+      hasFrontmatter: true,
+      data: null,
+      prose,
+      errors: ['frontmatter must be a valid mapping object']
+    };
+  }
+
+  const valid = validateFrontmatterSchema(parsed);
+  if (!valid) {
+    const ajvErrors = (validateFrontmatterSchema.errors || []).map((e) => {
+      const field = e.instancePath ? e.instancePath.replace(/^\//, '') : (e.params?.missingProperty || e.params?.additionalProperty || 'schema');
+      return `frontmatter schema violation: ${field} ${e.message}`;
+    });
+    return {
+      hasFrontmatter: true,
+      data: parsed,
+      prose,
+      errors: ajvErrors
+    };
+  }
+
+  return {
+    hasFrontmatter: true,
+    data: parsed,
+    prose,
+    errors: []
+  };
+}
+
+/**
  * Blanks out fenced code blocks and inline backtick spans (Issue #236, M1).
- *
- * Deliberately a scrubber, not a Markdown parser. What it covers: ``` and ~~~
- * fences (any length >= 3, opened and closed at line start with optional
- * indentation), and inline spans delimited by a matching run of backticks on one
- * line. What it does NOT cover: indented (four-space) code blocks, HTML <code>
- * or <pre> elements, fences nested inside list items or blockquotes at a deeper
- * indent than three spaces, and backtick spans that straddle a newline. An
- * unterminated fence blanks the remainder of the body. Both directions are then
- * fail-closed: the marker stops waiving and the closing keyword stops satisfying,
- * so such a body is refused rather than passed silently.
- *
- * Scrubbed: the marker scan and the closing-keyword scan, and only those. The
- * QA-evidence check, the governing-workflow declaration, the plan-only marker
- * and the closeout marker read the raw body, deliberately — scrubbing the last
- * would change post-merge closeout behaviour, which is out of scope.
- *
- * Content is replaced by spaces rather than removed so that surrounding text
- * cannot be joined into a marker or keyword that the author never wrote.
  */
 export function stripCodeSpans(body = '') {
   const blank = (text) => text.replace(/[^\n]/g, ' ');
@@ -86,16 +144,6 @@ export function advancesOnlyIssues(body = '') {
   );
 }
 
-/**
- * The closing-keyword errors for a body whose linked Issue is known.
- *
- * Returns `[]` when `linkedIssueNumber` is absent: nothing can be checked
- * against, and that state already carries its own error from the caller (CI
- * reports `valid same-repository Issue`; the local pre-flight reports
- * `Work Item (Issue) URL`). Read from the scrubbed body: a `Fixes #N` inside a
- * fence closes nothing on merge, so it must not satisfy the rule either, and
- * prose documenting the marker must not waive it.
- */
 /** Every Issue number a closing keyword in the body would close on merge. */
 export function closingKeywordIssues(body = '') {
   return [...stripCodeSpans(body).matchAll(new RegExp(closingKeyword.source, 'gi'))].map((m) =>
@@ -142,6 +190,33 @@ export function validateReadiness({
   sourcePullRequest,
   linkedIssueNumber
 }) {
+  const frontmatterResult = extractFrontmatter(body);
+
+  // If frontmatter is present (starts on line 1 with ---)
+  if (frontmatterResult.hasFrontmatter) {
+    // Mode A: Frontmatter Present
+    if (frontmatterResult.errors.length > 0) {
+      // Fail closed immediately with structured diagnostics (AC-008)
+      return frontmatterResult.errors;
+    }
+
+    // Evaluate closeout first if applicable
+    if (closeoutMarker.test(body)) {
+      return evaluateCloseout({ changedFiles, sourcePullRequest });
+    }
+
+    return evaluateModeA({
+      frontmatter: frontmatterResult.data,
+      draft,
+      workItem,
+      changedFiles,
+      linkedIssueNumber
+    });
+  }
+
+  // Mode B: Frontmatter Absent - Legacy Fallback
+  console.warn('[ADVISORY] PR body lacks YAML frontmatter; falling back to legacy regex parser.');
+
   const errors = evaluateLifecycle({ body, draft, workItem, changedFiles, sourcePullRequest });
   // A closeout pull request closes no Issue by design: its source Issues are
   // auto-closed by the source pull requests' own keywords.
@@ -149,17 +224,103 @@ export function validateReadiness({
   return errors;
 }
 
+function evaluateCloseout({ changedFiles, sourcePullRequest }) {
+  const allowed = (name) =>
+    ['PROJECT_STATUS.md', 'TASK_LOG.md', 'CHANGELOG.md'].includes(name) ||
+    /^docs\/records\/HANDOFF-POST-MERGE-CLOSEOUT-[^/]+\.md$/.test(name) ||
+    /^docs\/records\/work-items\/archive\/[^/]+\/task-state\.json$/.test(name);
+  const errors = [];
+  if (!sourcePullRequest?.isPullRequest || !sourcePullRequest.labels?.includes('post-merge-closeout')) {
+    errors.push('labeled source pull request');
+  }
+  if (!changedFiles.length || !changedFiles.every(allowed)) {
+    errors.push('closeout files are not authorized');
+  }
+  return errors;
+}
+
+function evaluateModeA({
+  frontmatter,
+  draft,
+  workItem,
+  changedFiles,
+  linkedIssueNumber
+}) {
+  const errors = [];
+
+  if (!workItem || workItem.isPullRequest || workItem.isSameRepository !== true) {
+    errors.push('valid same-repository Issue');
+    return errors;
+  }
+
+  const effectiveLinkedIssue = linkedIssueNumber ?? frontmatter.work_item;
+  if (effectiveLinkedIssue && frontmatter.work_item !== effectiveLinkedIssue) {
+    errors.push(`frontmatter work_item #${frontmatter.work_item} does not match linked Issue #${effectiveLinkedIssue}`);
+  }
+
+  // Closing action validation in Mode A (deterministic, immune to prose)
+  if (effectiveLinkedIssue) {
+    if (frontmatter.closing_action === 'advances-only') {
+      if (frontmatter.advances_issue !== effectiveLinkedIssue) {
+        errors.push(
+          `advances-only marker naming the linked Issue #${effectiveLinkedIssue} (found #${frontmatter.advances_issue} instead)`
+        );
+      }
+    } else if (['fixes', 'closes', 'resolves'].includes(frontmatter.closing_action)) {
+      // Satisfies closing requirement for effectiveLinkedIssue
+    } else if (frontmatter.closing_action === 'none') {
+      errors.push(`closing keyword referencing the linked Issue #${effectiveLinkedIssue} (e.g. "Fixes #${effectiveLinkedIssue}")`);
+    }
+  }
+
+  const labels = workItem.labels ?? [];
+
+  // Bug Fix workflow
+  if (frontmatter.governing_workflow === 'bug_fix') {
+    if (labels.includes('bug')) {
+      if (!draft && !frontmatter.qa_evidence) {
+        errors.push('QA evidence URL');
+      }
+      return errors;
+    }
+    // If not labeled bug, fall through to lifecycle checks
+  }
+
+  // Plan-only
+  if (frontmatter.plan_only && !labels.includes('bug')) {
+    const phases = labels.filter((label) => label.startsWith('phase:'));
+    if (phases.length !== 1) errors.push('exactly one current phase');
+    if (!['phase:planning', 'phase:development'].includes(phases[0])) {
+      errors.push('plan-only phase planning or development');
+    }
+    if (!labels.includes('status:spec-ready')) errors.push('status:spec-ready');
+    if (labels.includes('status:development-done') || labels.includes('status:verification-done')) {
+      errors.push('plan-only cannot claim development or verification completion');
+    }
+    if (!changedFiles.length || !changedFiles.every((file) => planOnlyFile.test(file))) {
+      errors.push('plan-only implementation-plan files only');
+    }
+    return errors;
+  }
+
+  const phases = labels.filter((label) => label.startsWith('phase:'));
+  if (phases.length !== 1) errors.push('exactly one current phase');
+  if (!labels.includes('status:spec-ready')) errors.push('status:spec-ready');
+  const qaHandoff = phases[0] === 'phase:verification';
+  if (!draft || qaHandoff) {
+    if (!labels.includes('status:development-done')) errors.push('status:development-done');
+  }
+  if (!draft) {
+    if (!labels.includes('status:verification-done')) errors.push('status:verification-done');
+    if (!frontmatter.qa_evidence) errors.push('QA evidence URL');
+  }
+
+  return errors;
+}
+
 function evaluateLifecycle({ body, draft, workItem, changedFiles, sourcePullRequest }) {
   if (closeoutMarker.test(body)) {
-    const allowed = (name) =>
-      ['PROJECT_STATUS.md', 'TASK_LOG.md', 'CHANGELOG.md'].includes(name) ||
-      /^docs\/records\/HANDOFF-POST-MERGE-CLOSEOUT-[^/]+\.md$/.test(name);
-    const errors = [];
-    if (!sourcePullRequest?.isPullRequest || !sourcePullRequest.labels?.includes('post-merge-closeout')) {
-      errors.push('labeled source pull request');
-    }
-    if (!changedFiles.length || !changedFiles.every(allowed)) errors.push('closeout files are not authorized');
-    return errors;
+    return evaluateCloseout({ changedFiles, sourcePullRequest });
   }
 
   const errors = [];
@@ -170,17 +331,6 @@ function evaluateLifecycle({ body, draft, workItem, changedFiles, sourcePullRequ
 
   const labels = workItem.labels ?? [];
 
-  // Bug Fix work items are governed by docs/contracts/bug-fix-workflow.yaml, not the
-  // phase:/status: lifecycle label contract (AGENTS.md: "Bug Fix work continues to use
-  // docs/contracts/bug-fix-workflow.yaml rather than this lifecycle label contract").
-  // They correctly carry no status:* labels; only QA evidence is still required.
-  //
-  // The `bug` label alone is not a strong enough signal for a required merge check: a
-  // mislabeled Feature/Enhancement Issue would silently skip the entire lifecycle gate.
-  // The PR must also declare its governing workflow in the body — a second signal the
-  // implementer controls directly and that cannot drift from an Issue's labels the way a
-  // stale or wrong label can. Absent that declaration, a `bug`-labeled work item falls
-  // through to the strict Feature/Enhancement path below (the safe default).
   if (labels.includes('bug') && governingWorkflow.test(body)) {
     if (!draft && !qaEvidence.test(body)) errors.push('QA evidence URL');
     return errors;

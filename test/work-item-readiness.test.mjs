@@ -388,3 +388,218 @@ test('AC-07: the closing-keyword rule is appended to, not substituted for, lifec
   assert.ok(errors.includes('status:spec-ready'));
   assert.ok(errors.some((e) => e.startsWith('closing keyword referencing the linked Issue #19')));
 });
+
+// --------------------------------------------------- Issue #272, IMP-002: TC-011..TC-018, TC-033
+import { extractFrontmatter } from '../scripts/work-item-readiness.mjs';
+
+test('TC-011: valid YAML frontmatter parsed accurately via AST', () => {
+  const frontmatterBody = `---
+work_item: 272
+governing_workflow: framework_meta
+closing_action: advances-only
+advances_issue: 272
+qa_evidence: "https://github.com/chakrits/AI-Agent-Workflow/issues/272#issuecomment-5630763664"
+documentation_impact: completed
+plan_only: false
+risk_level: high
+schema_version: 1
+---
+
+## Description
+This is a test description.
+`;
+  const res = extractFrontmatter(frontmatterBody);
+  assert.equal(res.hasFrontmatter, true);
+  assert.equal(res.data.work_item, 272);
+  assert.equal(res.data.governing_workflow, 'framework_meta');
+  assert.equal(res.data.closing_action, 'advances-only');
+  assert.equal(res.data.advances_issue, 272);
+});
+
+test('TC-012: markdown prose below frontmatter completely ignored (immune to fences, quotes, fake keywords)', () => {
+  const frontmatterBody = `---
+work_item: 272
+governing_workflow: framework_meta
+closing_action: advances-only
+advances_issue: 272
+qa_evidence: "https://github.com/chakrits/AI-Agent-Workflow/issues/272#issuecomment-1"
+schema_version: 1
+---
+
+## Description
+\`\`\`markdown
+Fixes #999
+Governing workflow: Bug Fix
+<!-- advances-only: issue-888 -->
+\`\`\`
+> Fixes #777
+`;
+  const res = extractFrontmatter(frontmatterBody);
+  assert.equal(res.hasFrontmatter, true);
+  assert.equal(res.data.work_item, 272);
+  assert.equal(res.data.closing_action, 'advances-only');
+  assert.equal(res.data.advances_issue, 272);
+
+  // Validation should also ignore prose below frontmatter
+  const errors = validateReadiness({
+    body: frontmatterBody,
+    draft: false,
+    workItem: {
+      isPullRequest: false,
+      isSameRepository: true,
+      labels: ['phase:verification', 'status:spec-ready', 'status:development-done', 'status:verification-done']
+    },
+    linkedIssueNumber: 272
+  });
+  assert.deepEqual(errors, []);
+});
+
+test('TC-013: frontmatter validates against JSON schema; rejects unknown properties', () => {
+  const invalidFrontmatter = `---
+work_item: 272
+governing_workflow: framework_meta
+closing_action: fixes
+schema_version: 1
+unknown_field: "illegal"
+---
+# Title
+`;
+  const res = extractFrontmatter(invalidFrontmatter);
+  assert.equal(res.hasFrontmatter, true);
+  assert.ok(res.errors && res.errors.length > 0);
+  assert.ok(res.errors.some((e) => e.includes('unknown_field') || e.includes('additionalProperties')));
+});
+
+test('TC-014: Mode A: valid frontmatter PR body passes readiness evaluation', () => {
+  const frontmatterBody = `---
+work_item: 272
+governing_workflow: bug_fix
+closing_action: fixes
+qa_evidence: "https://github.com/chakrits/AI-Agent-Workflow/issues/272#issuecomment-123"
+schema_version: 1
+---
+Fixes #272
+`;
+  const errors = validateReadiness({
+    body: frontmatterBody,
+    draft: false,
+    workItem: {
+      isPullRequest: false,
+      isSameRepository: true,
+      labels: ['bug']
+    },
+    linkedIssueNumber: 272
+  });
+  assert.deepEqual(errors, []);
+});
+
+test('TC-015: Mode B: legacy PR body without frontmatter emits advisory and passes legacy rules', () => {
+  const legacyBody = 'Governing workflow: Bug Fix\n\nQA: evidence comment or review URL: https://github.com/x/y/issues/1#comment\n\nFixes #1';
+  const warnings = [];
+  const origWarn = console.warn;
+  console.warn = (msg) => warnings.push(msg);
+  try {
+    const errors = validateReadiness({
+      body: legacyBody,
+      draft: false,
+      workItem: { labels: ['bug'], isPullRequest: false, isSameRepository: true },
+      linkedIssueNumber: 1
+    });
+    assert.deepEqual(errors, []);
+    assert.ok(warnings.some((w) => w.includes('[ADVISORY] PR body lacks YAML frontmatter; falling back to legacy regex parser.')));
+  } finally {
+    console.warn = origWarn;
+  }
+});
+
+test('TC-016: Mode A negative: malformed YAML syntax fails closed immediately', () => {
+  const malformedYaml = `---
+work_item: [unclosed array
+schema_version: 1
+---
+Body text
+`;
+  const errors = validateReadiness({
+    body: malformedYaml,
+    draft: false,
+    workItem: { labels: ['bug'], isPullRequest: false, isSameRepository: true },
+    linkedIssueNumber: 272
+  });
+  assert.ok(errors.length > 0);
+  assert.ok(errors.some((e) => e.includes('YAML') || e.includes('frontmatter')));
+});
+
+test('TC-017: Mode A negative: schema violation in frontmatter fails closed', () => {
+  const schemaViolation = `---
+governing_workflow: invalid_workflow_name
+closing_action: fixes
+schema_version: 1
+---
+`;
+  const errors = validateReadiness({
+    body: schemaViolation,
+    draft: false,
+    workItem: { labels: ['bug'], isPullRequest: false, isSameRepository: true },
+    linkedIssueNumber: 272
+  });
+  assert.ok(errors.length > 0);
+  assert.ok(errors.some((e) => e.includes('frontmatter') || e.includes('work_item') || e.includes('governing_workflow')));
+});
+
+test('TC-018: Mode A boundary: closing_action advances-only requires advances_issue', () => {
+  const missingAdvancesIssue = `---
+work_item: 272
+governing_workflow: framework_meta
+closing_action: advances-only
+schema_version: 1
+---
+`;
+  const errors1 = validateReadiness({
+    body: missingAdvancesIssue,
+    draft: false,
+    workItem: { labels: ['phase:requirements'], isPullRequest: false, isSameRepository: true },
+    linkedIssueNumber: 272
+  });
+  assert.ok(errors1.length > 0);
+  assert.ok(errors1.some((e) => e.includes('advances_issue')));
+
+  const withAdvancesIssue = `---
+work_item: 272
+governing_workflow: framework_meta
+closing_action: advances-only
+advances_issue: 272
+qa_evidence: "https://github.com/chakrits/AI-Agent-Workflow/issues/272#issuecomment-1"
+schema_version: 1
+---
+`;
+  const errors2 = validateReadiness({
+    body: withAdvancesIssue,
+    draft: false,
+    workItem: {
+      labels: ['phase:verification', 'status:spec-ready', 'status:development-done', 'status:verification-done'],
+      isPullRequest: false,
+      isSameRepository: true
+    },
+    linkedIssueNumber: 272
+  });
+  assert.deepEqual(errors2, []);
+});
+
+test('TC-033: closeout PR file allowlist authorizes archived shard files', () => {
+  const closeout = '<!-- post-merge-closeout: complete; source-pr-1 -->';
+  const changedFiles = [
+    'PROJECT_STATUS.md',
+    'TASK_LOG.md',
+    'CHANGELOG.md',
+    'docs/records/HANDOFF-POST-MERGE-CLOSEOUT-issue-249.md',
+    'docs/records/work-items/archive/issue-249/task-state.json'
+  ];
+  assert.deepEqual(
+    validateReadiness({
+      body: closeout,
+      changedFiles,
+      sourcePullRequest: { isPullRequest: true, labels: ['post-merge-closeout'] }
+    }),
+    []
+  );
+});

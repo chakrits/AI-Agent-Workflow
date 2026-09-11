@@ -28,4 +28,5 @@ jobs:
       - run: npm run validate:skill-usage
       - run: npm run validate:metrics
       - run: npm run validate:context-budget
+      - run: npm run validate:status-projection
       - run: npm run validate:ci-parity

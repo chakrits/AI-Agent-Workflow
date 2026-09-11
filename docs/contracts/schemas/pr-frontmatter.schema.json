@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/chakrits/AI-Agent-Workflow/docs/contracts/schemas/pr-frontmatter.schema.json",
+  "title": "Pull Request Frontmatter Schema v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "work_item",
+    "governing_workflow",
+    "closing_action",
+    "schema_version"
+  ],
+  "properties": {
+    "schema_version": { "type": "integer", "const": 1 },
+    "work_item": { "type": "integer", "minimum": 1 },
+    "governing_workflow": {
+      "type": "string",
+      "enum": ["bug_fix", "new_feature", "framework_meta", "config_change", "data_change"]
+    },
+    "closing_action": {
+      "type": "string",
+      "enum": ["fixes", "closes", "resolves", "advances-only", "none"]
+    },
+    "advances_issue": { "type": "integer", "minimum": 1 },
+    "qa_evidence": { "type": "string", "pattern": "^https?://[^\\s]+$" },
+    "documentation_impact": {
+      "type": "string",
+      "enum": ["completed", "not_applicable"]
+    },
+    "plan_only": { "type": "boolean", "default": false },
+    "risk_level": {
+      "type": "string",
+      "enum": ["low", "medium", "high", "critical"]
+    }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "closing_action": { "const": "advances-only" } } },
+      "then": { "required": ["advances_issue"] }
+    }
+  ]
+}

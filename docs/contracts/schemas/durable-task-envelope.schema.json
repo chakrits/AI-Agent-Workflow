@@ -1,0 +1,80 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/chakrits/AI-Agent-Workflow/docs/contracts/schemas/durable-task-envelope.schema.json",
+  "title": "Durable Task Envelope Schema v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "task_id",
+    "workflow_id",
+    "contract_version",
+    "change_type",
+    "risk_level",
+    "state",
+    "rework_count",
+    "max_rework_attempts",
+    "sequence_number",
+    "state_digest",
+    "history",
+    "evidence",
+    "next_route",
+    "stop_reason"
+  ],
+  "properties": {
+    "task_id": { "type": "string", "pattern": "^[a-z0-9_-]+$" },
+    "workflow_id": { "type": "string", "enum": ["bug-fix", "new-feature", "framework-meta", "config-change", "data-change"] },
+    "contract_version": { "type": "integer", "const": 2 },
+    "change_type": { "enum": ["bug-fix", "feature", "enhancement", "framework-meta", "config-change", "data-change"] },
+    "risk_level": { "enum": ["low", "medium", "high", "critical"] },
+    "state": {
+      "enum": [
+        "intake", "investigating", "designing", "planning", "implementing",
+        "verifying", "rework", "handoff", "blocked", "completed", "cancelled"
+      ]
+    },
+    "rework_count": { "type": "integer", "minimum": 0, "maximum": 2 },
+    "max_rework_attempts": { "type": "integer", "const": 2 },
+    "sequence_number": { "type": "integer", "minimum": 1 },
+    "state_digest": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "history": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["from", "to", "at", "actor", "evidence_refs"],
+        "properties": {
+          "from": { "type": "string" },
+          "to": { "type": "string" },
+          "at": { "type": "string", "format": "date-time" },
+          "actor": { "type": "string", "minLength": 1 },
+          "evidence_refs": {
+            "type": "array",
+            "items": { "type": "string", "minLength": 1 }
+          }
+        }
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": {
+        "oneOf": [
+          { "type": "string" },
+          { "type": "array", "items": { "type": "string" } },
+          { "type": "object" }
+        ]
+      }
+    },
+    "next_route": { "type": ["string", "null"] },
+    "stop_reason": {
+      "type": ["string", "null"],
+      "enum": [
+        null,
+        "human_review_required",
+        "host_completion_unavailable",
+        "max_rework_exceeded",
+        "external_dependency_blocked",
+        "task_cancelled"
+      ]
+    }
+  }
+}

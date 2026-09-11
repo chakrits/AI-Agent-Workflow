@@ -213,6 +213,21 @@ validate_workflow_evidence:
     - if: $CI_PIPELINE_SOURCE == "push"
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
 
+validate_status_projection:
+  stage: validate
+  cache:
+    key:
+      files:
+        - package-lock.json
+    paths:
+      - .npm/
+  script:
+    - npm ci --cache .npm --prefer-offline
+    - npm run validate:status-projection
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "push"
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+
 validate_ci_parity:
   stage: validate
   cache:
