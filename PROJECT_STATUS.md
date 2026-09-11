@@ -1,17 +1,17 @@
 # PROJECT_STATUS.md
 
 ## Current Work Item
-- None — awaiting next assignment.
+- Issue #272 — Next-Gen Autonomous Dynamic Workflow: Sharded State, Progressive Context, and Checkpointed Resumption.
 
 ## Current Stage
-- Idle after Issue #237 AC-14 closeout. Issue #236 is complete.
+- Phase 4: Implementation (`phase:development`, starting `IMP-001`). Maintainer approved by Boss; ready for TDD implementation of Progressive Context Loading.
 
 ## Change Classification
-- Change Type: N/A
-- Risk Level: N/A
-- Code Change Required: N/A
-- Architecture Change Required: N/A
-- Security Review Required: N/A
+- Change Type: Framework / Meta Change
+- Risk Level: High — Core SDLC workflow, state persistence, context budgeting, and gate mechanics
+- Code Change Required: Yes (Pillars 1-4, new scripts, schema additions, validator extensions)
+- Architecture Change Required: Yes (documented and approved in SDD: `docs/records/sdd/2026-09-11-next-gen-dynamic-workflow-sdd.md`)
+- Security Review Required: No (internal SDLC engine, no auth/secrets changes; security review on dispatch/gate parsing)
 
 ## Completed
 - Issue #237 (IMP-008) — **closed in full.** AC-14 reviewed five non-test consumers after the `SKILL_CATALOG.md` five-column collapse: refreshed `CONTEXT_BUDGET.md` to the measured 26,196 / 30,000 baseline, confirmed four catalog-link/inventory readers required no semantic change, and added a focused contract test covering all 31 skill IDs, resolved catalog links, and stale heading/column/routing dependencies. PR #270 merged as `3afe5fb`. Independent QA passed at the merged candidate with focused tests, link-target mutation coverage, validators, repin idempotence, and `git diff --check`; the full suite recorded 719 passed / 6 known clean-clone GitHub-origin-dependent hook failures. Evidence: https://github.com/chakrits/AI-Agent-Workflow/issues/237#issuecomment-5630763664
