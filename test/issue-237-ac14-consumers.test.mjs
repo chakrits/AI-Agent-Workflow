@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
+import { dirname, resolve } from 'node:path';
 import test from 'node:test';
 
 const consumers = [
@@ -52,8 +53,17 @@ test('AC-14 consumers retain catalog links and do not depend on removed skill he
     assert.match(catalog, new RegExp(`^\\| ${skillId} \\|`, 'm'), `catalog lost the ${skillId} row`);
   }
 
+  const catalogPath = resolve('docs/operating-model/SKILL_CATALOG.md');
   for (const [index, content] of contents.entries()) {
     assert.match(content, /SKILL_CATALOG\.md/, `${consumers[index]} lost its catalog reference`);
+    const wikiLinks = [...content.matchAll(/\[\[([^|\]]+)\|SKILL_CATALOG\.md\]\]/g)];
+    for (const [, target] of wikiLinks) {
+      assert.equal(
+        resolve(dirname(consumers[index]), target),
+        catalogPath,
+        `${consumers[index]} link target must resolve to SKILL_CATALOG.md`
+      );
+    }
     for (const skillId of skillIds) {
       assert.doesNotMatch(
         content,
