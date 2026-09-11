@@ -1,7 +1,7 @@
 # PROJECT_STATUS.md
 
 ## Current Work Item
-- Issue #272 — Next-Gen Autonomous Dynamic Workflow: Sharded State, Progressive Context, and Checkpointed Resumption.
+- None — awaiting next assignment.
 
 ## Active Work Items
 <!-- active-work-items-table-start -->
@@ -13,16 +13,13 @@
 <!-- active-work-items-table-end -->
 
 ## Current Stage
-- Phase 5: Verification Complete (`status:verification-done`, `phase:human-review`). Independent QA verification PASSED with FULL_PASS verdict (38/38 test cases, 5/5 NFR targets, 764 tests green). Awaiting Human Maintainer review and merge approval gate.
+- Idle — awaiting next work item assignment.
 
 ## Change Classification
-- Change Type: Framework / Meta Change
-- Risk Level: High — Core SDLC workflow, state persistence, context budgeting, and gate mechanics
-- Code Change Required: Yes (Pillars 1-4, new scripts, schema additions, validator extensions)
-- Architecture Change Required: Yes (documented and approved in SDD: `docs/records/sdd/2026-09-11-next-gen-dynamic-workflow-sdd.md`)
-- Security Review Required: No (internal SDLC engine, no auth/secrets changes; security review on dispatch/gate parsing)
+- None — idle.
 
 ## Completed
+- Issue #272 — **closed in full.** Delivered Next-Gen Autonomous Dynamic Workflow Architecture across 4 Pillars and 5 ordered implementation packages (IMP-001..IMP-005): (1) Worktree-Sharded Status Projection Compiler (`scripts/compile-status-projection.mjs`, ~21.8ms compilation, archival lifecycle `scripts/archive-work-item.mjs`), (2) Progressive Context Loading Engine (`docs/workflow/core-bootloader.md` at 2,499 tokens, 11 modular role contexts at <=415 tokens, CLI injector `scripts/inject-role-context.mjs`), (3) Checkpointed Asynchronous State Machine (`scripts/lib/task-state-machine.mjs`, POSIX atomic writes, RFC 8785 JCS SHA-256 CAS concurrency engine, 11-state matrix, mandatory evidence gates, 2-cycle rework ceiling), (4) Frontmatter-First PR Safety Gate (`docs/contracts/schemas/pr-frontmatter.schema.json`, dual AST/legacy parser in `scripts/work-item-readiness.mjs`, closeout archive allowlist), and (5) CI Parity & Quality Gates (`validate:status-projection` mirrored 1:1 in GitHub Actions and GitLab CI, 764/764 tests passed green, independent QA verification FULL_PASS across TC-001..TC-038). PR #273 merged as `c2837be`. QA Evidence: https://github.com/chakrits/AI-Agent-Workflow/blob/feat/issue-272-next-gen-dynamic-workflow-discovery/docs/records/qa/2026-09-11-issue-272-qa-verification-report.md
 - Issue #237 (IMP-008) — **closed in full.** AC-14 reviewed five non-test consumers after the `SKILL_CATALOG.md` five-column collapse: refreshed `CONTEXT_BUDGET.md` to the measured 26,196 / 30,000 baseline, confirmed four catalog-link/inventory readers required no semantic change, and added a focused contract test covering all 31 skill IDs, resolved catalog links, and stale heading/column/routing dependencies. PR #270 merged as `3afe5fb`. Independent QA passed at the merged candidate with focused tests, link-target mutation coverage, validators, repin idempotence, and `git diff --check`; the full suite recorded 719 passed / 6 known clean-clone GitHub-origin-dependent hook failures. Evidence: https://github.com/chakrits/AI-Agent-Workflow/issues/237#issuecomment-5630763664
 - Issue #237 (IMP-008), AC-11 — independently verified the post-AC-08/09 context budget at 26,196 / 30,000 (current baseline; the earlier 26,065 measurement is historical). The current exact-main verification was 719 passed / 6 environment-dependent pre-existing failures, and the current budget is 26,196 / 30,000.
 - Issue #237 (IMP-008), AC-13 — added the canonical Backward Routing and QA Skip Policy to `dynamic-routing.md` and replaced duplicated `AGENTS.md` sections with imperative pointers. PR #268 merged as `e62de7b`; independent QA passed after one state-artifact rework cycle. AC-14 remains open.
