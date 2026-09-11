@@ -1,0 +1,669 @@
+import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
+import { copyFile, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
+import test from 'node:test';
+import { stringify } from 'yaml';
+
+import { canonicalizeJcs, digestJcs } from '../scripts/lib/status-jcs.mjs';
+import { loadStatusFilesIsolated } from '../scripts/lib/status-loader-isolated.mjs';
+import { enforceMemoryBudget } from '../scripts/lib/status-resources.mjs';
+import { INCREMENT_1_STATUS_MODES, STATUS_MODES } from '../scripts/lib/status-modes.mjs';
+import { parseStatusBytes, STATUS_LIMITS } from '../scripts/lib/status-parser.mjs';
+import { computeRecordDigest, loadStatusFiles } from '../scripts/lib/status-loader.mjs';
+
+function rejectsCode(code) {
+  return (error) => error?.code === code && !/token|secret|password/i.test(error.message);
+}
+
+test('bounded parser applies raw and UTF-8 precedence before YAML conversion', () => {
+  assert.throws(
+    () => parseStatusBytes(Buffer.alloc(STATUS_LIMITS.rawFileBytes + 1, 0xff), 'oversize.yaml'),
+    rejectsCode('RAW_FILE_LIMIT')
+  );
+  assert.throws(() => parseStatusBytes(Buffer.from([0xff]), 'invalid.yaml'), rejectsCode('INVALID_UTF8'));
+  assert.throws(() => parseStatusBytes(Buffer.from([0xef, 0xbb, 0xbf, 0x61]), 'bom.yaml'), rejectsCode('INVALID_UTF8'));
+});
+
+test('bounded parser rejects forbidden YAML features before generic parse errors', () => {
+  for (const source of [
+    'a: &anchor 1\nb: *anchor\n',
+    'base: &base {a: 1}\nvalue: {<<: *base}\n',
+    'value: !custom payload\n',
+    '%YAML 1.2\n---\nvalue: 1\n',
+    'value: 1\nvalue: 2\n',
+    '? [complex]\n: value\n',
+    '---\na: 1\n---\nb: 2\n'
+  ]) {
+    assert.throws(() => parseStatusBytes(Buffer.from(source), 'forbidden.yaml'), rejectsCode('FORBIDDEN_YAML_FEATURE'));
+  }
+  assert.throws(() => parseStatusBytes(Buffer.from('value: [unterminated'), 'parse.yaml'), rejectsCode('YAML_PARSE_ERROR'));
+});
+
+test('bounded parser enforces JSON numbers, nodes, and iterative container depth', () => {
+  for (const source of ['value: -0\n', 'value: 1.5\n', 'value: 1e400\n', 'value: 9007199254740992\n']) {
+    assert.throws(() => parseStatusBytes(Buffer.from(source), 'number.yaml'), rejectsCode('JSON_DOMAIN_ERROR'));
+  }
+  let depth16Value = { value: 1 };
+  for (let index = 1; index < 16; index += 1) depth16Value = { child: depth16Value };
+  const depth16 = JSON.stringify(depth16Value);
+  assert.doesNotThrow(() => parseStatusBytes(Buffer.from(depth16), 'depth-16.yaml'));
+  const depth17 = JSON.stringify({ child: depth16Value });
+  assert.throws(() => parseStatusBytes(Buffer.from(depth17), 'depth-17.yaml'), rejectsCode('CONTAINER_DEPTH_LIMIT'));
+  const tooManyNodes = `values: [${Array.from({ length: 10_001 }, () => 'null').join(',')}]`;
+  assert.throws(() => parseStatusBytes(Buffer.from(tooManyNodes), 'nodes.yaml'), rejectsCode('NODE_LIMIT'));
+});
+
+test('normative JCS matches frozen UTF-8 and digest vectors without mutation', () => {
+  const vectors = [
+    [{ n: 0, s: 'é', u: '😀' }, '{"n":0,"s":"é","u":"😀"}', '903bf2f2ba8236df38cea14ea59fa43b0d0d564a3d97a6065f45f783e5ecac0b'],
+    [{ max: 9007199254740991, min: -9007199254740991 }, '{"max":9007199254740991,"min":-9007199254740991}', '63546eb60913dcb1cdd5118f7bf4885beed344af930c8a9d5f38fad243fd4819']
+  ];
+  for (const [value, canonical, digest] of vectors) {
+    assert.equal(canonicalizeJcs(value).toString('utf8'), canonical);
+    assert.equal(digestJcs(value), digest);
+  }
+  const record = { evidence: [
+    { kind: 'é', url: 'a', digest: '', commit: '', observedAt: '2026-08-01T00:00:00Z' },
+    { kind: 'a', url: 'z', digest: '', commit: '', observedAt: '2026-08-01T00:00:00Z' }
+  ] };
+  const before = structuredClone(record);
+  assert.equal(digestJcs(record), 'e5ac81d780e5c913b183400fb612c8d81ce280ca7121ed0ea694ebeb6492cf56');
+  assert.deepEqual(record, before);
+});
+
+test('normative JCS rejects invalid numbers, strings, and oversized preimages', () => {
+  for (const value of [-0, 1.5, Infinity, NaN, 9007199254740992, '\ud800']) {
+    assert.throws(() => canonicalizeJcs({ value }), rejectsCode('JSON_DOMAIN_ERROR'));
+  }
+  assert.throws(
+    () => canonicalizeJcs({ value: 'x'.repeat(STATUS_LIMITS.canonicalBytes) }),
+    rejectsCode('CANONICAL_SIZE_LIMIT')
+  );
+});
+
+test('executes the versioned increment-1 fixture contract and preserves source bytes', async () => {
+  const directory = path.join(process.cwd(), 'test/fixtures/work-item-status/v1');
+  const manifest = JSON.parse(await readFile(path.join(directory, 'manifest.json'), 'utf8'));
+  assert.equal(manifest.fixtureManifestVersion, 'work-item-status-fixtures/v1');
+  assert.equal(manifest.cases.length, 37);
+  assert.equal(manifest.deferredCases.length, 4);
+  assert.ok(manifest.deferredCases.every(({ deferredTo }) => deferredTo === 'increment-2'));
+  assert.ok([...manifest.cases, ...manifest.deferredCases].every(({ mode }) => STATUS_MODES.includes(mode)));
+  for (const fixture of manifest.cases) {
+    for (const field of ['expectedInputs', 'expectedOutputs', 'digests', 'approvals', 'writerIdentity',
+      'expectedPrimaryError', 'orderedDiagnostics', 'sideEffects', 'stdout', 'stderr', 'maxObservedResources']) {
+      assert.ok(Object.hasOwn(fixture, field), `${fixture.id}:${field}`);
+    }
+    const files = fixture.inputPaths.map((input) => path.join(directory, input));
+    const raws = await Promise.all(files.map((file) => readFile(file)));
+    const hashes = raws.map((raw) => createHash('sha256').update(raw).digest('hex'));
+    assert.deepEqual(hashes, fixture.inputSha256, fixture.id);
+    let observedError = null;
+    let result;
+    try {
+      if (fixture.executor === 'jcs') {
+        const value = JSON.parse(raws[0]);
+        result = canonicalizeJcs(value);
+        if (fixture.canonicalUtf8Hex) assert.equal(result.toString('hex'), fixture.canonicalUtf8Hex, fixture.id);
+        if (fixture.digests.record) assert.equal(digestJcs(value), fixture.digests.record, fixture.id);
+      } else if (fixture.executor === 'parser') {
+        result = parseStatusBytes(raws[0], 'input[0000]');
+      } else if (fixture.executor === 'loader') {
+        result = await loadStatusFiles(files, {
+          mode: fixture.mode,
+          expectedHeadDigest: fixture.expectedInputs.headDigest ?? undefined,
+          identity: fixture.mode === 'archive-identity' ? 'chakrits/ai-agent-workflow#133' : undefined
+        });
+      } else if (fixture.executor === 'memory') {
+        result = enforceMemoryBudget({ baselineRss: 0, currentRss: 0, allocatedBytes: fixture.maxObservedResources.residentBytes });
+      } else if (fixture.executor === 'isolated-loader') {
+        result = await loadStatusFilesIsolated(files, { mode: fixture.mode });
+      } else if (fixture.executor === 'rollback-bytes') {
+        const value = JSON.parse(raws[0]);
+        assert.equal(computeRecordDigest(value), fixture.digests.record);
+        result = raws[0];
+      } else if (fixture.executor === 'generated-invalid-utf8') {
+        result = parseStatusBytes(Buffer.from([0xff]), 'input[0000]');
+      } else if (fixture.executor === 'generated-raw-limit') {
+        result = parseStatusBytes(Buffer.alloc(STATUS_LIMITS.rawFileBytes + 1), 'input[0000]');
+      } else if (fixture.executor === 'generated-depth-limit') {
+        let value = { leaf: 1 };
+        for (let index = 1; index < 17; index += 1) value = { child: value };
+        result = parseStatusBytes(Buffer.from(JSON.stringify(value)), 'input[0000]');
+      } else if (fixture.executor === 'generated-node-limit') {
+        result = parseStatusBytes(Buffer.from(`values: [${Array.from({ length: 10_001 }, () => 'null').join(',')}]`), 'input[0000]');
+      } else if (fixture.executor === 'generated-precedence') {
+        const temporary = await mkdtemp(path.join(tmpdir(), 'status-loader-manifest-'));
+        const schemaFile = path.join(temporary, 'a-schema.json');
+        const utf8File = path.join(temporary, 'z-utf8.yaml');
+        await writeFile(schemaFile, raws[0]);
+        await writeFile(utf8File, Buffer.from([0xff]));
+        result = await loadStatusFiles([schemaFile, utf8File]);
+      } else if (fixture.executor === 'generated-aggregate') {
+        const temporary = await mkdtemp(path.join(tmpdir(), 'status-loader-manifest-'));
+        const aggregateFiles = [];
+        for (let index = 0; index < 43; index += 1) {
+          const file = path.join(temporary, `${index}.yaml`);
+          await writeFile(file, Buffer.alloc(98_000));
+          aggregateFiles.push(file);
+        }
+        result = await loadStatusFiles(aggregateFiles);
+      } else if (fixture.executor === 'generated-mode') {
+        result = await loadStatusFiles(files, { mode: fixture.expectedInputs.requestedMode });
+      } else if (fixture.executor === 'generated-mixed-identity') {
+        const first = JSON.parse(raws[0]);
+        const other = { ...first, issue: { repository: 'acme/project', number: 1, url: 'https://github.com/acme/project/issues/1' } };
+        other.recordDigest = computeRecordDigest(other);
+        result = await loadStatusFiles(await fixtureFiles([first, other]), {
+          mode: fixture.mode, identity: fixture.expectedInputs.requestedIdentity
+        });
+      } else if (fixture.executor === 'generated-memory-workload') {
+        const workload = await overBudgetWorkload();
+        try {
+          assert.equal(workload.files.length, fixture.expectedInputs.fileCount);
+          assert.equal(workload.aggregateBytes, fixture.maxObservedResources.rawBytes);
+          assert.equal(workload.reservedBytes, fixture.maxObservedResources.allocatedBytes);
+          result = await loadStatusFilesIsolated(workload.files, { mode: fixture.mode });
+        } finally {
+          await workload.cleanup();
+        }
+      } else {
+        const active = JSON.parse(raws[0]);
+        const closure = raws[1] ? JSON.parse(raws[1]) : null;
+        let generated;
+        if (fixture.executor === 'generated-identity') {
+          closure.issue = { repository: 'acme/project', number: 1, url: 'https://github.com/acme/project/issues/1' };
+          closure.recordDigest = computeRecordDigest(closure);
+          generated = [active, closure];
+        } else if (fixture.executor === 'generated-cycle') {
+          closure.supersedesDigest = closure.recordDigest;
+          generated = [active, closure];
+        } else {
+          const extraRoot = { ...active, updatedAt: '2026-08-01T01:30:00Z' };
+          extraRoot.recordDigest = computeRecordDigest(extraRoot);
+          generated = fixture.executor === 'generated-unvisited' ? [active, closure, extraRoot] : [active, extraRoot];
+        }
+        result = await loadStatusFiles(await fixtureFiles(generated), {
+          mode: fixture.mode,
+          identity: fixture.mode === 'archive-identity' ? 'chakrits/ai-agent-workflow#133' : undefined
+        });
+      }
+    } catch (error) {
+      observedError = error;
+    }
+    assert.equal(observedError?.code ?? null, fixture.expectedPrimaryError, fixture.id);
+    if (!observedError && fixture.orderedDiagnostics.includes('UNANCHORED_BUNDLE')) {
+      assert.equal(result.assurance, 'UNANCHORED_BUNDLE', fixture.id);
+    }
+    const afterHashes = await Promise.all(files.map(async (file) => createHash('sha256').update(await readFile(file)).digest('hex')));
+    assert.deepEqual(afterHashes, hashes, `${fixture.id}:side-effects`);
+  }
+});
+
+function record(overrides = {}) {
+  const value = {
+    schemaVersion: 'work-item-status/v1',
+    issue: {
+      repository: 'chakrits/ai-agent-workflow',
+      number: 133,
+      url: 'https://github.com/chakrits/ai-agent-workflow/issues/133'
+    },
+    changeType: 'framework_meta',
+    risk: 'medium',
+    phase: 'phase:development',
+    taskState: 'implementing',
+    governingContract: 'new-feature',
+    contractVersion: '1',
+    owner: { kind: 'agent', id: 'developer-agent' },
+    evidence: [{
+      kind: 'sdd',
+      url: 'docs/records/sdd/2026-07-31-issue-133-cp1-status.md',
+      commit: '786df83',
+      observedAt: '2026-07-31T01:00:00Z'
+    }],
+    active: true,
+    createdAt: '2026-07-31T01:00:00Z',
+    updatedAt: '2026-07-31T02:00:00Z',
+    archivedAt: null,
+    archiveReason: null,
+    supersedesDigest: null,
+    ...overrides
+  };
+  value.recordDigest = computeRecordDigest(value);
+  return value;
+}
+
+async function fixtureFiles(records) {
+  const directory = await mkdtemp(path.join(tmpdir(), 'status-loader-'));
+  return Promise.all(records.map(async (value, index) => {
+    const file = path.join(directory, `${index}.yaml`);
+    await writeFile(file, stringify(value), 'utf8');
+    return file;
+  }));
+}
+
+async function overBudgetWorkload() {
+  const directory = await mkdtemp(path.join(tmpdir(), 'status-loader-memory-'));
+  try {
+    const source = path.join(directory, 'source.json');
+    const padding = `${JSON.stringify(record())}\n${' '.repeat(59_000)}`;
+    await writeFile(source, padding);
+    const files = [source];
+    for (let index = 1; index < 1_100; index += 1) {
+      const file = path.join(directory, `${index}.json`);
+      await copyFile(source, file);
+      files.push(file);
+    }
+    const aggregateBytes = Buffer.byteLength(padding) * files.length;
+    return {
+      files,
+      aggregateBytes,
+      reservedBytes: aggregateBytes * 3 + files.length * 1_024,
+      cleanup: () => rm(directory, { recursive: true, force: true })
+    };
+  } catch (error) {
+    await rm(directory, { recursive: true, force: true });
+    throw error;
+  }
+}
+
+test('loads valid records in deterministic identity and evidence order', async () => {
+  const issue133 = record({
+    evidence: [
+      { kind: 'test', url: 'test/status-loader.test.mjs', digest: 'b'.repeat(64), observedAt: '2026-07-31T02:00:00Z' },
+      { kind: 'sdd', url: 'docs/design.md', digest: 'a'.repeat(64), observedAt: '2026-07-31T01:00:00Z' }
+    ]
+  });
+  issue133.recordDigest = computeRecordDigest(issue133);
+  const issue12 = record({
+    issue: {
+      repository: 'acme/project',
+      number: 12,
+      url: 'https://github.com/acme/project/issues/12'
+    }
+  });
+  issue12.recordDigest = computeRecordDigest(issue12);
+
+  const files = await fixtureFiles([issue133, issue12]);
+  const loaded = await loadStatusFiles(files);
+
+  assert.deepEqual(loaded.map(({ issue }) => `${issue.repository}#${issue.number}`), [
+    'acme/project#12',
+    'chakrits/ai-agent-workflow#133'
+  ]);
+  assert.deepEqual(loaded[1].evidence.map(({ kind }) => kind), ['sdd', 'test']);
+});
+
+test('rejects unsupported modes before filesystem work', async () => {
+  assert.deepEqual(STATUS_MODES, [
+    'active', 'archive-identity', 'archive-all', 'transition', 'correction', 'authoritative-integration'
+  ]);
+  assert.deepEqual(INCREMENT_1_STATUS_MODES, ['active', 'archive-identity', 'archive-all']);
+  for (const mode of ['bogus', 'ACTIVE', '', null]) {
+    await assert.rejects(loadStatusFiles(['/must-not-be-read'], { mode }), rejectsCode('UNSUPPORTED_MODE'));
+  }
+  for (const mode of ['transition', 'correction', 'authoritative-integration']) {
+    await assert.rejects(loadStatusFiles(['/must-not-be-read'], { mode }), rejectsCode('UNSUPPORTED_MODE'));
+    await assert.rejects(loadStatusFilesIsolated(['/must-not-be-read'], { mode }), rejectsCode('UNSUPPORTED_MODE'));
+  }
+});
+
+test('keeps exactly the increment-1 modes executable', async () => {
+  for (const mode of INCREMENT_1_STATUS_MODES) {
+    await assert.rejects(
+      loadStatusFiles(['/must-not-be-read'], {
+        mode,
+        identity: mode === 'archive-identity' ? 'chakrits/ai-agent-workflow#133' : undefined
+      }),
+      rejectsCode('MISSING_INPUT')
+    );
+  }
+});
+
+test('rejects missing required fields and unknown keys', async () => {
+  const missingOwner = record();
+  delete missingOwner.owner;
+  missingOwner.recordDigest = computeRecordDigest(missingOwner);
+  const unknownKey = record({ unexpected: true });
+  unknownKey.recordDigest = computeRecordDigest(unknownKey);
+
+  for (const value of [missingOwner, unknownKey]) {
+    const [file] = await fixtureFiles([value]);
+    await assert.rejects(loadStatusFiles([file]), rejectsCode('SCHEMA_ERROR'));
+  }
+});
+
+test('derives legal contract versions and task states from canonical workflow contracts', async () => {
+  const legal = [
+    ['new-feature', '1', 'implementing', 'phase:development'],
+    ['bug-fix', '1', 'investigating', 'phase:not_applicable'],
+    ['config-change', '1', 'monitoring', 'phase:not_applicable'],
+    ['data-change', '1', 'validating', 'phase:not_applicable']
+  ].map(([governingContract, contractVersion, taskState, phase], number) => record({
+    issue: {
+      repository: 'chakrits/ai-agent-workflow',
+      number: number + 1,
+      url: `https://github.com/chakrits/ai-agent-workflow/issues/${number + 1}`
+    },
+    governingContract,
+    contractVersion,
+    taskState,
+    phase
+  }));
+  for (const value of legal) value.recordDigest = computeRecordDigest(value);
+  const legalFiles = await fixtureFiles(legal);
+  assert.equal((await loadStatusFiles(legalFiles)).length, 4);
+
+  for (const overrides of [
+    { governingContract: 'feature-lifecycle' },
+    { contractVersion: 'v2' },
+    { taskState: 'invented-state' },
+    { governingContract: 'bug-fix', taskState: 'planning' }
+  ]) {
+    const value = record(overrides);
+    value.recordDigest = computeRecordDigest(value);
+    const [file] = await fixtureFiles([value]);
+    await assert.rejects(loadStatusFiles([file]), rejectsCode('SEMANTIC_ERROR'));
+  }
+});
+
+test('enforces canonical lifecycle phase for governing contract and task state', async () => {
+  const valid = [
+    record({ taskState: 'discovery', phase: 'phase:requirements' }),
+    record({ taskState: 'designing', phase: 'phase:design' }),
+    record({ taskState: 'verifying', phase: 'phase:verification' }),
+    record({ governingContract: 'bug-fix', taskState: 'investigating', phase: 'phase:not_applicable' })
+  ];
+  for (const value of valid) value.recordDigest = computeRecordDigest(value);
+  for (const value of valid) {
+    const [file] = await fixtureFiles([value]);
+    assert.equal((await loadStatusFiles([file])).length, 1);
+  }
+
+  for (const overrides of [
+    { governingContract: 'bug-fix', taskState: 'investigating', phase: 'phase:development' },
+    { taskState: 'implementing', phase: 'phase:verification' },
+    { taskState: 'designing', phase: 'phase:requirements' }
+  ]) {
+    const value = record(overrides);
+    value.recordDigest = computeRecordDigest(value);
+    const [file] = await fixtureFiles([value]);
+    await assert.rejects(loadStatusFiles([file]), rejectsCode('SEMANTIC_ERROR'));
+  }
+});
+
+test('enforces identity, timestamp, archive, and digest constraints', async () => {
+  const badDigest = record();
+  badDigest.recordDigest = '0'.repeat(64);
+  const invalidRecords = [
+    record({ issue: { repository: 'chakrits/ai-agent-workflow', number: 133, url: 'https://github.com/acme/other/issues/133' } }),
+    record({ updatedAt: '2026-07-30T23:00:00Z' }),
+    record({ updatedAt: '2026-02-31T02:00:00Z' }),
+    record({ archivedAt: '2026-07-31T03:00:00Z' }),
+    record({ active: false }),
+    badDigest
+  ];
+
+  for (const value of invalidRecords) {
+    if (value.recordDigest !== '0'.repeat(64)) value.recordDigest = computeRecordDigest(value);
+    const [file] = await fixtureFiles([value]);
+    await assert.rejects(loadStatusFiles([file]), (error) => ['SCHEMA_ERROR', 'SEMANTIC_ERROR', 'RECORD_DIGEST_MISMATCH'].includes(error.code));
+  }
+});
+
+test('validates connected archive lineage and orders archives deterministically', async () => {
+  const first = record();
+  const archive = (updatedAt, archivedAt, reason, supersedesDigest) => {
+    const value = record({
+      active: false,
+      updatedAt,
+      archivedAt,
+      archiveReason: reason,
+      supersedesDigest
+    });
+    value.recordDigest = computeRecordDigest(value);
+    return value;
+  };
+  const earlier = archive('2026-07-31T03:00:00Z', '2026-07-31T03:30:00Z', 'closed earlier', first.recordDigest);
+  const later = archive('2026-07-31T04:00:00Z', '2026-07-31T04:30:00Z', 'closed later', earlier.recordDigest);
+  const files = await fixtureFiles([later, first, earlier]);
+
+  const loaded = await loadStatusFiles(files, { mode: 'archive-identity', identity: 'chakrits/ai-agent-workflow#133' });
+  assert.deepEqual(loaded.filter(({ active }) => !active).map(({ archivedAt }) => archivedAt), [
+    '2026-07-31T03:30:00Z',
+    '2026-07-31T04:30:00Z'
+  ]);
+});
+
+test('accepts archived-only flat-peer lineage with a materially changed closure', async () => {
+  const prior = record();
+  const closure = {
+    ...prior,
+    taskState: 'human-review',
+    phase: 'phase:human-review',
+    owner: { kind: 'human', id: 'maintainer' },
+    evidence: [{ kind: 'closeout', url: 'docs/closeout.md', observedAt: '2026-07-31T03:00:00Z' }],
+    active: false,
+    updatedAt: '2026-07-31T03:00:00Z',
+    archivedAt: '2026-07-31T03:00:00Z',
+    archiveReason: 'completed',
+    supersedesDigest: prior.recordDigest
+  };
+  closure.recordDigest = computeRecordDigest(closure);
+  const files = await fixtureFiles([closure, prior]);
+
+  const loaded = await loadStatusFiles(files, { mode: 'archive-identity', identity: 'chakrits/ai-agent-workflow#133' });
+  assert.equal(loaded.length, 2);
+  assert.equal(loaded.assurance, 'UNANCHORED_BUNDLE');
+  assert.equal(loaded.at(-1).owner.id, 'maintainer');
+});
+
+test('archive-identity requires an explicit identity and rejects mixed bundles', async () => {
+  const first = record();
+  const other = record({ issue: { repository: 'acme/project', number: 1, url: 'https://github.com/acme/project/issues/1' } });
+  other.recordDigest = computeRecordDigest(other);
+  const files = await fixtureFiles([first, other]);
+  await assert.rejects(loadStatusFiles(files, { mode: 'archive-identity' }), rejectsCode('IDENTITY_MISMATCH'));
+  await assert.rejects(
+    loadStatusFiles(files, { mode: 'archive-identity', identity: 'chakrits/ai-agent-workflow#133' }),
+    rejectsCode('IDENTITY_MISMATCH')
+  );
+});
+
+test('loader uses the bounded parser and applies aggregate precedence before parsing', async () => {
+  const directory = await mkdtemp(path.join(tmpdir(), 'status-loader-'));
+  const forbidden = path.join(directory, 'forbidden.yaml');
+  await writeFile(forbidden, 'value: &anchor 1\ncopy: *anchor\n');
+  await assert.rejects(loadStatusFiles([forbidden]), rejectsCode('FORBIDDEN_YAML_FEATURE'));
+
+  const oversized = path.join(directory, 'oversized.yaml');
+  await writeFile(oversized, Buffer.alloc(STATUS_LIMITS.rawFileBytes + 1));
+  await assert.rejects(loadStatusFiles([forbidden, oversized]), rejectsCode('RAW_FILE_LIMIT'));
+
+  const aggregateFiles = [];
+  for (let index = 0; index < 43; index += 1) {
+    const file = path.join(directory, `aggregate-${index}.yaml`);
+    await writeFile(file, Buffer.alloc(98_000));
+    aggregateFiles.push(file);
+  }
+  await assert.rejects(loadStatusFiles(aggregateFiles), rejectsCode('AGGREGATE_LIMIT'));
+});
+
+test('selects parser errors globally before schema errors independent of caller order', async () => {
+  const invalidSchema = await fixtureFiles([{ schemaVersion: 'work-item-status/v1' }]);
+  const directory = await mkdtemp(path.join(tmpdir(), 'status-loader-'));
+  const invalidUtf8 = path.join(directory, 'later.yaml');
+  await writeFile(invalidUtf8, Buffer.from([0xff]));
+  for (const files of [[...invalidSchema, invalidUtf8], [invalidUtf8, ...invalidSchema]]) {
+    await assert.rejects(loadStatusFiles(files), rejectsCode('INVALID_UTF8'));
+  }
+});
+
+test('memory budget seam passes at the boundary and fails closed above it', () => {
+  assert.doesNotThrow(() => enforceMemoryBudget({ baselineRss: 10, currentRss: 10, allocatedBytes: STATUS_LIMITS.residentBytes }));
+  assert.throws(
+    () => enforceMemoryBudget({ baselineRss: 10, currentRss: 10, allocatedBytes: STATUS_LIMITS.residentBytes + 1 }),
+    rejectsCode('MEMORY_BUDGET_EXCEEDED')
+  );
+  assert.throws(
+    () => enforceMemoryBudget({ baselineRss: 10, currentRss: 11 + STATUS_LIMITS.residentBytes, allocatedBytes: 0 }),
+    rejectsCode('MEMORY_BUDGET_EXCEEDED')
+  );
+});
+
+test('isolated loader enforces the same bounded contract without side effects', async () => {
+  const value = record();
+  const files = await fixtureFiles([value]);
+  const before = await readFile(files[0]);
+  const loaded = await loadStatusFilesIsolated(files);
+  assert.equal(loaded[0].recordDigest, value.recordDigest);
+  assert.ok(loaded.resources.residentDelta <= STATUS_LIMITS.residentBytes * 1.2);
+  assert.ok(loaded.resources.allocatedBytes > 0);
+  assert.deepEqual(await readFile(files[0]), before);
+});
+
+test('isolated loader settles on a premature worker exit without inheriting unsafe exec modes', async () => {
+  const workerPath = path.join(process.cwd(), 'test/fixtures/work-item-status/v1/premature-worker.mjs');
+  await assert.rejects(
+    Promise.race([
+      loadStatusFilesIsolated([], {}, { workerPath }),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 1_000))
+    ]),
+    rejectsCode('ISOLATED_WORKER_EXIT')
+  );
+});
+
+test('isolated loader rejects an actual benign over-budget file set before retention', async () => {
+  const workload = await overBudgetWorkload();
+  try {
+    assert.equal(workload.files.length, 1_100);
+    assert.equal(workload.aggregateBytes, 65_721_700);
+    assert.ok(workload.aggregateBytes <= STATUS_LIMITS.archiveAllAggregateBytes);
+    assert.ok(workload.reservedBytes > STATUS_LIMITS.residentBytes);
+    await assert.rejects(loadStatusFilesIsolated(workload.files, { mode: 'archive-all' }), rejectsCode('MEMORY_BUDGET_EXCEEDED'));
+  } finally {
+    await workload.cleanup();
+  }
+});
+
+test('rejects sensitive and ambiguous evidence URLs without echoing their value', async () => {
+  for (const url of [
+    'https://user:password@github.com/acme/project',
+    'https://github.com/acme/project?token=secret',
+    'docs/%74oken-proof.md',
+    'docs/%2574oken-proof.md',
+    'docs/%2e%2e/private-key.pem',
+    '../outside.md'
+  ]) {
+    const value = record({ evidence: [{ kind: 'test', url, observedAt: '2026-07-31T02:00:00Z' }] });
+    value.recordDigest = computeRecordDigest(value);
+    const [file] = await fixtureFiles([value]);
+    await assert.rejects(loadStatusFiles([file]), (error) => error.code === 'DATA_POLICY_ERROR'
+      && !error.message.includes(url) && !error.message.includes(path.dirname(file)));
+  }
+});
+
+test('rejects fabricated, disconnected, branching, and non-monotonic archive histories', async () => {
+  const first = record();
+  const archived = (overrides) => {
+    const value = record({
+      active: false,
+      updatedAt: '2026-07-31T03:00:00Z',
+      archivedAt: '2026-07-31T03:30:00Z',
+      archiveReason: 'closed',
+      supersedesDigest: first.recordDigest,
+      ...overrides
+    });
+    value.recordDigest = computeRecordDigest(value);
+    return value;
+  };
+  const fabricated = archived({ supersedesDigest: 'a'.repeat(64) });
+  const branchOne = archived({ archiveReason: 'branch one' });
+  const branchTwo = archived({ archiveReason: 'branch two' });
+  const backwards = archived({
+    updatedAt: '2026-07-31T01:30:00Z',
+    archivedAt: '2026-07-31T01:45:00Z'
+  });
+  const externalPrior = record();
+  const externalBranch = ['one', 'two'].map((archiveReason) => {
+    const value = {
+      ...externalPrior,
+      active: false,
+      archivedAt: '2026-07-31T03:30:00Z',
+      archiveReason,
+      supersedesDigest: externalPrior.recordDigest
+    };
+    value.recordDigest = computeRecordDigest(value);
+    return value;
+  });
+
+  const fabricatedOnly = await fixtureFiles([fabricated]);
+  await assert.rejects(loadStatusFiles(fabricatedOnly, { mode: 'archive-identity', identity: 'chakrits/ai-agent-workflow#133' }), rejectsCode('MISSING_PREIMAGE'));
+
+  const foreignPrior = record({ issue: { repository: 'acme/project', number: 1, url: 'https://github.com/acme/project/issues/1' } });
+  foreignPrior.recordDigest = computeRecordDigest(foreignPrior);
+  const wrongIdentity = archived({ supersedesDigest: foreignPrior.recordDigest });
+  wrongIdentity.recordDigest = computeRecordDigest(wrongIdentity);
+  const identityFiles = await fixtureFiles([foreignPrior, wrongIdentity]);
+  await assert.rejects(loadStatusFiles(identityFiles, { mode: 'archive-all' }), rejectsCode('IDENTITY_MISMATCH'));
+
+  const secondRoot = record({ updatedAt: '2026-07-31T02:30:00Z' });
+  secondRoot.recordDigest = computeRecordDigest(secondRoot);
+  const disconnectedFiles = await fixtureFiles([first, secondRoot]);
+  await assert.rejects(loadStatusFiles(disconnectedFiles, { mode: 'archive-identity', identity: 'chakrits/ai-agent-workflow#133' }), rejectsCode('DISCONNECTED_LINEAGE'));
+
+  for (const values of [[first, fabricated], [first, branchOne, branchTwo], [first, backwards], externalBranch]) {
+    const files = await fixtureFiles(values);
+    await assert.rejects(loadStatusFiles(files, { mode: 'archive-identity', identity: 'chakrits/ai-agent-workflow#133' }), (error) => [
+      'MISSING_PREIMAGE', 'BRANCHED_LINEAGE', 'NON_MONOTONIC_TIME', 'DISCONNECTED_LINEAGE'
+    ].includes(error.code));
+  }
+});
+
+test('canonical digest uses a total evidence ordering', () => {
+  const evidence = [
+    {
+      kind: 'test',
+      url: 'test/status-loader.test.mjs',
+      digest: 'a'.repeat(64),
+      commit: '2222222',
+      observedAt: '2026-07-31T02:00:00Z'
+    },
+    {
+      kind: 'test',
+      url: 'test/status-loader.test.mjs',
+      digest: 'a'.repeat(64),
+      commit: '1111111',
+      observedAt: '2026-07-31T01:00:00Z'
+    }
+  ];
+  const forward = record({ evidence });
+  const reversed = record({ evidence: [...evidence].reverse() });
+
+  assert.equal(computeRecordDigest(forward), computeRecordDigest(reversed));
+});
+
+test('rejects duplicate active identity even when filenames differ', async () => {
+  const first = record();
+  const second = record({ updatedAt: '2026-07-31T03:00:00Z' });
+  second.recordDigest = computeRecordDigest(second);
+  const files = await fixtureFiles([first, second]);
+
+  await assert.rejects(loadStatusFiles(files), rejectsCode('DUPLICATE_ACTIVE_IDENTITY'));
+});
+
+test('malformed, unsupported, and missing inputs fail closed', async () => {
+  const directory = await mkdtemp(path.join(tmpdir(), 'status-loader-'));
+  const malformed = path.join(directory, 'malformed.yaml');
+  await writeFile(malformed, 'issue: [unterminated', 'utf8');
+  const unsupported = record({ schemaVersion: 'work-item-status/v2' });
+  unsupported.recordDigest = computeRecordDigest(unsupported);
+  const [unsupportedFile] = await fixtureFiles([unsupported]);
+
+  await assert.rejects(loadStatusFiles([malformed]), rejectsCode('YAML_PARSE_ERROR'));
+  await assert.rejects(loadStatusFiles([unsupportedFile]), rejectsCode('SCHEMA_ERROR'));
+  await assert.rejects(loadStatusFiles([path.join(directory, 'missing.yaml')]), rejectsCode('MISSING_INPUT'));
+  await assert.rejects(loadStatusFiles([]), rejectsCode('MISSING_INPUT'));
+});

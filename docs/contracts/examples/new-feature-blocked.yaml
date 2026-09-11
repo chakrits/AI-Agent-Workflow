@@ -1,0 +1,77 @@
+task_id: NF-BLOCKED
+workflow_id: new-feature
+contract_version: 1
+change_type: new-feature
+risk_level: high
+state: blocked
+rework_count: 1
+max_rework_attempts: 1
+history:
+  - from: intake
+    to: discovery
+    at: 2026-07-13T00:00:00Z
+    actor: pm-agent
+    evidence_refs: [change_type, risk_level, initial_scope]
+  - from: discovery
+    to: designing
+    at: 2026-07-13T00:01:00Z
+    actor: ba-agent
+    evidence_refs: [user_stories, acceptance_criteria, business_rules, pm_ba_gate_result]
+  - from: designing
+    to: planning
+    at: 2026-07-13T00:02:00Z
+    actor: sa-agent
+    evidence_refs: [sdd_reference, api_contract, data_impact, ba_sa_gate_result]
+  - from: planning
+    to: implementing
+    at: 2026-07-13T00:03:00Z
+    actor: developer-agent
+    evidence_refs: [spec_readiness_checklist, implementation_plan, sa_dev_gate_result]
+  - from: implementing
+    to: verifying
+    at: 2026-07-13T00:04:00Z
+    actor: developer-agent
+    evidence_refs: [changed_files, test_evidence, dev_qa_gate_result]
+  - from: verifying
+    to: rework
+    at: 2026-07-13T00:05:00Z
+    actor: qa-agent
+    evidence_refs: [verification_failed, rework_route]
+  - from: rework
+    to: implementing
+    at: 2026-07-13T00:06:00Z
+    actor: developer-agent
+    evidence_refs: [rework_route]
+  - from: implementing
+    to: verifying
+    at: 2026-07-13T00:07:00Z
+    actor: developer-agent
+    evidence_refs: [changed_files, test_evidence, dev_qa_gate_result]
+  - from: verifying
+    to: blocked
+    at: 2026-07-13T00:08:00Z
+    actor: qa-agent
+    evidence_refs: [verification_failed, human_review_required]
+evidence:
+  change_type: new-feature
+  risk_level: high
+  initial_scope: user authentication module
+  user_stories: as a user I want to log in
+  acceptance_criteria: login flow works
+  business_rules: password policy enforced
+  pm_ba_gate_result: approved
+  sdd_reference: docs/specs/auth-sdd.md
+  api_contract: openapi.yaml
+  data_impact: user table
+  ba_sa_gate_result: approved
+  spec_readiness_checklist: complete
+  implementation_plan: task list
+  sa_dev_gate_result: approved
+  changed_files: auth.py
+  test_evidence: test results
+  dev_qa_gate_result: approved
+  verification_failed: retry budget exhausted
+  rework_route: developer-agent
+  human_review_required: true
+next_route: human-reviewer
+stop_reason: human_review_required

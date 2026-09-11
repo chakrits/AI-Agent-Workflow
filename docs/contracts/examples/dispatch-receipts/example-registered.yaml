@@ -1,0 +1,8 @@
+handoff_event_id: example-registered
+work_item_url: https://github.com/chakrits/AI-Agent-Workflow/issues/35
+source_agent: SA Agent
+target_agent: Security Reviewer
+state: registered
+registered_at: "2026-07-19T00:00:00Z"
+registered_by: Boss
+dispatch_depth: 1

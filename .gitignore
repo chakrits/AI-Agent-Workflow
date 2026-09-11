@@ -1,0 +1,15 @@
+# Local visual-brainstorming session artifacts.
+.superpowers/
+
+# Local npm dependency installation output.
+node_modules
+
+# Isolated local Git worktrees.
+.worktrees/
+
+# Obsidian personal window/tab layout (per-machine UI state, not vault config).
+.obsidian/workspace.json
+.obsidian/workspace-mobile.json
+
+# macOS Finder per-folder view metadata (per-machine, regenerated automatically).
+.DS_Store

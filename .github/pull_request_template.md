@@ -1,0 +1,45 @@
+<!-- documentation-impact: pending -->
+
+## Summary
+
+-
+
+## Documentation Impact
+
+- [ ] Documentation reviewed; affected updates are included in this pull request.
+- [ ] No documentation impact — rationale:
+
+<!-- Replace the marker at the top with `documentation-impact: complete` after completing one option. -->
+
+## Lifecycle Readiness
+
+> The Work Item has exactly one current `phase:` label. `status:spec-ready` is required before Developer implementation; it does not replace QA or human approval.
+>
+> Approved plan-only PRs may use `<!-- plan-only: true -->` and must change only `docs/records/implementation-plan/*.md`. They still require exactly one `phase:` label and `status:spec-ready`; they do not claim development or verification completion.
+>
+> **Bug Fix work items** (linked Issue labeled `bug`, governed by `docs/contracts/bug-fix-workflow.yaml`) do not use `phase:`/`status:*` labels. Instead, add a new line to this PR's body reading exactly: Governing workflow: Bug Fix — with no backticks, no quote marker (`>`), and nothing else on that line. QA evidence below is still required.
+
+- [ ] Developer: Work Item current phase and URL are recorded.
+- [ ] Developer: required specification type is Lightweight specification / SDD-design / N/A.
+- [ ] Developer: `status:spec-ready` evidence and approval URL:
+- [ ] Developer: implementation evidence is ready; `status:development-done` applied.
+- [ ] Developer: handoff target is `phase:verification`.
+
+## QA Acceptance Criteria Verification
+
+> Ownership: Developer supplies the Work Item URL; QA verifies the linked Issue Acceptance Criteria and evidence. Developer must not self-certify this gate.
+
+> QA verifies the Work Item's canonical Acceptance Traceability Matrix at the verified commit SHA; this Change Request does not duplicate that matrix.
+
+- [ ] Developer: Work Item (Issue) URL:
+- [ ] QA: reviewed every Issue Acceptance Criteria item and recorded its result in the Issue.
+- [ ] QA: evidence comment or review URL:
+- [ ] QA: verified commit SHA:
+- [ ] QA: applicable AC IDs from the Work Item matrix:
+- [ ] QA: N/A rows and evidence-backed rationale:
+- [ ] QA: complete pass advances the Work Item to `phase:human-review` and applies `status:verification-done`.
+- [ ] Documentation-only closeout: N/A — no Work Item acceptance criteria; Documentation Agent review applies.
+
+## Verification
+
+- [ ] Tests/checks run:

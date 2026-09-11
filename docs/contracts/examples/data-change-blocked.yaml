@@ -1,0 +1,85 @@
+task_id: DATA-BLOCKED
+workflow_id: data-change
+contract_version: 1
+change_type: data-change
+data_change_kind: [migration, destructive]
+contains_pii: "yes"
+state: blocked
+rework_count: 1
+max_rework_attempts: 1
+history:
+  - from: intake
+    to: classifying
+    at: 2026-07-28T00:00:00Z
+    actor: data-agent
+    evidence_refs: [data_owner, change_description, contains_pii]
+  - from: classifying
+    to: schema-design
+    at: 2026-07-28T00:01:00Z
+    actor: data-agent
+    evidence_refs: [data_change_kind]
+  - from: schema-design
+    to: data-review
+    at: 2026-07-28T00:02:00Z
+    actor: sa-agent
+    evidence_refs: [sa_migration_plan_ref, rollback_sql]
+  - from: data-review
+    to: security-review
+    at: 2026-07-28T00:03:00Z
+    actor: data-agent
+    evidence_refs: [data_owner_approval]
+  - from: security-review
+    to: human-approval
+    at: 2026-07-28T00:04:00Z
+    actor: security-reviewer
+    evidence_refs: [security_approval]
+  - from: human-approval
+    to: executing
+    at: 2026-07-28T00:05:00Z
+    actor: human-reviewer
+    evidence_refs: [human_approval_evidence, transaction_wrapped]
+  - from: executing
+    to: validating
+    at: 2026-07-28T00:06:00Z
+    actor: data-agent
+    evidence_refs: [expected_row_count_delta, execution_evidence]
+  - from: validating
+    to: rework
+    at: 2026-07-28T00:07:00Z
+    actor: data-agent
+    evidence_refs: [validation_failed, rollback_route]
+  - from: rework
+    to: executing
+    at: 2026-07-28T00:08:00Z
+    actor: data-agent
+    evidence_refs: [rollback_sql, rollback_idempotency_confirmed, rework_route]
+  - from: executing
+    to: validating
+    at: 2026-07-28T00:09:00Z
+    actor: data-agent
+    evidence_refs: [expected_row_count_delta, execution_evidence]
+  - from: validating
+    to: blocked
+    at: 2026-07-28T00:10:00Z
+    actor: data-agent
+    evidence_refs: [validation_failed, human_review_required]
+evidence:
+  data_owner: Data Agent
+  change_description: drop the deprecated legal_hold_email column after migrating its data to the new contacts table (contains user emails)
+  contains_pii: "yes"
+  data_change_kind: [migration, destructive]
+  sa_migration_plan_ref: docs/specs/2026-07-28-legal-hold-email-migration.md
+  rollback_sql: "NONE — irreversible, column DROP has no automatic reverse; full backup taken before execution"
+  data_owner_approval: approved by data owner
+  security_approval: approved by Security Reviewer — PII migration reviewed, backup verified
+  human_approval_evidence: approved by Boss
+  transaction_wrapped: true
+  expected_row_count_delta: "0 (column drop, no row count change)"
+  execution_evidence: migration attempted, contacts table backfill row-count mismatch detected
+  validation_failed: "backfilled contacts row count (4,812) does not match expected (4,900); 88 rows missing"
+  rollback_route: rework
+  rollback_idempotency_confirmed: "re-run of backfill script against the same source produces the same 4,812 rows both times"
+  rework_route: executing
+  human_review_required: true
+next_route: human-reviewer
+stop_reason: human_review_required

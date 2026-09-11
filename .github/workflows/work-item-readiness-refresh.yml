@@ -1,0 +1,127 @@
+name: Re-evaluate work item readiness after lifecycle change
+
+on:
+  pull_request_target:
+    branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review, edited]
+  issues:
+    types: [labeled, unlabeled]
+
+concurrency:
+  group: work-item-readiness-${{ github.repository }}
+  cancel-in-progress: true
+
+jobs:
+  publish-current-readiness:
+    if: >-
+      github.event_name == 'pull_request_target' ||
+      startsWith(github.event.label.name, 'phase:') ||
+      startsWith(github.event.label.name, 'status:')
+    runs-on: ubuntu-latest
+    environment: work-item-refresh
+    permissions:
+      contents: read
+    steps:
+      - name: Check out the trusted default-branch decision module
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+
+      - name: Create the readiness GitHub App token
+        id: readiness-token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3
+        with:
+          client-id: ${{ vars.WORK_ITEM_REFRESH_APP_CLIENT_ID }}
+          private-key: ${{ secrets.WORK_ITEM_REFRESH_APP_PRIVATE_KEY }}
+          permission-checks: write
+          permission-pull-requests: read
+          permission-issues: read
+
+      - name: Publish current readiness for open pull requests
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
+        with:
+          github-token: ${{ steps.readiness-token.outputs.token }}
+          script: |
+            const { buildReadinessCheck, findLinkedIssueNumber } = await import(
+              `${process.env.GITHUB_WORKSPACE}/scripts/work-item-readiness-check.mjs`
+            );
+            const { loadPlanOnlyChangedFiles } = await import(
+              `${process.env.GITHUB_WORKSPACE}/scripts/work-item-readiness-refresh.mjs`
+            );
+            const repository = {
+              owner: context.repo.owner,
+              repo: context.repo.repo
+            };
+            const pulls = await github.paginate(github.rest.pulls.list, {
+              ...repository,
+              state: 'open',
+              base: context.payload.repository.default_branch,
+              per_page: 100
+            });
+            for (const pull of pulls) {
+              const issueNumber = findLinkedIssueNumber(pull.body, repository);
+              const closeout = (pull.body ?? '').match(
+                /<!-- post-merge-closeout: complete; source-pr-(\d+) -->/
+              );
+              let issue;
+              let sourcePullRequest;
+              let changedFiles = [];
+              let resolutionError;
+              try {
+                if (closeout) {
+                  const { data: source } = await github.rest.issues.get({
+                    ...repository,
+                    issue_number: Number(closeout[1])
+                  });
+                  sourcePullRequest = {
+                    isPullRequest: Boolean(source.pull_request),
+                    labels: source.labels.map((label) => typeof label === 'string' ? label : label.name)
+                  };
+                  const files = await github.paginate(github.rest.pulls.listFiles, {
+                    ...repository,
+                    pull_number: pull.number,
+                    per_page: 100
+                  });
+                  changedFiles = files.map((file) => file.filename);
+                } else if (issueNumber) {
+                  ({ data: issue } = await github.rest.issues.get({
+                    ...repository,
+                    issue_number: issueNumber
+                  }));
+                  changedFiles = await loadPlanOnlyChangedFiles({
+                    body: pull.body ?? '',
+                    issueNumber,
+                    closeout: Boolean(closeout),
+                    pullNumber: pull.number,
+                    listFiles: (pullNumber) => github.paginate(github.rest.pulls.listFiles, {
+                      ...repository,
+                      pull_number: pullNumber,
+                      per_page: 100
+                    })
+                  });
+                }
+              } catch (error) {
+                resolutionError = `current work-item metadata could not be retrieved (${error.status ?? 'unknown error'})`;
+              }
+              const check = buildReadinessCheck({
+                pull,
+                issue,
+                repository,
+                changedFiles,
+                sourcePullRequest,
+                resolutionError
+              });
+              if (!check) continue;
+              await github.rest.checks.create({
+                ...repository,
+                name: check.name,
+                head_sha: check.headSha,
+                status: 'completed',
+                conclusion: check.conclusion,
+                output: {
+                  title: check.title,
+                  summary: check.summary
+                }
+              });
+            }

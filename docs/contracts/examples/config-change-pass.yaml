@@ -1,0 +1,47 @@
+task_id: CFG-PASS
+workflow_id: config-change
+contract_version: 1
+change_type: config-change
+risk_tier: low
+config_kind: feature_flag
+state: complete
+rework_count: 0
+max_rework_attempts: 1
+history:
+  - from: intake
+    to: classifying
+    at: 2026-07-28T00:00:00Z
+    actor: config-agent
+    evidence_refs: [config_owner, change_description, restart_required]
+  - from: classifying
+    to: owner-review
+    at: 2026-07-28T00:01:00Z
+    actor: config-agent
+    evidence_refs: [risk_tier, rollback_plan, removal_condition]
+  - from: owner-review
+    to: rollout
+    at: 2026-07-28T00:02:00Z
+    actor: config-agent
+    evidence_refs: [owner_approval]
+  - from: rollout
+    to: monitoring
+    at: 2026-07-28T00:03:00Z
+    actor: config-agent
+    evidence_refs: [rollout_evidence]
+  - from: monitoring
+    to: complete
+    at: 2026-07-28T00:04:00Z
+    actor: config-agent
+    evidence_refs: [monitoring_result]
+evidence:
+  config_owner: Config Agent
+  change_description: enable new-checkout feature flag for 10% rollout
+  restart_required: "no — hot-reloadable"
+  risk_tier: low
+  rollback_plan: toggle flag back to false, hot-reloadable
+  removal_condition: remove once rollout reaches 100% for 2 weeks
+  owner_approval: approved by config owner
+  rollout_evidence: flag enabled in production config store
+  monitoring_result: no regressions after 48h
+next_route: documentation-agent
+stop_reason: null

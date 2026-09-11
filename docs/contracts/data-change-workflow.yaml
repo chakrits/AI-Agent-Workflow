@@ -1,0 +1,43 @@
+workflow_id: data-change
+contract_version: 1
+max_rework_attempts: 1
+states: [intake, classifying, schema-design, data-review, security-review, human-approval, executing, validating, rework, blocked, complete]
+transitions:
+  - { from: intake, to: classifying, requires: [data_owner, change_description, contains_pii] }
+  - { from: intake, to: blocked, requires: [stop_reason] }
+
+  - { from: classifying, to: schema-design, requires: [data_change_kind], when: { data_change_kind_includes: migration } }
+  - { from: classifying, to: data-review, requires: [data_change_kind, non_destructive_evidence], when: { data_change_kind_excludes: migration } }
+  - { from: classifying, to: blocked, requires: [stop_reason] }
+
+  - { from: schema-design, to: data-review, requires: [sa_migration_plan_ref, rollback_sql] }
+  - { from: schema-design, to: blocked, requires: [stop_reason] }
+
+  - { from: data-review, to: security-review, requires: [data_owner_approval], when: { contains_pii: "yes" } }
+  - { from: data-review, to: human-approval, requires: [data_owner_approval], when: { contains_pii: "no", data_change_kind_includes: destructive } }
+  - { from: data-review, to: executing, requires: [data_owner_approval, transaction_wrapped, idempotent_upsert_used], when: { contains_pii: "no", data_change_kind_excludes: destructive } }
+  - { from: data-review, to: blocked, requires: [stop_reason] }
+
+  - { from: security-review, to: human-approval, requires: [security_approval], when: { data_change_kind_includes: destructive } }
+  - { from: security-review, to: executing, requires: [security_approval, transaction_wrapped, idempotent_upsert_used], when: { data_change_kind_excludes: destructive } }
+  - { from: security-review, to: blocked, requires: [stop_reason] }
+
+  - { from: human-approval, to: executing, requires: [human_approval_evidence, transaction_wrapped] }
+  - { from: human-approval, to: blocked, requires: [stop_reason] }
+
+  - { from: executing, to: validating, requires: [expected_row_count_delta, execution_evidence] }
+
+  - { from: validating, to: complete, requires: [actual_row_count_delta, validation_result] }
+  - { from: validating, to: rework, requires: [validation_failed, rollback_route] }
+  - from: validating
+    to: blocked
+    requires: [validation_failed, human_review_required]
+    terminal_requirements:
+      rework_count: 1
+      state: blocked
+      stop_reason: human_review_required
+      next_route: human-reviewer
+      evidence:
+        human_review_required: true
+
+  - { from: rework, to: executing, requires: [rollback_sql, rollback_idempotency_confirmed, rework_route] }

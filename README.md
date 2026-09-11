@@ -1,0 +1,291 @@
+# AI Agent Dynamic Workflow
+
+A cross-platform, contract-first workflow kit for software teams that use AI agents. It helps an agent decide **what kind of work this is**, choose the **smallest safe workflow**, produce reviewable artifacts, and stop at the right human approval gates.
+
+The shared process is not tied to one tool. Codex, Claude Code, Antigravity, and compatible agents use the same canonical rules under `docs/`; their platform-specific files are adapters.
+
+## What You Get
+
+- Dynamic routing instead of a fixed PM → BA → SA → Developer → QA pipeline.
+- All 11 roles — Orchestrator, PM, BA, SA, Developer, QA, Security Reviewer, Config, Data, Release, and Documentation — have concrete, regression-tested canonical rules, not just a one-line description.
+- Required quality gates, structured handoffs, and explicit human approval boundaries.
+- Two machine-checkable workflow contracts (Bug Fix + New Feature): legal states, evidence requirements, retry limits, and human escalation.
+- 25 portable skills mirrored across 3 platform adapters (`.agents/`, `.claude/`, `.agent/`), with CI-enforced byte-identical parity.
+- 27 reusable templates for briefs, requirements, designs, test plans, handoffs, completion checks, security/release reviews, post-merge documentation reviews, work item records, and lessons learned.
+- Hosted CI on both GitHub Actions and GitLab CI, running 10 validation checks on every push and pull/merge request.
+- Lifecycle labels (`phase:*`, `status:*`) and an automated PR/Issue readiness gate that blocks merge until the Work Item lifecycle is consistent.
+- A [GitHub Project Kanban board](https://github.com/users/chakrits/projects/3) mapping `phase:*` labels to Todo / In Progress / Done columns for visual work tracking.
+- An in-repo, merge-gated dispatch-receipt ledger for cross-turn agent handoffs, with CI-enforced matching and a loop-safety circuit breaker.
+- Work Item records (`docs/records/work-items/`) that link each GitHub Issue to its SDD, PRs, postmortem, and lessons learned — bidirectional traceability in the Obsidian vault.
+- A Lessons Learned vault (`docs/records/lessons-learned/`) with a structured template for session retrospectives.
+- A Framework Metrics dashboard (`npm run validate:metrics`) that parses TASK_LOG and reports rework rate, subagent timeout rate, test growth trend, and more.
+- A Context Budget validator (`npm run validate:context-budget`) that measures the token cost of canonical reading files — currently ~25,900 tokens across 8 files.
+- 12 Architecture Decision Records (ADRs) with a CI-enforced 10:1 ratio check against TASK_LOG decisions.
+- 7 tracked risks with a CI-enforced validation gate.
+- Local housekeeping tooling: worktree cleanup and a one-command reset back to a blank template baseline for a new team's own clone.
+
+## Project Structure
+
+```text
+AI-Agent-Workflow/
+├── README.md                 # Start here: overview and quick start
+├── AGENTS.md                 # Cross-platform rules, routing, and approval gates
+├── PROJECT_INDEX.md          # Linked map of the repository
+├── PROJECT_STATUS.md         # Current work item, blockers, and next agent
+├── TASK_LOG.md               # Work history and handoff trail
+├── DECISIONS.md              # Architecture and process decisions (12 ADRs)
+├── RISKS.md                  # Owned risks and follow-ups (7 tracked risks)
+├── CHANGELOG.md              # Human-facing change history
+├── docs/
+│   ├── operating-model/      # Operating model, skill catalog, evaluation checklist,
+│   │                         #   context budget, metrics baseline
+│   ├── workflow/             # Canonical roles, routing, quality gates, handoffs
+│   ├── workflows/            # Playbooks for features, bugs, CI, config, and data
+│   ├── contracts/            # Bug Fix + New Feature contracts, schemas, examples, fixtures
+│   ├── templates/            # 27 reusable artifacts (incl. WORK_ITEM.md, LESSONS_LEARNED.md)
+│   ├── records/              # Durable completion/review records, typed and dated:
+│   │                         #   work-items/, lessons-learned/, sdd/, requirements/,
+│   │                         #   security-review/, implementation-plan/, handoff/,
+│   │                         #   qa/, postmortem/, dispatch-receipts/, misc/
+│   ├── superpowers/          # Approved designs (specs/) and implementation plans (plans/)
+│   └── vault/                # Obsidian knowledge-base index
+├── .agents/                  # Portable skills (25) and workflow adapters
+├── .claude/                  # Claude Code agent and skill adapters
+├── .agent/                   # Antigravity CLI skill adapters
+├── .codex/                   # Codex host adapters (e.g. in-turn dispatch supervision)
+├── .githooks/                # Optional local git hooks (see Housekeeping below)
+├── .obsidian/                 # Obsidian vault config (the whole repo is the vault root)
+├── .worktrees/                # Local git worktrees for parallel branch work — gitignored, not shipped
+├── test/                     # Regression checks (201 tests)
+├── scripts/                  # 14 validators + housekeeping + reset scripts
+├── .github/workflows/        # GitHub Actions validation
+└── .gitlab-ci.yml            # GitLab CI validation (same checks, different platform)
+```
+
+## Quick Start
+
+### 1. Clone and install
+
+**Prerequisites:** [Node.js](https://nodejs.org/) 22 or later, and `git`. That's the only runtime dependency this repo itself has — it's a Node.js tooling/documentation kit. The Django/Python/PostgreSQL references you'll see in role definitions (e.g. SA Agent, Security Reviewer) describe the *target application stack this workflow is configured for*, not a dependency of this repo.
+
+```bash
+git clone <this-repo-url>
+cd AI-Agent-Workflow
+npm install
+```
+
+### 2. Verify your clone
+
+```bash
+npm test
+npm run validate:contracts
+```
+
+Both commands should exit clean. This is the same check hosted CI runs on every push and pull/merge request — on GitHub Actions ([.github/workflows/validate-contracts.yml](./.github/workflows/validate-contracts.yml)) and on GitLab CI ([.gitlab-ci.yml](./.gitlab-ci.yml)), whichever platform this repo is hosted on. For lifecycle labels and platform-specific readiness operations, see [Platform Readiness Operations](./docs/workflow/platform-readiness.md).
+
+### 3. Activate local git hooks
+
+```bash
+npm run setup:hooks
+```
+
+This sets `core.hooksPath` to `.githooks`, which ships this repo's hooks. It is idempotent — re-running it when the value already matches is a no-op — and it is a per-clone setting, so every fresh clone needs it once. Git does not read `.githooks/` until you run it.
+
+Two hooks become active:
+
+| Hook | Behaviour |
+|---|---|
+| `post-merge` | Informational. Lists prunable `.worktrees/` entries after a merge on `main`. |
+| `pre-push` | Blocking, opt-in. When `PR_BODY_FILE` names a pull request body draft, runs the readiness pre-flight below and refuses the push if the draft is incomplete, or if the named file cannot be read — a draft named but not read is not a draft checked. Without `PR_BODY_FILE` it prints a reminder and exits 0: a push with no PR body in play is never refused. |
+
+To check a pull request body draft before opening the PR:
+
+```bash
+PR_BODY_FILE=pr-body.md npm run validate:pr-readiness
+```
+
+This refuses a body missing its Work Item (Issue) URL, its QA evidence URL, a closing keyword (`Fixes #N`) referencing that Issue, or the `## Documentation Impact` section and its `<!-- documentation-impact: complete -->` marker — the same rules CI enforces after a PR exists, applied before one is opened. Label checks need `gh` auth; without network the body checks still run and the skipped label checks are named in a warning.
+
+A PR that advances a multi-AC Issue without closing it — which this repository opens routinely — declares that with `<!-- advances-only: issue-N -->`, naming the same Issue the body links. That suppresses the closing-keyword requirement and nothing else; every other rule still applies. The marker is checked, not trusted: naming an Issue other than the linked one is refused, so it cannot be copy-pasted between Issues or used as a blanket escape hatch. You can therefore declare that you are closing no Issue, but you cannot forget to close one. It waives only a *missing* keyword: a marker beside a keyword naming another Issue is still refused. Markers and closing keywords inside code fences or backticks are ignored, so prose documenting this syntax is inert.
+
+GitHub only, and it says so rather than blaming the body: if `git remote get-url origin` cannot be resolved to a `github.com` owner/repo — no remote, a non-GitHub host, an SSH host alias, an unusual worktree — the run reports the Issue-linkage checks as out of scope instead of reporting a missing Work Item URL that the body in fact contains.
+
+Under Claude Code the same npm script also runs automatically as a `PreToolUse` hook on `gh pr create` ([.claude/settings.json](./.claude/settings.json)). That hook invokes the identical script rather than restating any rule, so no rule can exist for one host only.
+
+The hook gates only the command a shell would actually execute. It parses the command string for quoting and heredocs, so writing a file, echoing a string, or grepping documentation that merely *mentions* the command is not intercepted — only a real invocation is. `--help` and `-h` pass through: they create no pull request and have no body to check. `--web`, `--fill` and `--template` are refused, because those do create a pull request whose body the hook cannot read.
+
+A `PreToolUse` hook sees the command *text*, before a shell has expanded anything and before the command has run. That seam decides how each `--body-file` shape is treated (ADR-0024):
+
+| `--body-file` shape | Behaviour | Why |
+|---|---|---|
+| absolute path, readable | validated | the hook reads the same bytes `gh` will read |
+| absolute path, not written yet | **allowed, with a warning** | a body written earlier in the same command string is not on disk when the hook looks. It is not unknowable, only not-yet-knowable — and a `PreToolUse` refusal discards the *whole* tool call, so denying would throw away a `git commit` that shared the command line. CI enforces every rule minutes later. |
+| contains `$VAR`, `${VAR}`, `` ` `` or `~` | **allowed, with a warning** | expanding it is declined, not deferred. Correct expansion needs the environment of a shell that has not started, including assignments made earlier in the same command string. A wrong guess is strictly worse than not checking: the hook would read a different file than `gh` reads and could pass a bad body. Pass an absolute literal path to get it checked. |
+| relative path | **refused** | this hook runs from the project root, `gh` runs from your shell's working directory. Where the two differ the hook validates one file and `gh` submits another — a false pass, which is more dangerous than no gate because it is trusted. Pass `"$(pwd)/body.md"`. |
+| `--body-file -`, or neither `--body` nor `--body-file` | **refused** | uncheckable at every point in the command's life, and chosen by the author. A gate that passes when it can never see its input is not a gate. |
+
+Every rule the hook applies is also enforced by CI: `work-item-readiness-freshness` enforces readiness and the closing-keyword rule; `documentation-impact-gate.yml` enforces Documentation Impact — the hook invokes rules, it never originates them, so no non-Claude host loses one (ADR-0022, ADR-0024).
+
+### 4. Give your agent a safe first prompt
+
+```text
+Read AGENTS.md, PROJECT_STATUS.md, and the operating-model read order.
+Classify this request by change type and risk.
+Select the minimum safe workflow.
+List required artifacts, required agents, skipped agents, quality gates,
+and any human approval gate before implementation begins.
+```
+
+### 5. Work from the canonical layer
+
+Use [PROJECT_INDEX.md](./PROJECT_INDEX.md) to navigate. Treat `docs/operating-model/` and `docs/workflow/` as the source of truth; do not let a platform adapter redefine policy.
+
+## How Work Flows
+
+```text
+Request
+  → Change and risk classification
+  → Minimum safe workflow
+  → Role / skill routing
+  → Artifact and quality gate
+  → Structured handoff
+  → Forward, backward, skip, stop, or human approval
+```
+
+The flow is deliberately bidirectional. For example, QA can send ambiguous acceptance criteria back to BA, and a Developer can send an insufficient API contract back to SA. An agent may skip irrelevant stages, but it must not skip required security, quality, or human-approval gates.
+
+## Roles at a Glance
+
+| Role | Primary responsibility |
+|---|---|
+| Orchestrator | Classifies work, chooses routes, enforces gates, and maintains project state. |
+| PM / BA | Clarify business value, scope, requirements, acceptance criteria, and rules. |
+| SA | Owns architecture, API/data contracts, NFRs, trade-offs, and ADRs. |
+| Developer | Implements code, migrations, and unit-level verification. |
+| QA | Designs and executes test coverage, reports evidence, and routes defects correctly. |
+| Security Reviewer | Reviews trust boundaries, auth, sensitive data, input handling, and dependency risk. |
+| Config / Data | Own configuration or reference-data changes with validation and rollback considerations. |
+| Release | Prepares release, rollback, evidence, and final deployment handoff. |
+| Documentation | Keeps docs, status, history, risks, and post-merge documentation review records accurate. |
+
+See the complete [role definitions](./docs/workflow/role-definitions.md).
+
+## Choose a Workflow
+
+| Work type | Default route | Start here |
+|---|---|---|
+| Vague idea / early-stage feature request | requirement-brainstorming → BA → SA → implementation-planning | [feature-discovery-to-plan.md](./docs/workflows/feature-discovery-to-plan.md) |
+| New feature | PM/BA → SA → Developer → QA → Release | [new-feature.md](./docs/workflows/new-feature.md) |
+| Bug fix | QA/BA → Developer → QA → Reviewer | [bug-fix.md](./docs/workflows/bug-fix.md) |
+| CI failure or regression | Debugging discipline → appropriate owner | [ci-failure-debug.md](./docs/workflows/ci-failure-debug.md) |
+| Config or data change | BA → Config/Data → QA → Release | [config-change.md](./docs/workflows/config-change.md) / [data-change.md](./docs/workflows/data-change.md) |
+| API contract change | BA → SA → Developer → QA → Security when relevant | [role definitions](./docs/workflow/role-definitions.md) |
+| Test-only change | QA → Reviewer | [quality gates](./docs/workflow/quality-gates.md) |
+| Documentation-only change | Documentation → Reviewer | [post-merge review template](./docs/templates/POST_MERGE_DOCUMENTATION_REVIEW.md) |
+| Framework / meta change (routing rules, skill boundaries, operating model) | Orchestrator → Documentation → Reviewer/QA → Human Approval | [stabilize-core.md](./docs/workflows/stabilize-core.md) |
+
+The complete routing matrix and skip rules are in [dynamic-routing.md](./docs/workflow/dynamic-routing.md).
+
+## Workflow Contracts
+
+Two workflow types have machine-checkable YAML contracts with JSON Schema validation, example fixtures, and regression tests:
+
+| Contract | States | Rework budget | File |
+|---|---|---|---|
+| Bug Fix | 7 (intake → investigating → implementing → verifying → rework → handoff → blocked) | 2 | [bug-fix-workflow.yaml](./docs/contracts/bug-fix-workflow.yaml) |
+| New Feature | 10 (intake → discovery → designing → planning → implementing → verifying → rework → human-review → blocked → release) | 1 | [new-feature-workflow.yaml](./docs/contracts/new-feature-workflow.yaml) |
+
+Validate the contracts and fixtures with:
+
+```bash
+npm run validate:contracts
+```
+
+## Skills
+
+25 portable skills are mirrored byte-identically across `.agents/skills/`, `.claude/skills/`, and `.agent/skills/`. CI enforces md5 parity on every push.
+
+Key skills include: `dynamic-workflow`, `tdd-implementation`, `verification-before-completion`, `code-review-gate`, `debugging-discipline`, `documentation-closeout`, `requirement-brainstorming`, `implementation-planning`, `git-workflow-and-versioning`, and more.
+
+Browse the full catalog at [SKILL_CATALOG.md](./docs/operating-model/SKILL_CATALOG.md).
+
+## CI Validation Checks
+
+Every push and pull/merge request runs 10 validation checks:
+
+| Check | Command | What it validates |
+|---|---|---|
+| Contracts | `npm run validate:contracts` | Bug Fix + New Feature contract YAML, schemas, fixtures |
+| Project state | `npm run validate:project-state` | PROJECT_STATUS.md required fields |
+| Skill parity | `npm run validate:skill-parity` | 25 skills byte-identical across 3 platforms |
+| Skill usage | `npm run validate:skill-usage` | New TASK_LOG entries (post-2026-07-25) have skill notation |
+| Review gate | `npm run validate:review-gate` | PRs with `.mjs`/`.js` changes have a code review record |
+| ADR audit | `npm run adr:audit` | ADR-to-decision ratio ≤ 10:1 |
+| Risk register | `npm run validate:risk-register` | RISKS.md is current |
+| Worktree audit | `npm run housekeeping:worktrees` | No ghost worktrees |
+| Context budget | `npm run validate:context-budget` | Canonical reading files ≤ 30,000 tokens |
+| Framework metrics | `npm run validate:metrics` | Dashboard: rework rate, timeout rate, test trend |
+
+## Work Item Traceability
+
+Every GitHub Issue gets a Work Item Record at `docs/records/work-items/YYYY-MM-DD-issue-NN.md` using the [WORK_ITEM.md](./docs/templates/WORK_ITEM.md) template. This record links the Issue to its SDD, PRs, postmortem, and lessons learned — providing bidirectional traceability in the Obsidian vault graph.
+
+**Important:** Use `Closes #NN` only in the terminal closeout PR. Intermediate PRs (sub-PRs, project status updates, docs) must NOT contain `Closes #NN` — GitHub auto-closes the issue on merge regardless of whether implementation is complete.
+
+## Lessons Learned
+
+Session retrospectives are recorded at `docs/records/lessons-learned/YYYY-MM-DD-session.md` using the [LESSONS_LEARNED.md](./docs/templates/LESSONS_LEARNED.md) template. Each entry links back to its Work Item Record and captures: lessons, metrics snapshot, and whether Hermes memory / skills were updated.
+
+## Quality, Handoffs, and Documentation
+
+Every meaningful stage should produce a structured artifact and handoff. Use the [handoff template](./docs/templates/HANDOFF.md) and the [quality gates](./docs/workflow/quality-gates.md) instead of informal "done" messages.
+
+Before a pull request or merge request targets `main`, complete its Documentation Impact assessment and include affected documentation updates in the same change. GitHub validates the completed PR-template marker; GitLab provides the equivalent MR template. After merge, the project-state audit creates a `documentation-sync` issue only when it detects stale state. Use the [post-merge documentation review template](./docs/templates/POST_MERGE_DOCUMENTATION_REVIEW.md) only for that exception, then close the issue when its correction PR merges.
+
+## Housekeeping
+
+This repo accumulates local git worktrees (under `.worktrees/`, gitignored) as agents branch off to work on parallel Issues. Two scripts keep that manageable:
+
+```bash
+# List worktrees whose branch no longer exists on origin (merged/deleted) — dry run, safe to run anytime
+npm run housekeeping:worktrees
+
+# Actually remove the ones flagged as prunable
+npm run housekeeping:worktrees -- --prune
+```
+
+Optionally enable a local git hook that warns about prunable worktrees after every merge/pull on `main` (informational only — it never deletes anything on its own):
+
+```bash
+git config core.hooksPath .githooks
+```
+
+### Resetting to a blank template
+
+If you're starting a new project from a clone of this repo, the project-state files and declared historical record directories still carry this repo's own history. Preview the reset inventory before your first commit:
+
+```bash
+# Preview what would change — nothing is modified
+npm run reset:template
+
+# Apply only after reviewing the inventory; both flags are required
+npm run reset:template -- --apply --confirm-reset
+```
+
+The command refuses dirty tracked, staged, or untracked target content. It preserves `docs/records/qa/`, the reusable navigation files, and the canonical workflow itself. See [Reset to Template](./docs/workflow/reset-to-template.md) for the exact scope, required post-reset checks, recovery limits, and the human-only optional new-root procedure.
+
+## Knowledge Base (Obsidian)
+
+The whole repo is a valid [Obsidian](https://obsidian.md/) vault (`.obsidian/` sits at the root). Open the repo root as a vault to get backlinks and a graph view across `docs/workflow/`, `docs/records/`, and every role/skill adapter. Start at [docs/vault/00-Index.md](./docs/vault/00-Index.md) — Obsidian hides dotfolders (`.claude/`, `.agents/`, `.agent/`, `.codex/`) from its file browser by default, so the index note is the reliable entry point into adapter files that live there.
+
+The vault graph connects: GitHub Issues → Work Item Records → SDDs → PRs → Postmortems → Lessons Learned.
+
+## Where to Go Next
+
+- [PROJECT_INDEX.md](./PROJECT_INDEX.md) — full linked map of rules, workflows, templates, and adapters.
+- [PROJECT_STATUS.md](./PROJECT_STATUS.md) — active work, blockers, next quality gate, and recommended agent.
+- [TASK_LOG.md](./TASK_LOG.md) — history of completed work and handoffs.
+- [CHANGELOG.md](./CHANGELOG.md) — human-facing change history.
+- [DECISIONS.md](./DECISIONS.md) — 12 architecture and process decisions.
+- [RISKS.md](./RISKS.md) — 7 tracked risks and mitigations.
+- [AGENTS.md](./AGENTS.md) — full cross-platform operating rules.

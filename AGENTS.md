@@ -1,0 +1,385 @@
+# AGENTS.md
+
+## Purpose
+
+This file defines cross-platform AI agent rules for software engineering work. It is the always-on project instruction layer for agents such as Codex, Claude Code, Antigravity, Cursor, Gemini CLI, or other agentic coding tools.
+
+The workflow is dynamic, bidirectional, and risk-based. Do not force all requests through a fixed PM -> BA -> SA -> Dev -> Tester path.
+
+## Core Operating Principles
+
+1. Classify the change before doing work.
+2. Select the minimum safe workflow.
+3. Use role-specific agents or skills when the platform supports them.
+4. Keep implementer and verifier responsibilities separate.
+5. Use artifacts and handoff contracts, not informal summaries.
+6. Update project state after every meaningful step.
+7. Stop at human approval gates.
+8. Do not skip security review for security-sensitive changes.
+9. Do not make unrelated changes.
+10. Prefer small, reviewable increments.
+
+### Change Sizing
+
+Principle 10 in concrete terms: target ~100 changed lines per commit/task, ~300 is acceptable for a single logical change, ~1000 is too large and must be split. When a task is too large, split it one of these ways rather than landing it whole:
+
+- **Stack** — land a small change, base the next one on it.
+- **Vertical slice** — one complete path through the layers touched (e.g., schema + endpoint + UI for one behavior) rather than one layer at a time across every behavior.
+- **By file group** — separate changes for groups that need different reviewers.
+
+Refactoring and feature work are two different changes — land them separately, even when both are small.
+
+## Core Operating Model
+
+Before selecting an agent, selecting a skill, or marking work complete, follow the shared operating model.
+
+### Required Reading Order
+
+1. `docs/operating-model/AGENT_OPERATING_MODEL.md`
+2. `docs/operating-model/SKILL_CATALOG.md`
+3. `docs/operating-model/AGENT_EVALUATION_CHECKLIST.md`
+4. Relevant workflow/playbook under `docs/workflow/`, `docs/workflows/`, `docs/operating-model/`, or `docs/playbooks/` depending on project structure
+
+### Routing Rule
+
+Do not default to a linear PM → BA → SA → Dev → QA flow.
+
+Always classify the request first:
+
+- Change type
+- Risk level
+- Required artifacts
+- Required quality gates
+- Minimum safe workflow
+- Required human approvals
+
+Then select the appropriate agent and skill.
+
+When dispatching that agent as a child, write the prompt following [docs/workflow/dispatch-packet-contract.md](./docs/workflow/dispatch-packet-contract.md).
+
+### Skill Selection Rule
+
+Before using a skill, check `docs/operating-model/SKILL_CATALOG.md`.
+
+Use the most specific applicable skill. If no skill matches, proceed with the base agent role and document the gap.
+
+### Completion Rule
+
+Before marking any task complete, run `docs/operating-model/AGENT_EVALUATION_CHECKLIST.md`.
+
+A task is complete only when:
+
+- Required artifact is produced or updated.
+- Quality gate is checked.
+- Assumptions and open questions are documented.
+- Handoff or next action is clear.
+- Human approval gate is triggered when needed.
+- Decisions that exclude/defer/reject an option create an ADR before marking complete.
+
+### Stop Conditions
+
+Load [`docs/operating-model/AGENT_OPERATING_MODEL.md#human-approval-gates`](docs/operating-model/AGENT_OPERATING_MODEL.md#human-approval-gates) before proceeding.
+
+### Boundaries (Always / Ask First / Never)
+
+The rules above are stated once each, in the section that owns them. This section indexes them into a three-tier boundary so an agent can check where it stands in one place, instead of scanning the whole file. It does not add new policy.
+
+**Always**
+
+- Classify the change and select the minimum safe workflow before starting (Core Operating Principles 1–2).
+- Run the applicable skill's verification step before claiming work done (Verification Rule).
+- Write or identify a failing test before a behavior change, unless project context says TDD is impractical (TDD Rule).
+- Keep implementer and verifier responsibilities separate (Core Operating Principle 4).
+
+**Ask First**
+
+- Every condition listed in the Human Approval Gates section of [`docs/operating-model/AGENT_OPERATING_MODEL.md#human-approval-gates`](docs/operating-model/AGENT_OPERATING_MODEL.md#human-approval-gates).
+- Any request that matches no defined change type (Orchestrator Agent's Unclassified Request Rule).
+
+**Never**
+
+- Commit secrets, credentials, or tokens.
+- Weaken or delete a test merely to make a pipeline pass (Engineering Discipline Rules).
+- Make an unrelated change under cover of an approved task (Core Operating Principle 9).
+- Skip security review for a security-sensitive change (Core Operating Principle 8).
+- Mark work complete without meeting the Completion Rule's conditions.
+
+## Canonical Sources
+
+Read these files when relevant:
+
+- `PROJECT_STATUS.md` — current stage, blockers, next recommended agent
+- `TASK_LOG.md` — work history and agent handoff trail
+- `DECISIONS.md` — architecture and process decisions
+- `RISKS.md` — known project risks
+- `docs/workflow/dynamic-routing.md` — routing policy
+- `docs/workflow/role-definitions.md` — role responsibilities
+- `docs/workflow/quality-gates.md` — stage gates
+- `docs/workflow/handoff-contract.md` — handoff format
+- `docs/templates/` — output templates
+
+## Agent / Skill Layer
+
+Use these layers depending on platform support:
+
+- Portable skills: `.agents/skills/`
+- Portable workflows: `.agents/workflows/`
+- Claude Code subagents: `.claude/agents/`
+- Claude Code skills: `.claude/skills/`
+- Antigravity CLI skills: `.agent/skills/`
+
+The canonical process is in `docs/workflow/`. Platform-specific files are adapters, not the source of truth.
+
+## Worktree Lifecycle
+
+Git worktrees enable parallel branch work without stashing or cloning. They must be managed to avoid accumulation.
+
+### Create
+
+- Create a worktree when a branch needs isolated work: `git worktree add .worktrees/<name> <branch>`.
+- Name the directory after the issue or branch: `.worktrees/issue-NN-description` or `.worktrees/<branch-slug>`.
+
+### Remove
+
+- Remove a worktree within 24 hours of its PR being merged.
+- Use the audit script first (dry run): `npm run housekeeping:worktrees`.
+- Remove with: `npm run housekeeping:worktrees -- --prune`.
+- The script skips worktrees with uncommitted changes (`isWorktreeDirty` check). Review and remove those manually after confirming the work is disposable.
+
+### Audit
+
+- `npm run housekeeping:worktrees` is a CI check. It exits 0 when no ghost worktrees exist, and exits 1 when prunable worktrees are detected.
+- The audit is squash-merge aware: it uses `gh pr list --state merged` to detect branches whose PRs landed via squash merge (where `git branch --merged` is insufficient).
+- When `gh` is unavailable (e.g., GitLab-only fork), the audit degrades gracefully to the git-only signal.
+
+## Engineering Discipline Rules
+
+When the user reports a bug, failing test, CI failure, regression, stack trace, flaky behavior, or asks to debug/diagnose/investigate:
+
+1. Use `debugging-discipline` before proposing a fix.
+2. Establish or request a reliable repro.
+3. Trace the fail path before choosing a fix.
+4. Record hypotheses and experiment breadcrumbs.
+5. Do not weaken or delete tests merely to make the pipeline pass.
+6. Do not declare the issue fixed until the original repro passes.
+
+When the bug is fixed and validated and the user asks for RCA/postmortem/root-cause write-up:
+
+1. Use `engineering-postmortem`.
+2. Refuse to draft if reliable repro, known root cause, fix pointer, or validation evidence is missing.
+3. Keep code/config/data identifiers in the engineering record.
+4. State validation scope honestly.
+5. Create follow-up actions only when they are real, owned, and trackable.
+
+Routing notes:
+
+- Requirement ambiguity found during debugging → BA Agent.
+- Architecture/API contract gap found during debugging → SA Agent.
+- Product implementation bug → Developer Agent.
+- Test logic/flaky automation issue → QA Agent / automation skill.
+- Config/data issue → Config Agent or Data Agent.
+- Auth/permission/secret/sensitive data issue → Security Reviewer.
+
+## Engineering Execution Rules
+
+The agent system must use execution-discipline skills when work moves from requirements/design into implementation and review.
+
+### Requirement Discovery Rule
+
+Use `requirement-brainstorming` when a request is vague, early-stage, or missing testable acceptance criteria.
+
+Do not route directly to Developer Agent when business scope, user stories, or acceptance criteria are unclear.
+
+### Implementation Planning Rule
+
+Use `implementation-planning` before non-trivial implementation, refactor, migration, or validated bug fix.
+
+Implementation must not start until the plan identifies:
+
+- affected components/files,
+- task breakdown,
+- verification commands,
+- required tests,
+- risks and rollback where relevant,
+- next handoff agent.
+
+### TDD Rule
+
+Use `tdd-implementation` for code behavior changes unless the project context explicitly says TDD is not practical.
+
+For behavior changes, the agent must create or identify a failing test before implementation, or document why no test seam exists.
+
+### Verification Rule
+
+Use `verification-before-completion` before claiming work is done, fixed, ready for QA, ready for review, or ready for release.
+
+The agent must not say tests passed unless tests actually ran or a CI result is referenced.
+
+### Code Review Gate Rule
+
+Use `code-review-gate` before QA/release handoff when code changed.
+
+Do not skip code review for security-sensitive, auth, permission, data migration, production config, or payment/financial logic changes.
+
+### Static Logic Review Rule
+
+QA may use `static-logic-review` as a risk-triggered dry-run sub-check when changed production logic has an approved AC, specification, or contract and changes a decision branch, validation, calculation, mapping, state/side-effect, authorization decision, or error mapping. It is not a universal PR gate and cannot replace runtime QA, security review, or human approval.
+
+### Git Workflow Rule
+
+Use `git-workflow-and-versioning` for every commit: atomic commits, the type-prefixed message convention, pre-commit hygiene, and the change-summary format for handoff.
+
+### Routing Summary
+
+- Vague business request → `requirement-brainstorming`
+- Approved requirement/design → `implementation-planning`
+- Code behavior change → `tdd-implementation`
+- Before done/ready/fixed claim → `verification-before-completion`
+- Before QA/release/merge after code change → `code-review-gate`
+- Changed production decision logic with an approved behavioral source → `static-logic-review` (QA-owned dry run)
+- Every commit → `git-workflow-and-versioning`
+
+
+
+## Dynamic Routing Rules
+
+## Lifecycle Label Contract
+
+Use the lifecycle label contract in [`dynamic-routing.md`](docs/workflow/dynamic-routing.md#lifecycle-labels-for-feature-and-enhancement-work), including its Specification Readiness and Standard and Backward Paths.
+
+### New Feature
+
+Recommended flow:
+
+```text
+PM/BA -> SA -> Developer -> QA -> Security if relevant -> Release
+```
+
+Required artifacts:
+
+- Project brief or user story
+- Acceptance criteria
+- Architecture or technical design when behavior/integration changes
+- Test plan or test cases
+- Release note
+
+### Bug Fix
+
+Recommended flow:
+
+```text
+QA/BA -> Developer -> QA -> Reviewer
+```
+
+For every Bug Fix work item, use `docs/contracts/bug-fix-workflow.yaml` as the
+canonical policy and validate its `task-state` before handoff. The policy owns
+the allowed states, transitions, required evidence, and retry budget.
+
+Allow at most two verifying -> rework transitions. On the next failed verification,
+set state to blocked with `stop_reason: human_review_required` and hand off to a human.
+
+Route backward if:
+
+- Expected behavior is unclear -> BA
+- API or architecture is wrong -> SA
+- Permission/auth issue exists -> Security Reviewer
+
+### Config Change
+
+Recommended flow:
+
+```text
+BA -> Config Agent -> QA -> Release
+```
+
+Skip Developer when there is no code change.
+Skip SA when no architecture, integration, data model, NFR, or security impact exists.
+
+### DB / Reference Data Change
+
+Recommended flow:
+
+```text
+BA -> Data Agent -> QA -> Release
+```
+
+Required artifacts:
+
+- Data change plan
+- Validation query
+- Rollback query
+- QA focus
+
+### API Contract Change
+
+Recommended flow:
+
+```text
+BA -> SA -> Developer -> QA -> Security if relevant
+```
+
+### Test-only Change
+
+Recommended flow:
+
+```text
+QA Agent -> Reviewer
+```
+
+### Documentation-only Change
+
+Recommended flow:
+
+```text
+Documentation Agent -> Reviewer
+```
+
+### Framework / Meta Change
+
+Recommended flow:
+
+```text
+Orchestrator -> Documentation Agent -> Reviewer / QA Agent -> Human Approval
+```
+
+Use when the request adds or revises operating-model rules, updates `AGENTS.md`, adds a skill catalog entry, defines a quality gate or evaluation checklist, clarifies role boundaries or routing behavior, or improves cross-platform agent structure — see `docs/workflows/stabilize-core.md` for the full flow and quality gate.
+
+For security-sensitive process changes, route through Security Reviewer before Human Approval instead.
+
+### Security-sensitive Change
+
+Security Reviewer must be included for:
+
+- Authentication
+- Authorization
+- Secrets
+- Sensitive data
+- Payment or financial logic
+- Privacy
+- Production access
+- Dependency/security control changes
+
+## Backward Routing Rules
+
+Load [`docs/workflow/dynamic-routing.md#backward-routing-and-qa-skip-policy`](docs/workflow/dynamic-routing.md#backward-routing-and-qa-skip-policy) before routing work backward or deciding whether QA may be skipped.
+
+## Skip Rules
+
+Load [`docs/workflow/dynamic-routing.md#backward-routing-and-qa-skip-policy`](docs/workflow/dynamic-routing.md#backward-routing-and-qa-skip-policy) before selecting skipped stages.
+
+## Required Handoff
+
+Load [`docs/workflow/handoff-contract.md`](docs/workflow/handoff-contract.md) before emitting any handoff.
+
+Use `docs/templates/HANDOFF.md`.
+
+## Definition of Done
+
+A work item is done only when:
+
+- Required artifacts exist
+- Required tests/checks are complete or explicitly not applicable
+- Risks and limitations are documented
+- PROJECT_STATUS.md is updated
+- TASK_LOG.md is updated
+- Next owner is clear

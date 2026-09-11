@@ -1,0 +1,77 @@
+[
+  {
+    "command": "npm run validate:contracts",
+    "exit": 0
+  },
+  {
+    "command": "npm run validate:ci-parity",
+    "exit": 0
+  },
+  {
+    "command": "npm run validate:project-state",
+    "exit": 0
+  },
+  {
+    "command": "npm run validate:dispatch-receipts",
+    "exit": 0
+  },
+  {
+    "command": "npm run validate:workflow-evidence",
+    "exit": 0
+  },
+  {
+    "command": "npm run validate:skill-parity",
+    "exit": 0
+  },
+  {
+    "command": "npm run validate:adapter-parity",
+    "exit": 0
+  },
+  {
+    "command": "npm run adr:audit",
+    "exit": 0
+  },
+  {
+    "command": "npm run validate:risk-register",
+    "exit": 0
+  },
+  {
+    "command": "npm run validate:review-gate",
+    "exit": 0
+  },
+  {
+    "command": "npm run validate:clearable-refs",
+    "exit": 0
+  },
+  {
+    "command": "npm run validate:skill-usage",
+    "exit": 0
+  },
+  {
+    "command": "npm run validate:metrics",
+    "exit": 0
+  },
+  {
+    "command": "npm run validate:context-budget",
+    "exit": 0
+  },
+  {
+    "command": "npm run validate:context-compatibility",
+    "exit": 0
+  },
+  {
+    "command": "npm test",
+    "exit": 0,
+    "result": "706 passed, 0 failed; no test-count acceptance floor"
+  },
+  {
+    "command": "validateContracts(process.cwd(), [\"docs/records/work-items/issue-249/task-state.json\"])",
+    "exit": 0,
+    "result": "[]; contract v1 state verifying; rework_count 0"
+  },
+  {
+    "command": "node --test --test-name-pattern=\"Issue #249 AC-05\" <isolated copied suite>",
+    "exit": 0,
+    "result": "green control; each of three mutated controls exits 1"
+  }
+]

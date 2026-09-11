@@ -1,0 +1,39 @@
+{
+  "name": "ai-agent-dynamic-workflow",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "test": "node --test",
+    "setup:hooks": "node scripts/setup-hooks.mjs",
+    "validate:contracts": "node scripts/validate-contracts.mjs",
+    "validate:ci-parity": "node scripts/validate-ci-parity.mjs",
+    "validate:project-state": "node scripts/validate-project-state.mjs",
+    "validate:dispatch-receipts": "node scripts/validate-dispatch-receipts.mjs",
+    "validate:workflow-evidence": "node scripts/validate-workflow-evidence.mjs",
+    "housekeeping:worktrees": "node scripts/housekeeping-worktrees.mjs",
+    "validate:skill-parity": "node scripts/validate-skill-parity.mjs",
+    "validate:adapter-parity": "node scripts/validate-adapter-parity.mjs",
+    "adr:audit": "node scripts/adr-audit.mjs",
+    "reset:template": "node scripts/reset-to-template.mjs",
+    "validate:risk-register": "node scripts/validate-risk-register.mjs",
+    "validate:review-gate": "node scripts/validate-review-gate.mjs",
+    "validate:clearable-refs": "node scripts/validate-clearable-refs.mjs",
+    "validate:skill-usage": "node scripts/validate-skill-usage.mjs",
+    "validate:metrics": "node scripts/validate-metrics.mjs",
+    "validate:context-budget": "node scripts/validate-context-budget.mjs",
+    "validate:context-compatibility": "node scripts/validate-context-compatibility.mjs",
+    "validate:pr-readiness": "node scripts/validate-pr-readiness.mjs",
+    "validate:edit-guards": "node scripts/validate-edit-guards.mjs",
+    "show:session-context": "node scripts/show-session-context.mjs",
+    "cleanup:closeout-labels": "node scripts/cleanup-stale-closeout-labels.mjs",
+    "backfill:work-items": "node scripts/backfill-work-item-records.mjs",
+    "repin:source-matrix": "node scripts/repin-source-matrix.mjs"
+  },
+  "devDependencies": {
+    "ajv": "^8.17.1",
+    "yaml": "^2.5.1"
+  }
+}

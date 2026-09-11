@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/chakrits/AI-Agent-Workflow/docs/contracts/schemas/status-cas-request.schema.json",
+  "title": "Status CAS Request v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["expected", "observed", "result", "resultData"],
+  "properties": {
+    "expected": { "$ref": "#/$defs/tuple" },
+    "observed": { "$ref": "#/$defs/tuple" },
+    "result": { "$ref": "#/$defs/result" },
+    "resultData": { "$ref": "#/$defs/resultData" }
+  },
+  "$defs": {
+    "digest": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "tuple": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["commitSha", "manifestDigest", "setDigest", "headDigest"],
+      "properties": {
+        "commitSha": { "type": "string", "pattern": "^[a-f0-9]{40}$" },
+        "manifestDigest": { "$ref": "#/$defs/digest" },
+        "setDigest": { "$ref": "#/$defs/digest" },
+        "headDigest": { "$ref": "#/$defs/digest" }
+      }
+    },
+    "result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["manifestDigest", "setDigest", "headDigest", "projectionDigest", "contentTreeDigest"],
+      "properties": {
+        "manifestDigest": { "$ref": "#/$defs/digest" },
+        "setDigest": { "$ref": "#/$defs/digest" },
+        "headDigest": { "$ref": "#/$defs/digest" },
+        "projectionDigest": { "$ref": "#/$defs/digest" },
+        "contentTreeDigest": { "$ref": "#/$defs/digest" }
+      }
+    },
+    "resultData": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["manifest", "set", "head", "projection", "contentTree"],
+      "properties": {
+        "manifest": { "type": "object", "additionalProperties": false, "required": ["schemaVersion", "manifestDigest", "setDigest"], "properties": { "schemaVersion": { "type": "string" }, "manifestDigest": { "$ref": "#/$defs/digest" }, "setDigest": { "$ref": "#/$defs/digest" } } },
+        "set": { "type": "array", "items": { "type": "object", "additionalProperties": false, "required": ["issueKey", "path", "recordDigest"], "properties": { "issueKey": { "type": "string" }, "path": { "type": "string" }, "recordDigest": { "$ref": "#/$defs/digest" } } } },
+        "head": { "type": "object", "additionalProperties": false, "required": ["schemaVersion", "activeIssueKeys", "setDigest"], "properties": { "schemaVersion": { "type": "string" }, "activeIssueKeys": { "type": "array", "items": { "type": "string" } }, "setDigest": { "$ref": "#/$defs/digest" } } },
+        "projection": { "type": "string" },
+        "contentTree": { "type": "array", "items": { "type": "object", "additionalProperties": false, "required": ["path", "bytes"], "properties": { "path": { "type": "string" }, "bytes": { "type": "string" } } } }
+      }
+    }
+  }
+}

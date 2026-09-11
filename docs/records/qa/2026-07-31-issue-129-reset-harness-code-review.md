@@ -1,0 +1,258 @@
+# Issue #129 Reset Verification Harness — Independent Code Review
+
+## Review Context
+
+| Item | Value |
+|---|---|
+| Role | Independent Reviewer Agent |
+| Branch / Reviewed Commit | `codex/issue-129-reset-template` / `1bbe76dee46ceb4e281ac3df204d90c583570cb7` |
+| Review Range | `4e4cbab..1bbe76dee46ceb4e281ac3df204d90c583570cb7` |
+| Change Type / Risk | Framework/Meta enhancement / Medium, destructive verification boundary |
+| Governing Contract | Plan D3a and AC-07, AC-08, AC-12 |
+| Prior QA | Preserved unchanged: `docs/records/qa/2026-07-31-issue-129-qa-report.md` remains BLOCKED |
+| Review Result | **BLOCKED** |
+
+## Change Reviewed
+
+- `scripts/verify-reset-template.mjs`: repository-owned clone setup, disposable-root attestation, confirmed reset invocation, post-reset validators, idempotency, cleanup, and primary-tree integrity comparison.
+- `test/verify-reset-template.test.mjs`: eight attestation tests using injected probes and reset child.
+
+## Blocking Findings
+
+### CR-129-H01 — Major — ownership marker is self-consistent caller data, not proof of harness creation
+
+**Evidence:** `scripts/verify-reset-template.mjs:43-48,60-63`. `attestDisposableClone()` accepts `marker` and `readMarker` from its caller, then proves ownership only by comparing the object returned by one caller-controlled input with the other caller-controlled input. Any caller can point the function at an existing standalone clean clone and supply matching fabricated values; the comparison does not establish that `runDisposableVerification()` created that candidate during the current run. The positive test demonstrates this false positive directly at `test/verify-reset-template.test.mjs:94-103`: no harness-created marker file exists, yet matching in-memory objects authorize `spawnReset`.
+
+**Impact:** D3a proof 1 and AC-07 are not met. The destructive child can be exposed after a self-consistent ownership claim without evidence that the harness created the candidate.
+
+**Required rework:** make ownership capability internal to the harness operation and inseparable from candidate creation. The destructive attestation path must derive/read the marker from the harness-created directory and compare it to run-local state that external callers cannot independently provide as matching data. Keep test seams below that ownership boundary (filesystem/process adapters), and add a negative case proving that a pre-existing standalone clone with a forged self-consistent marker cannot spawn reset.
+
+### CR-129-H02 — Major — the harness skips the required pre-apply sentinel and dirty-refusal proof
+
+**Evidence:** `scripts/verify-reset-template.mjs:125-145` clones, checks out, writes the marker, attests, and immediately spawns confirmed reset. It never seeds a QA-preservation sentinel, captures its bytes/hash, deliberately dirties a reset target, proves refusal/no mutation, or restores clean state before the confirmed apply. These are explicit harness-owned steps in plan §8 and D3a's setup/evidence boundary; the later validators at lines 151-151 do not substitute for them.
+
+**Impact:** AC-07/AC-08 verification can report success without proving the harness preserved QA evidence or that the dirty-target refusal left candidate and primary state unchanged in the actual harness flow.
+
+**Required rework:** before confirmed apply, have the repository-owned harness seed and hash the QA sentinel, exercise the dirty-target refusal through a non-destructive child-injection seam, prove zero reset spawn/no mutation, restore and attest exact clean commit state, then apply. Recheck the sentinel after apply and idempotency. Add integration assertions for each step and for cleanup on both success and injected failure.
+
+## Test-Quality Findings
+
+The focused suite passes 8/8 but is insufficient for this destructive boundary:
+
+- The positive case at `test/verify-reset-template.test.mjs:90-106` tests mocks rather than real ownership behavior: synthetic directories, mocked Git probes, and matching caller data can authorize the reset child without a clone or marker file.
+- There are no refusal tests for canonical Git-root mismatch, wrong exact commit, or primary/common-directory path aliases, despite D3a requiring every failed proof to demonstrate zero reset spawn.
+- There is no end-to-end harness test asserting setup, sentinel preservation, dirty refusal/no mutation, validator binding, cleanup, and primary integrity on injected success and failure.
+
+Developer should retain the fast injected guard tests, but add realistic local-Git integration coverage around the complete harness-owned operation. No production or test code was changed by the Reviewer.
+
+## Verification Evidence
+
+| Command | Result |
+|---|---|
+| `node --test test/verify-reset-template.test.mjs` | PASS, 8/8 |
+| `npm test` | PASS, full normal suite |
+| `npm run validate:contracts` | PASS |
+| `npm run validate:project-state` | PASS |
+| `npm run validate:skill-parity` | PASS, 25 skills |
+| `npm run adr:audit` | PASS |
+| `npm run validate:risk-register` | PASS |
+| `npm run validate:review-gate` | PASS |
+| `npm run validate:skill-usage` | PASS |
+| `npm run validate:metrics` | PASS |
+| `npm run validate:context-budget` | PASS |
+| `git diff --check` | PASS |
+| Repository-owned destructive harness | **NOT RUN** — safety review failed before destructive verification |
+
+All commands above ran against a clean exact starting tip `1bbe76dee46ceb4e281ac3df204d90c583570cb7`. GitHub Issue #129 and Draft PR #130, including owner clarification and the prior blocked QA report, were read independently. Existing failing PR checks (`validate-documentation-impact` and `work-item-readiness-freshness`) predate this review record and remain separate lifecycle/CI evidence for the blocked Draft PR.
+
+## Gate and Handoff
+
+| Item | Result |
+|---|---|
+| Findings | 0 Critical, 2 Major, 0 Minor, 0 Questions |
+| Review gate | **BLOCKED** |
+| Acceptance status | AC-07/AC-08/AC-12 not approved by Reviewer |
+| Required route | Developer rework, then fresh independent review; fresh QA remains downstream and prior QA verdict is unchanged |
+| QA focus after rework | Forged/pre-existing candidate ownership, path aliases/common-dir linkage, exact commit/clean state, zero spawn for every failed proof, sentinel and dirty-refusal flow, cleanup and primary integrity on success/failure |
+
+## Completion Check
+
+| Item | Status | Notes |
+|---|---|---|
+| Workflow / Agent | PASS | Independent Reviewer; no Developer code fixes |
+| Skill Used | PASS | `code-review-gate`, `test-quality-discipline`, `verification-before-completion`, `git-workflow-and-versioning` |
+| Artifacts Updated | PASS | This review record only |
+| Tests / Checks | PASS with scope limit | Normal branch checks passed; destructive harness intentionally withheld after blocking safety findings |
+| Quality Gate | **BLOCKED** | Two Major findings require Developer rework |
+| Risks / Limitations | RECORDED | No fresh QA claim; no destructive reset or history rewrite executed |
+| Next Recommended Agent | Developer Agent | Rework CR-129-H01 and CR-129-H02, then independent re-review |
+
+## Re-review — Commit `7dacb82e440880f1abfe59b03a498a47ab77b591`
+
+### Re-review Result
+
+**BLOCKED.** CR-129-H01 and CR-129-H02 are closed at the production-flow level, but one new Major cleanup/integrity defect remains and the previously recorded zero-spawn test-quality gap is only partially addressed. The repository-owned destructive harness was therefore not run.
+
+### Finding Closure
+
+| Finding | Status | Independent evidence |
+|---|---|---|
+| CR-129-H01 | **CLOSED** | `scripts/verify-reset-template.mjs:67-137` now creates `candidateRoot` and frozen run ownership inside `runDisposableVerification()`, writes and reads the marker internally, and keeps the attestation closure private. Callers cannot provide a candidate root, marker, marker reader, script path, or destructive cwd. `test/verify-reset-template.test.mjs:45-64` confirms the old public attestation export is absent and a pre-existing clone with a forged marker never becomes any reset call's cwd. |
+| CR-129-H02 | **CLOSED** | `scripts/verify-reset-template.mjs:139-181` now seeds an ignored QA sentinel, attests the source commit, dirties `DECISIONS.md`, requires dirty refusal, hashes the complete candidate before/after refusal, restores the exact bytes, re-attests commit/clean state, applies, rechecks the sentinel, validates, commits a baseline, re-attests, and runs idempotency. `test/verify-reset-template.test.mjs:66-84` confirms phase order, evidence flags, candidate cleanup, and primary cleanliness. |
+
+### CR-129-H03 — Major — cleanup failure skips the primary-integrity proof
+
+**Evidence:** `scripts/verify-reset-template.mjs:192-203` performs `await rm(runParent, { recursive: true, force: true })` before collecting `primaryAfter`. If cleanup rejects, JavaScript exits the `finally` block at line 193, so commit/status/tree-digest integrity is never compared and the candidate may remain. This is exactly the requested cleanup-failure boundary. The test named `injected failure cleans candidate and preserves primary integrity` at `test/verify-reset-template.test.mjs:128-146` injects an **apply** failure and then observes successful cleanup; it does not cause cleanup itself to fail.
+
+**Impact:** the harness cannot prove primary integrity or complete candidate cleanup on one of its required failure modes. A cleanup error also masks whether the primary remained byte-for-byte clean.
+
+**Required rework:** put cleanup and primary-integrity collection into independent guarded operations so the integrity comparison always runs even when cleanup fails. Preserve both errors when both occur. Add an injected cleanup adapter below the ownership boundary and a test that forces cleanup failure, asserts the primary comparison still executes, reports the cleanup failure, and performs safe test teardown afterward.
+
+### Remaining Test-Quality Gap — Major
+
+The rework adds realistic local-Git integration for forged candidates, canonical Git-root mismatch, wrong commit, a primary path alias, phase ordering, successful cleanup, and apply-failure cleanup. It does **not** satisfy the recorded requirement that every failed D3a proof demonstrates zero destructive spawn:
+
+- No missing or foreign ownership-marker refusal test.
+- No linked-worktree/shared-common-directory or canonical common-directory alias refusal test.
+- No dirty-clone attestation refusal test.
+- No reset-script/cwd mismatch refusal test.
+- No cleanup-failure test; the existing failure test is an apply failure followed by successful cleanup.
+
+These cases were present in the approved D3a regression list or explicitly requested in the re-review packet. The private attestation closure makes direct unit invocation unavailable, but the existing dependency seam can still inject Git-root/common-dir/commit/status outcomes; a narrowly scoped post-creation test hook or filesystem adapter can exercise marker/script conditions without exposing candidate selection or destructive cwd. Every such case must assert no `runReset` call occurred and primary integrity was checked.
+
+### Re-review Verification Evidence
+
+| Command | Result |
+|---|---|
+| `node --test test/verify-reset-template.test.mjs` | PASS, 7/7 |
+| `npm test` | PASS, 309/309 |
+| `npm run validate:contracts` | PASS |
+| `npm run validate:project-state` | PASS |
+| `npm run validate:skill-parity` | PASS, 25 skills |
+| `npm run adr:audit` | PASS, 15 ADRs / 41 decision keywords |
+| `npm run validate:risk-register` | PASS |
+| `npm run validate:review-gate` before review-record commit | Expected FAIL: tip changes two scripts and the re-review evidence was not yet in `HEAD~1..HEAD` |
+| `npm run validate:skill-usage` | PASS |
+| `npm run validate:metrics` | PASS |
+| `npm run validate:context-budget` | PASS, 26,020 / 30,000 |
+| `git diff --check` | PASS |
+| Repository-owned destructive harness | **NOT RUN** — re-review gate remains blocked |
+
+### Re-review Gate and Handoff
+
+| Item | Result |
+|---|---|
+| Rework range | `576f5cc..7dacb82e440880f1abfe59b03a498a47ab77b591` |
+| Findings after re-review | CR-129-H01 closed; CR-129-H02 closed; CR-129-H03 Major open; Major test-quality gap open |
+| Review gate | **BLOCKED** |
+| Prior QA | Unchanged and still BLOCKED; this is not fresh QA evidence |
+| Required route | Developer fixes CR-129-H03 and completes every recorded negative case, then a fresh independent re-review |
+| Fresh-QA focus after PASS review | Real repository-owned harness at exact clean review tip; AC-01–AC-12 re-derived independently; sentinel/refusal/restoration/order; aliases/common-dir linkage; exact commit/clean state; zero spawn on all proofs; cleanup and primary integrity on success/failure; post-reset validators and idempotency |
+
+## Final Re-review — Commit `6bcae6d6fb7a693ea797eec84d77a6ec2f637993`
+
+### Final Re-review Result
+
+**BLOCKED.** CR-129-H03 is closed and all requested refusal scenarios now have passing zero-`runReset`/integrity-observation tests, but the new post-creation test hook reopens the ownership boundary as a Major production seam. The repository-owned destructive harness was not run.
+
+### Closure Evidence
+
+| Finding / gap | Status | Independent evidence |
+|---|---|---|
+| CR-129-H03 | **CLOSED** | `scripts/verify-reset-template.mjs:198-229` captures operation, cleanup, and primary-integrity errors independently. Cleanup rejection cannot skip the HEAD/status/tree-digest snapshot, and multiple errors are preserved as an `AggregateError` containing each original error. `test/verify-reset-template.test.mjs:142-170` injects simultaneous operation, cleanup, and integrity failures and proves all three survive while the integrity observer runs once. |
+| Missing/foreign marker | **CLOSED AS TEST GAP** | `test/verify-reset-template.test.mjs:194-211` removes or replaces the marker and proves zero `runReset` calls plus one primary-integrity observation. |
+| Linked/common-dir canonical alias | **CLOSED AS TEST GAP** | `test/verify-reset-template.test.mjs:213-224` returns a symlink alias to the primary common directory and proves refusal before `runReset` plus integrity observation. |
+| Dirty clone | **CLOSED AS TEST GAP** | `test/verify-reset-template.test.mjs:226-233` injects dirty candidate status and proves refusal before `runReset` plus integrity observation. |
+| Script/cwd mismatch | **CLOSED AS TEST GAP** | `test/verify-reset-template.test.mjs:235-246` replaces the candidate script with a symlink resolving into the primary root and proves canonical containment refusal before `runReset` plus integrity observation. |
+
+### CR-129-H04 — Major — post-creation hook exposes the ownership token and can replace the candidate
+
+**Evidence:** `scripts/verify-reset-template.mjs:139-149` writes the unguessable ownership marker and then invokes caller-supplied `dependencies.afterCandidateCreated` with `candidateRoot`, `markerPath`, `primaryRoot`, and `runParent`. The callback therefore runs inside the protected interval and has a direct path to read the just-created run token. It can read `markerPath`, remove/rename the harness clone, place a different clean standalone clone at the same `candidateRoot`, and copy the stolen marker into its `.git`. Canonical root, script containment, standalone common directory, exact commit, and clean status can all still pass because the replacement occupies the same canonical path and commit. This violates the final packet requirement that the hook cannot select the candidate or token and reintroduces the mechanism behind CR-129-H01.
+
+The new tests use this broad hook to delete/replace the marker and script (`test/verify-reset-template.test.mjs:181-182,194-246`) but do not test that the hook itself lacks authority to reproduce ownership. Passing negative tests therefore coexist with a caller-controlled ownership bypass.
+
+**Impact:** a caller-injected seam can substitute a foreign candidate after setup and before attestation, while retaining a self-consistent copied token. D3a proof 1—harness-created candidate for the current run—is not fail-closed.
+
+**Required rework:** remove the path-bearing post-creation callback from the production operation. Replace it with capability-limited fault adapters for the specific proof being tested (for example marker-read result, common-dir/status probes, and canonical script resolution) that cannot read the real token, replace the candidate tree, choose candidate/cwd/script, or run arbitrary code in the protected interval. Add a test asserting the public dependency surface exposes no candidate/token/reset-cwd/reset-script selection capability; retain all 13 behavioral cases through the narrower seams.
+
+### Final Re-review Verification Evidence
+
+| Command | Result |
+|---|---|
+| `node --test test/verify-reset-template.test.mjs` | PASS, 13/13 |
+| `npm test` | PASS, 315/315 |
+| `npm run validate:contracts` | PASS |
+| `npm run validate:project-state` | PASS |
+| `npm run validate:skill-parity` | PASS, 25 skills |
+| `npm run adr:audit` | PASS, 15 ADRs / 41 decision keywords |
+| `npm run validate:risk-register` | PASS |
+| `npm run validate:review-gate` before review-record commit | Expected FAIL: tip changes two scripts and final re-review evidence was not yet in `HEAD~1..HEAD` |
+| `npm run validate:skill-usage` | PASS |
+| `npm run validate:metrics` | PASS |
+| `npm run validate:context-budget` | PASS, 26,020 / 30,000 |
+| `git diff --check` | PASS |
+| Repository-owned destructive harness | **NOT RUN** — final safety review remains blocked |
+
+### Final Gate and Handoff
+
+| Item | Result |
+|---|---|
+| Rework range | `bbf338e..6bcae6d6fb7a693ea797eec84d77a6ec2f637993` |
+| Findings after final re-review | CR-129-H03 closed; recorded refusal tests closed; CR-129-H04 Major open |
+| Review gate | **BLOCKED** |
+| Prior QA | Unchanged and still BLOCKED; no fresh QA claim |
+| Required route | Developer removes the ownership-capable hook, retains coverage through narrow seams, then independent re-review |
+| Fresh-QA packet focus after PASS review | Exact clean review commit; repository-owned harness only; AC-01–AC-12 independently re-derived; no dependency seam capable of selecting candidate/token/reset cwd/script; real sentinel, dirty refusal/restoration/re-attestation/order; canonical aliases/common-dir; exact commit/clean state; zero reset spawn on every failed proof; cleanup/error aggregation and primary HEAD/status/digest on all outcomes; post-reset validators and real idempotency |
+
+## H04 Final Re-review — Commit `a4ddaa5194e57e03f3a07de1263920a0ebbe813c`
+
+### Result
+
+**PASS.** CR-129-H04 is closed, H01–H03 show no regression, all prior Major test-quality gaps remain closed, and no Critical/Major/Minor finding remains in the reviewed range `ddb5a78..a4ddaa5194e57e03f3a07de1263920a0ebbe813c`.
+
+### H04 Closure
+
+`scripts/verify-reset-template.mjs:79-105` now exposes only opaque/fixed test controls: a fault string, simulation booleans, a phase-only observer used exclusively while real reset is disabled, and no-argument cleanup/integrity observers. Candidate root and frozen ownership remain local at lines 91-93. Marker path, token, canonical reset cwd, and reset script remain private inside the operation/attestation closures. The removed `afterCandidateCreated` callback is ignored, proven by `test/verify-reset-template.test.mjs:54-72`.
+
+Opaque faults are applied by closed internal branches at `scripts/verify-reset-template.mjs:119-159`; they return no protected data and accept no path/token callback. Missing/foreign marker, root mismatch, common-directory alias, wrong commit, dirty clone, and script mismatch cannot be composed to replace the candidate or reproduce ownership. `runReset()` fixes cwd to the private candidate and receives the privately attested script path; when `simulateReset` is true, no child process is spawned.
+
+Callbacks remaining on the public dependency object do not cross the destructive ownership boundary:
+
+- `onResetPhase(phase)` receives only a phase and runs only inside the simulated branch.
+- `beforeCleanup()` receives no arguments and runs after all reset/idempotency work.
+- `onPrimaryIntegrityCheck()` receives no arguments and runs after cleanup and after HEAD/status/digest are collected.
+
+### H01–H03 Non-regression
+
+| Finding | Status | Evidence |
+|---|---|---|
+| H01 ownership | CLOSED | Candidate creation, ownership token, marker, cwd, script, canonical root/common-dir and commit/clean checks remain private and inseparable. Forged pre-existing clone test remains green. |
+| H02 lifecycle | CLOSED | Sentinel, dirty refusal, target restoration, re-attestation, apply, validators, baseline commit, second attestation, idempotency, and cleanup order remain unchanged and covered. |
+| H03 cleanup/integrity | CLOSED | Operation, cleanup, and primary-integrity errors remain independently captured and aggregated; cleanup failure still cannot skip HEAD/status/digest collection. |
+
+### Pre-commit Verification
+
+| Command | Result |
+|---|---|
+| `node --test test/verify-reset-template.test.mjs` | PASS, 14/14 |
+| `npm test` | PASS, 316/316 |
+| `npm run validate:contracts` | PASS |
+| `npm run validate:project-state` | PASS |
+| `npm run validate:skill-parity` | PASS, 25 skills |
+| `npm run adr:audit` | PASS, 15 ADRs / 41 decision keywords |
+| `npm run validate:risk-register` | PASS |
+| `npm run validate:review-gate` before record commit | Expected FAIL: reviewed tip changes two scripts and final evidence was not yet committed |
+| `npm run validate:skill-usage` | PASS |
+| `npm run validate:metrics` | PASS |
+| `npm run validate:context-budget` | PASS, 26,020 / 30,000 |
+| `git diff --check` | PASS |
+
+### Final Review Gate
+
+| Item | Result |
+|---|---|
+| Finding tally | 0 Critical, 0 Major, 0 Minor, 0 Questions |
+| Review decision | **PASS** |
+| Prior QA | Preserved unchanged and still BLOCKED; this review is not QA evidence |
+| Next required evidence | Repository-owned harness at the clean review-record tip, then fresh independent QA of AC-01–AC-12 |
+| Fresh-QA focus | Exact clean review commit; repository-owned harness only; independently re-derive all ACs; confirm opaque seams cannot expose candidate/token/marker/cwd/script; sentinel and dirty refusal/restoration/order; canonical root/common-dir/aliases; exact commit/clean state; zero reset spawn on all failed proofs; cleanup/error aggregation and primary integrity; post-reset validators and real idempotency |

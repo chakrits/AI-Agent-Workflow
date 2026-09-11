@@ -1,0 +1,29 @@
+{
+  "schemaVersion": "context-pack/v1-vectors",
+  "canonicalization": "status-jcs-v1",
+  "positive": [
+    {
+      "id": "nested-key-order",
+      "value": { "z": { "b": 2, "a": 1 }, "a": "é" },
+      "canonicalUtf8": "{\"a\":\"é\",\"z\":{\"a\":1,\"b\":2}}",
+      "digest": "3e9ac498ed419ce3963f3250d08d96d4bd28a354724751f7fafb37d133203e67"
+    },
+    {
+      "id": "array-order",
+      "value": { "a": 1, "b": [true, null, "x"] },
+      "canonicalUtf8": "{\"a\":1,\"b\":[true,null,\"x\"]}",
+      "digest": "eca8cfb31ab74533e1eb2f4c74d2d55dfe3c79ac704787e54be8647ea7777eb1"
+    },
+    {
+      "id": "pack-identity",
+      "value": { "packId": "pack-1", "authority": "legacy", "schemaVersion": "context-pack/v1" },
+      "canonicalUtf8": "{\"authority\":\"legacy\",\"packId\":\"pack-1\",\"schemaVersion\":\"context-pack/v1\"}",
+      "digest": "f3e28ae17a06ee9504afee7be8e09dec9cd66f65e04672bfb4371cfeac5f58c4"
+    }
+  ],
+  "negative": [
+    { "id": "unsafe-number", "value": 9007199254740992, "error": "JSON_DOMAIN_ERROR" },
+    { "id": "negative-zero", "value": 0, "error": "JSON_DOMAIN_ERROR", "note": "constructed as -0 by the test" },
+    { "id": "oversized-pack", "error": "CANONICAL_SIZE_LIMIT" }
+  ]
+}

@@ -1,0 +1,163 @@
+name: Create documentation sync exception
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  validate-project-state:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - run: npm run validate:project-state
+
+  create-documentation-sync-issue:
+    needs: validate-project-state
+    if: ${{ always() && needs.validate-project-state.result == 'failure' }}
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - name: Create a documentation-sync exception issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const marker = `<!-- documentation-sync:commit-${context.sha} -->`;
+            try {
+              await github.rest.issues.getLabel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                name: 'documentation-sync'
+              });
+            } catch (error) {
+              if (error.status !== 404) throw error;
+              await github.rest.issues.createLabel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                name: 'documentation-sync',
+                color: 'd93f0b',
+                description: 'Documentation state audit exception'
+              });
+            }
+
+            const { data: issues } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              labels: 'documentation-sync',
+              state: 'all',
+              per_page: 100
+            });
+            if (issues.some((issue) => issue.body?.includes(marker))) {
+              core.info(`Documentation sync exception already exists for ${context.sha}.`);
+              return;
+            }
+
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `[Documentation Sync] State audit failed for ${context.sha.slice(0, 7)}`,
+              labels: ['documentation-sync'],
+              body: `${marker}
+
+            The default-branch project-state audit failed after this commit:
+
+            - Commit: https://github.com/${context.repo.owner}/${context.repo.repo}/commit/${context.sha}
+
+            Review \`PROJECT_STATUS.md\`, correct the stale state in a dedicated documentation-sync PR, then close this issue with the PR and review-record links.`
+            });
+
+  create-post-merge-closeout-handoff:
+    needs: validate-project-state
+    if: ${{ needs.validate-project-state.result == 'success' }}
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      pull-requests: write
+    steps:
+      - name: Signal normal post-merge documentation closeout
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: pullRequests } = await github.rest.repos.listPullRequestsAssociatedWithCommit({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              commit_sha: context.sha
+            });
+            const pullRequest = pullRequests.find((item) => item.merged_at) ?? pullRequests[0];
+            if (!pullRequest) {
+              core.info(`No pull request is associated with ${context.sha}; no closeout signal was created.`);
+              return;
+            }
+
+            const closeoutMatch = pullRequest.body?.match(
+              /<!-- post-merge-closeout: complete; source-pr-(\d+) -->/
+            );
+            if (closeoutMatch) {
+              const sourceNumber = Number(closeoutMatch[1]);
+              await github.rest.issues.removeLabel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: sourceNumber,
+                name: 'post-merge-closeout'
+              }).catch((error) => {
+                if (error.status !== 404) throw error;
+                core.info(`No closeout label remains on source PR #${sourceNumber}.`);
+              });
+              core.info(`Completed closeout for source PR #${sourceNumber}.`);
+              return;
+            }
+
+            const marker = `<!-- post-merge-closeout:commit-${context.sha} -->`;
+            try {
+              await github.rest.issues.getLabel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                name: 'post-merge-closeout'
+              });
+            } catch (error) {
+              if (error.status !== 404) throw error;
+              await github.rest.issues.createLabel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                name: 'post-merge-closeout',
+                color: '1d76db',
+                description: 'Normal post-merge documentation closeout pending'
+              });
+            }
+            const comments = await github.paginate(github.rest.issues.listComments, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: pullRequest.number,
+              per_page: 100
+            });
+            if (!pullRequest.labels.some((label) => label.name === 'post-merge-closeout')) {
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: pullRequest.number,
+                labels: ['post-merge-closeout']
+              });
+            }
+            if (comments.some((comment) => comment.body?.includes(marker))) {
+              core.info(`Post-merge closeout handoff already exists for ${context.sha}.`);
+              return;
+            }
+
+            const handoffBody = [
+              marker,
+              '',
+              `Default-branch validation passed for ${context.sha}. Documentation Agent: claim the post-merge-closeout label, open a closeout PR that updates project state/history, and include <!-- post-merge-closeout: complete; source-pr-${pullRequest.number} --> in its body. The closeout merge removes this label. No documentation-sync Issue is required for a passing audit.`
+            ].join('\n');
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: pullRequest.number,
+              body: handoffBody
+            });

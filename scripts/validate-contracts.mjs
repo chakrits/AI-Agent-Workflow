@@ -1,0 +1,260 @@
+import { readFile, readdir } from 'node:fs/promises';
+import path from 'node:path';
+import { pathToFileURL } from 'node:url';
+import Ajv2020 from 'ajv/dist/2020.js';
+import YAML from 'yaml';
+
+async function readYaml(file) {
+  return YAML.parse(await readFile(file, 'utf8'));
+}
+
+async function examplePaths(rootDir) {
+  const directory = path.join(rootDir, 'docs/contracts/examples');
+  return (await readdir(directory))
+    .filter((name) => name.endsWith('.yaml'))
+    .map((name) => path.join('docs/contracts/examples', name));
+}
+
+async function loadPolicies(rootDir) {
+  const contractDir = path.join(rootDir, 'docs/contracts');
+  const policyFiles = (await readdir(contractDir))
+    .filter((name) => name.endsWith('-workflow.yaml'))
+    .map((name) => path.join(contractDir, name));
+  const policies = {};
+  for (const file of policyFiles) {
+    const policy = await readYaml(file);
+    policies[policy.workflow_id] = policy;
+  }
+  return policies;
+}
+
+async function loadSchemas(rootDir) {
+  const schemaDir = path.join(rootDir, 'docs/contracts/schemas');
+  const schemaFiles = (await readdir(schemaDir))
+    .filter((name) => name.endsWith('-state.schema.json'))
+    .map((name) => path.join(schemaDir, name));
+  const schemas = {};
+  for (const file of schemaFiles) {
+    const schema = JSON.parse(await readFile(file, 'utf8'));
+    // Map schema filename to workflow_id:
+    //   task-state.schema.json  -> bug-fix
+    //   new-feature-state.schema.json -> new-feature
+    const basename = path.basename(file, '-state.schema.json');
+    const workflowId = basename === 'task' ? 'bug-fix' : basename;
+    schemas[workflowId] = schema;
+  }
+  return schemas;
+}
+
+function eventKey(event) {
+  return `${event.from} -> ${event.to}`;
+}
+
+function hasMeaningfulValue(value) {
+  if (value === null || value === false) {
+    return false;
+  }
+  if (typeof value === 'string') {
+    return value.trim().length > 0;
+  }
+  if (Array.isArray(value)) {
+    return value.length > 0 && value.every(hasMeaningfulValue);
+  }
+  if (typeof value === 'object') {
+    const values = Object.values(value);
+    return values.length > 0 && values.every(hasMeaningfulValue);
+  }
+  return true;
+}
+
+// The state name that precedes `rework` is contract-specific (bug-fix/
+// new-feature call it "verifying"; config-change calls it "monitoring";
+// data-change calls it "validating"). Derived from the policy's own
+// transitions rather than hardcoded, so this generalizes to any contract
+// shape instead of silently misfiring for one whose pre-rework state isn't
+// literally named "verifying".
+function reworkSourceStates(policy) {
+  return new Set(policy.transitions.filter((transition) => transition.to === 'rework').map((transition) => transition.from));
+}
+
+// A transition's optional `when` clause branches the same `from` state on an
+// evidence field's value -- e.g. Config Change's risk_tier (single value) or
+// Data Change's data_change_kind (a combinable set, hence the `_includes`/
+// `_excludes` suffix forms). This catches an instance that takes a branch
+// inconsistent with its own recorded evidence (e.g. risk_tier: medium but
+// took the low-risk fast-track transition anyway).
+function validateWhenClause(transition, event, state, displayPath) {
+  if (!transition.when) return [];
+  const errors = [];
+  for (const [key, expected] of Object.entries(transition.when)) {
+    if (key.endsWith('_includes')) {
+      const field = key.slice(0, -'_includes'.length);
+      const actual = state.evidence[field];
+      if (!Array.isArray(actual) || !actual.includes(expected)) {
+        errors.push(
+          `${displayPath}: ${eventKey(event)} requires evidence ${field} to include "${expected}" (got ${JSON.stringify(actual)})`
+        );
+      }
+    } else if (key.endsWith('_excludes')) {
+      const field = key.slice(0, -'_excludes'.length);
+      const actual = state.evidence[field];
+      if (Array.isArray(actual) && actual.includes(expected)) {
+        errors.push(`${displayPath}: ${eventKey(event)} requires evidence ${field} to exclude "${expected}"`);
+      }
+    } else {
+      const actual = state.evidence[key];
+      if (actual !== expected) {
+        errors.push(
+          `${displayPath}: ${eventKey(event)} requires evidence ${key} to equal "${expected}" (got ${JSON.stringify(actual)})`
+        );
+      }
+    }
+  }
+  return errors;
+}
+
+function validateHistory(policy, state, displayPath) {
+  const errors = [];
+  const transitions = new Map(
+    policy.transitions.map((transition) => [`${transition.from} -> ${transition.to}`, transition])
+  );
+  const reworkSources = reworkSourceStates(policy);
+  const reworks = state.history.filter(
+    (event) => reworkSources.has(event.from) && event.to === 'rework'
+  ).length;
+
+  if (state.history.length === 0 && state.state !== 'intake') {
+    errors.push(`${displayPath}: non-intake state requires history`);
+  }
+  if (state.history.length > 0 && state.history[0].from !== 'intake') {
+    errors.push(`${displayPath}: history must start at intake`);
+  }
+
+  for (const [index, event] of state.history.entries()) {
+    const previousEvent = state.history[index - 1];
+    if (previousEvent && previousEvent.to !== event.from) {
+      errors.push(`${displayPath}: history must be continuous`);
+    }
+    const transition = transitions.get(eventKey(event));
+    if (!transition) {
+      errors.push(`${displayPath}: illegal transition: ${eventKey(event)}`);
+      continue;
+    }
+    errors.push(...validateWhenClause(transition, event, state, displayPath));
+    for (const evidence of transition.requires) {
+      if (!event.evidence_refs.includes(evidence)) {
+        errors.push(`${displayPath}: ${eventKey(event)} requires evidence ${evidence}`);
+      }
+      if (!hasMeaningfulValue(state.evidence[evidence])) {
+        errors.push(`${displayPath}: evidence ${evidence} must have a meaningful value`);
+      }
+    }
+    for (const evidence of event.evidence_refs) {
+      if (!Object.hasOwn(state.evidence, evidence)) {
+        errors.push(`${displayPath}: evidence ${evidence} must exist in evidence map`);
+      }
+    }
+    if (transition.terminal_requirements) {
+      const requirements = transition.terminal_requirements;
+      if (state.rework_count !== requirements.rework_count) {
+        errors.push(
+          `${displayPath}: ${eventKey(event)} is allowed only after exactly ${requirements.rework_count} rework transitions`
+        );
+      }
+      if (
+        index !== state.history.length - 1 ||
+        state.state !== requirements.state ||
+        state.stop_reason !== requirements.stop_reason ||
+        state.next_route !== requirements.next_route ||
+        Object.entries(requirements.evidence).some(
+          ([key, value]) => state.evidence[key] !== value
+        )
+      ) {
+        errors.push(
+          `${displayPath}: ${eventKey(event)} requires terminal blocked state, human_review_required stop reason, human-reviewer route, and human_review_required: true`
+        );
+      }
+    }
+  }
+  if (state.history.length > 0 && state.history.at(-1).to !== state.state) {
+    errors.push(`${displayPath}: final history transition must reach state ${state.state}`);
+  }
+  if (state.max_rework_attempts !== policy.max_rework_attempts) {
+    errors.push(
+      `${displayPath}: max_rework_attempts must equal policy value ${policy.max_rework_attempts}`
+    );
+  }
+  if (reworks !== state.rework_count) {
+    errors.push(`${displayPath}: rework_count must equal history rework transitions`);
+  }
+  if (reworks > policy.max_rework_attempts) {
+    errors.push(`${displayPath}: rework_count must not exceed ${policy.max_rework_attempts}`);
+  }
+  if (state.state === 'blocked' && reworks === policy.max_rework_attempts) {
+    const terminalEvent = state.history.at(-1);
+    const hasTerminalHumanReview =
+      terminalEvent &&
+      reworkSources.has(terminalEvent.from) &&
+      terminalEvent.to === 'blocked' &&
+      terminalEvent.evidence_refs.includes('human_review_required') &&
+      state.evidence.human_review_required === true;
+    if (!hasTerminalHumanReview) {
+      errors.push(
+        `${displayPath}: blocked task after retry limit requires a terminal rework-source-state -> blocked transition with human_review_required: true`
+      );
+    }
+    if (state.stop_reason !== 'human_review_required') {
+      errors.push(`${displayPath}: blocked task after retry limit requires human_review_required`);
+    }
+  }
+  return errors;
+}
+
+export async function validateContracts(rootDir, statePaths = []) {
+  const policies = await loadPolicies(rootDir);
+  const schemas = await loadSchemas(rootDir);
+  const validateSchema = {};
+  for (const [workflowId, schema] of Object.entries(schemas)) {
+    validateSchema[workflowId] = new Ajv2020({ allErrors: true, strict: false }).compile(schema);
+  }
+  const paths = statePaths.length ? statePaths : await examplePaths(rootDir);
+  const errors = [];
+
+  for (const relativePath of paths) {
+    const state = await readYaml(path.join(rootDir, relativePath));
+    const workflowId = state.workflow_id;
+    const policy = policies[workflowId];
+    const validator = validateSchema[workflowId];
+
+    if (!policy) {
+      errors.push(`${relativePath}: unknown workflow_id ${workflowId}`);
+      continue;
+    }
+    if (!validator) {
+      errors.push(`${relativePath}: no schema for workflow_id ${workflowId}`);
+      continue;
+    }
+    if (!validator(state)) {
+      errors.push(
+        `${relativePath}: ${validator.errors.map((error) => error.message).join(', ')}`
+      );
+      continue;
+    }
+    if (state.contract_version !== policy.contract_version) {
+      errors.push(`${relativePath}: contract_version does not match policy`);
+      continue;
+    }
+    errors.push(...validateHistory(policy, state, relativePath));
+  }
+  return errors;
+}
+
+if (import.meta.url === pathToFileURL(process.argv[1]).href) {
+  const errors = await validateContracts(process.cwd());
+  if (errors.length) {
+    console.error(errors.join('\n'));
+    process.exitCode = 1;
+  } else {
+    console.log('Contract validation passed.');
+  }
+}

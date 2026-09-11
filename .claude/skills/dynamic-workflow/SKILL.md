@@ -1,0 +1,50 @@
+---
+name: dynamic-workflow
+description: Use for dynamic AI agent routing, change classification, risk classification, quality gates, and agent handoff in software engineering workflows.
+---
+
+# dynamic-workflow
+
+## Purpose
+
+Use for dynamic AI agent routing, change classification, risk classification, quality gates, and agent handoff in software engineering workflows.
+
+## Instructions
+
+Read AGENTS.md, PROJECT_STATUS.md, and docs/workflow/*.md. Classify the request, choose the minimum safe workflow, list required agents/artifacts/gates, and produce a structured handoff.
+
+## Canonical References
+
+- `AGENTS.md`
+- `PROJECT_STATUS.md`
+- `docs/contracts/bug-fix-workflow.yaml`
+- `docs/workflow/dynamic-routing.md`
+- `docs/workflow/role-definitions.md`
+- `docs/workflow/quality-gates.md`
+- `docs/workflow/handoff-contract.md`
+- `docs/templates/`
+- `docs/operating-model/AGENT_PERSONAS.md`
+
+## Lifecycle Labels
+
+For Feature and Enhancement work, require `status:spec-ready` before Developer implementation and keep exactly one current `phase:` label. Follow `docs/workflow/dynamic-routing.md` for the portable lifecycle contract and exceptions.
+
+## Optional Task-Execution Mode
+
+Select task-execution mode only when the approved plan has two or more dependent tasks, or one Medium/High-risk task that changes production decision logic, an integration/shared contract, or security/data behavior. It is optional for Low-risk documentation or mechanical work and is never universal ceremony. When selected, emit a Task Brief (`docs/templates/TASK_BRIEF.md`) per task, require an Implementer Report, and route review to the QA Agent in `task_review` mode with pinned `base_sha`/`head_sha`. Track `task_review_rework_count` (maximum two fix rounds, then stop for the Human Maintainer) separately from the lifecycle `rework_count`. These artifacts are not lifecycle handoffs. Follow `docs/workflow/task-execution-mode.md` for entry/exit criteria, artifact contracts, the bounded review loop, and the runtime-dispatch versus receipt-ledger state glossary; this adapter must not redefine it.
+
+## Output Rules
+
+- Use the relevant template in `docs/templates/`.
+- Document assumptions and open questions.
+- Do not skip required gates.
+- Update `PROJECT_STATUS.md` and `TASK_LOG.md` when the platform allows file edits.
+- After selecting a role, read its matching canonical persona to calibrate collaboration and communication. A persona does not replace or override the operating policy, role definition, evidence requirement, or human gate.
+- For a terminal handoff, follow `docs/workflow/handoff-contract.md`: choose exactly one `Next Action` (`Dispatch`, `Human review`, or `Blocked`). A non-human route requires a dispatch receipt/result in the active Orchestrator turn; a prose-only next owner is incomplete. Keep `dispatched` distinct from `acknowledged`; if no callback exists, report `acknowledgement pending`. Emit a Boss-visible event with outcome, evidence, owner, receipt state, and any decision needed.
+- Supervision is in-turn only: the parent invokes the target child and awaits its terminal receipt within the same active Orchestrator turn, recording native `Completion Event Evidence` before it ends or yields; no host capability in this contract resumes a parent after it ends or yields. If a required dispatch cannot complete in-turn, record `host_completion_unavailable` and stop in that turn rather than end or yield on a claimed continuation. The parent consumes each terminal result exactly once, emits one Boss event, and routes a permitted successor or stops within that turn. `timed_out` and `cancelled` are terminal outcomes; cross-turn/event-driven resumption is deferred to GitHub Issue #35; heartbeat/schedule use is diagnostic-only after a block and cannot route work.
+- When a dispatched subagent times out, do not implement the fix directly. Re-dispatch with refined context, or escalate to Boss with the timeout evidence. Record the timeout and re-dispatch/escalation decision in TASK_LOG with `Dispatch State: timed_out` and `Implementation Owner` fields.
+- When creating a GitHub Issue, create a work item record at `docs/records/work-items/YYYY-MM-DD-issue-NN.md` using the WORK_ITEM.md template. Link the issue URL, SDD path, PR numbers, and lessons learned entry.
+- **Never use `Closes #NN` in intermediate PRs.** Only use `Closes #NN` in the terminal closeout PR. Intermediate PRs (sub-PRs, project status updates, docs) must NOT contain `Closes #NN` — GitHub auto-closes the issue on merge regardless of whether implementation is complete.
+
+For Bug Fix work, read and validate against `docs/contracts/bug-fix-workflow.yaml`.
+It is the canonical state, evidence, and two-rework stop policy; this adapter must not redefine it.

@@ -1,0 +1,17 @@
+task_id: NF-ILLEGAL-TRANSITION
+workflow_id: new-feature
+contract_version: 1
+change_type: new-feature
+risk_level: medium
+state: verifying
+rework_count: 0
+max_rework_attempts: 1
+history:
+  - from: intake
+    to: verifying
+    at: 2026-07-13T00:00:00Z
+    actor: developer-agent
+    evidence_refs: []
+evidence: {}
+next_route: qa-agent
+stop_reason: null

@@ -1,0 +1,73 @@
+task_id: CFG-BLOCKED
+workflow_id: config-change
+contract_version: 1
+change_type: config-change
+risk_tier: medium
+config_kind: runtime_parameter
+state: blocked
+rework_count: 1
+max_rework_attempts: 1
+history:
+  - from: intake
+    to: classifying
+    at: 2026-07-28T00:00:00Z
+    actor: config-agent
+    evidence_refs: [config_owner, change_description, restart_required]
+  - from: classifying
+    to: owner-review
+    at: 2026-07-28T00:01:00Z
+    actor: config-agent
+    evidence_refs: [risk_tier, rollback_plan, removal_condition]
+  - from: owner-review
+    to: sa-review
+    at: 2026-07-28T00:02:00Z
+    actor: config-agent
+    evidence_refs: [owner_approval]
+  - from: sa-review
+    to: rollout
+    at: 2026-07-28T00:03:00Z
+    actor: sa-agent
+    evidence_refs: [sa_approval, staged_rollout_plan]
+  - from: rollout
+    to: monitoring
+    at: 2026-07-28T00:04:00Z
+    actor: config-agent
+    evidence_refs: [rollout_evidence]
+  - from: monitoring
+    to: rework
+    at: 2026-07-28T00:05:00Z
+    actor: config-agent
+    evidence_refs: [regression_detected, rollback_route]
+  - from: rework
+    to: rollout
+    at: 2026-07-28T00:06:00Z
+    actor: config-agent
+    evidence_refs: [rollback_evidence, rework_route]
+  - from: rollout
+    to: monitoring
+    at: 2026-07-28T00:07:00Z
+    actor: config-agent
+    evidence_refs: [rollout_evidence]
+  - from: monitoring
+    to: blocked
+    at: 2026-07-28T00:08:00Z
+    actor: config-agent
+    evidence_refs: [regression_detected, human_review_required]
+evidence:
+  config_owner: Config Agent
+  change_description: raise API rate-limit threshold from 100 to 500 req/s
+  restart_required: "yes — requires process restart"
+  risk_tier: medium
+  rollback_plan: revert runtime parameter to 100 via config store, requires restart
+  removal_condition: "N/A — not a feature flag, this is a permanent runtime parameter"
+  owner_approval: approved by config owner
+  sa_approval: approved by SA Agent
+  staged_rollout_plan: canary 5% -> 25% -> 100% over 3 days
+  rollout_evidence: parameter updated in production config store
+  regression_detected: downstream service latency regression at 25% canary
+  rollback_route: rework
+  rollback_evidence: parameter reverted to 100, latency normalized
+  rework_route: rollout
+  human_review_required: true
+next_route: human-reviewer
+stop_reason: human_review_required

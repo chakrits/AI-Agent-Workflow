@@ -1,0 +1,50 @@
+task_id: DATA-PASS
+workflow_id: data-change
+contract_version: 1
+change_type: data-change
+data_change_kind: [reference-data]
+contains_pii: "no"
+state: complete
+rework_count: 0
+max_rework_attempts: 1
+history:
+  - from: intake
+    to: classifying
+    at: 2026-07-28T00:00:00Z
+    actor: data-agent
+    evidence_refs: [data_owner, change_description, contains_pii]
+  - from: classifying
+    to: data-review
+    at: 2026-07-28T00:01:00Z
+    actor: data-agent
+    evidence_refs: [data_change_kind, non_destructive_evidence]
+  - from: data-review
+    to: executing
+    at: 2026-07-28T00:02:00Z
+    actor: data-agent
+    evidence_refs: [data_owner_approval, transaction_wrapped, idempotent_upsert_used]
+  - from: executing
+    to: validating
+    at: 2026-07-28T00:03:00Z
+    actor: data-agent
+    evidence_refs: [expected_row_count_delta, execution_evidence]
+  - from: validating
+    to: complete
+    at: 2026-07-28T00:04:00Z
+    actor: data-agent
+    evidence_refs: [actual_row_count_delta, validation_result]
+evidence:
+  data_owner: Data Agent
+  change_description: add "Thailand" to the shipping-country reference table
+  contains_pii: "no"
+  data_change_kind: [reference-data]
+  non_destructive_evidence: transaction-wrapped INSERT ... ON CONFLICT DO UPDATE
+  data_owner_approval: approved by data owner
+  transaction_wrapped: true
+  idempotent_upsert_used: true
+  expected_row_count_delta: "+1"
+  execution_evidence: migration applied in production, 1 row inserted
+  actual_row_count_delta: "+1"
+  validation_result: row count matches expected delta, re-ran script twice with no duplication
+next_route: documentation-agent
+stop_reason: null

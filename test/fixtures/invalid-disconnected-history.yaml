@@ -1,0 +1,26 @@
+task_id: BUG-DISCONNECTED-HISTORY
+workflow_id: bug-fix
+contract_version: 1
+change_type: bug-fix
+risk_level: medium
+state: verifying
+rework_count: 0
+max_rework_attempts: 2
+history:
+  - from: intake
+    to: investigating
+    at: 2026-07-14T00:00:00Z
+    actor: qa-agent
+    evidence_refs: [failure_description, repro]
+  - from: implementing
+    to: verifying
+    at: 2026-07-14T00:01:00Z
+    actor: developer-agent
+    evidence_refs: [changed_files, validation_plan]
+evidence:
+  failure_description: failing test
+  repro: test command
+  changed_files: validator
+  validation_plan: unit test
+next_route: qa-agent
+stop_reason: null

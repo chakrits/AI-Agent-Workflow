@@ -1,0 +1,439 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "workflow-evidence/v1",
+  "title": "Workflow Evidence v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "evidence_id",
+    "work_item_id",
+    "run_id",
+    "event_id",
+    "event_type",
+    "observed_at",
+    "source",
+    "authority",
+    "correlation",
+    "outcome_status",
+    "attributes",
+    "evidence_ref",
+    "recorded_by"
+  ],
+  "properties": {
+    "schema_version": { "const": "workflow-evidence/v1" },
+    "evidence_id": { "$ref": "#/$defs/nonEmptyId" },
+    "work_item_id": { "$ref": "#/$defs/nonEmptyId" },
+    "run_id": { "$ref": "#/$defs/nonEmptyId" },
+    "event_id": { "$ref": "#/$defs/nonEmptyId" },
+    "event_type": {
+      "enum": [
+        "context_loaded",
+        "context_baseline_observed",
+        "shadow_compared",
+        "shadow_fallback",
+        "rollback_completed",
+        "human_approval"
+      ]
+    },
+    "observed_at": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?Z$"
+    },
+    "source": {
+      "enum": [
+        "orchestrator",
+        "host_telemetry",
+        "validator",
+        "workflow_record",
+        "human_record"
+      ]
+    },
+    "authority": {
+      "enum": ["legacy", "shadow", "host_telemetry", "human_approval"]
+    },
+    "correlation": { "type": "object" },
+    "outcome_status": {
+      "enum": [
+        "recorded",
+        "acknowledged",
+        "success",
+        "failure",
+        "inconclusive",
+        "consumed",
+        "ignored",
+        "cancelled",
+        "timed_out",
+        "host_completion_unavailable",
+        "not_applicable",
+        "not_run"
+      ]
+    },
+    "reason": { "$ref": "#/$defs/nonEmptyString" },
+    "attributes": { "type": "object" },
+    "digest_ref": { "$ref": "#/$defs/nonEmptyReference" },
+    "evidence_ref": { "$ref": "#/$defs/nonEmptyReference" },
+    "recorded_by": { "$ref": "#/$defs/nonEmptyString" }
+  },
+  "allOf": [
+    {
+      "if": {
+        "required": ["outcome_status"],
+        "properties": {
+          "outcome_status": {
+            "enum": [
+              "failure",
+              "inconclusive",
+              "ignored",
+              "cancelled",
+              "timed_out",
+              "host_completion_unavailable",
+              "not_applicable",
+              "not_run"
+            ]
+          }
+        }
+      },
+      "then": { "required": ["reason"] }
+    },
+    {
+      "if": { "properties": { "event_type": { "const": "context_loaded" } } },
+      "then": {
+        "properties": {
+          "source": { "const": "workflow_record" },
+          "authority": { "enum": ["legacy", "shadow"] },
+          "correlation": { "$ref": "#/$defs/measurementCorrelation" },
+          "outcome_status": { "enum": ["success", "failure", "inconclusive"] },
+          "attributes": { "$ref": "#/$defs/contextLoadedAttributes" }
+        },
+        "required": ["digest_ref", "outcome_status"]
+      }
+    },
+    {
+      "if": { "properties": { "event_type": { "const": "context_baseline_observed" } } },
+      "then": {
+        "properties": {
+          "source": { "const": "validator" },
+          "authority": { "const": "legacy" },
+          "correlation": { "$ref": "#/$defs/measurementCorrelation" },
+          "attributes": { "$ref": "#/$defs/contextBaselineAttributes" },
+          "outcome_status": { "enum": ["success", "failure", "inconclusive"] }
+        },
+        "required": ["digest_ref", "outcome_status"],
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "attributes": {
+                  "properties": {
+                    "token_measurement_status": { "const": "available" }
+                  }
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "outcome_status": { "enum": ["success", "failure"] }
+              }
+            },
+            "else": {
+              "properties": { "outcome_status": { "const": "inconclusive" } }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "if": { "properties": { "event_type": { "const": "shadow_compared" } } },
+      "then": {
+        "properties": {
+          "source": { "const": "workflow_record" },
+          "authority": { "const": "shadow" },
+          "correlation": { "$ref": "#/$defs/pairCorrelation" },
+          "attributes": { "$ref": "#/$defs/shadowComparedAttributes" },
+          "outcome_status": { "enum": ["success", "failure", "inconclusive"] }
+        },
+        "required": ["digest_ref", "outcome_status"],
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "attributes": {
+                  "properties": { "comparison_result": { "const": "match" } }
+                }
+              }
+            },
+            "then": { "properties": { "outcome_status": { "const": "success" } } }
+          },
+          {
+            "if": {
+              "properties": {
+                "attributes": {
+                  "properties": { "comparison_result": { "const": "mismatch" } }
+                }
+              }
+            },
+            "then": { "properties": { "outcome_status": { "const": "failure" } } }
+          },
+          {
+            "if": {
+              "properties": {
+                "attributes": {
+                  "properties": { "comparison_result": { "const": "inconclusive" } }
+                }
+              }
+            },
+            "then": { "properties": { "outcome_status": { "const": "inconclusive" } } }
+          }
+        ]
+      }
+    },
+    {
+      "if": { "properties": { "event_type": { "const": "shadow_fallback" } } },
+      "then": {
+        "properties": {
+          "source": { "const": "workflow_record" },
+          "authority": { "const": "shadow" },
+          "correlation": { "$ref": "#/$defs/pairCorrelation" },
+          "attributes": { "$ref": "#/$defs/shadowFallbackAttributes" },
+          "outcome_status": { "const": "failure" }
+        },
+        "required": ["outcome_status"],
+        "not": { "required": ["digest_ref"] }
+      }
+    },
+    {
+      "if": { "properties": { "event_type": { "const": "rollback_completed" } } },
+      "then": {
+        "properties": {
+          "source": { "const": "workflow_record" },
+          "authority": { "const": "shadow" },
+          "correlation": { "$ref": "#/$defs/pairCorrelation" },
+          "attributes": { "$ref": "#/$defs/rollbackAttributes" },
+          "outcome_status": {
+            "enum": ["success", "failure", "inconclusive", "not_applicable"]
+          }
+        },
+        "required": ["outcome_status"],
+        "not": { "required": ["digest_ref"] },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "attributes": {
+                  "properties": { "rollback_result": { "const": "succeeded" } }
+                }
+              }
+            },
+            "then": { "properties": { "outcome_status": { "const": "success" } } }
+          },
+          {
+            "if": {
+              "properties": {
+                "attributes": {
+                  "properties": { "rollback_result": { "const": "failed" } }
+                }
+              }
+            },
+            "then": { "properties": { "outcome_status": { "const": "failure" } } }
+          },
+          {
+            "if": {
+              "properties": {
+                "attributes": {
+                  "properties": {
+                    "rollback_result": { "enum": ["not_run", "inconclusive"] }
+                  }
+                }
+              }
+            },
+            "then": { "properties": { "outcome_status": { "const": "inconclusive" } } }
+          },
+          {
+            "if": {
+              "properties": {
+                "attributes": {
+                  "properties": { "rollback_result": { "const": "not_applicable" } }
+                }
+              }
+            },
+            "then": { "properties": { "outcome_status": { "const": "not_applicable" } } }
+          }
+        ]
+      }
+    },
+    {
+      "if": { "properties": { "event_type": { "const": "human_approval" } } },
+      "then": {
+        "properties": {
+          "source": { "const": "human_record" },
+          "authority": { "const": "human_approval" },
+          "correlation": { "$ref": "#/$defs/measurementCorrelation" },
+          "attributes": { "$ref": "#/$defs/humanApprovalAttributes" },
+          "outcome_status": { "enum": ["success", "failure", "inconclusive"] }
+        },
+        "required": ["outcome_status"],
+        "not": { "required": ["digest_ref"] },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "attributes": { "properties": { "decision": { "const": "approved" } } }
+              }
+            },
+            "then": { "properties": { "outcome_status": { "const": "success" } } }
+          },
+          {
+            "if": {
+              "properties": {
+                "attributes": { "properties": { "decision": { "const": "rejected" } } }
+              }
+            },
+            "then": { "properties": { "outcome_status": { "const": "failure" } } }
+          },
+          {
+            "if": {
+              "properties": {
+                "attributes": { "properties": { "decision": { "const": "deferred" } } }
+              }
+            },
+            "then": { "properties": { "outcome_status": { "const": "inconclusive" } } }
+          }
+        ]
+      }
+    }
+  ],
+  "$defs": {
+    "nonEmptyString": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\S"
+    },
+    "nonEmptyId": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^\\S+$"
+    },
+    "nonEmptyReference": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^\\S+$"
+    },
+    "measurementCorrelation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["measurement_id"],
+      "properties": { "measurement_id": { "$ref": "#/$defs/nonEmptyId" } }
+    },
+    "pairCorrelation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["pair_id"],
+      "properties": { "pair_id": { "$ref": "#/$defs/nonEmptyId" } }
+    },
+    "contextLoadedAttributes": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["context_mode", "source_manifest_digest", "token_measurement_status"],
+      "properties": {
+        "context_mode": { "$ref": "#/$defs/nonEmptyString" },
+        "source_manifest_digest": { "$ref": "#/$defs/nonEmptyId" },
+        "token_measurement_status": {
+          "enum": ["available", "unsupported", "not_requested", "unavailable"]
+        },
+        "approximate_tokens": { "type": "integer", "minimum": 0 }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "token_measurement_status": { "const": "available" }
+            }
+          },
+          "then": { "required": ["approximate_tokens"] },
+          "else": { "not": { "required": ["approximate_tokens"] } }
+        }
+      ]
+    },
+    "contextBaselineAttributes": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "validator_name",
+        "command",
+        "source_manifest_digest",
+        "character_count",
+        "target_tokens",
+        "token_measurement_status"
+      ],
+      "properties": {
+        "validator_name": { "$ref": "#/$defs/nonEmptyString" },
+        "command": { "$ref": "#/$defs/nonEmptyString" },
+        "source_manifest_digest": { "$ref": "#/$defs/nonEmptyId" },
+        "character_count": { "type": "integer", "minimum": 0 },
+        "target_tokens": { "type": "integer", "minimum": 1 },
+        "token_measurement_status": {
+          "enum": ["available", "unsupported", "not_requested", "unavailable"]
+        },
+        "approximate_tokens": { "type": "integer", "minimum": 0 }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "token_measurement_status": { "const": "available" }
+            }
+          },
+          "then": { "required": ["approximate_tokens"] },
+          "else": { "not": { "required": ["approximate_tokens"] } }
+        }
+      ]
+    },
+    "shadowComparedAttributes": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "input_digest",
+        "legacy_result_digest",
+        "candidate_result_digest",
+        "comparison_result"
+      ],
+      "properties": {
+        "input_digest": { "$ref": "#/$defs/nonEmptyId" },
+        "legacy_result_digest": { "$ref": "#/$defs/nonEmptyId" },
+        "candidate_result_digest": { "$ref": "#/$defs/nonEmptyId" },
+        "comparison_result": { "enum": ["match", "mismatch", "inconclusive"] }
+      }
+    },
+    "shadowFallbackAttributes": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["fallback_used", "fallback_reason", "legacy_path"],
+      "properties": {
+        "fallback_used": { "const": true },
+        "fallback_reason": { "$ref": "#/$defs/nonEmptyString" },
+        "legacy_path": { "$ref": "#/$defs/nonEmptyString" }
+      }
+    },
+    "rollbackAttributes": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["rollback_result", "rollback_target"],
+      "properties": {
+        "rollback_result": {
+          "enum": ["not_applicable", "not_run", "succeeded", "failed", "inconclusive"]
+        },
+        "rollback_target": { "$ref": "#/$defs/nonEmptyString" }
+      }
+    },
+    "humanApprovalAttributes": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["decision", "approver"],
+      "properties": {
+        "decision": { "enum": ["approved", "rejected", "deferred"] },
+        "approver": { "$ref": "#/$defs/nonEmptyString" }
+      }
+    }
+  }
+}
