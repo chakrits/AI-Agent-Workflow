@@ -5,10 +5,11 @@
 
 ## Active Work Items
 <!-- active-work-items-table-start -->
-<!-- projection-digest: c045cfe8b4c4d0d5a50b5efa4a5825b8b6c43decde3aa319322aed3546a01d22 -->
+<!-- projection-digest: 2990a73079682fdd05a49e611a0fa7e45cd1934473b68be59b56377a07154c90 -->
 | Issue ID | Workflow | Current State | Next Route / Owner | Updated At |
 |---|---|---|---|---|
 | issue-249 | bug-fix | verifying | qa-agent | 2026-09-09 |
+| issue-275 | bug-fix | verifying | qa-agent | 2026-09-11 |
 <!-- active-work-items-table-end -->
 
 ## Current Stage

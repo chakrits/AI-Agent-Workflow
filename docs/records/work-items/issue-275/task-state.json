@@ -1,0 +1,54 @@
+{
+  "task_id": "issue-275",
+  "workflow_id": "bug-fix",
+  "contract_version": 1,
+  "change_type": "bug-fix",
+  "risk_level": "medium",
+  "state": "verifying",
+  "rework_count": 0,
+  "max_rework_attempts": 2,
+  "history": [
+    {
+      "from": "intake",
+      "to": "investigating",
+      "at": "2026-09-11",
+      "actor": "Developer Agent",
+      "evidence_refs": [
+        "failure_description",
+        "repro"
+      ]
+    },
+    {
+      "from": "investigating",
+      "to": "implementing",
+      "at": "2026-09-11",
+      "actor": "Developer Agent",
+      "evidence_refs": [
+        "fail_path",
+        "hypothesis_matrix"
+      ]
+    },
+    {
+      "from": "implementing",
+      "to": "verifying",
+      "at": "2026-09-11",
+      "actor": "Developer Agent",
+      "evidence_refs": [
+        "changed_files",
+        "validation_plan"
+      ]
+    }
+  ],
+  "evidence": {
+    "failure_description": "publish-current-readiness fails in GitHub Actions because node_modules does not exist on default-branch checkout",
+    "repro": "GitHub Actions run 34623255592: Cannot find package 'ajv' imported from scripts/work-item-readiness.mjs",
+    "fail_path": "work-item-readiness.mjs statically imported ajv and yaml at module evaluation time",
+    "hypothesis_matrix": "Using lazy loader for ajv and yaml allows work-item-readiness.mjs to be imported in environments without node_modules",
+    "changed_files": [
+      "scripts/work-item-readiness.mjs"
+    ],
+    "validation_plan": "docs/records/qa/2026-09-11-issue-275-readiness-refresh-dependencies-code-review.md"
+  },
+  "next_route": "qa-agent",
+  "stop_reason": null
+}

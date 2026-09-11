@@ -1,15 +1,38 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import Ajv2020 from 'ajv/dist/2020.js';
-import YAML from 'yaml';
+import { createRequire } from 'node:module';
 
-const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const prFrontmatterSchemaPath = path.join(repoRoot, 'docs/contracts/schemas/pr-frontmatter.schema.json');
-const prFrontmatterSchema = JSON.parse(readFileSync(prFrontmatterSchemaPath, 'utf8'));
+const require = createRequire(import.meta.url);
 
-const ajv = new Ajv2020({ allErrors: true });
-const validateFrontmatterSchema = ajv.compile(prFrontmatterSchema);
+let _YAML;
+function getYaml() {
+  if (!_YAML) {
+    try {
+      _YAML = require('yaml');
+    } catch {
+      _YAML = null;
+    }
+  }
+  return _YAML;
+}
+
+let _validateFrontmatterSchema;
+function getFrontmatterValidator() {
+  if (_validateFrontmatterSchema === undefined) {
+    try {
+      const Ajv2020 = require('ajv/dist/2020.js');
+      const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+      const prFrontmatterSchemaPath = path.join(repoRoot, 'docs/contracts/schemas/pr-frontmatter.schema.json');
+      const prFrontmatterSchema = JSON.parse(readFileSync(prFrontmatterSchemaPath, 'utf8'));
+      const ajv = new Ajv2020({ allErrors: true });
+      _validateFrontmatterSchema = ajv.compile(prFrontmatterSchema);
+    } catch {
+      _validateFrontmatterSchema = null;
+    }
+  }
+  return _validateFrontmatterSchema;
+}
 
 const closeoutMarker = /<!-- post-merge-closeout: complete; source-pr-\d+ -->/;
 const qaEvidence = /QA: evidence comment or review URL:\s*https:\/\//i;
@@ -67,6 +90,16 @@ export function extractFrontmatter(body = '') {
   const rawFrontmatter = lines.slice(1, closingIndex).join('\n');
   const prose = lines.slice(closingIndex + 1).join('\n');
 
+  const YAML = getYaml();
+  if (!YAML) {
+    return {
+      hasFrontmatter: true,
+      data: null,
+      prose,
+      errors: ['YAML parser dependency unavailable']
+    };
+  }
+
   let parsed;
   try {
     parsed = YAML.parse(rawFrontmatter, { schema: 'failsafe', merge: false });
@@ -88,6 +121,16 @@ export function extractFrontmatter(body = '') {
       data: null,
       prose,
       errors: ['frontmatter must be a valid mapping object']
+    };
+  }
+
+  const validateFrontmatterSchema = getFrontmatterValidator();
+  if (!validateFrontmatterSchema) {
+    return {
+      hasFrontmatter: true,
+      data: parsed,
+      prose,
+      errors: ['schema validator dependency unavailable']
     };
   }
 
