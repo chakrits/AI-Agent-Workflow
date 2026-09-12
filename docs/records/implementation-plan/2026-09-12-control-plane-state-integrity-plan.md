@@ -9,6 +9,7 @@
 | Risk Level | High |
 | Owner | Developer Agent (`implementation-planning`) |
 | Target Branch / Ticket | `feat/control-plane-state-integrity` / Issue #277 |
+| Revision | Round 4 rework — addresses maintainer review #5644452415 |
 
 ---
 
@@ -16,10 +17,10 @@
 
 | Artifact | Status | Notes |
 |---|---|---|
-| REQUIREMENT_DISCOVERY.md | Available (`docs/records/requirements/2026-09-12-control-plane-state-integrity-discovery.md`) | Authoritative BA discovery. |
-| SDD.md | Available (`docs/records/sdd/2026-09-12-control-plane-state-integrity-sdd.md`) | Approved SA design document (Round 3 Rework). |
-| SECURITY_REVIEW.md | Available (`docs/records/security-review/2026-09-12-issue-277-security-review.md`) | Conditional Approval; threat model and atomic takeover protocol defined. |
-| TEST_PLAN.md | In Progress (`docs/records/qa/2026-09-12-issue-277-test-plan.md`) | QA test plan and automation-ready test case definitions. |
+| REQUIREMENT_DISCOVERY.md | Draft (`docs/records/requirements/2026-09-12-control-plane-state-integrity-discovery.md`) | BA discovery, Round 4 revision. AC-001..AC-010, BR-001..BR-005. |
+| SDD.md | **Draft — pending Human gate** (`docs/records/sdd/2026-09-12-control-plane-state-integrity-sdd.md`) | Round 4 revision. Not approved; no task below may start before the Human approval gate. |
+| SECURITY_REVIEW.md | Conditional Approval, Round 4 revision (`docs/records/security-review/2026-09-12-issue-277-security-review.md`) | Zero-lost-update claim is now conditional on evidence, not asserted. |
+| TEST_PLAN.md | Draft (`docs/records/qa/2026-09-12-issue-277-test-plan.md`) | Full Mode QA artifacts and TC-001..TC-026. |
 
 ---
 
@@ -27,124 +28,167 @@
 
 | Area | Files / Components | Expected Change |
 |---|---|---|
-| **Contracts & Schemas** | `docs/contracts/schemas/durable-task-envelope.schema.json`<br>`docs/contracts/schemas/task-state.schema.json` | Designate `durable-task-envelope.schema.json` as sole authority (`contract_version: 2`); deprecate `task-state.schema.json`. |
-| **State Machine Engine** | `scripts/lib/task-state-machine.mjs`<br>`scripts/task-machine-cli.mjs` | Implement `digestTaskEnvelope()`; implement nonce locking with atomic rename takeover; enforce actor policy validation; mandate `--expected-digest` across transition/resume. |
-| **Projection & Archival** | `scripts/compile-status-projection.mjs`<br>`scripts/archive-work-item.mjs` | Fail-closed shard discovery with digest validation; implement `atomicWriteFileSync` with temp cleanup; wire `updateProjectStatusFile` into `archiveWorkItem` with compensation and preflight reconciliation. |
-| **Migrations & Operations** | `scripts/backfill-task-state-v2.mjs`<br>`docs/records/work-items/issue-249/task-state.json`<br>`docs/records/work-items/issue-275/task-state.json` | Backfill tool and operational migration of active shards with backup/rollback evidence. |
-| **QA Records** | `docs/records/qa/2026-09-12-control-plane-state-integrity-code-review.md` | Mandatory QA code review record satisfying `validate:review-gate` (QG-001). |
-| **Tests** | `test/task-state-machine.test.mjs`<br>`test/compile-status-projection.test.mjs`<br>`test/archive-work-item.test.mjs`<br>`test/contracts.test.mjs` | Automation-ready test suite covering concurrency, atomic takeover, temp cleanup, and archival drift. |
+| **Envelope Layer** | `docs/contracts/schemas/durable-task-envelope.schema.json` | Keep `contract_version: 2` const; add required integer `policy_contract_version`; title corrected to v2. |
+| **Policy Layer** | `docs/contracts/bug-fix-workflow.yaml` | Additive only: add `completed` and `cancelled` states, add `handoff -> completed` (requires `closeout_evidence`) and `<any> -> cancelled` (requires `cancellation_reason`). `contract_version` stays `1`; all eleven fixtures in `docs/contracts/examples/` stay valid. |
+| **Canonical Prose** | `AGENTS.md` (Bug Fix section, L274-276) | Add the layer split: policy owns states/transitions/evidence/retry budget; the durable envelope owns storage shape. |
+| **Contract Validator** | `scripts/validate-contracts.mjs` (L243-247) | Cross-check `state.policy_contract_version` against `policy.contract_version` instead of `state.contract_version`; add an active-shard lane validating `docs/records/work-items/*/task-state.json` through `validateEnvelopeSchema`. |
+| **State Machine Engine** | `scripts/lib/task-state-machine.mjs`<br>`scripts/task-machine-cli.mjs` | `digestTaskEnvelope()`, `validateEnvelopeSchema()`; terminal matrix entries + `UNKNOWN_SOURCE_STATE` fail-closed guard; actor authorization; policy-sourced evidence; fail-closed `.lock`; `mutateTaskStateOnDisk()`; CLI `inspect` and `unlock`; mandatory `--expected-digest`. |
+| **Projection & Archival** | `scripts/compile-status-projection.mjs`<br>`scripts/archive-work-item.mjs` | Pure `compileStatusProjection` / `detectArchivedShardDrift`; mutating `reconcileArchivedShards`; projection lock inside `updateProjectStatusFile`; `--check` read-only; `--reconcile` flag; `atomicWriteFileSync`; archival compensation. |
+| **Migration & Operations** | `scripts/backfill-task-state-v2.mjs`<br>`docs/records/work-items/issue-249/task-state.json`<br>`docs/records/work-items/issue-275/task-state.json`<br>`PROJECT_STATUS.md` | Backfill tool with `--rollback`; evidence-bound migration of the two active shards. |
+| **QA Records** | `docs/records/qa/2026-09-12-control-plane-state-integrity-code-review.md` | Code review record satisfying `validate:review-gate` (QG-001), authored by the non-implementer. |
+| **Tests** | `test/task-state-machine.test.mjs`<br>`test/compile-status-projection.test.mjs`<br>`test/archive-work-item.test.mjs`<br>`test/contracts.test.mjs` | Unit, barrier-synchronized multi-process concurrency, fault injection, lock-order, and read-only-check byte-equality tests. |
 
 ---
 
 ## 4. Task Breakdown (Reviewable Slices with Checkpoints)
 
-### Phase 4A: Core State Machine & Hashing Engine
+> **Gate:** no task starts until the Human Maintainer approves the Round 4 blueprint and ADR-0026..ADR-0030
+> are recorded in `DECISIONS.md`.
 
-#### Task 1: Self-Excluding Hasher & Envelope Schema Validator
+### Phase 4A: Contract Layering & Core Engine
+
+#### Task 1: Envelope Schema, Policy Amendment & Validator Re-binding (ADR-0026)
 - **Owner**: `developer-agent`
-- **Prerequisite**: None.
-- **Files**: `docs/contracts/schemas/durable-task-envelope.schema.json`, `scripts/lib/task-state-machine.mjs`, `test/task-state-machine.test.mjs`.
-- **TDD Failing Step**: Add failing tests in `test/task-state-machine.test.mjs` asserting `digestTaskEnvelope()` removes top-level `state_digest` and computes identical hash whether `state_digest` was present or empty; and `validateEnvelopeSchema()` throws `DIGEST_INTEGRITY_MISMATCH` when content is modified without updating digest.
+- **Prerequisite**: Human approval gate.
+- **Files**: `docs/contracts/schemas/durable-task-envelope.schema.json`, `docs/contracts/bug-fix-workflow.yaml`, `AGENTS.md`, `scripts/validate-contracts.mjs`, `test/contracts.test.mjs`.
+- **TDD Failing Step**: Add failing tests asserting (a) a shard with `contract_version: 2` and `policy_contract_version: 1` validates against a `contract_version: 1` policy; (b) a shard whose `policy_contract_version` does not match its policy is rejected; (c) all eleven existing `docs/contracts/examples/*.yaml` still validate after the policy amendment; (d) `bug-fix` policy now permits `handoff -> completed` with `closeout_evidence` and rejects it without.
 - **Implementation**:
-  - Update `docs/contracts/schemas/durable-task-envelope.schema.json` to const `contract_version: 2`.
-  - Implement `digestTaskEnvelope(envelope)` in `scripts/lib/task-state-machine.mjs`.
-  - Implement `validateEnvelopeSchema(envelope)` checking Ajv schema and `stored === digestTaskEnvelope(envelope)`.
-- **Verification**: `node --test test/task-state-machine.test.mjs` passes new hashing and integrity tests.
-- **Rollback**: Revert changes to `durable-task-envelope.schema.json` and `task-state-machine.mjs`.
+  - Add required `policy_contract_version` (integer, minimum 1) to the envelope schema; fix the schema `title` to say v2.
+  - Amend `bug-fix-workflow.yaml` additively as described in §3.
+  - Replace the `state.contract_version !== policy.contract_version` comparison at `scripts/validate-contracts.mjs:243` with `state.policy_contract_version !== policy.contract_version`.
+  - Add the AGENTS.md layer-split sentence.
+- **Verification**: `node --test test/contracts.test.mjs`; `npm run validate:contracts`.
+- **Rollback**: Revert the four files; the amendment is additive so no fixture rewrite is needed.
 
-#### Task 2: Strict Actor Policy Validation Guard
+#### Task 2: Self-Excluding Hasher & Envelope Validation Seam (ADR-0028)
 - **Owner**: `developer-agent`
 - **Prerequisite**: Task 1.
 - **Files**: `scripts/lib/task-state-machine.mjs`, `test/task-state-machine.test.mjs`.
-- **TDD Failing Step**: Add failing tests asserting `transitionTaskState()` throws `UNAUTHORIZED_ACTOR` if actor is not in `TRANSITION_MATRIX[fromState].actors`, and normalizes `'Developer Agent'` to `'developer-agent'`.
-- **Implementation**:
-  - Define `actors` explicitly in `TRANSITION_MATRIX` across all 11 states.
-  - In `transitionTaskState()`, canonicalize actor string and assert `matrixEntry.actors.includes(canonicalActor)`.
-- **Verification**: `node --test test/task-state-machine.test.mjs` passes actor authorization tests.
-- **Rollback**: Revert actor check in `task-state-machine.mjs`.
+- **TDD Failing Step**: Failing tests asserting `digestTaskEnvelope()` yields the same digest whether `state_digest` is present, absent, or empty; does not mutate its argument; and `validateEnvelopeSchema()` throws `DIGEST_INTEGRITY_MISMATCH` carrying `stored_digest` and `recomputed_digest` when a field is changed without rehashing.
+- **Implementation**: Implement `digestTaskEnvelope(envelope)` and `validateEnvelopeSchema(data)` per SDD Component 3.
+- **Verification**: `node --test test/task-state-machine.test.mjs`.
+- **Rollback**: Revert `task-state-machine.mjs`.
 
-#### Task 3: Nonce Lock with Atomic Stale Takeover & Mandatory CAS
+#### Task 3: Matrix Completion, Fail-Closed Source Guard & Actor Policy (AC-003, AC-004, AC-009)
 - **Owner**: `developer-agent`
-- **Prerequisite**: Task 1, Task 2.
-- **Files**: `scripts/lib/task-state-machine.mjs`, `scripts/task-machine-cli.mjs`, `test/task-state-machine.test.mjs`.
-- **TDD Failing Step**: Add failing tests asserting:
-  1. Missing `--expected-digest` throws `MISSING_EXPECTED_DIGEST` across transition and resume.
-  2. Stale CAS throws `CAS_CONFLICT`.
-  3. Atomic stale lock takeover uses `fs.renameSync(lockPath, reclaimPath)` to prevent ABA deletion.
-  4. Concurrent child processes on same digest result in exactly 1 success and 1 `CAS_CONFLICT`.
+- **Prerequisite**: Task 2.
+- **Files**: `scripts/lib/task-state-machine.mjs`, `test/task-state-machine.test.mjs`.
+- **TDD Failing Step**: Failing tests asserting: `completed` and `cancelled` reject every one of the other ten destinations with `ILLEGAL_TRANSITION_REJECTED`; an envelope whose `state` has no matrix entry throws `UNKNOWN_SOURCE_STATE`; `transitionTaskState()` throws `UNAUTHORIZED_ACTOR` when the actor is absent from `TRANSITION_MATRIX[from].actors`; `'Developer Agent'` normalizes to `'developer-agent'`; an unregistered role throws `UNAUTHORIZED_ACTOR`; a transition to `cancelled` without `cancellation_reason` and to `blocked` without `stop_reason` are both rejected; and a matrix-vs-policy parity test proving every matrix destination pair is either permitted by some policy or explicitly documented as envelope-only.
 - **Implementation**:
-  - Implement `acquireShardLock` and `releaseShardLock` with `{ pid, nonce, created_at }` and atomic rename takeover.
-  - Require non-empty `expected_digest` in `transitionTaskState` and `resumeTaskState`.
-  - Update `scripts/task-machine-cli.mjs` to require `--expected-digest`.
-- **Verification**: `node --test test/task-state-machine.test.mjs` passes concurrency and takeover tests.
-- **Rollback**: Revert lock and CAS changes.
+  - Add `completed` / `cancelled` entries with empty `destinations`, `requires`, `actors`.
+  - Write `blocked.destinations` out explicitly instead of referencing `STATES`.
+  - Invert `if (matrixEntry)` to the fail-closed `UNKNOWN_SOURCE_STATE` throw.
+  - Canonicalize the actor to lowercase kebab-case against `ROLE_REGISTRY` and assert membership.
+  - Narrow the `to !== 'blocked' && to !== 'cancelled'` evidence bypass to require `stop_reason` and `cancellation_reason` respectively.
+  - Resolve required evidence from the workflow policy for the shard's `workflow_id`, using the matrix `requires` only where the policy is silent; unknown `workflow_id` fails closed.
+- **Verification**: `node --test test/task-state-machine.test.mjs`; `npm run validate:contracts`.
+- **Rollback**: Revert `task-state-machine.mjs`.
 
-> **🛑 Checkpoint 1:** Core engine and concurrency primitives pass all unit tests. Verify zero lock leaks.
+#### Task 4: Fail-Closed Shard Lock, CLI Recovery Surface & Disk-Bound Mutation Wrapper (ADR-0027)
+- **Owner**: `developer-agent`
+- **Prerequisite**: Task 3.
+- **Files**: `scripts/lib/task-state-machine.mjs`, `scripts/task-machine-cli.mjs`, `test/task-state-machine.test.mjs`.
+- **TDD Failing Step**: Failing tests asserting:
+  1. `acquireShardLock` on a live lock younger than 30 s retries and then throws `LOCK_ACQUISITION_TIMEOUT`.
+  2. `acquireShardLock` on a lock older than 30 s or with a dead PID throws `LOCK_ABANDONED` **and leaves the lock file byte-identical on disk**, with the message containing the literal `unlock --task`.
+  3. `releaseShardLock(dir, 'nonce-B')` against a lock holding `nonce-A` does not unlink it.
+  4. `unlock --task T --nonce N` removes the lock when the nonce matches and throws `LOCK_NONCE_MISMATCH` when it does not.
+  5. `mutateTaskStateOnDisk` rejects missing or empty `expected_digest` with `MISSING_EXPECTED_DIGEST`, and a stale digest with `CAS_CONFLICT` carrying both digests, in both `transition` and `resume` mode.
+  6. The lock file is absent after both the success and every failure path (zero lock leaks).
+- **Implementation**:
+  - `acquireShardLock` / `releaseShardLock` per SDD Component 4 — no reclamation path exists in the code at all.
+  - `mutateTaskStateOnDisk(shardPath, {to, actor, expected_digest, evidence, mode})` per SDD Component 9, releasing in `finally`.
+  - `scripts/task-machine-cli.mjs`: `transition` and `resume` call only the wrapper and require `--expected-digest`; add `inspect` (prints holder and current digest, mutates nothing) and `unlock` (`--task`, `--nonce`).
+- **Verification**: `node --test test/task-state-machine.test.mjs`.
+- **Rollback**: Revert lock, wrapper and CLI changes.
+
+> **🛑 Checkpoint 1:** Contract layering, engine guards and the fail-closed lock pass unit tests. Verify zero lock leaks and zero temp leaks across success and failure paths.
 
 ---
 
-### Phase 4B: Crash-Durable I/O & Projection Pipeline
+### Phase 4B: Durable I/O, Projection Purity & Projection Transaction
 
-#### Task 4: Crash-Durable Atomic Writer with Failure Cleanup
+#### Task 5: Crash-Durable Atomic Writer with Failure Cleanup
 - **Owner**: `developer-agent`
 - **Prerequisite**: Checkpoint 1.
 - **Files**: `scripts/lib/task-state-machine.mjs`, `test/task-state-machine.test.mjs`.
-- **TDD Failing Step**: Add failing tests asserting `atomicWriteFileSync()` loops until full write, unlinks `.tmp-*` in catch block upon simulated write failure, flushes file `fsyncSync`, executes rename, and flushes directory `fsyncSync`.
-- **Implementation**: Implement `atomicWriteFileSync` in `scripts/lib/task-state-machine.mjs`.
-- **Verification**: `node --test test/task-state-machine.test.mjs` passes durability and cleanup tests.
-- **Rollback**: Revert writer implementation.
+- **TDD Failing Step**: Failing tests asserting the write loop completes short writes, the `.tmp-*` file is unlinked when `fs.writeSync` throws mid-write, the target file is untouched on failure, and both `fsyncSync` calls plus the rename occur in order.
+- **Implementation**: `atomicWriteFileSync` per SDD Component 5.
+- **Verification**: `node --test test/task-state-machine.test.mjs`.
+- **Rollback**: Revert the writer.
 
-#### Task 5: Status Projection Compiler & Preflight Drift Reconciliation
+#### Task 6: Pure Projection, Drift Detection & Explicit Repair (ADR-0029)
 - **Owner**: `developer-agent`
-- **Prerequisite**: Task 4.
+- **Prerequisite**: Task 5.
 - **Files**: `scripts/compile-status-projection.mjs`, `scripts/archive-work-item.mjs`, `test/compile-status-projection.test.mjs`, `test/archive-work-item.test.mjs`.
-- **TDD Failing Step**: Add failing tests asserting:
-  1. `compileStatusProjection()` fails closed with `MALFORMED_SHARD` on corrupt JSON or digest mismatch.
-  2. `archiveWorkItem()` calls `updateProjectStatusFile()`.
-  3. Projection throw triggers compensating rollback restoring shard.
-  4. Mandatory preflight `reconcileArchivedShards()` automatically detects and repairs post-crash drift.
-- **Implementation**:
-  - Update `scripts/compile-status-projection.mjs` to use `validateEnvelopeSchema` and `atomicWriteFileSync`.
-  - Wire `updateProjectStatusFile()` into `scripts/archive-work-item.mjs` with exception compensation.
-  - Implement `reconcileArchivedShards()` as preflight check in projection and archival scripts.
-- **Verification**: `node --test test/compile-status-projection.test.mjs` and `test/archive-work-item.test.mjs` pass green.
-- **Rollback**: Revert changes to compiler and archival scripts.
+- **TDD Failing Step**: Failing tests asserting:
+  1. `compileStatusProjection()` throws `MALFORMED_SHARD` on unparseable JSON, schema violation, or digest mismatch.
+  2. `compileStatusProjection()` and `detectArchivedShardDrift()` write zero bytes — hash and `stat` every file under the fixture root before and after.
+  3. `checkProjectStatusSync()` on a drifted fixture returns `inSync: false` with a `recovery` string naming `--reconcile`, the CLI exits 1, and **no file under the fixture root changes**.
+  4. `reconcileArchivedShards()` repairs the same fixture and is idempotent on a second run.
+  5. The call graph is acyclic: `updateProjectStatusFile()` never re-enters reconciliation (asserted by a call spy, so a future edit that reintroduces recursion fails loudly rather than stack-overflowing).
+- **Implementation**: Split the four functions per SDD Component 6; add the `--reconcile` flag; keep `--check` on the pure path only.
+- **Verification**: `node --test test/compile-status-projection.test.mjs test/archive-work-item.test.mjs`; `npm run validate:status-projection`.
+- **Rollback**: Revert both scripts.
 
-> **🛑 Checkpoint 2:** Projection and archival durability validated with failure injection.
+#### Task 7: Projection Lock, Lock Order & Archival Compensation (ADR-0030)
+- **Owner**: `developer-agent`
+- **Prerequisite**: Task 6.
+- **Files**: `scripts/compile-status-projection.mjs`, `scripts/archive-work-item.mjs`, `test/compile-status-projection.test.mjs`, `test/archive-work-item.test.mjs`.
+- **TDD Failing Step**: Failing tests asserting:
+  1. `updateProjectStatusFile()` acquires `.projection.lock` **before** compiling — proven by a barrier that archives a shard between lock-attempt and compile and asserts the final projection reflects the archive.
+  2. A second concurrent `updateProjectStatusFile()` waits and then produces a projection matching filesystem reality; neither run's output is lost.
+  3. An abandoned projection lock throws `LOCK_ABANDONED` naming `unlock --projection`, and the lock file is left untouched.
+  4. Lock order: no code path acquires a shard lock while the projection lock is held (asserted by instrumenting both acquire functions and failing on inversion).
+  5. `archiveWorkItem()` calls `updateProjectStatusFile()`; when it throws, the compensating rename restores `work-items/{id}` and `ARCHIVE_RECONCILIATION_FAILED` is raised; when the compensating rename also fails, the error carries `compensation_failed: true`.
+  6. The projection lock is released on every success and failure path.
+- **Implementation**: Projection lock and ordering per SDD Component 7; archival compensation per SDD Component 8.
+- **Verification**: `node --test test/compile-status-projection.test.mjs test/archive-work-item.test.mjs`.
+- **Rollback**: Revert both scripts.
+
+> **🛑 Checkpoint 2:** Projection purity, projection transaction and archival compensation validated with barriers and fault injection.
 
 ---
 
-### Phase 4C: Contract Validation, Migrations & Operational Closeout
+### Phase 4C: Migration & Governance Closeout
 
-#### Task 6: Contract Validator Update & Backfill Tool
+#### Task 8: Backfill Tool & Active-Shard Validation Lane
 - **Owner**: `developer-agent`
 - **Prerequisite**: Checkpoint 2.
 - **Files**: `scripts/backfill-task-state-v2.mjs`, `scripts/validate-contracts.mjs`, `test/contracts.test.mjs`.
-- **TDD Failing Step**: Add failing tests asserting `validate-contracts.mjs` validates active shards against `durable-task-envelope.schema.json` and `backfill-task-state-v2.mjs` upgrades shards idempotently with `--rollback` support.
-- **Implementation**:
-  - Author `scripts/backfill-task-state-v2.mjs`.
-  - Update `scripts/validate-contracts.mjs` to validate active shards with `validateEnvelopeSchema`.
-- **Verification**: `node --test test/contracts.test.mjs` and `npm run validate:contracts` pass.
-- **Rollback**: Revert validator changes and remove backfill script.
+- **TDD Failing Step**: Failing tests asserting `backfillTaskStateV2()` upgrades a v1 shard to `contract_version: 2` with `policy_contract_version: 1`, `sequence_number` derived from history length, and a `state_digest` equal to `digestTaskEnvelope(data)`; that a second run is a byte-identical no-op; that `--rollback` restores the pre-migration file exactly; and that `validate-contracts.mjs` now validates `docs/records/work-items/*/task-state.json` through `validateEnvelopeSchema`.
+- **Implementation**: Author the backfill tool; add the active-shard lane to the validator.
+- **Verification**: `node --test test/contracts.test.mjs`; `npm run validate:contracts`.
+- **Rollback**: Revert the validator; delete the backfill script.
 
-#### Task 7 (Operational Step): Active Shard Migration & Archival
-- **Owner**: `developer-agent` (Separately Approved Operational Execution)
-- **Prerequisite**: Task 6.
+#### Task 9 (Operational Step): Evidence-Bound Migration of issue-249 and issue-275
+- **Owner**: `developer-agent` (separately approved operational execution)
+- **Prerequisite**: Task 8.
 - **Files**: `docs/records/work-items/issue-249/task-state.json`, `docs/records/work-items/issue-275/task-state.json`, `PROJECT_STATUS.md`.
+- **Constraint**: the actor matrix forbids one role from running both terminal hops — `verifying -> handoff` is `qa-agent`, `handoff -> completed` is `orchestrator` or `release-agent`. Each hop is executed and recorded separately; no synthesized or generic history is permitted.
 - **Execution**:
-  - Backup active shards to scratch directory.
-  - Run `scripts/backfill-task-state-v2.mjs` on `issue-249` and `issue-275`.
-  - Transition terminal shards (`verifying -> handoff -> completed`).
-  - Run `scripts/archive-work-item.mjs` to archive shards and reconcile `PROJECT_STATUS.md`.
-- **Verification**: `npm run validate:project-state` and `npm run compile:status-projection -- --check` pass.
-- **Rollback**: Restore backed-up shards if migration fails.
+  1. Back both shards up to the session scratch directory; record the pre-migration SHA-256 of each file.
+  2. Run `node scripts/backfill-task-state-v2.mjs docs/records/work-items/issue-249` and the same for `issue-275`.
+  3. Execute the terminal hops with the real closeout evidence below, one `mutateTaskStateOnDisk` call each, supplying the `--expected-digest` printed by `inspect` immediately beforehand.
+  4. `node scripts/archive-work-item.mjs issue-249` and `issue-275`.
+- **Real closeout evidence (verified against the GitHub API on 2026-09-12):**
 
-#### Task 8: Review Gate Governance & QA Record
-- **Owner**: `developer-agent` & `qa-agent`
-- **Prerequisite**: Tasks 1–7.
+| Shard | Hop | Actor | Evidence | Merge commit |
+|---|---|---|---|---|
+| issue-249 | `verifying -> handoff` | `qa-agent` | `original_repro_result`: `docs/records/qa/2026-09-09-issue-249-token-body-code-review.md`; `verification_result`: `npm test` 706/706 green at merge | — |
+| issue-249 | `handoff -> completed` | `orchestrator` | `closeout_evidence`: PR #251 "fix: extract the PR body from argument tokens, not raw command text (Issue #249)", merged 2026-09-09T05:52:15Z by `chakrits`; issue closed 2026-09-09T05:52:16Z | `0c4f79055a5f8b90153fee9ede1cefc9335950a4` |
+| issue-275 | `verifying -> handoff` | `qa-agent` | `original_repro_result`: GitHub Actions run 34623255592 (`Cannot find package 'ajv'`); `verification_result`: `docs/records/qa/2026-09-11-issue-275-readiness-refresh-dependencies-code-review.md` | — |
+| issue-275 | `handoff -> completed` | `orchestrator` | `closeout_evidence`: PR #276 "fix(readiness): lazy-load ajv and yaml in work-item-readiness decision module", merged 2026-09-11T17:08:49Z by `chakrits`; issue closed 2026-09-11T17:08:51Z | `37749ce30afaad4c652e93893e9232e0e818bf6a` |
+
+- **Verification**: `npm run validate:contracts`; `npm run validate:project-state`; `npm run compile:status-projection -- --check` exits 0; neither issue appears in `PROJECT_STATUS.md`; the digest of each archived shard equals `digestTaskEnvelope` of its content.
+- **Rollback**: `node scripts/backfill-task-state-v2.mjs --rollback`, or restore the backups and compare against the recorded pre-migration SHA-256.
+
+#### Task 10: Independent Code Review Record (QG-001)
+- **Owner**: `qa-agent` — **sole owner.** The implementer (`developer-agent`) must not author or co-author this record; implementer-verifier separation is the point of the gate.
+- **Prerequisite**: Tasks 1–9.
 - **Files**: `docs/records/qa/2026-09-12-control-plane-state-integrity-code-review.md`.
-- **Implementation**: Author QA code review record covering all `.mjs` changes satisfying `scripts/validate-review-gate.mjs`.
-- **Verification**: `npm run validate:review-gate` passes.
+- **Implementation**: Independently review every `.mjs` change against the SDD, re-deriving each claim rather than accepting the implementer's summary.
+- **Verification**: `npm run validate:review-gate`.
 
 ---
 
@@ -152,30 +196,26 @@
 
 | Test Type | Required? | Scope | Owner |
 |---|---|---|---|
-| Unit Test | Yes | Self-excluding hasher, actor guards, CAS conflict, atomic writer cleanup | `developer-agent` |
-| Concurrency Test | Yes | Two-process lost-update race, atomic rename stale takeover | `developer-agent` / `qa-agent` |
-| Fault Injection | Yes | Write failure temp cleanup, archival exception compensation, post-crash drift | `qa-agent` |
-| Integration | Yes | Fail-closed projection, archival reconciliation, backfill idempotency | `qa-agent` |
-| Contract Validation | Yes | Envelope v2 schema validation, legacy v1 rejection | `qa-agent` |
-| Review Gate | Yes | Verification of QA code review record (`QG-001`) | `qa-agent` |
+| Unit | Yes | Hasher self-exclusion, actor guards, terminal/unknown source guards, CAS, atomic writer cleanup | `developer-agent` |
+| Contract | Yes | Envelope v2 + `policy_contract_version` binding, policy amendment, all eleven existing fixtures still green | `developer-agent` |
+| Concurrency (barrier-synchronized) | Yes | Two-process lost-update race on a shard; archive-vs-projection interleaving; lock-order inversion detection | `developer-agent` / `qa-agent` |
+| Fault Injection | Yes | Write failure temp cleanup, archival compensation, compensation-of-compensation failure, abandoned-lock refusal | `qa-agent` |
+| Read-Only Assertion | Yes | Byte-equality of the whole fixture tree across `--check` and across both pure functions | `qa-agent` |
+| Integration | Yes | Fail-closed projection, explicit reconcile idempotency, backfill idempotency and rollback | `qa-agent` |
+| Regression | Yes | Full repository suite, no test weakening | `qa-agent` |
+| Review Gate | Yes | QG-001 record present and independently authored | `qa-agent` |
 
 ---
 
 ## 6. Verification Commands
 
 ```bash
-# 1. State Machine, Hashing & Concurrency (Phase 4A)
 node --test test/task-state-machine.test.mjs
-
-# 2. Projection, Durability & Archival (Phase 4B)
 node --test test/compile-status-projection.test.mjs
 node --test test/archive-work-item.test.mjs
-
-# 3. Contract Validation & Backfill (Phase 4C)
 node --test test/contracts.test.mjs
 npm run validate:contracts
-
-# 4. Quality Gates & Full Regression
+npm run validate:status-projection
 npm run validate:review-gate
 npm run validate:project-state
 npm run validate:ci-parity
@@ -188,9 +228,11 @@ npm test
 
 | Scenario | Rollback / Fallback Action | Owner |
 |---|---|---|
-| Engine or Concurrency Test Failure | Revert code changes on branch; tests remain green on previous commit | `developer-agent` |
-| Shard Backfill Failure | Execute `node scripts/backfill-task-state-v2.mjs --rollback` or restore from backup | `developer-agent` |
-| Archival Reconciliation Failure | Automatic compensation restores shard directory; run `reconcileArchivedShards()` | `developer-agent` |
+| Engine or concurrency test failure | Revert the slice's files on the branch; the previous commit stays green | `developer-agent` |
+| Policy amendment breaks a fixture | Revert `bug-fix-workflow.yaml`; the amendment is additive, so revert is complete | `developer-agent` |
+| Shard backfill failure | `node scripts/backfill-task-state-v2.mjs --rollback`, else restore backups and verify against recorded SHA-256 | `developer-agent` |
+| Archival failure | Automatic compensating rename restores the shard; if compensation also fails the error says so and the operator reconciles manually | `developer-agent` |
+| Abandoned lock in CI | `node scripts/task-machine-cli.mjs unlock --task <id> --nonce <observed>` or `--projection`, after confirming no live holder | Human Maintainer |
 
 ---
 
@@ -198,9 +240,11 @@ npm test
 
 | Risk / Blocker | Impact | Mitigation / Next Action |
 |---|---|---|
-| Manual Shard Tampering | CAS conflict on subsequent mutation | Documented CLI inspect command displays valid digest |
-| Dead PID on Stale Lock | Blocked transitions | Atomic rename takeover reclaims locks safely without ABA risk |
-| Post-Crash Projection Drift | Stale `PROJECT_STATUS.md` | Mandatory preflight `reconcileArchivedShards` repairs drift automatically |
+| Abandoned shard lock blocks one work item | Medium | Deliberate (ADR-0027). Loud error naming a nonce-verified `unlock`. |
+| Abandoned projection lock blocks every status update including CI | High | Deliberate (ADR-0030), justified in the SDD. Shorter critical section; diagnostic surfaced by every projection validator. |
+| Matrix and policy drift apart | High | Parity test in Task 3 fails when a matrix destination has no policy counterpart. |
+| Terminal migration illegal under current policy | High | Task 1's additive policy amendment lands before Task 9. |
+| Active-shard validation lane breaks CI on pre-existing shards | Medium | Task 8 lands the lane only after Task 9 migrates the two v1 shards, or gates the lane behind the migration in the same commit. |
 
 ---
 
@@ -208,7 +252,9 @@ npm test
 
 | To | Reason | Required Evidence |
 |---|---|---|
-| Code Review Gate | Review all production script modifications | Diff, unit tests, code review record |
-| QA Verifier | Independent verification of all ACs and invariants | Full test run, mutation evidence, gate passes |
-| Security Reviewer | Final security review of concurrency and takeover | Multi-process concurrency evidence |
-| Human Maintainer | Final merge approval | Clean CI run, approved reviews, zero gate failures |
+| Human Maintainer (gate) | Approve the Round 4 blueprint before any code is written | Revised requirement, SDD, plan, QA plan, security review |
+| Documentation Agent | Record ADR-0026..ADR-0030 in `DECISIONS.md` | Approved SDD |
+| Code Review Gate | Review all production script modifications | Diff, unit tests, independently authored code review record |
+| QA Verifier | Independent verification of AC-001..AC-010 and the deterministic invariants | Full test run, mutation evidence, gate passes |
+| Security Reviewer | Recheck the revised concurrency protocol against its conditions | Barrier-synchronized concurrency evidence, lock-order test, byte-equality evidence |
+| Human Maintainer (merge) | Final merge approval | Clean CI run, approved reviews, zero gate failures |
