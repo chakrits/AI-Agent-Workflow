@@ -9,7 +9,7 @@
 | Risk Level | High |
 | Owner | Developer Agent (`implementation-planning`) |
 | Target Branch / Ticket | `feat/control-plane-state-integrity` / Issue #277 |
-| Revision | Round 5 rework — addresses maintainer review #5644601391, Blocking finding 3 and Additional corrections 1–2. Blockers 1, 2 and 4 are resolved in the SDD (ADR-0031, ADR-0027 amendments); this plan executes those decisions and does not re-open them. |
+| Revision | Round 6 SA rework at `dbfbe3e` — resolves lane-specific version binding, policy-authoritative blocked resume, task-id/lock identity binding, and the canonical `archive/` plus dot-entry exclusions. Security Blocker 1 and malformed-lock recovery remain owned by Security Reviewer. |
 
 > **Scope note (ADR-0031).** Package 1's durable envelope and active-shard enforcement lane are narrowed
 > to `workflow_id: "bug-fix"` only. Issue #277 is itself `framework-meta` and therefore has **no durable
@@ -35,11 +35,11 @@
 | Area | Files / Components | Expected Change |
 |---|---|---|
 | **Envelope Layer** | `docs/contracts/schemas/durable-task-envelope.schema.json` | Keep `contract_version: 2` const; add required integer `policy_contract_version` (minimum 1); narrow `workflow_id` and `change_type` enums to `["bug-fix"]` (ADR-0031); title corrected to v2. |
-| **Policy Layer** | `docs/contracts/bug-fix-workflow.yaml` | Additive only: add `completed` and `cancelled` to `states`, and add exactly one transition row, `handoff -> completed` requiring `closeout_evidence`. **No `<any> -> cancelled` / wildcard row** — the validator does exact `from -> to` lookup with no wildcard semantics, so `cancelled` is a valid storage state with no ingress in Package 1 (SDD Component 1). `contract_version` stays `1`; every existing example fixture stays valid. |
+| **Policy Layer** | `docs/contracts/bug-fix-workflow.yaml` | Additive only: add terminal states and `handoff -> completed`; add a separate policy `resume` operation from `blocked` to `[investigating, verifying]` requiring `resume_evidence` and `approver_id`. No cancellation wildcard. Policy version stays `1`; legacy fixtures stay valid. |
 | **Canonical Prose** | `AGENTS.md` (Bug Fix section, L274-276) | Add the layer split: policy owns states/transitions/evidence/retry budget; the durable envelope owns storage shape. |
-| **Contract Validator** | `scripts/validate-contracts.mjs` (L243-247) | Cross-check `state.policy_contract_version` against `policy.contract_version` instead of `state.contract_version`; add a `bug-fix`-only active-shard lane validating `docs/records/work-items/*/task-state.json` through `validateEnvelopeSchema`, skipping dot-prefixed entries. |
-| **State Machine Engine** | `scripts/lib/task-state-machine.mjs`<br>`scripts/task-machine-cli.mjs` | `digestTaskEnvelope()`, `validateEnvelopeSchema()`; terminal matrix entries; `investigating.destinations` gains `implementing` to repair the empty intersection (SDD Component 2); `UNKNOWN_SOURCE_STATE` fail-closed guard; actor authorization; policy-sourced evidence with the matrix evidence bypass **deleted outright**; fail-closed lock at `docs/records/work-items/.locks/{task_id}.lock` keyed by `task_id`; `mutateTaskStateOnDisk()`; CLI `inspect` and maintenance-only `unlock --quiesced`; mandatory `--expected-digest`. |
-| **Projection & Archival** | `scripts/compile-status-projection.mjs`<br>`scripts/archive-work-item.mjs` | Dot-prefixed-entry skip in `discoverActiveShards()`; pure `compileStatusProjection` / `detectArchivedShardDrift`; mutating `reconcileArchivedShards`; projection lock at `docs/records/work-items/.projection.lock` held inside `updateProjectStatusFile`; `--check` read-only; `--reconcile` flag; `atomicWriteFileSync`; archival compensation. |
+| **Contract Validator** | `scripts/validate-contracts.mjs` | Keep the legacy example lane comparison `state.contract_version === policy.contract_version`; add a separate `bug-fix` active-shard lane comparing `state.policy_contract_version === policy.contract_version` and validating durable envelopes through `validateEnvelopeSchema`. The active lane skips exact `archive/` and dot-prefixed entries before validation. |
+| **State Machine Engine** | `scripts/lib/task-state-machine.mjs`<br>`scripts/task-machine-cli.mjs` | `digestTaskEnvelope()`, `validateEnvelopeSchema()`; terminal matrix entries; `investigating.destinations` gains `implementing`; `UNKNOWN_SOURCE_STATE`; actor authorization; policy-sourced evidence; policy-authoritative resume bound to the latest interrupted state; fail-closed lock at `.locks/{expectedTaskId}.lock`; `mutateTaskStateOnDisk(rootDir, expectedTaskId, ...)` with inside-lock identity validation; CLI `inspect`, `resume`, and maintenance-only `unlock --quiesced`; mandatory `--expected-digest`. |
+| **Projection & Archival** | `scripts/compile-status-projection.mjs`<br>`scripts/archive-work-item.mjs` | Exact `archive/` plus dot-prefixed-entry exclusions in `discoverActiveShards()`; pure `compileStatusProjection` / `detectArchivedShardDrift`; mutating `reconcileArchivedShards`; projection lock; read-only `--check`; `--reconcile`; `atomicWriteFileSync`; archival compensation; archive identity binding before rename. |
 | **Migration & Operations** | `scripts/backfill-task-state-v2.mjs`<br>`docs/records/work-items/issue-249/task-state.json`<br>`docs/records/work-items/issue-275/task-state.json`<br>`PROJECT_STATUS.md` | Backfill tool with `--rollback`; evidence-bound migration of the two active `bug-fix` shards. |
 | **QA Records** | `docs/records/qa/2026-09-12-control-plane-state-integrity-code-review.md` | Code review record satisfying `validate:review-gate` (QG-001), authored by the non-implementer. |
 | **Tests** | `test/task-state-machine.test.mjs`<br>`test/compile-status-projection.test.mjs`<br>`test/archive-work-item.test.mjs`<br>`test/contracts.test.mjs` | Unit, barrier-synchronized multi-process concurrency, fault injection, lock-order, and read-only-check byte-equality tests. |
@@ -58,21 +58,23 @@ test derives the set from it:
 Tests must enumerate via that predicate at runtime and assert the set is non-empty and every member
 validates — never a hard-coded cardinality.
 
-### 3.2 Dot-prefixed-entry skip (two enumerators, one rule)
+### 3.2 Canonical active-root exclusions (two enumerators, one rule)
 
 SDD Component 4 states the skip for `discoverActiveShards()` in `scripts/compile-status-projection.mjs`.
 **Implementation-time judgment call (recorded here, not decided silently):** the Task 8b active-shard
 validator lane enumerates `docs/records/work-items/*` as well, so it needs the identical rule or it will
-treat `.locks/` and `.projection.lock` as invalid shards. Both enumerators skip any entry whose name
-begins with `.`, applied *before* any shard-validity check. This is non-lossy because the envelope schema
-constrains `task_id` to `^[a-z0-9_-]+$`. The rule lands in **Task 4**, which is the first task that can
-create `.locks/` in the real repository.
+treat `.locks/` and `.projection.lock` as invalid shards. Both enumerators apply exactly two exclusions
+before any shard-validity check: entry name exactly `archive`, and any entry whose name begins with `.`.
+The dot-prefix rule is non-lossy because the envelope schema forbids a leading dot. `archive` is a
+reserved root namespace; creation, mutation and archival reject `expectedTaskId === 'archive'` with
+`RESERVED_TASK_ID`. The rule lands in **Task 4**, which is the first task that can create `.locks/` in
+the real repository.
 
 ---
 
 ## 4. Task Breakdown (Reviewable Slices with Checkpoints)
 
-> **Gate:** no task starts until the Human Maintainer approves the Round 5 blueprint and
+> **Gate:** no task starts until the Human Maintainer approves the Round 6 blueprint and
 > ADR-0026..ADR-0031 (**six** ADRs) are recorded in `DECISIONS.md`.
 
 ### 4.0 Ordering rationale (Round 5 Blocker 3)
@@ -119,7 +121,7 @@ can actually pass at the point it runs; where it could pass *vacuously* that is 
 
 ### Phase 4A: Contract Layering & Core Engine
 
-#### Task 1: Envelope Schema, Policy Amendment & Validator Re-binding (ADR-0026, ADR-0031)
+#### Task 1: Envelope Schema, Policy Amendment & Lane-Specific Version Binding (ADR-0026, ADR-0031)
 - **Owner**: `developer-agent`
 - **Prerequisite**: Human approval gate.
 - **Files**: `docs/contracts/schemas/durable-task-envelope.schema.json`, `docs/contracts/bug-fix-workflow.yaml`, `AGENTS.md`, `scripts/validate-contracts.mjs`, `test/contracts.test.mjs`.
@@ -132,13 +134,21 @@ can actually pass at the point it runs; where it could pass *vacuously* that is 
   (e) `bug-fix` policy now permits `handoff -> completed` with `closeout_evidence` and rejects it without;
   (f) an envelope carrying `workflow_id` of `new-feature`, `config-change`, `data-change` or `framework-meta` is **rejected** by the envelope schema (ADR-0031 negative case);
   (g) the amended policy contains **no** wildcard transition row and no `-> cancelled` row, so `cancelled` is a declared storage state with no ingress.
+  (h) the legacy example lane reads `state.contract_version`, while the active-envelope seam reads
+  `state.policy_contract_version`; mutation tests swapping either field make that lane fail;
+  (i) the policy contains a separate `resume` operation with `from: blocked`, destinations exactly
+  `[investigating, verifying]`, and requirements exactly `[resume_evidence, approver_id]`.
+  (j) the durable envelope rejects `task_id: archive`, reserving that root entry for archived shards.
 - **Implementation**:
-  - Add required `policy_contract_version` (integer, minimum 1) to the envelope schema; narrow `workflow_id` and `change_type` to `["bug-fix"]`; fix the schema `title` to say v2.
-  - Amend `bug-fix-workflow.yaml` additively as described in §3 — states only, plus the single `handoff -> completed` row.
-  - Replace the `state.contract_version !== policy.contract_version` comparison at `scripts/validate-contracts.mjs:243` with `state.policy_contract_version !== policy.contract_version`.
+  - Add required `policy_contract_version` (integer, minimum 1) to the envelope schema; narrow `workflow_id` and `change_type` to `["bug-fix"]`; reserve `task_id: archive` with a schema-level negative constraint; fix the schema `title` to say v2.
+  - Amend `bug-fix-workflow.yaml` additively as described in §3 — terminal states, the
+    `handoff -> completed` row, and the separate blocked-resume operation.
+  - Keep the existing example-lane comparison against `state.contract_version`. Introduce a distinct
+    active-envelope version-binding helper/seam that compares `state.policy_contract_version`; Task 8b
+    connects that seam to active-root enumeration. Do not globally replace the existing comparison.
   - Add the AGENTS.md layer-split sentence.
 - **Verification**: `node --test test/contracts.test.mjs`; `npm run validate:contracts`.
-- **Rollback**: Revert the four files; the amendment is additive so no fixture rewrite is needed.
+- **Rollback**: Revert the five scoped files; the amendment is additive so no fixture rewrite is needed.
 
 #### Task 2: Self-Excluding Hasher & Envelope Validation Seam (ADR-0028)
 - **Owner**: `developer-agent`
@@ -184,8 +194,17 @@ can actually pass at the point it runs; where it could pass *vacuously* that is 
   3. `transitionTaskState()` throws `UNAUTHORIZED_ACTOR` when the actor is absent from `TRANSITION_MATRIX[from].actors`; `'Developer Agent'` normalizes to `'developer-agent'`; an unregistered role throws `UNAUTHORIZED_ACTOR`.
   4. Every `-> blocked` transition is rejected without `stop_reason`, sourced from the policy row's `requires` (the policy already carries `requires: [stop_reason]` on every `-> blocked` row) — **not** from a special case in the engine.
   5. Any `-> cancelled` transition is rejected as policy-silent, because `bug-fix-workflow.yaml` enumerates no such row (SDD Component 1). This is the regression guard for "`cancelled` has no ingress in Package 1".
-  6. **Authority-rule parity test:** for every `(from, to)` pair in `TRANSITION_MATRIX[from].destinations`, legality equals membership in the policy's `transitions` for the shard's `workflow_id` — the strict intersection. The test additionally asserts that `TRANSITION_MATRIX[from].requires` is **never consulted at validation time**: mutating a matrix `requires` entry in the test must not change which evidence a transition demands. There is no "envelope-only" exception and no matrix fallback to assert.
+  6. **Authority-rule parity test:** every requested transition requires the matrix destination plus a
+     matching policy transition row. The separate policy resume operation is tested only through
+     `resumeTaskState`; transition mode from `blocked` remains policy-silent. The test also proves
+     `TRANSITION_MATRIX[from].requires` is never consulted. There is no transition fallback.
   7. An unknown `workflow_id` fails closed.
+  8. `blocked` is non-terminal in the computed intersection. Full-path cases enter it from
+     `investigating` and `verifying`, then `resume` to the same recorded source with actor `human` or
+     `orchestrator`, `resume_evidence`, and `approver_id`. Negative cases assert
+     `HUMAN_APPROVAL_REQUIRED` for unauthorized/missing evidence, `INVALID_RESUME_TARGET` for another
+     policy-listed target, and `RESUME_OPERATION_REQUIRED` when ordinary transition mode attempts a
+     resume operation.
 - **Implementation**:
   - Add `completed` / `cancelled` entries with empty `destinations`, `requires`, `actors`.
   - **Add `implementing` to `TRANSITION_MATRIX.investigating.destinations`** (SDD Component 2). No policy file is touched by this task.
@@ -193,30 +212,45 @@ can actually pass at the point it runs; where it could pass *vacuously* that is 
   - Invert `if (matrixEntry)` to the fail-closed `UNKNOWN_SOURCE_STATE` throw.
   - Canonicalize the actor to lowercase kebab-case against `ROLE_REGISTRY` and assert membership.
   - **Delete** the `to !== 'blocked' && to !== 'cancelled'` evidence bypass outright (SDD Component 2) rather than narrowing it.
-  - Resolve required evidence solely from the workflow policy row for the shard's `workflow_id`; legality is the intersection of matrix destinations and policy transitions; unknown `workflow_id`, unknown source state and policy-silent transitions all fail closed.
+  - Resolve transition evidence solely from the workflow policy transition row; unknown workflow,
+    source, or policy pair fails closed. Read blocked resume destinations and evidence from the separate
+    policy `resume` operation.
+  - Implement `resumeTaskState()` as a policy operation over the same intersection: locate the latest
+    history event entering `blocked`, require `to === event.from`, then apply the policy row, matrix
+    actor check, and Human evidence checks. Ordinary transition does not consult the resume operation.
 - **Verification**: `node --test test/task-state-machine.test.mjs`; `npm run validate:contracts`.
 - **Rollback**: Revert `task-state-machine.mjs`.
 
-#### Task 4: Fail-Closed Shard Lock (Stable Namespace), CLI Recovery Surface & Disk-Bound Mutation Wrapper (ADR-0027)
+#### Task 4: Identity-Bound Shard Lock, CLI Recovery Surface & Disk-Bound Mutation Wrapper (ADR-0027)
 - **Owner**: `developer-agent`
 - **Prerequisite**: Task 3.
 - **Files**: `scripts/lib/task-state-machine.mjs`, `scripts/task-machine-cli.mjs`, `scripts/compile-status-projection.mjs`, `test/task-state-machine.test.mjs`, `test/compile-status-projection.test.mjs`.
 - **TDD Failing Step**: Failing tests asserting:
-  1. The lock created by `acquireShardLock(rootDir, task_id)` is at `docs/records/work-items/.locks/{task_id}.lock` and **nowhere under `work-items/{task_id}/`**; the directory is created with `mkdirSync(recursive)` on first use.
-  2. The lock API is keyed by `task_id`, not by a directory path: `acquire`, `release`, `inspect` and `unlock` all take `(rootDir, task_id)`, and a release still resolves the same pathname after the shard directory has been renamed away.
+  1. The lock created by `acquireShardLock(rootDir, expectedTaskId)` is at `docs/records/work-items/.locks/{expectedTaskId}.lock` and **nowhere under `work-items/{expectedTaskId}/`**; the directory is created with `mkdirSync(recursive)` on first use.
+  2. The lock API is keyed by explicit `expectedTaskId`, not by a pre-read envelope or directory path: `acquire`, `release`, `inspect` and `unlock` all take `(rootDir, expectedTaskId)`, and a release still resolves the same pathname after the shard directory has been renamed away.
   3. **Three-tier classification, liveness dominates age:** young + live PID → randomized backoff, retry up to 5 s, then `LOCK_ACQUISITION_TIMEOUT`; old + live PID → `LOCK_ACQUISITION_TIMEOUT` with a `LOCK_HELD_LONG` advisory and holder diagnostics (`pid`, `nonce`, `created_at`, age); **dead PID at any age** → `LOCK_ABANDONED`. Age alone must **never** classify abandonment — a test with a live-but-old holder asserts it does **not** produce `LOCK_ABANDONED`.
   4. Every refusal leaves the lock file **byte-identical on disk**, and the message names `unlock --task <id> --nonce <observed> --quiesced`.
   5. `releaseShardLock(rootDir, task_id, 'nonce-B')` against a lock holding `nonce-A` does not unlink it.
   6. `unlock --task T --nonce N --quiesced` removes the lock when the nonce matches, throws `LOCK_NONCE_MISMATCH` when it does not, and **refuses without `--quiesced`**. A test asserts the CLI prints the holder record and the consequence of a wrong quiescence assertion before acting. **No race-safety assertion is written for `unlock`** — the SDD withdraws that claim in full; nonce verification is an operator-mistake filter only.
   7. `inspect` prints holder and current digest, mutates nothing, and requires no `--quiesced`.
-  8. `mutateTaskStateOnDisk` rejects missing or empty `expected_digest` with `MISSING_EXPECTED_DIGEST`, and a stale digest with `CAS_CONFLICT` carrying both digests, in both `transition` and `resume` mode — and does so **unconditionally, inside the critical section, regardless of how the lock was obtained**, which is the property that makes a wrong `unlock` degrade to a loud rejection rather than a lost update.
+  8. `mutateTaskStateOnDisk` rejects missing or empty `expected_digest` with `MISSING_EXPECTED_DIGEST`, and a stale digest with `CAS_CONFLICT` carrying both digests, in both `transition` and `resume` mode, inside the critical section.
   9. No lock file remains at `work-items/.locks/{id}.lock` after any success or failure path (zero lock leaks).
-  10. `discoverActiveShards()` skips every dot-prefixed entry *before* any shard-validity check, so `.locks/`, `.gitkeep` and `.projection.lock` are never treated as shards (§3.2).
+  10. `discoverActiveShards()` skips exact `archive/` and every dot-prefixed entry *before* any shard-validity check; a task identifier `archive` is rejected with `RESERVED_TASK_ID` (§3.2).
+  11. Mutation receives `expectedTaskId`, derives `work-items/{expectedTaskId}/task-state.json`, acquires
+      that identifier's lock, then rejects with `TASK_IDENTITY_MISMATCH` unless the re-read
+      `current.task_id` and directory basename both equal `expectedTaskId`. The mismatch leaves the file
+      byte-identical and releases the lock.
+  12. A barrier replaces an A envelope with one declaring B between operation start and lock
+      acquisition. Writer A under lock A must fail `TASK_IDENTITY_MISMATCH`; writer B under lock B must
+      not overlap a write to A's pathname. Repeat for `resume` mode.
 - **Implementation**:
-  - `acquireShardLock(rootDir, task_id)` / `releaseShardLock(rootDir, task_id, nonce)` per SDD Component 4 — no reclamation path exists in the code at all.
-  - `mutateTaskStateOnDisk(shardPath, {to, actor, expected_digest, evidence, mode})` per SDD Component 9, reading `task_id` from the envelope rather than from `shardPath`, and releasing in `finally`.
-  - `scripts/task-machine-cli.mjs`: `transition` and `resume` call only the wrapper and require `--expected-digest`; add `inspect` and `unlock` (`--task`, `--nonce`, `--quiesced`).
-  - `scripts/compile-status-projection.mjs`: dot-prefixed skip in `discoverActiveShards()`.
+  - `acquireShardLock(rootDir, expectedTaskId)` / `releaseShardLock(rootDir, expectedTaskId, nonce)` per SDD Component 4 — no reclamation path exists in the code at all.
+  - `mutateTaskStateOnDisk(rootDir, expectedTaskId, {to, actor, expected_digest, evidence, mode})` per
+    SDD Component 9. Derive the active shard path from `expectedTaskId`, bind it to the re-read envelope
+    under the lock, and release in `finally`; do not pre-read `task_id` to select the lock.
+  - `scripts/task-machine-cli.mjs`: `transition` and `resume` call only the wrapper, require `--task` and
+    `--expected-digest`; add `inspect` and `unlock` (`--task`, `--nonce`, `--quiesced`).
+  - `scripts/compile-status-projection.mjs`: exact `archive/` and dot-prefixed skips in `discoverActiveShards()`.
 - **Verification**: `node --test test/task-state-machine.test.mjs test/compile-status-projection.test.mjs`.
 - **Rollback**: Revert lock, wrapper, CLI and enumerator changes.
 
@@ -312,7 +346,11 @@ can actually pass at the point it runs; where it could pass *vacuously* that is 
   6. **Barrier test — mutation and archive of the same shard cannot overlap**, because both take `work-items/.locks/{id}.lock` and `archiveWorkItem()` releases it **last**, after the projection lock.
   7. **Three-pathname lock-absence assertion on all three exit paths** (success, compensating rename, compensation failure): no file at `work-items/.locks/{id}.lock`, none at `work-items/{id}/.lock`, and none at `archive/{id}/.lock`. The last two prove the Round 5 Blocker 2 defect cannot reappear via a path-derived lock.
   8. The projection lock is released on every success and failure path.
-- **Implementation**: Projection lock and ordering per SDD Component 7; archival compensation per SDD Component 8. `archiveWorkItem()` acquires the shard lock by `task_id`, reconciles, renames the shard directory, updates the projection, then releases the shard lock last.
+  9. `archiveWorkItem(expectedTaskId)` derives the active source from that ID, acquires its stable lock,
+     re-reads the envelope, and rejects `TASK_IDENTITY_MISMATCH` before rename when envelope ID,
+     directory basename, and argument differ. A barrier replacing A's envelope with B before A acquires
+     its lock proves no archive or projection write occurs under the wrong identity.
+- **Implementation**: Projection lock and ordering per SDD Component 7; archival compensation per SDD Component 8. `archiveWorkItem(expectedTaskId)` derives the source directory and lock from the same explicit identifier, binds the re-read envelope to both, reconciles, renames, updates the projection, then releases the shard lock last.
 - **Verification**: `node --test test/compile-status-projection.test.mjs test/archive-work-item.test.mjs`; `npm run validate:status-projection`.
 - **Rollback**: Revert both scripts.
 
@@ -342,8 +380,12 @@ can actually pass at the point it runs; where it could pass *vacuously* that is 
   4. **Negative — digest:** a shard whose `state_digest` does not equal `digestTaskEnvelope(shard)` is rejected with `DIGEST_INTEGRITY_MISMATCH`.
   5. **Enumeration:** the lane skips dot-prefixed entries, so a fixture root containing `.locks/{id}.lock` and `.projection.lock` alongside one valid shard still passes and reports exactly one validated shard (§3.2).
   6. **Non-vacuity:** the lane reports the number of shards it validated, and the fixture tests assert that number is greater than zero, so an enumeration bug that finds nothing fails loudly instead of passing.
-  7. **Archive exclusion:** shards under `archive/` are not enumerated by the active lane.
-- **Implementation**: Add the `bug-fix`-only active-shard lane to `scripts/validate-contracts.mjs`, routing each discovered shard through `validateEnvelopeSchema`, with the dot-prefix skip applied before any validity check.
+  7. **Archive exclusion:** the exact `archive/` entry and every shard below it are not enumerated by the active lane; this exclusion is applied before validity checks.
+  8. **Lane binding mutation:** replacing the example lane's `state.contract_version` comparison with
+     `state.policy_contract_version` fails legacy fixtures; replacing the active lane's
+     `state.policy_contract_version` comparison with `state.contract_version` fails the valid durable
+     fixture. Both mutants must be killed.
+- **Implementation**: Add the `bug-fix`-only active-shard lane to `scripts/validate-contracts.mjs`, routing each discovered shard through `validateEnvelopeSchema` and its own `policy_contract_version` binding. Preserve the legacy lane's `contract_version` binding. Apply exact `archive/` and dot-prefix exclusions before any active-shard validity check.
 - **Verification**: `node --test test/contracts.test.mjs`; `npm run validate:contracts`; `npm test`.
 - **Rollback**: **Deactivate the lane only** — revert `scripts/validate-contracts.mjs`. Do **not** delete `scripts/backfill-task-state-v2.mjs`: the migrated shards depend on its `--rollback` path, and deleting it would strip the only reversal for Task 9a.
 
@@ -361,8 +403,8 @@ can actually pass at the point it runs; where it could pass *vacuously* that is 
 | Test Type | Required? | Scope | Owner |
 |---|---|---|---|
 | Unit | Yes | Hasher self-exclusion, actor guards, terminal/unknown source guards, CAS, atomic writer cleanup and zero-progress fault | `developer-agent` |
-| Contract | Yes | Matrix ∩ policy non-empty-intersection guard over every in-scope policy row; envelope v2 + `policy_contract_version` binding, `bug-fix`-only enum, policy amendment, every fixture discovered by the §3.1 predicate still green (no count asserted) | `developer-agent` |
-| Concurrency (barrier-synchronized) | Yes | Two-process lost-update race on a shard; mutation-vs-archive exclusion; archive-vs-projection interleaving; lock-order inversion detection | `developer-agent` / `qa-agent` |
+| Contract | Yes | Matrix ∩ policy guard including blocked resume; lane-specific legacy `contract_version` and durable `policy_contract_version` bindings with field-swap mutants; `bug-fix`-only enum; every discovered fixture green | `developer-agent` |
+| Concurrency (barrier-synchronized) | Yes | Task-ID replacement between operation start and lock acquisition for transition/resume/archive; mutation-vs-archive exclusion; archive-vs-projection interleaving; lock-order inversion detection; Security-owned wrong-unlock counterexample remains separate | `developer-agent` / `qa-agent` |
 | Fault Injection | Yes | Write failure temp cleanup, zero-progress write, archival compensation, compensation-of-compensation failure, abandoned-lock refusal with byte-identical lock | `qa-agent` |
 | Read-Only Assertion | Yes | Byte-equality of the whole fixture tree across `--check` and across both pure functions | `qa-agent` |
 | Integration | Yes | Fail-closed projection, explicit reconcile idempotency, backfill idempotency and rollback, active-shard lane positive/negative over a fixture root | `qa-agent` |
@@ -405,15 +447,18 @@ npm test
 
 | Risk / Blocker | Impact | Mitigation / Next Action |
 |---|---|---|
-| Abandoned shard lock blocks one work item | Medium | Deliberate (ADR-0027). Loud error naming a maintenance-only, quiescence-gated `unlock`. Integrity is preserved by the unconditional CAS, not by the lock. |
+| Abandoned shard lock blocks one work item | Medium | Loud error names maintenance-only `unlock`. Quiescence is an external safety precondition; CAS alone does not prevent two admitted writers from both passing before either writes. Security Blocker 1 remains open. |
 | Abandoned projection lock blocks every status update including CI | High | Deliberate (ADR-0030), justified in the SDD. Shorter critical section; diagnostic surfaced by every projection validator. |
 | A live-but-slow holder is misread as abandoned | Medium | Abandonment is classified by **dead PID only**; age is a diagnostic tier (`LOCK_HELD_LONG`), never a classifier (SDD Component 4). Tested in Task 4 item 3. |
 | Matrix and policy drift apart | High | Authority-rule parity test in Task 3 item 6: legality is the strict intersection, and matrix `requires` is proven never to be consulted at validation time. |
 | Strict intersection empties a hop and severs a happy path | High | **Already occurred at `investigating -> implementing`.** Repaired by widening the matrix (SDD Component 2, SA ruling), and permanently guarded by Task 3 item 0, which enumerates every policy row of every in-scope workflow and fails the build on any empty intersection or missing matrix destination. |
+| Strict intersection makes Human resume impossible | High | Add explicit `blocked -> investigating` and `blocked -> verifying` policy rows and bind `resume` to the latest interrupted state. Task 3 positive and negative full-path cases prevent a policy bypass. |
+| Lock identifier differs from re-read envelope | High | Explicit `expectedTaskId` selects both active path and lock; transition, resume, and archive compare the re-read envelope and directory basename under that lock before any mutation. |
 | Terminal migration illegal under current policy | High | Task 1's additive `handoff -> completed` amendment lands before Task 9a. |
 | Active-shard validation lane breaks CI on pre-existing shards | Medium | **Resolved structurally, not mitigated.** The lane is Task 8b and lands only after Task 9b. Tasks 8a and 9a exist precisely to break the Round 4 cycle. |
 | Task 6's `validate:status-projection` fails on unmigrated shards | High | Migration (9a) is ordered before Task 6 (§4.0). This is a defect the Round 5 review did not name; it is recorded here so the ordering is not "optimized" back. |
 | Task 8b passes vacuously on an empty active-shard set | Medium | The lane is tested against a fixture root with positive and negative cases and a non-vacuity assertion (Task 8b items 1–7). |
+| A global version-field change breaks legacy examples | High | Keep the two lane comparisons separate and require mutation tests that swap either lane's field. |
 | `cancelled` is unreachable but present in the vocabulary | Low | Deliberate and stated (SDD Component 1). No wildcard row is invented, because the validator has no wildcard semantics. Task 3 item 5 is the regression guard. |
 
 ---
@@ -422,16 +467,15 @@ npm test
 
 | To | Reason | Required Evidence |
 |---|---|---|
-| Human Maintainer (gate) | Approve the Round 5 blueprint before any code is written | Revised requirement, SDD, plan, QA plan, security review |
+| Human Maintainer (gate) | Approve the Round 6 blueprint only after Security resolves Blocker 1, malformed-lock recovery, and OQ-2, and QA aligns its cases | Revised requirement, SDD, plan, QA plan, security review |
 | Documentation Agent | Record ADR-0026..**ADR-0031** in `DECISIONS.md` — **six ADRs**; ADR-0031 (Package 1 scoped to `bug-fix`, single authority rule) is new in Round 5 | Approved SDD |
-| QA Agent | Three corrections this plan depends on but does not own: (1) **TC-004 asserts `sequence_number === history.length`; it must become `history.length + 1`** and gain the post-transition invariant check (§ Task 8a); (2) **TC-024's "envelope-only allowlist"** must be withdrawn — the SDD states one strict-intersection authority rule with no fallback and no exception contract; (3) TC-014 must drop any race-safety claim for `unlock` and instead test the `--quiesced` refusal, the `LOCK_NONCE_MISMATCH` mistake filter, and the CAS-conflict degradation. Also: composition tests are `bug-fix` only, plus negative cases for the other four `workflow_id` values | Round 5 SDD, this plan |
-| BA Agent | Requirement "Next Step" and any residual "atomic lock takeover" wording must be reconciled — takeover was withdrawn in Round 4 (ADR-0027) | Round 5 SDD |
+| QA Agent | Update dual-lane tests and field-swap mutants; positive and negative full-path blocked resume cases; transition/resume/archive identity mismatch and between-start/lock replacement barriers; exact `archive/` plus dot-entry enumeration; and the Security-owned four-step wrong-unlock counterexample. Resolve OQ-2 using an injected filesystem/unlink adapter, not a production test-only hook. | Round 6 SDD, this plan |
 | Code Review Gate | Review all production script modifications | Diff, unit tests, independently authored code review record |
 | QA Verifier | Independent verification of AC-001..AC-010 and the deterministic invariants | Full test run, mutation evidence, gate passes |
-| Security Reviewer | Recheck the revised concurrency protocol; SEC-004 stays open until the selected lock protocol is demonstrated | Barrier-synchronized concurrency evidence, lock-order test, three-pathname lock-absence evidence, byte-equality evidence |
+| Security Reviewer | Own Round 6 Blocker 1 and malformed-lock recovery. Remove the claim that CAS makes an incorrect `--quiesced` assertion safe; define `LOCK_MALFORMED` recovery for empty/truncated/invalid lock payloads; resolve OQ-2 with an injected filesystem/unlink adapter. SEC-004 remains open until every ordering is demonstrated or the residual is explicitly accepted by Human. | Four-step wrong-unlock counterexample, shard and projection interleavings, malformed-lock cases, injection seam decision |
 | Human Maintainer (merge) | Final merge approval | Clean CI run, approved reviews, zero gate failures |
 
-### 9.1 Round 5 claims checked against the repository
+### 9.1 Round 6 SA dry-run against the repository
 
 | Claim | Verdict |
 |---|---|
@@ -445,3 +489,30 @@ npm test
 | `archive-work-item.mjs` renames the entire shard directory | **Accurate** — `fs.renameSync(shardDir, targetShardDir)`, `scripts/archive-work-item.mjs:71`. |
 | *(Not in the review)* `TRANSITION_MATRIX.investigating.destinations` omits `implementing`, which `bug-fix-workflow.yaml:7` requires | **Confirmed** — matrix at `scripts/lib/task-state-machine.mjs:49-53`. Strict intersection is empty at that hop. Resolved by SA ruling in favour of widening the matrix (Task 3), guarded by Task 3 item 0. Every other `bug-fix` policy destination is already in the matrix, so this is the sole gap. |
 | *(Not in the review)* Task 6's `validate:status-projection` also cannot pass pre-migration | **New finding.** `discoverActiveShards()` reads the live shards (`scripts/compile-status-projection.mjs:32-61`) and both are `contract_version: 1` with no `policy_contract_version` and no `sequence_number`. The 8a/9/8b split alone does not fix this; migration is therefore ordered before Task 6 (§4.0). |
+| Task 1 global field replacement against the legacy lane | **Rejected.** Each discovered YAML fixture exposes `contract_version` and no `policy_contract_version`; `undefined !== 1` would fail the lane. The plan retains that comparison and gives the active-envelope lane its own binding. |
+| `blocked` under strict intersection | **Resolved.** Current transitions have no outgoing row, so the transition intersection is empty. A separate policy resume operation makes `blocked` recoverable while the latest-history-source constraint prevents a general bypass. |
+| Pre-read/re-read identity race | **Resolved in contract.** `expectedTaskId` selects both active path and lock; the envelope is read and identity-checked only after acquisition. Mutation and archival stop before CAS/write/rename on mismatch. |
+| Active-root enumeration | **Resolved in contract.** Both enumerators exclude exact reserved `archive/` and dot-prefixed entries before validation; no other skip is permitted. |
+
+### 9.2 Round 6 dry-run traces
+
+**Task 1, both validator lanes.** A read-only enumeration on 2026-09-12 found ten regular YAML
+fixtures. Every fixture has `contract_version: 1`, none supplies `policy_contract_version`, and every
+legacy comparison matches its policy v1. Substituting the proposed global comparison produces
+`undefined !== 1` for every fixture. A constructed durable record with `contract_version: 2` and
+`policy_contract_version: 1` passes the active-lane comparison and fails if that lane is mutated back to
+the legacy field. This proves the two bindings must remain separate.
+
+**Blocked resume trace.** For `investigating -> blocked`, the latest into-blocked history source is
+`investigating`; the separate policy resume operation permits `investigating`. Human or
+orchestrator plus both evidence keys succeeds. Target `verifying`, ordinary transition mode, an
+unauthorized actor, or either missing key fails before write. The same trace holds symmetrically for
+`verifying -> blocked -> verifying`. No other state can enter or leave `blocked` under the Package 1
+policy, so the reachable graph has no non-terminal dead end.
+
+**Identity-race trace.** Operation A is invoked with `expectedTaskId=A`; it derives A's active path and
+waits for lock A. The test replaces that path's envelope with one declaring B before acquisition. After
+A acquires lock A, its re-read observes B and raises `TASK_IDENTITY_MISMATCH` before CAS/write. A caller
+for B derives B's own active path and cannot use lock B to mutate A's path. `archiveWorkItem(A)` follows
+the same steps and stops before reconcile/rename/projection. Thus no two different lock identities can
+authorize overlapping critical sections over one pathname.

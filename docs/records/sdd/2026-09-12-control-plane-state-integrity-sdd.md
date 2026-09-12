@@ -5,7 +5,7 @@
 - Work Item ID: Issue #277
 - Title: Control-Plane State Integrity & Architecture Remediation (Package 1)
 - Owner: SA Agent (`sa-architecture-design`)
-- Status: Draft (Rework Round 5 — Addressing Maintainer Review #5644601391)
+- Status: Draft (Rework Round 6 — Addressing re-review at `dbfbe3e`)
 - Date: 2026-09-12
 - Governing Requirements: `docs/records/requirements/2026-09-12-control-plane-state-integrity-discovery.md` (AC-001..AC-010, BR-001..BR-005)
 
@@ -55,6 +55,19 @@ Round 5 (#5644601391) rejected two further elements. This revision replaces them
    serializing anyone. **Decision: move shard locks to a stable, never-renamed namespace,
    `docs/records/work-items/.locks/{task_id}.lock`** (ADR-0027, amended).
 
+Round 6 at `dbfbe3e` found three SA-owned executable gaps. This revision closes them:
+
+7. **Version binding was applied globally.** The existing example lane has no
+   `policy_contract_version`; its comparison remains `state.contract_version`. Only the separate active
+   durable-envelope lane compares `state.policy_contract_version` (ADR-0026, amended).
+8. **Strict intersection made `blocked` a dead end.** The bug-fix policy explicitly enumerates resume
+   rows back to the two states that can enter `blocked`, and the resume operation binds the target to the
+   latest interrupted state (ADR-0031, amended).
+9. **Lock selection was not bound to the re-read envelope.** Mutation and archival now receive an
+   explicit expected task identifier, use it for both lock and active path selection, and compare it
+   against the envelope after re-read under the lock (ADR-0027, amended). Active-root enumeration also
+   names both canonical exclusions: exact `archive/` and dot-prefixed entries.
+
 ---
 
 ## Goals / Non-goals
@@ -64,7 +77,7 @@ Round 5 (#5644601391) rejected two further elements. This revision replaces them
   (`contract_version: 2`) is the sole authority for the **storage envelope**. The four
   `docs/contracts/*-workflow.yaml` policies remain the sole authority for **workflow behaviour**
   (allowed transitions, required evidence, retry budget). Neither layer is deleted; the binding between
-  them is made explicit and machine-checked.
+  them is made explicit and machine-checked in separate legacy-example and active-envelope lanes.
 - **G-002 (Actor Policy Enforcement & Terminal Closure — AC-003, AC-004, AC-009):** `TRANSITION_MATRIX`
   defines permitted `actors` for all 11 states including terminal `completed`/`cancelled` with empty
   destination sets, and the engine fails closed when a source state has no matrix entry.
@@ -75,6 +88,9 @@ Round 5 (#5644601391) rejected two further elements. This revision replaces them
   `docs/records/work-items/.locks/{task_id}.lock` — never inside the shard directory — via `openSync('wx')` holding
   `{pid, nonce, created_at}`. **No automatic takeover.** An abandoned lock is a refusal with a named
   recovery command, not something the engine clears on its own.
+- **G-004a (Identity-Bound Mutation and Archive):** The explicit operation task ID selects both stable
+  lock and active shard path; the envelope re-read under that lock must declare the same ID before any
+  CAS, write, rename, or projection mutation.
 - **G-005 (Crash-Durable Atomic Writer with Cleanup):** `atomicWriteFileSync` with collision-safe `wx`
   temp files, write-completion loops, failure cleanup, `fsyncSync`, atomic rename, directory sync.
 - **G-006 (Pure Projection, Explicit Repair — ADR-0029):** `compileStatusProjection()` and
@@ -173,21 +189,22 @@ writes to the filesystem. `reconcileArchivedShards()` calls `updateProjectStatus
 | **Actor policy** | `TRANSITION_MATRIX.actors` in `scripts/lib/task-state-machine.mjs`, against `ROLE_REGISTRY` | Which declared role may act from a given source state (repo-wide, workflow-independent) | n/a — code, covered by parity test |
 | **Workflow behaviour** | `docs/contracts/{bug-fix,new-feature,config-change,data-change}-workflow.yaml` | Which transitions are legal *for this workflow*, required evidence per transition, `max_rework_attempts`, terminal requirements | `contract_version: 1` (unchanged) |
 
-- **Explicit binding.** The envelope gains one new required integer property,
-  `policy_contract_version`, recording which policy version the shard was written against.
-  `scripts/validate-contracts.mjs:243` stops comparing `state.contract_version` against
-  `policy.contract_version` — those now version two different things — and compares
-  `state.policy_contract_version` instead. This is the minimum validator change that lets a shard be
-  `contract_version: 2` while its governing policy remains `contract_version: 1`.
-- **The authority rule (stated once, no exceptions).** A transition is permitted **if and only if** the
-  destination appears in **both** `TRANSITION_MATRIX[from].destinations` **and** the workflow policy's
-  `transitions` list for the shard's `workflow_id`, and the evidence keys listed on **that policy row**
-  are all present. There is no matrix fallback for policy-silent transitions, no envelope-only
+- **Explicit, lane-specific binding.** The envelope gains one new required integer property,
+  `policy_contract_version`, recording which policy version the shard was written against. The existing
+  example-fixture loop remains unchanged and compares `state.contract_version` with
+  `policy.contract_version`, because its legacy schemas and YAML fixtures expose only that field. A
+  separate active durable-envelope lane compares `state.policy_contract_version` with
+  `policy.contract_version`. The two comparisons must live in separate functions or explicit lane
+  branches; no shared post-schema comparison may select one field globally. This lets a durable shard be
+  `contract_version: 2` over policy v1 without making `undefined !== 1` for every legacy fixture.
+- **Transition authority rule.** A transition is permitted if and only if its destination appears in
+  `TRANSITION_MATRIX[from].destinations`, the workflow policy's `transitions` list contains `(from, to)`,
+  and the evidence keys on that policy row are present. There is no matrix fallback for policy-silent transitions, no envelope-only
   allowlist, and no exception contract. The matrix's `requires` is a design-time authoring aid only and
   is never consulted at validation time; if the matrix and a policy disagree, the narrower of the two
   wins by construction, because legality is an intersection. An unknown `workflow_id`, an unknown source
-  state, or a policy-silent transition all fail closed. *This sentence is the sole statement of the rule
-  in the artifact set; QA's TC-024 must be brought into line with it by its owner.*
+  state, or a policy-silent transition all fail closed. Requirements and plan
+  restate this same rule for traceability; QA's TC-024 must be brought into line with it by its owner.
 - **Policy amendment required (additive, no version bump).** `bug-fix-workflow.yaml` today has neither
   a `completed` state nor a `handoff -> completed` transition, so Task 9a's migration of issue-249 /
   issue-275 is illegal under the current policy. The policy gains `completed` and `cancelled` to its
@@ -196,6 +213,20 @@ writes to the filesystem. `reconcileArchivedShards()` calls `updateProjectStatus
   stays `1`, so no fixture migration is triggered. *Rejected alternative:* bumping every policy to
   `contract_version: 2`, which would force migration of every example fixture in that lane for no
   behavioural gain.
+- **Policy-authoritative blocked resume (Round 6).** The policy gains a separate `resume` operation:
+  `{ from: blocked, destinations: [investigating, verifying], requires: [resume_evidence, approver_id] }`.
+  These are the only states that currently have policy-authorized incoming transitions to
+  `blocked`, so they are the complete prior-state restoration set rather than an arbitrary allowlist.
+  `resumeTaskState()` is the only operation allowed to consume these rows and must require its target to
+  equal the `from` value of the most recent history event whose `to` is `blocked`. Actor authorization is
+  still intersected with `TRANSITION_MATRIX.blocked.actors` (`human`, `orchestrator`). Missing Human
+  evidence throws `HUMAN_APPROVAL_REQUIRED`; a target other than the recorded interrupted state throws
+  `INVALID_RESUME_TARGET`; an ordinary transition attempting either row throws
+  `RESUME_OPERATION_REQUIRED`. This preserves strict transition authority while making resume legal
+  through its own policy contract.
+  *Rejected alternative:* treat `blocked` as terminal or let `resume` bypass policy. The first removes an
+  existing Human-gate recovery path; the second recreates an exception contract beside the strict
+  intersection.
 - **`cancelled` has no ingress in Package 1 — stated deliberately.** Under the authority rule above, a
   transition is legal only if the policy enumerates it, and `bug-fix-workflow.yaml` enumerates no
   `-> cancelled` row. `cancelled` is therefore a valid *storage* state and a declared terminal in the
@@ -263,6 +294,10 @@ cancelled:  { destinations: [], requires: [], actors: [] }
   `*-workflow.yaml` in scope and asserts the matrix ∩ policy intersection is non-empty for each source
   state and contains each policy destination. An empty intersection is a build failure, not a runtime
   surprise; this is the only check that would have caught the `investigating` hop before implementation.
+- The guard treats `blocked` as non-terminal and proves its separate policy resume operation is valid.
+  A positive full-path case enters `blocked` from each permitted source and resumes to that same source;
+  negative cases cover ordinary transition use, wrong target, unauthorized actor, and either missing
+  `resume_evidence` or missing `approver_id`.
 - `blocked.destinations` is written out explicitly as every state except `blocked` itself, replacing the
   `STATES` reference, so that a future state added to `STATES` is not silently reachable from `blocked`.
 - The engine's `if (matrixEntry) { ... }` guard (currently `scripts/lib/task-state-machine.mjs:260-294`)
@@ -318,13 +353,14 @@ export function digestTaskEnvelope(envelope) {
   the original path cannot remove it, and would free the original pathname to be reacquired mid-archive.
   Every surface — `acquire`, `release`, `inspect`, `unlock`, and cleanup — addresses this one namespace,
   and the lock pathname is therefore invariant across the archive transaction.
-- **Explicit projection exclusion.** `discoverActiveShards()` in `scripts/compile-status-projection.mjs`
+- **Explicit active-root exclusions.** `discoverActiveShards()` in `scripts/compile-status-projection.mjs`
   enumerates `docs/records/work-items/*`. Before Task 8b's strict active-shard lane can reject any
-  directory lacking a valid `task-state.json`, that enumeration **must** skip every entry whose name
-  begins with `.`, and must do so *before* the shard-validity check, not as part of it. This is
-  provably non-lossy rather than a heuristic: the envelope schema constrains `task_id` to
-  `^[a-z0-9_-]+$`, so no legitimate shard directory can ever be dot-prefixed. The same single rule
-  covers `.locks/`, the existing `.gitkeep`, and ADR-0030's `.projection.lock`. The two locks do not
+  directory lacking a valid `task-state.json`, that enumeration **must** apply exactly two exclusions
+  *before* shard validation: the exact reserved entry `archive/`, and every entry whose name begins with
+  `.`. The dot-prefix exclusion is non-lossy because the envelope schema forbids a leading dot. The
+  `archive` basename is a reserved root namespace; creation, mutation and archival entry points reject
+  `expectedTaskId === 'archive'` with `RESERVED_TASK_ID`, so it cannot denote an active shard. The
+  dot-prefix rule covers `.locks/`, the existing `.gitkeep`, and ADR-0030's `.projection.lock`. The locks do not
   collide: the projection lock is a **file** at `docs/records/work-items/.projection.lock`, the shard
   locks are files **inside** the `docs/records/work-items/.locks/` **directory**; `.locks` is a reserved
   name that no `task_id` can produce, and neither path is ever a shard.
@@ -373,13 +409,13 @@ export function digestTaskEnvelope(envelope) {
     `LOCK_NONCE_MISMATCH` when the supplied nonce does not match the lock on disk, which catches the
     common operator error of acting on a stale `inspect` reading. It does not close the check/unlink
     window and is not claimed to.
-  - **Why this is acceptable.** The CAS check is unconditional and lock-independent: step 5 of
-    `mutateTaskStateOnDisk` (Component 9) compares `expected_digest` against the freshly-read
-    `state_digest` inside the critical section regardless of how the lock was obtained. A wrong
-    quiescence judgement therefore degrades to a detected `CAS_CONFLICT` (or `DIGEST_INTEGRITY_MISMATCH`
-    on a torn read) in the process whose lock was removed — a loud, rejected mutation — rather than a
-    silent lost update. `unlock` can cost availability and an aborted transition; it cannot silently
-    corrupt a shard.
+  - **Residual remains open for Security.** CAS does not fence a writer after its comparison. If an
+    incorrect quiescence assertion removes writer A's lock, writer B can acquire a replacement lock and
+    both writers can pass CAS against the same digest before either writes; the later rename silently
+    overwrites the earlier result. Projection mutation has the same exposure after a wrong projection
+    unlock. Zero-lost-update claims therefore apply only when the external quiescence precondition is
+    true. SEC-004 requires either a real fencing/conditional-commit protocol or explicit Human
+    acceptance of this residual; this SA revision does not decide that Security-owned question.
   - `inspect` prints the holder and the shard's current digest without mutating anything, and is the
     supported read-only path; it carries no quiescence requirement.
 - **Why not a sentinel (rejected route).** The alternative was a lock-management sentinel — a second
@@ -520,7 +556,9 @@ export function atomicWriteFileSync(targetPath, content) {
 
 ### Component 8: Transactional Archival (ADR-0029)
 
-- `archiveWorkItem(issueId)`: preflight `reconcileArchivedShards()` → move `work-items/{id}` to
+- `archiveWorkItem(expectedTaskId)`: validate the expected identifier and derive the source directory →
+  acquire `.locks/{expectedTaskId}.lock` → read and validate the active envelope → require the envelope
+  `task_id` and source basename to equal `expectedTaskId` → preflight `reconcileArchivedShards()` → move `work-items/{id}` to
   `archive/{id}` → call `updateProjectStatusFile()`. If the update throws, a compensating rename moves
   the shard back to `work-items/{id}` and the call throws `ARCHIVE_RECONCILIATION_FAILED`. If the
   compensating rename itself fails, the original error is rethrown with `compensation_failed: true` so
@@ -539,27 +577,38 @@ export function atomicWriteFileSync(targetPath, content) {
   shard. The disk-bound critical section is a distinct exported function:
 
 ```javascript
-export function mutateTaskStateOnDisk(shardPath, { to, actor, expected_digest, evidence, mode = 'transition' }) {
-  // 0. task_id = read from the shard envelope, NOT derived from shardPath
-  // 1. acquireShardLock(rootDir, task_id)      -> nonce | LOCK_ABANDONED | LOCK_ACQUISITION_TIMEOUT
-  //    resolves to rootDir/docs/records/work-items/.locks/{task_id}.lock
-  // 2. read shardPath from disk                 (inside try)
-  // 3. validateEnvelopeSchema(current)          -> MALFORMED_SHARD | DIGEST_INTEGRITY_MISMATCH
-  // 4. require non-empty expected_digest        -> MISSING_EXPECTED_DIGEST
-  // 5. expected_digest === current.state_digest -> CAS_CONFLICT {current_digest, expected_digest}
-  // 6. next = mode === 'resume' ? resumeTaskState(current, ...) : transitionTaskState(current, ...)
-  // 7. atomicWriteFileSync(shardPath, JSON.stringify(next, null, 2) + '\n')
-  // 8. finally releaseShardLock(rootDir, task_id, nonce)
+export function mutateTaskStateOnDisk(rootDir, expectedTaskId, {
+  to, actor, expected_digest, evidence, mode = 'transition'
+}) {
+  // 0. reject reserved/invalid expectedTaskId; derive shardPath = work-items/{expectedTaskId}/task-state.json
+  // 1. acquireShardLock(rootDir, expectedTaskId) -> nonce | LOCK_ABANDONED | LOCK_ACQUISITION_TIMEOUT
+  //    resolves to rootDir/docs/records/work-items/.locks/{expectedTaskId}.lock
+  // 2. read shardPath from disk inside the lock
+  // 3. validateEnvelopeSchema(current)           -> MALFORMED_SHARD | DIGEST_INTEGRITY_MISMATCH
+  // 4. require current.task_id === expectedTaskId === basename(dirname(shardPath))
+  //                                                -> TASK_IDENTITY_MISMATCH
+  // 5. require non-empty expected_digest          -> MISSING_EXPECTED_DIGEST
+  // 6. expected_digest === current.state_digest   -> CAS_CONFLICT {current_digest, expected_digest}
+  // 7. next = mode === 'resume' ? resumeTaskState(current, ...) : transitionTaskState(current, ...)
+  // 8. atomicWriteFileSync(shardPath, JSON.stringify(next, null, 2) + '\n')
+  // 9. finally releaseShardLock(rootDir, expectedTaskId, nonce)
 }
 ```
 
   CLI `transition` and `resume` call **only** this wrapper; no CLI path reaches the pure functions
   directly. Steps 2–7 are the entire critical section.
-- **The lock API is keyed by `task_id`, never by a directory path.** `acquireShardLock`,
-  `releaseShardLock`, `inspect` and `unlock` all take `(rootDir, task_id)`. Deriving the lock path from
-  `shardDir` would reintroduce Round 5 Blocker 2 at the API seam: on the archive path `shardDir` has
-  already been renamed to `archive/{task_id}`, so a path-derived release would compute a different file
-  from the one acquisition created.
+- **The operation identifier selects both lock and shard.** `acquireShardLock`, `releaseShardLock`,
+  `inspect` and `unlock` all take `(rootDir, expectedTaskId)`. Mutation derives its active shard pathname
+  from that identifier; it never pre-reads an untrusted envelope to choose a lock. The inside-lock
+  identity comparison binds the operation argument, `.locks/{expectedTaskId}.lock`, active directory and
+  re-read envelope. If a test replaces the envelope between operation start and lock acquisition, the
+  re-read fails `TASK_IDENTITY_MISMATCH` before CAS or write. Deriving only the lock identifier from a
+  pre-read envelope was rejected because writer A could hold lock A while modifying an envelope now
+  declaring B, concurrently with writer B under lock B.
+- `archiveWorkItem(expectedTaskId)` uses the same binding: reject a reserved/invalid identifier, acquire
+  `.locks/{expectedTaskId}.lock`, read and validate the active envelope, require its `task_id` and source
+  directory basename to equal `expectedTaskId`, then reconcile and rename. A mismatch performs no
+  rename and no projection write, and releases the acquired lock in `finally`.
 
 ---
 
@@ -571,7 +620,8 @@ export function mutateTaskStateOnDisk(shardPath, { to, actor, expected_digest, e
     `validate-contracts.mjs` cross-checks a single `contract_version` across both.
   - *Decision:* Layer them. The envelope owns storage shape at `contract_version: 2`; the policies keep
     owning workflow behaviour at `contract_version: 1`; the envelope records `policy_contract_version`
-    and the validator cross-checks that field instead. Legality is the intersection of matrix and policy;
+    and only the active durable-envelope lane cross-checks that field. The legacy example lane continues
+    binding `state.contract_version` to the policy. Legality is the intersection of matrix and policy;
     evidence comes from the policy. `AGENTS.md` is amended to state the split.
   - *Status:* Proposed (Pending Maintainer Approval).
 - **ADR-0027: Fail-Closed Shard Locking with Explicit Operator Recovery**
@@ -585,6 +635,11 @@ export function mutateTaskStateOnDisk(shardPath, { to, actor, expected_digest, e
     a stable namespace outside the shard directory, so the archive rename cannot move a live lock; and
     `discoverActiveShards()` must skip dot-prefixed entries before any shard-validity check, which is
     non-lossy because `task_id` is constrained to `^[a-z0-9_-]+$`.
+  - *Amendment (Round 6, Blocker 4 and correction 3):* mutation and archival accept an explicit
+    `expectedTaskId`, select both lock and active shard path with it, then bind it to the directory
+    basename and re-read envelope `task_id` while holding the lock. A mismatch fails before mutation.
+    Active-root discovery has two canonical pre-validation exclusions: exact reserved `archive/` and
+    dot-prefixed entries; an active task identifier equal to `archive` is rejected.
   - *Amendment (Round 5, Blocker 4 — lock-recovery protocol):* two changes, owned by Security Reviewer.
     (a) **Abandonment is classified by dead PID only.** The previous predicate — old **or** dead PID —
     routed a live but slow holder into a destructive recovery path. Age becomes a diagnostic tier
@@ -595,9 +650,8 @@ export function mutateTaskStateOnDisk(shardPath, { to, actor, expected_digest, e
     filter. The rejected alternative was a lock-management sentinel honoured by every acquire, release
     and unlock path; it was rejected because the sentinel reproduces the abandonment problem one level
     down, taxes every ordinary transition to protect a rare manual operation, and enlarges the
-    concurrency surface. Integrity is preserved not by the lock but by the unconditional CAS in
-    Component 9, which turns a wrong quiescence judgement into a detected `CAS_CONFLICT` rather than a
-    lost update.
+    concurrency surface. Round 6 invalidated the earlier CAS fallback claim: two writers can both pass
+    CAS before either writes. The resulting residual is Security-owned and remains open under SEC-004.
   - *Status:* Proposed (Pending Maintainer Approval).
 - **ADR-0028: Self-Excluding RFC 8785 JCS Task Envelope Hashing**
   - *Context:* Hashing an envelope including `state_digest` is circular.
@@ -625,8 +679,12 @@ export function mutateTaskStateOnDisk(shardPath, { to, actor, expected_digest, e
     policy-silent transitions, and an envelope-only allowlist in QA TC-024 — which are mutually
     unreachable.
   - *Decision:* Narrow the durable envelope and the active-shard enforcement lane to `bug-fix` for
-    Package 1, and state the authority rule exactly once as a strict intersection of matrix and policy
+    Package 1, and define the authority rule as an operation-qualified intersection of matrix and policy
     with policy-sourced evidence, no fallback and no exception contract. A policy-aware vocabulary over
     all five workflows is deferred to a later package with a canonical policy per workflow as its entry
     condition.
+  - *Amendment (Round 6, Blocker 3):* add a separate policy `resume` operation from `blocked` to
+    `investigating` or `verifying`, requiring Human resume evidence. Only `resume` may consume it, and
+    the destination must equal the latest into-`blocked` history event's source. This makes the Human
+    recovery path part of the strict policy intersection instead of an exception to it.
   - *Status:* Proposed (Pending Maintainer Approval).
