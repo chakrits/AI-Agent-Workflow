@@ -6,8 +6,8 @@
 - Title: Control-Plane State Integrity & Architecture Remediation (Package 1)
 - Owner: QA Lead (`qa-agent`)
 - Date: 2026-09-12
-- Status: Draft (Awaiting Maintainer Approval)
-- Governing SDD: `docs/records/sdd/2026-09-12-control-plane-state-integrity-sdd.md`
+- Status: Draft (Rework Round 2 — Awaiting Maintainer Approval)
+- Governing SDD: `docs/records/sdd/2026-09-12-control-plane-state-integrity-sdd.md` (Round 2 Rework)
 - Governing Requirements: `docs/records/requirements/2026-09-12-control-plane-state-integrity-discovery.md` (AC-001..AC-008, BR-001..BR-004)
 
 ---
@@ -15,29 +15,33 @@
 ## Scope
 
 ### In-Scope
-- State contract and schema reconciliation: validation of active shards against canonical `durable-task-envelope.schema.json` (v2, 11-state model) and deprecation of legacy `task-state.schema.json`.
-- Strict actor policy validation in `scripts/lib/task-state-machine.mjs` against `TRANSITION_MATRIX[fromState].actors` with role canonicalization against `ROLE_REGISTRY`.
-- True atomic CAS concurrency enforcement: per-shard mutual exclusion locking (`.lock` via `wx`), disk re-read under lock, and mandatory `--expected-digest` rejecting mismatches with `CAS_CONFLICT`.
-- Concurrency race condition prevention: verifying that two competing processes attempting concurrent transitions on the same digest result in zero lost updates (exactly 1 success, 1 `CAS_CONFLICT`).
-- Hardened status projection compilation: fail-closed shard discovery with `MALFORMED_SHARD` using shared validation seam (`validateEnvelopeSchema`) and POSIX atomic writing via `atomicWriteFileSync` with `fsync` and directory sync.
-- Archival lifecycle reconciliation: two-phase transactional archival in `scripts/archive-work-item.mjs` with compensating rollback if status projection compilation fails.
-- Verification of deterministic functional invariants (zero lost updates, crash resilience, lock zero-leak, zero ghost entries).
+- State contract and two-layer schema/policy composition (`durable-task-envelope.schema.json` v2 + `bug-fix-workflow.yaml` v1).
+- Dedicated envelope hashing (`digestTaskEnvelope`) with top-level `state_digest` self-exclusion and digest equality verification on load.
+- Strict actor policy validation dynamically evaluated against workflow policies.
+- True atomic CAS concurrency enforcement under nonce-based per-shard mutual exclusion file locking (`{pid, nonce, created_at}`).
+- Concurrency race condition prevention: verifying two parallel processes attempting concurrent transitions on the same digest result in zero lost updates (exactly 1 success, 1 `CAS_CONFLICT`).
+- ABA lock protection and compare-before-delete stale lock recovery.
+- POSIX crash-durable atomic writing (`atomicWriteFileSync`) with write loops, temp cleanup on failure, and parent directory fsync.
+- Status projection compilation fail-closed behavior using shared validation seam.
+- Transactional archival with explicit `updateProjectStatusFile()` call, exception compensation rollback, and post-crash deterministic reconciliation.
+- Independent QA verification across all 8 Acceptance Criteria.
 
 ### Out-of-Scope
-- Production business code outside of control-plane scripts and schemas.
-- Core Bootloader Tier 1 context token budget limits (remains <= 3,500 tokens).
-- External database integrations or network consensus protocols.
+- Cryptographic agent identity verification (process signing).
+- Unbacked numeric latency/conflict NFR benchmarks.
+- External database integrations.
 
 ---
 
 ## Test Types In Scope
 
-- [ ] Unit (State machine transitions, actor guards, CAS engine, atomic file writers)
-- [ ] Concurrency & Fault Injection (Two-process lost-update race, archival compensation rollback, stale lock recovery)
-- [ ] API / CLI (Task machine CLI interface, mandatory CAS flags, inspect commands)
-- [ ] Integration (Status projection compilation, archival workflow reconciliation)
+- [ ] Unit (State machine transitions, actor guards, digest hasher, atomic file writers)
+- [ ] Concurrency & Contention (Two-process lost-update race, ABA lock ownership, stale lock recovery)
+- [ ] Fault Injection & Crash Boundaries (Temp cleanup on write failure, archival compensation on projection throw, post-crash reconciliation)
+- [ ] API / CLI (Task machine CLI interface, mandatory CAS flags across transition and resume, inspect commands)
+- [ ] Integration (Dynamic workflow policy composition, status projection compilation, archival lifecycle)
 - [ ] Regression (Full test suite across repository)
-- [ ] Contract Validation (JSON Schema 2020-12 validation against durable envelope v2)
+- [ ] Contract Validation (JSON Schema Draft 2020-12 and policy YAML composition)
 - [ ] Review Gate Governance (QG-001 review record verification)
 
 ---
@@ -53,67 +57,121 @@
 ## Entry Criteria
 
 - [x] Approved Requirement Discovery (`docs/records/requirements/2026-09-12-control-plane-state-integrity-discovery.md`).
-- [x] Approved System Design Document (`docs/records/sdd/2026-09-12-control-plane-state-integrity-sdd.md`).
-- [x] Approved Security Review (`docs/records/security-review/2026-09-12-issue-277-security-review.md`).
-- [x] Approved Implementation Plan (`docs/records/implementation-plan/2026-09-12-control-plane-state-integrity-plan.md`).
-- [ ] Human Maintainer Approval of Package 1 Blueprint.
+- [x] Reworked System Design Document (`docs/records/sdd/2026-09-12-control-plane-state-integrity-sdd.md`).
+- [x] Conditional Approval Security Review (`docs/records/security-review/2026-09-12-issue-277-security-review.md`).
+- [x] Reworked Implementation Plan (`docs/records/implementation-plan/2026-09-12-control-plane-state-integrity-plan.md`).
+- [ ] Human Maintainer Approval of Round 2 Blueprint.
 
 ---
 
 ## Exit Criteria
 
-- [ ] 100% of Acceptance Criteria (AC-001 through AC-008) verified by passing test cases (TC-001..TC-018).
-- [ ] All deterministic functional invariants verified (zero lost updates, crash durability, lock zero-leak).
-- [ ] Full regression test suite passing green.
+- [ ] 100% of Acceptance Criteria (AC-001 through AC-008) verified by passing automated test cases (TC-001..TC-018) with targeted mutation checks.
+- [ ] All deterministic functional invariants verified (zero lost updates, crash durability, temp file zero-leak, lock zero-leak, zero ghost active entries).
+- [ ] Full regression test suite passing green without test weakening.
 - [ ] All repository quality gates pass (`validate:contracts`, `validate:ci-parity`, `validate:project-state`, `validate:review-gate`, `validate:status-projection`).
 - [ ] Active legacy shards (`issue-249`, `issue-275`) successfully reconciled, transitioned, and archived without ghost records.
 
 ---
 
-## Deterministic Functional Invariants Under Test
+## Detailed Executable Test Case Definitions (TC-001 to TC-018)
 
-| Invariant | SDD Reference | Validation Method |
-|---|---|---|
-| **INV-01 (Zero Lost Updates)** | SDD §388, ADR-0027 | Concurrency test with two parallel processes attempting transition on identical digest |
-| **INV-02 (Crash Resilience)** | SDD §232, ADR-0029 | Simulated write interruption; target file verified to contain 100% old or 100% new content |
-| **INV-03 (Lock Zero-Leak)** | SDD §391, ADR-0027 | Assert `.lock` file unlinked across both success and failure/exception paths |
-| **INV-04 (Archival Compensation)** | SDD §241, ADR-0029 | Fault-injection: mock compilation failure during archival; assert shard restored to original path |
+### TC-001: Canonical Envelope v2 & Self-Exclusion Digest Calculation
+- **Precondition:** Isolated mock directory with a newly initialized task envelope.
+- **Input:** Envelope object containing `task_id: "task-001"`, `workflow_id: "bug-fix"`, `envelope_version: 2`, `workflow_contract_version: 1`.
+- **Action:** Compute `digest = digestTaskEnvelope(envelope)`. Assign `envelope.state_digest = digest`. Validate via `validateEnvelopeSchema(envelope)`.
+- **Assertion:** `validateEnvelopeSchema` returns valid; mutating any property without updating `state_digest` causes validation to throw `DIGEST_INTEGRITY_MISMATCH`. Modifying original envelope does not alter digest output.
+- **Cleanup:** Unlink temp directory.
 
----
+### TC-002: Stored Digest Tampering Detection
+- **Precondition:** Valid envelope on disk.
+- **Injected Fault:** Manually edit `state` from `intake` to `implementing` directly in file without recomputing `state_digest`.
+- **Action:** Execute `loadTaskState()` or `validateEnvelopeSchema()`.
+- **Assertion:** Aborts fail-closed throwing `DIGEST_INTEGRITY_MISMATCH` with diagnostic details showing stored vs recomputed digest.
 
-## Acceptance Traceability Matrix (AC-001 to AC-008 -> TC-001 to TC-018)
+### TC-003: Legacy v1 Shard Rejection
+- **Precondition:** Task shard declaring legacy `contract_version: 1` and restricted 7-state model.
+- **Action:** Pass to `validateEnvelopeSchema()` and `scripts/validate-contracts.mjs`.
+- **Assertion:** Rejection with diagnostic error requiring migration to v2 envelope.
 
-| AC ID | Focus Area | Test Case ID | Test Type | Expected Outcome | Owner |
-|---|---|---|---|---|---|
-| **AC-001** | Canonical Envelope v2 Validation | `TC-001` | Positive / Schema | Active work-item shards validate cleanly against `durable-task-envelope.schema.json` with `contract_version: 2`. | `qa-agent` |
-| **AC-001** | Integer Sequence & Digest Invariant | `TC-002` | Contract Invariant | Shard fails schema if `sequence_number < 1` or `state_digest` is not 64-character hex. | `qa-agent` |
-| **AC-002** | Legacy v1 Shard Rejection | `TC-003` | Negative / Fail-Closed | Shard with `contract_version: 1` or 7-state model is rejected with diagnostic migration error. | `qa-agent` |
-| **AC-002** | Backfill Migration Functionality | `TC-004` | Integration / Migration | `backfill-task-state-v2.mjs` converts legacy shards to valid v2 envelopes with computed digests. | `developer-agent` |
-| **AC-003** | Unauthorized Actor Rejection | `TC-005` | Negative / Security | Attempted transition by actor not in `matrixEntry.actors` throws `UNAUTHORIZED_ACTOR`; state file untouched. | `qa-agent` |
-| **AC-003** | Actor String Normalization | `TC-006` | Boundary / Normalization | Case-insensitive and spaced actor strings normalise to kebab-case; unregistered roles fail closed. | `developer-agent` |
-| **AC-004** | Permitted Actor Transition Execution | `TC-007` | Positive / Transition | Authorized actor executes valid transition; sequence number increments, new SHA-256 digest computed. | `developer-agent` |
-| **AC-004** | Immutable History Trail | `TC-008` | Audit Trail | Transition appends history entry recording from, to, at, actor, and evidence references. | `qa-agent` |
-| **AC-005** | Mandatory `expected_digest` on Transition | `TC-009` | Negative / Fail-Closed | Missing or empty `expected_digest` on transition aborts immediately with `MISSING_EXPECTED_DIGEST`. | `qa-agent` |
-| **AC-005** | Mandatory `expected_digest` on Resume | `TC-010` | Negative / Fail-Closed | Missing `expected_digest` on resume aborts with `MISSING_EXPECTED_DIGEST`; state untouched. | `qa-agent` |
-| **AC-006** | CAS Conflict Detection | `TC-011` | Concurrency Conflict | Stale or mismatched `expected_digest` throws `CAS_CONFLICT`, returning both current and expected digests. | `qa-agent` |
-| **AC-006** | Two-Process Lost-Update Prevention | `TC-012` | Concurrency Invariant | Two parallel processes targeting same digest: exactly 1 succeeds, 1 aborts with `CAS_CONFLICT`. | `qa-agent` |
-| **AC-006** | Stale Lock Recovery | `TC-013` | Concurrency Resilience | Abandoned `.lock` older than 30s with dead PID is cleared and recovered safely. | `developer-agent` |
-| **AC-007** | Fail-Closed Projection on Corrupt JSON | `TC-014` | Negative / Fail-Closed CI | Malformed JSON shard causes `compileStatusProjection` to abort with `MALFORMED_SHARD` exit 1. | `qa-agent` |
-| **AC-007** | Fail-Closed Projection on Invalid Schema | `TC-015` | Negative / Schema | Shard violating v2 schema aborts projection compilation immediately with `MALFORMED_SHARD`. | `qa-agent` |
-| **AC-008** | POSIX Atomic Durability & Directory Sync | `TC-016` | Reliability / Durability | `atomicWriteFileSync` utilizes `.tmp` with `wx` + `fsyncSync` + atomic `rename` + dir sync; zero byte corruption. | `qa-agent` |
-| **AC-008** | Archival Lifecycle Reconciliation | `TC-017` | Lifecycle Integration | Archiving terminal shard automatically updates `PROJECT_STATUS.md`, excluding archived issue. | `developer-agent` |
-| **AC-008** | Archival Compensating Rollback | `TC-018` | Fault-Injection / Compensation | If projection fails during archival, shard directory is restored to original path. | `qa-agent` |
+### TC-004: Migration Backfill Functionality & Idempotency
+- **Precondition:** Shard with legacy v1 format.
+- **Action:** Run `backfillTaskStateV2(shardFile)`. Verify output. Run backfill a second time on the already migrated shard.
+- **Assertion:** First run upgrades to v2 with valid `digestTaskEnvelope` and sequence number. Second run is a no-op returning identical digest (idempotent). Running with `--rollback` restores v1.
 
----
+### TC-005: Unauthorized Actor Policy Rejection
+- **Precondition:** Task in `verifying` where policy specifies `actors: ['qa-agent']`.
+- **Action:** `transitionTaskState` invoked with `actor: 'developer-agent'` and valid evidence.
+- **Assertion:** Throws `UNAUTHORIZED_ACTOR`, status `REJECTED`; disk state is 0% modified.
 
-## Verification Matrix Aligned with Implementation Packages
+### TC-006: Actor String Normalization & Unregistered Role Handling
+- **Precondition:** Task in `intake` where policy specifies `actors: ['orchestrator', 'ba-agent']`.
+- **Action:** Attempt transition with `actor: 'BA Agent'` (mixed case with space), and subsequently with `actor: 'rogue-bot'` (unregistered).
+- **Assertion:** `'BA Agent'` is normalized to `'ba-agent'` and succeeds. `'rogue-bot'` is rejected with `UNAUTHORIZED_ACTOR`.
 
-| Package | Covered ACs | Covered Test Cases | Primary Verification Command |
-|---|---|---|---|
-| **IMP-001** (Schema & State Model) | AC-001, AC-002 | TC-001, TC-002, TC-003, TC-004 | `node --test test/contracts.test.mjs` |
-| **IMP-002** (Actor Authorization Guard & Locking) | AC-003, AC-004 | TC-005, TC-006, TC-007, TC-008, TC-013 | `node --test test/task-state-machine.test.mjs` |
-| **IMP-003** (Mandatory Cryptographic CAS & Concurrency) | AC-005, AC-006 | TC-009, TC-010, TC-011, TC-012 | `node --test test/task-state-machine.test.mjs` |
-| **IMP-004** (Projection, Durability & Transactional Archival) | AC-007, AC-008 | TC-014, TC-015, TC-016, TC-017, TC-018 | `node --test test/compile-status-projection.test.mjs`<br>`node --test test/archive-work-item.test.mjs` |
+### TC-007: Dynamic Policy-Driven Transition Execution
+- **Precondition:** Valid task in `investigating` under `bug-fix-workflow.yaml`.
+- **Action:** Attempt transition to `implementing` without `fail_path`. Then attempt with all required evidence.
+- **Assertion:** First attempt throws `MISSING_REQUIRED_EVIDENCE` naming missing key. Second attempt succeeds, increments `sequence_number`, appends history, and computes new `digestTaskEnvelope`.
+
+### TC-008: Immutable History Trail Verification
+- **Precondition:** State machine transition executed.
+- **Action:** Inspect `history` array in returned envelope.
+- **Assertion:** Contains new entry with `from`, `to`, `at` (ISO 8601), `actor`, and `evidence_refs`. Previous history entries remain strictly unmodified.
+
+### TC-009: Mandatory `expected_digest` on Transition
+- **Precondition:** Task in `intake`.
+- **Action:** Call `transitionTaskState` omitting `expected_digest` or passing `""`.
+- **Assertion:** Throws `MISSING_EXPECTED_DIGEST`, status `REJECTED`; state file untouched.
+
+### TC-010: Mandatory `expected_digest` on Resume
+- **Precondition:** Task in `blocked`.
+- **Action:** Call `resumeTaskState` or CLI `resume` omitting `expected_digest`.
+- **Assertion:** Throws `MISSING_EXPECTED_DIGEST`, status `REJECTED`; state file untouched.
+
+### TC-011: CAS Conflict Detection on Stale Mutation
+- **Precondition:** Task state with digest `D1`.
+- **Action:** Attempt transition providing stale `expected_digest: D0`.
+- **Assertion:** Throws `CAS_CONFLICT`, returning both `current_digest` and `expected_digest`; disk file untouched.
+
+### TC-012: True Two-Process Concurrency & Lost-Update Prevention
+- **Precondition:** Single shard on disk with digest `D1`.
+- **Action:** Launch two concurrent child processes attempting transition to distinct valid states using identical `expected_digest: D1`.
+- **Assertion:** Exactly one child process exits 0 (success); the other exits 1 with `CAS_CONFLICT`. Shard contains valid state from the winning process; zero lost updates.
+
+### TC-013: Nonce-Based Lock Ownership & Stale Recovery
+- **Precondition:** Shard with existing `.lock`.
+- **Action:**
+  - Case A (ABA Prevention): Process A holds lock with Nonce A. Process B attempts to release with Nonce B. Assertion: Release ignored; lock remains.
+  - Case B (Stale Dead PID): Lockfile > 30s old with non-existent PID. Process C attempts acquisition. Assertion: Lock cleared via compare-before-delete and reacquired.
+
+### TC-014: Fail-Closed Projection on Corrupt Shard JSON
+- **Precondition:** Work item directory contains unparseable `task-state.json` (syntax error).
+- **Action:** Execute `compileStatusProjection()`.
+- **Assertion:** Throws `MALFORMED_SHARD` and CLI exits 1; projection file not updated.
+
+### TC-015: Fail-Closed Projection on Digest Mismatch
+- **Precondition:** Work item shard has schema-valid JSON but `state_digest` does not match `digestTaskEnvelope()`.
+- **Action:** Execute `compileStatusProjection()`.
+- **Assertion:** Throws `MALFORMED_SHARD` (digest mismatch) and exits 1.
+
+### TC-016: POSIX Atomic Durability & Temp Cleanup on Write Failure
+- **Precondition:** Write target in temporary directory.
+- **Injected Fault:** Mock `fs.writeSync` to throw error mid-write or fail `fsyncSync`.
+- **Action:** Call `atomicWriteFileSync()`.
+- **Assertion:** Error is propagated; temporary file `.tmp-*` is immediately unlinked in catch block (zero temp file leakage); target file remains untouched. Parent directory fsync executed on success.
+
+### TC-017: Archival Flow Explicit Writer Wiring
+- **Precondition:** Terminal task (`completed`) in active `work-items/`.
+- **Action:** Execute `archiveWorkItem('task-terminal')`.
+- **Assertion:** Shard directory moved to `archive/`; `updateProjectStatusFile()` executed; `PROJECT_STATUS.md` updated without active entry.
+
+### TC-018: Archival Exception Compensation & Crash Recovery
+- **Precondition:** Terminal task in active `work-items/`.
+- **Injected Fault:** Mock `updateProjectStatusFile()` to throw an exception during archival.
+- **Action:** Execute `archiveWorkItem('task-terminal')`.
+- **Assertion:** Exception caught; compensating rollback restores shard directory to `work-items/task-terminal`; throws `ARCHIVE_RECONCILIATION_FAILED`.
+- **Crash Recovery Check:** Simulate post-rename crash (shard in `archive/`, status un-updated). Run `archiveWorkItem --reconcile-all`. Assertion: Status projection updated to match filesystem reality.
 
 ---
 
