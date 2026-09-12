@@ -34,7 +34,7 @@
 | Raw SQL / ORM bypass | Pass | N/A (Local-first, Git-native JSON/Markdown storage; no SQL engine). | N/A |
 | CORS allowlist (no wildcard) | Pass | N/A (Local CLI and script execution; no HTTP endpoint). | N/A |
 | DRF `permission_classes` / `authentication_classes` present | Pass | N/A (Non-Django architecture). | N/A |
-| Sensitive data in logs or URLs | Pass | Error objects will emit error codes, task IDs, and SHA-256 digests; no PII or sensitive system data leaked. | SDD Structured Error Responses. |
+| Sensitive data in logs or URLs | Pass | Error objects emit error codes, task IDs, SHA-256 digests, and lock holder `pid`/`nonce`/`created_at`; no PII or sensitive system data leaked. | SDD Components 4 and 9 (reject codes and lock diagnostics). |
 | Rate limiting on auth-sensitive endpoints | N/A | Lockfiles provide mutual exclusion against race conditions, not rate limiting. | Architecture review. |
 
 ---
@@ -68,7 +68,7 @@
 
 | ID | Severity | Description | Fix-Before-Merge? | Status | Evidence |
 |---|---|---|---|---|---|
-| SEC-001 | Medium | Caller-declared actor parameter is not cryptographically signed. | No | Documented / Accepted | SDD Non-goals; scoped as transition policy validation; cryptographic identity deferred. |
+| SEC-001 | Medium | Caller-declared actor parameter is not cryptographically signed. | No | Documented / Accepted | SDD NG-001; scoped as transition policy validation; cryptographic identity deferred. |
 | SEC-002 | Medium | SHA-256 provides integrity against accidental mutation, not cryptographic authenticity against malicious local attackers. | No | Documented / Clarified | SDD Component 3; integrity verification enforced; authentication deferred. |
 | SEC-003 | Medium | Fail-closed locking converts a liveness risk into an availability risk: an abandoned shard lock wedges one work item, and an abandoned projection lock wedges every status update including CI, until an operator intervenes. | No | Accepted / Documented | ADR-0027, ADR-0030, Requirement R-006. Accepted deliberately: an automatic clear is the same unsound primitive that Round 4 rejected, and a wrong clear on the projection lock corrupts repository-wide state. Critical sections are short, and every refusal names its recovery command. |
 | SEC-004 | High | Round 3's asserted zero-lost-update guarantee was unsupported and has been withdrawn. | **Yes — evidence required before merge** | Open | Maintainer review #5644452415 Blocker 1 and Blocker 4. Closes only on the concurrency evidence in the conditions below. |

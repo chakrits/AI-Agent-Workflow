@@ -20,7 +20,7 @@
 | REQUIREMENT_DISCOVERY.md | Draft (`docs/records/requirements/2026-09-12-control-plane-state-integrity-discovery.md`) | BA discovery, Round 4 revision. AC-001..AC-010, BR-001..BR-005. |
 | SDD.md | **Draft — pending Human gate** (`docs/records/sdd/2026-09-12-control-plane-state-integrity-sdd.md`) | Round 4 revision. Not approved; no task below may start before the Human approval gate. |
 | SECURITY_REVIEW.md | Conditional Approval, Round 4 revision (`docs/records/security-review/2026-09-12-issue-277-security-review.md`) | Zero-lost-update claim is now conditional on evidence, not asserted. |
-| TEST_PLAN.md | Draft (`docs/records/qa/2026-09-12-issue-277-test-plan.md`) | Full Mode QA artifacts and TC-001..TC-026. |
+| TEST_PLAN.md | Draft (`docs/records/qa/2026-09-12-issue-277-test-plan.md`) | Full Mode QA artifacts and TC-001..TC-031. |
 
 ---
 
@@ -51,7 +51,8 @@
 - **Owner**: `developer-agent`
 - **Prerequisite**: Human approval gate.
 - **Files**: `docs/contracts/schemas/durable-task-envelope.schema.json`, `docs/contracts/bug-fix-workflow.yaml`, `AGENTS.md`, `scripts/validate-contracts.mjs`, `test/contracts.test.mjs`.
-- **TDD Failing Step**: Add failing tests asserting (a) a shard with `contract_version: 2` and `policy_contract_version: 1` validates against a `contract_version: 1` policy; (b) a shard whose `policy_contract_version` does not match its policy is rejected; (c) all eleven existing `docs/contracts/examples/*.yaml` still validate after the policy amendment; (d) `bug-fix` policy now permits `handoff -> completed` with `closeout_evidence` and rejects it without.
+- **Schema lane note (verified 2026-09-12):** `loadSchemas()` in `scripts/validate-contracts.mjs:31-47` selects only files ending `-state.schema.json` and maps `task-state.schema.json -> bug-fix`. `durable-task-envelope.schema.json` is therefore **not** in the example-fixture lane, so adding a required property to it cannot break the eleven fixtures. The envelope schema serves the new active-shard lane (Task 8) and the `validateEnvelopeSchema` seam only. Task 1 must state this mapping in a comment beside the validator change so the two lanes are not later merged by accident.
+- **TDD Failing Step**: Add failing tests asserting (a) a shard with `contract_version: 2` and `policy_contract_version: 1` validates against a `contract_version: 1` policy; (b) a shard whose `policy_contract_version` does not match its policy is rejected; (c) all eleven existing `docs/contracts/examples/*.yaml` still validate after **both** the policy amendment and the envelope schema's new required property, asserting explicitly that the example lane still resolves `bug-fix` to `task-state.schema.json`; (d) an envelope missing `policy_contract_version` is rejected by `validateEnvelopeSchema`; (e) `bug-fix` policy now permits `handoff -> completed` with `closeout_evidence` and rejects it without.
 - **Implementation**:
   - Add required `policy_contract_version` (integer, minimum 1) to the envelope schema; fix the schema `title` to say v2.
   - Amend `bug-fix-workflow.yaml` additively as described in §3.
@@ -253,7 +254,7 @@ npm test
 | To | Reason | Required Evidence |
 |---|---|---|
 | Human Maintainer (gate) | Approve the Round 4 blueprint before any code is written | Revised requirement, SDD, plan, QA plan, security review |
-| Documentation Agent | Record ADR-0026..ADR-0030 in `DECISIONS.md` | Approved SDD |
+| Documentation Agent | Record ADR-0026..ADR-0030 in `DECISIONS.md` — **five ADRs, not the four named in the Round 4 route**, because Blocker 4's projection transaction is a distinct decision from ADR-0029's archival scope | Approved SDD |
 | Code Review Gate | Review all production script modifications | Diff, unit tests, independently authored code review record |
 | QA Verifier | Independent verification of AC-001..AC-010 and the deterministic invariants | Full test run, mutation evidence, gate passes |
 | Security Reviewer | Recheck the revised concurrency protocol against its conditions | Barrier-synchronized concurrency evidence, lock-order test, byte-equality evidence |
