@@ -364,10 +364,18 @@ export function digestTaskEnvelope(envelope) {
   collide: the projection lock is a **file** at `docs/records/work-items/.projection.lock`, the shard
   locks are files **inside** the `docs/records/work-items/.locks/` **directory**; `.locks` is a reserved
   name that no `task_id` can produce, and neither path is ever a shard.
-- **Lock content:** `{ "pid": 12345, "nonce": "<uuid-v4>", "created_at": 1789188000000 }`
+- **Lock content:** `{ "pid": 12345, "nonce": "<uuid-v4>", "created_at": 1789188000000 }`. The
+  payload is valid only when it is complete JSON with exactly the required typed fields: positive integer
+  `pid`, UUID-v4 `nonce`, and finite non-negative integer `created_at`.
 - **Acquisition:**
-  1. `openSync(lockPath, 'wx')`. On success write the payload and return `nonce`.
-  2. On `EEXIST`, read the lock and classify the holder. The classification has **three** outcomes, not
+  1. `openSync(lockPath, 'wx')`. On success write the complete payload, `fsyncSync` it, close the file,
+     and return `nonce`. A crash after the exclusive create but before payload completion can still leave
+     an empty or partial file; the recovery contract below handles that state explicitly.
+  2. On `EEXIST`, read and strictly parse the lock. Empty content, truncated JSON, invalid JSON, or a
+     payload missing any required typed field throws `LOCK_MALFORMED` with the lock pathname and the
+     maintenance command `unlock --malformed --quiesced`; acquisition does not modify the bytes. A
+     malformed record is never passed to PID/age classification and never auto-reclaimed.
+  3. A valid record is classified into **three** outcomes, not
      two, and liveness dominates age (Round 5 Blocker 4):
      - **Young and live** (`created_at` within 30 s and `process.kill(pid, 0)` succeeds): back off with
        randomized jitter and retry for up to 5 s, then throw `LOCK_ACQUISITION_TIMEOUT`.
@@ -383,7 +391,7 @@ export function digestTaskEnvelope(envelope) {
        `LOCK_ABANDONED`, carrying the holder's `pid`, `nonce` and `created_at`, and a message naming the
        exact recovery command:
        `node scripts/task-machine-cli.mjs unlock --task <task_id> --nonce <observed-nonce> --quiesced`.
-  3. The asymmetry is deliberate and conservative. A live PID is **not** proof the original holder is
+  4. The asymmetry is deliberate and conservative. A live PID is **not** proof the original holder is
      alive (PID reuse), but treating a live PID as "not abandoned" can only ever *withhold* recovery,
      never authorize a wrong removal — it narrows what enters the destructive path and so cannot
      introduce a new integrity case. Conversely `ESRCH` on a local-first, single-host workspace is
@@ -409,13 +417,30 @@ export function digestTaskEnvelope(envelope) {
     `LOCK_NONCE_MISMATCH` when the supplied nonce does not match the lock on disk, which catches the
     common operator error of acting on a stale `inspect` reading. It does not close the check/unlink
     window and is not claimed to.
-  - **Residual remains open for Security.** CAS does not fence a writer after its comparison. If an
-    incorrect quiescence assertion removes writer A's lock, writer B can acquire a replacement lock and
-    both writers can pass CAS against the same digest before either writes; the later rename silently
-    overwrites the earlier result. Projection mutation has the same exposure after a wrong projection
-    unlock. Zero-lost-update claims therefore apply only when the external quiescence precondition is
-    true. SEC-004 requires either a real fencing/conditional-commit protocol or explicit Human
-    acceptance of this residual; this SA revision does not decide that Security-owned question.
+  - A malformed lock has no trustworthy nonce. `unlock --task <id> --malformed --quiesced` (or
+    `unlock --projection --malformed --quiesced`) is the only recovery path for it. `--malformed` and
+    `--nonce` are mutually exclusive. The command re-reads immediately before unlink and refuses with
+    `LOCK_BECAME_VALID` if the current bytes parse as a valid holder record; conversely nonce mode refuses
+    `LOCK_MALFORMED`. This is a stale-observation filter, not a conditional unlink, and therefore does
+    not replace quiescence. The CLI prints the pathname, raw byte length and parse failure without
+    printing arbitrary lock contents.
+  - **Four-step shard counterexample (wrong `--quiesced` assertion).** (1) State is `S0`/`D0`; writer A
+    owns lock A, reads `S0`, passes CAS against `D0`, then pauses before write. (2) The operator removes
+    lock A through valid-lock or malformed-lock recovery while A is live. (3) Writer B acquires lock B,
+    reads the still-current `S0`, also passes CAS against `D0`, then pauses before write. (4) A writes
+    `SA`; B writes `SB` (or the reverse). Both comparisons passed and the later atomic rename silently
+    overwrites the earlier history event. One-shot CAS is not a fencing or conditional-commit primitive.
+  - **Four-step projection counterexample.** (1) Compiler A owns projection lock A, compiles projection
+    `P0`, then pauses before write. (2) The operator incorrectly removes A's projection lock. (3)
+    Compiler B acquires projection lock B, compiles `P0` from the same active-shard snapshot, then pauses.
+    (4) A and B write in either order; the later rename wins. If a shard/archive change occurs between
+    the two compiles, the winner can publish a stale projection. This path has no shard-digest CAS
+    backstop at all.
+  - **Security decision.** Quiescence is an external safety precondition for both recovery modes and both
+    lock namespaces. The zero-lost-update claim is limited to executions in which it holds. Violating it
+    can silently lose a shard history event or publish stale repository-wide projection state. SEC-004
+    remains High and open until a Human explicitly accepts this maintenance residual or a real
+    fencing/conditional-commit protocol is selected and demonstrated across the counterexample above.
   - `inspect` prints the holder and the shard's current digest without mutating anything, and is the
     supported read-only path; it carries no quiescence requirement.
 - **Why not a sentinel (rejected route).** The alternative was a lock-management sentinel — a second
@@ -425,9 +450,19 @@ export function digestTaskEnvelope(envelope) {
   lock-management path itself, with no recovery command that is not recursive), it puts a second
   mandatory `wx` round-trip in the hot path of every ordinary transition to protect a rare manual
   operation, and it expands Package 1's concurrency implementation surface at the exact point Round 4
-  showed reasoning about `fs` interleavings to be error-prone. Maintenance-only `unlock` obtains the
-  same integrity outcome by removing the claim rather than the window, and leans on the unconditional
-  CAS that already exists.
+  showed reasoning about `fs` interleavings to be error-prone. Maintenance-only `unlock` is retained as
+  the recommended operational route, subject to the external quiescence precondition and explicit Human
+  acceptance of the residual above.
+- **Deterministic injection seam (OQ-2 resolved).** Disk operations are assembled through
+  `createStateIo({ fsOps = nodeFsOps, processOps = nodeProcessOps, clock = Date, random = Math.random })`.
+  `nodeFsOps` is a narrow production adapter exposing only the filesystem calls used by lock acquisition,
+  inspection, release/unlink, state writes and projection writes. The factory supplies the same adapter
+  to the shard lock manager, projection lock manager, mutation wrapper and atomic writer. Production
+  callers use the defaults. Tests inject an in-memory or delegating adapter whose `unlinkSync` and
+  write/rename operations can pause at named barriers; no environment flag, mutable global hook, or
+  production "test-only" branch is permitted. QA can therefore place both shard writers after CAS and
+  before write, or both projection compilers after compile and before write, then release the wrong-unlock
+  interleaving without timing sleeps.
 - **Release:** read `.locks/{task_id}.lock`; unlink only when `parsed.nonce === myNonce`. Always in a
   `finally`. Because the pathname never moves, the release in `finally` refers to the same file the
   acquisition created, including on the archive path where the shard directory itself has been renamed.

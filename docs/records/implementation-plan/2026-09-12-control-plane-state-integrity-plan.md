@@ -9,7 +9,7 @@
 | Risk Level | High |
 | Owner | Developer Agent (`implementation-planning`) |
 | Target Branch / Ticket | `feat/control-plane-state-integrity` / Issue #277 |
-| Revision | Round 6 SA rework at `dbfbe3e` — resolves lane-specific version binding, policy-authoritative blocked resume, task-id/lock identity binding, and the canonical `archive/` plus dot-entry exclusions. Security Blocker 1 and malformed-lock recovery remain owned by Security Reviewer. |
+| Revision | Round 6 SA + Security rework at `1f36fed` — resolves lane-specific version binding, policy-authoritative blocked resume, task-id/lock identity binding, canonical active-root exclusions, truthful wrong-unlock integrity bounds, malformed-lock recovery, and OQ-2's injected adapter design. SEC-004 remains a High residual requiring Human decision. |
 
 > **Scope note (ADR-0031).** Package 1's durable envelope and active-shard enforcement lane are narrowed
 > to `workflow_id: "bug-fix"` only. Issue #277 is itself `framework-meta` and therefore has **no durable
@@ -24,8 +24,8 @@
 | Artifact | Status | Notes |
 |---|---|---|
 | REQUIREMENT_DISCOVERY.md | Draft (`docs/records/requirements/2026-09-12-control-plane-state-integrity-discovery.md`) | BA discovery. AC-001..AC-010, BR-001..BR-005. Round 5 correction 3 (residual "atomic lock takeover" wording) is owned by BA Agent. |
-| SDD.md | **Draft, Round 5 revision — pending Human gate** (`docs/records/sdd/2026-09-12-control-plane-state-integrity-sdd.md`) | ADR-0026..ADR-0031. Not approved; no task below may start before the Human approval gate. This plan is reconciled against the Round 5 SDD, not the Round 4 one. |
-| SECURITY_REVIEW.md | Round 5 revision in progress (`docs/records/security-review/2026-09-12-issue-277-security-review.md`) | Security Reviewer owns Blocker 4 (lock-recovery protocol) and SEC-004. Not quoted here; this plan defers to the SDD's Component 4 as the design of record. |
+| SDD.md | **Draft, Round 6 revision — pending Human gate** (`docs/records/sdd/2026-09-12-control-plane-state-integrity-sdd.md`) | ADR-0026..ADR-0031. Not approved; no task below may start before the Human approval gate. This plan is reconciled against the Round 6 SA and Security contract. |
+| SECURITY_REVIEW.md | Round 6 Security revision (`docs/records/security-review/2026-09-12-issue-277-security-review.md`) | Security contract corrected; SEC-004 remains High/Open pending explicit Human acceptance of maintenance-only recovery's quiescence residual. |
 | TEST_PLAN.md | Draft (`docs/records/qa/2026-09-12-issue-277-test-plan.md`) | Full Mode QA artifacts, TC-001..TC-031. Requires QA-owned corrections listed in §9. |
 
 ---
@@ -232,6 +232,11 @@ can actually pass at the point it runs; where it could pass *vacuously* that is 
   4. Every refusal leaves the lock file **byte-identical on disk**, and the message names `unlock --task <id> --nonce <observed> --quiesced`.
   5. `releaseShardLock(rootDir, task_id, 'nonce-B')` against a lock holding `nonce-A` does not unlink it.
   6. `unlock --task T --nonce N --quiesced` removes the lock when the nonce matches, throws `LOCK_NONCE_MISMATCH` when it does not, and **refuses without `--quiesced`**. A test asserts the CLI prints the holder record and the consequence of a wrong quiescence assertion before acting. **No race-safety assertion is written for `unlock`** — the SDD withdraws that claim in full; nonce verification is an operator-mistake filter only.
+  6a. Empty, truncated, invalid-JSON, and schema-invalid shard and projection locks raise
+      `LOCK_MALFORMED`, remain byte-identical after acquisition/inspection refusal, and name
+      `unlock --malformed --quiesced`. Malformed recovery refuses without both flags, requires no nonce,
+      and re-reads immediately before unlink: if the lock became valid it fails `LOCK_BECAME_VALID`.
+      Valid nonce mode presented with malformed bytes fails `LOCK_MALFORMED`.
   7. `inspect` prints holder and current digest, mutates nothing, and requires no `--quiesced`.
   8. `mutateTaskStateOnDisk` rejects missing or empty `expected_digest` with `MISSING_EXPECTED_DIGEST`, and a stale digest with `CAS_CONFLICT` carrying both digests, in both `transition` and `resume` mode, inside the critical section.
   9. No lock file remains at `work-items/.locks/{id}.lock` after any success or failure path (zero lock leaks).
@@ -243,13 +248,25 @@ can actually pass at the point it runs; where it could pass *vacuously* that is 
   12. A barrier replaces an A envelope with one declaring B between operation start and lock
       acquisition. Writer A under lock A must fail `TASK_IDENTITY_MISMATCH`; writer B under lock B must
       not overlap a write to A's pathname. Repeat for `resume` mode.
+  13. Build lock behavior through the injected adapter from SDD Component 4. A delegating test adapter
+      pauses `unlinkSync` at a barrier and deterministically drives the four-step shard and projection
+      wrong-unlock counterexamples. No sleep-based ordering, environment flag, mutable global hook, or
+      production test-only branch is allowed. For the shard case, both writers pass `D0` before either
+      writes and the final state proves one history event can be lost. For projection, both compilers
+      pass their compile point before either write and the final output demonstrates last-rename-wins.
 - **Implementation**:
-  - `acquireShardLock(rootDir, expectedTaskId)` / `releaseShardLock(rootDir, expectedTaskId, nonce)` per SDD Component 4 — no reclamation path exists in the code at all.
+  - `createStateIo({ fsOps, processOps, clock, random })` per SDD Component 4; production uses the
+    narrow Node adapters and tests inject one delegating adapter across locks, state/projection writes,
+    and atomic rename barriers.
+  - `acquireShardLock(rootDir, expectedTaskId)` / `releaseShardLock(rootDir, expectedTaskId, nonce)` per
+    SDD Component 4 — no automatic reclamation path exists. Strict lock parsing returns
+    `LOCK_MALFORMED`; only explicit quiescence-gated CLI recovery removes malformed bytes.
   - `mutateTaskStateOnDisk(rootDir, expectedTaskId, {to, actor, expected_digest, evidence, mode})` per
     SDD Component 9. Derive the active shard path from `expectedTaskId`, bind it to the re-read envelope
     under the lock, and release in `finally`; do not pre-read `task_id` to select the lock.
   - `scripts/task-machine-cli.mjs`: `transition` and `resume` call only the wrapper, require `--task` and
-    `--expected-digest`; add `inspect` and `unlock` (`--task`, `--nonce`, `--quiesced`).
+    `--expected-digest`; add `inspect` and `unlock` (`--task` or `--projection`, exactly one of `--nonce`
+    or `--malformed`, and mandatory `--quiesced`).
   - `scripts/compile-status-projection.mjs`: exact `archive/` and dot-prefixed skips in `discoverActiveShards()`.
 - **Verification**: `node --test test/task-state-machine.test.mjs test/compile-status-projection.test.mjs`.
 - **Rollback**: Revert lock, wrapper, CLI and enumerator changes.
@@ -404,8 +421,8 @@ can actually pass at the point it runs; where it could pass *vacuously* that is 
 |---|---|---|---|
 | Unit | Yes | Hasher self-exclusion, actor guards, terminal/unknown source guards, CAS, atomic writer cleanup and zero-progress fault | `developer-agent` |
 | Contract | Yes | Matrix ∩ policy guard including blocked resume; lane-specific legacy `contract_version` and durable `policy_contract_version` bindings with field-swap mutants; `bug-fix`-only enum; every discovered fixture green | `developer-agent` |
-| Concurrency (barrier-synchronized) | Yes | Task-ID replacement between operation start and lock acquisition for transition/resume/archive; mutation-vs-archive exclusion; archive-vs-projection interleaving; lock-order inversion detection; Security-owned wrong-unlock counterexample remains separate | `developer-agent` / `qa-agent` |
-| Fault Injection | Yes | Write failure temp cleanup, zero-progress write, archival compensation, compensation-of-compensation failure, abandoned-lock refusal with byte-identical lock | `qa-agent` |
+| Concurrency (barrier-synchronized) | Yes | Task-ID replacement between operation start and lock acquisition for transition/resume/archive; mutation-vs-archive exclusion; archive-vs-projection interleaving; lock-order inversion detection; four-step wrong-unlock counterexamples for shard and projection through the injected adapter | `developer-agent` / `qa-agent` |
+| Fault Injection | Yes | Write failure temp cleanup, zero-progress write, archival compensation, compensation-of-compensation failure, abandoned-lock refusal with byte-identical lock, empty/truncated/invalid/schema-invalid lock classification and recovery | `qa-agent` |
 | Read-Only Assertion | Yes | Byte-equality of the whole fixture tree across `--check` and across both pure functions | `qa-agent` |
 | Integration | Yes | Fail-closed projection, explicit reconcile idempotency, backfill idempotency and rollback, active-shard lane positive/negative over a fixture root | `qa-agent` |
 | Regression | Yes | Full repository suite, no test weakening | `qa-agent` |
@@ -469,10 +486,10 @@ npm test
 |---|---|---|
 | Human Maintainer (gate) | Approve the Round 6 blueprint only after Security resolves Blocker 1, malformed-lock recovery, and OQ-2, and QA aligns its cases | Revised requirement, SDD, plan, QA plan, security review |
 | Documentation Agent | Record ADR-0026..**ADR-0031** in `DECISIONS.md` — **six ADRs**; ADR-0031 (Package 1 scoped to `bug-fix`, single authority rule) is new in Round 5 | Approved SDD |
-| QA Agent | Update dual-lane tests and field-swap mutants; positive and negative full-path blocked resume cases; transition/resume/archive identity mismatch and between-start/lock replacement barriers; exact `archive/` plus dot-entry enumeration; and the Security-owned four-step wrong-unlock counterexample. Resolve OQ-2 using an injected filesystem/unlink adapter, not a production test-only hook. | Round 6 SDD, this plan |
+| QA Agent | Update dual-lane tests and field-swap mutants; positive and negative full-path blocked resume cases; transition/resume/archive identity mismatch and between-start/lock replacement barriers; exact `archive/` plus dot-entry enumeration; malformed-lock cases; and both four-step wrong-unlock counterexamples. Use OQ-2's resolved `createStateIo` adapter seam; do not introduce a production test-only hook. | Round 6 SDD, this plan |
 | Code Review Gate | Review all production script modifications | Diff, unit tests, independently authored code review record |
 | QA Verifier | Independent verification of AC-001..AC-010 and the deterministic invariants | Full test run, mutation evidence, gate passes |
-| Security Reviewer | Own Round 6 Blocker 1 and malformed-lock recovery. Remove the claim that CAS makes an incorrect `--quiesced` assertion safe; define `LOCK_MALFORMED` recovery for empty/truncated/invalid lock payloads; resolve OQ-2 with an injected filesystem/unlink adapter. SEC-004 remains open until every ordering is demonstrated or the residual is explicitly accepted by Human. | Four-step wrong-unlock counterexample, shard and projection interleavings, malformed-lock cases, injection seam decision |
+| Security Reviewer | Round 6 security contract complete: CAS safety claim withdrawn; shard/projection counterexamples recorded; `LOCK_MALFORMED` recovery defined; OQ-2 resolved with `createStateIo`. SEC-004 remains High/Open pending explicit Human acceptance or replacement with fencing/conditional commit. | Security review, SDD Component 4, requirements BR-003/R-006 |
 | Human Maintainer (merge) | Final merge approval | Clean CI run, approved reviews, zero gate failures |
 
 ### 9.1 Round 6 SA dry-run against the repository
