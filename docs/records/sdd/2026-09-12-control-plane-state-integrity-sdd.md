@@ -115,11 +115,12 @@ Round 6 at `dbfbe3e` found three SA-owned executable gaps. This revision closes 
 ```mermaid
 flowchart TD
     subgraph Caller["Acting Agent / CLI Invoker"]
-        REQ["mutateTaskStateOnDisk(shardPath, {to, actor, expected_digest, evidence})"]
+        REQ["mutateTaskStateOnDisk(rootDir, expectedTaskId,\n{to, actor, expected_digest, evidence, mode})"]
+        DERIVE["Validate expectedTaskId\nDerive work-items/{expectedTaskId}/task-state.json"]
     end
 
     subgraph LockManager["Mutual Exclusion Guard (Fail-Closed)"]
-        LOCK_ACQ["Acquire Shard Lock\n(openSync 'wx', write {pid, nonce, created_at})"]
+        LOCK_ACQ["Acquire .locks/{expectedTaskId}.lock\n(openSync 'wx', write {pid, nonce, created_at})"]
         BUSY{"EEXIST?"}
         DEAD{"PID dead? (process.kill(pid, 0) throws ESRCH)"}
         AGE{"Held > 30s? (live PID)"}
@@ -131,19 +132,21 @@ flowchart TD
     end
 
     subgraph StateMachine["Under Lock — scripts/lib/task-state-machine.mjs"]
-        READ_DISK["1. Re-read task-state.json from disk"]
+        READ_DISK["1. Re-read derived task-state.json from disk"]
         SCHEMA_CHECK{"2. validateEnvelopeSchema\n(envelope schema + stored === digestTaskEnvelope)"}
-        CAS_VERIFY{"3. expected_digest === stored?"}
-        SRC_CHECK{"4. Source state has matrix entry?\n(else UNKNOWN_SOURCE_STATE)"}
-        ACTOR_CHECK{"5. Actor authorized in TRANSITION_MATRIX.actors?"}
-        POLICY_CHECK{"6. Transition legal in workflow policy\nand policy evidence satisfied?"}
-        REWORK_CHECK{"7. Rework ceiling valid?"}
-        HUMAN_CHECK{"8. Human gate preserved?"}
-        MUTATE["9. transitionTaskState() — pure\n(seq++, append history, digestTaskEnvelope)"]
-        ATOMIC_WRITE["10. atomicWriteFileSync"]
+        IDENTITY_CHECK{"3. current.task_id === expectedTaskId\n=== derived directory basename?"}
+        IDENTITY_REFUSE["Throw TASK_IDENTITY_MISMATCH\n(no CAS, mutation, or write)"]
+        CAS_VERIFY{"4. expected_digest === stored?"}
+        SRC_CHECK{"5. Source state has matrix entry?\n(else UNKNOWN_SOURCE_STATE)"}
+        ACTOR_CHECK{"6. Actor authorized in TRANSITION_MATRIX.actors?"}
+        POLICY_CHECK{"7. Operation legal in workflow policy\nand policy evidence satisfied?"}
+        REWORK_CHECK{"8. Rework ceiling valid?"}
+        HUMAN_CHECK{"9. Human gate preserved?"}
+        MUTATE["10. transitionTaskState()/resumeTaskState() — pure\n(seq++, append history, digestTaskEnvelope)"]
+        ATOMIC_WRITE["11. atomicWriteFileSync to derived path"]
     end
 
-    REQ --> LOCK_ACQ
+    REQ --> DERIVE --> LOCK_ACQ
     LOCK_ACQ --> BUSY
     BUSY -- Yes --> DEAD
     DEAD -- Yes --> REFUSE_ABANDONED
@@ -152,7 +155,9 @@ flowchart TD
     AGE -- No --> RETRY --> LOCK_ACQ
     RETRY -- exhausted --> REFUSE_TIMEOUT
     BUSY -- No --> READ_DISK
-    READ_DISK --> SCHEMA_CHECK --> CAS_VERIFY --> SRC_CHECK --> ACTOR_CHECK --> POLICY_CHECK --> REWORK_CHECK --> HUMAN_CHECK --> MUTATE --> ATOMIC_WRITE --> LOCK_REL
+    READ_DISK --> SCHEMA_CHECK --> IDENTITY_CHECK
+    IDENTITY_CHECK -- No --> IDENTITY_REFUSE --> LOCK_REL
+    IDENTITY_CHECK -- Yes --> CAS_VERIFY --> SRC_CHECK --> ACTOR_CHECK --> POLICY_CHECK --> REWORK_CHECK --> HUMAN_CHECK --> MUTATE --> ATOMIC_WRITE --> LOCK_REL
 ```
 
 ### 2. Projection Call Graph (Acyclic, One-Directional)
