@@ -50,13 +50,13 @@
 ## 5. Scope
 
 ### In Scope
-- **Core Pain Point 1 (State Contract & Schema Layering - F-01, ADR-0026):** Establish `durable-task-envelope.schema.json` as the canonical authority for durable task storage envelope. Decouple domain workflow policies (e.g. `bug-fix-workflow.yaml`) from storage envelope. Require all active task state shards to adhere to canonical v2 envelope schema (`contract_version: 2`, 64-char hex SHA-256 `state_digest`, strictly incremented `sequence_number`, 11-state lifecycle).
+- **Core Pain Point 1 (State Contract & Schema Layering - F-01, ADR-0026):** Establish `durable-task-envelope.schema.json` as the canonical authority for durable task storage envelope (`contract_version: 2`). Decouple domain workflow policies (e.g. `bug-fix-workflow.yaml`) from storage envelope. Require all active task state shards to adhere to canonical v2 envelope schema (`contract_version: 2`, 64-char hex SHA-256 `state_digest`, strictly incremented `sequence_number`, 11-state lifecycle).
 - **Core Pain Point 2 (Actor Policy Validation & Trust Boundaries - F-02):** Mandate enforcement of `matrixEntry.actors` check in `transitionTaskState()` for every transition against canonical `ROLE_REGISTRY`. Reject unauthorized role attempts with `UNAUTHORIZED_ACTOR` error code. Clarify scope as caller-declared role authorization and document residual risk.
-- **Core Pain Point 3 (True Atomic CAS & Mutual Exclusion - F-03, ADR-0027, ADR-0028):** Make `expected_digest` mandatory for state transitions and resumes. Implement per-shard mutual exclusion file lock (`.lock` via `wx`) with disk re-read under lock to eliminate two-process lost updates. Unify hashing with canonical RFC 8785 JCS in `scripts/lib/status-jcs.mjs`.
+- **Core Pain Point 3 (True Atomic CAS & Mutual Exclusion - F-03, ADR-0027, ADR-0028):** Make `expected_digest` mandatory for state transitions and resumes. Implement per-shard mutual exclusion file lock (`.lock` via `wx`) with atomic stale-lock takeover to prevent ABA races, paired with disk re-read under lock. Implement dedicated `digestTaskEnvelope(envelope)` which excludes top-level `state_digest` and computes canonical RFC 8785 JCS SHA-256 via `scripts/lib/status-jcs.mjs`.
 - **Core Pain Point 4 (Fail-Closed Projection & Transactional Archival - W1, F-10, ADR-0029):**
-  - Unified validation seam: implement `validateEnvelopeSchema(data)` shared across state machine, compiler, and backfill tools. Throw `MALFORMED_SHARD` on unparseable or schema-violating shards.
-  - POSIX crash-durable atomic writes: implement `atomicWriteFileSync` with collision-safe `wx` temp files, `fsyncSync` data flush, atomic rename, and directory sync.
-  - Transactional archival: implement two-phase `archiveWorkItem` with compensating rollback if projection compilation fails.
+  - Unified validation seam: implement `validateEnvelopeSchema(data)` shared across state machine, compiler, and backfill tools. Enforce schema structure and `stored state_digest === digestTaskEnvelope(data)`. Throw `MALFORMED_SHARD` on unparseable, invalid, or digest-mismatched shards.
+  - POSIX crash-durable atomic writes: implement `atomicWriteFileSync` with collision-safe `wx` temp files, write completion loops, failure cleanup (`unlinkSync`), `fsyncSync` data flush, atomic rename, and directory sync.
+  - Transactional archival & crash recovery: implement two-phase `archiveWorkItem` with compensating rollback if projection compilation fails, plus mandatory preflight drift reconciliation (`reconcileArchivedShards`).
 
 ### Out of Scope
 - Cryptographic agent identity verification or process authentication (caller-declared role policy validation only; full signature infrastructure deferred).
@@ -74,7 +74,7 @@
 | US-001 | Control Plane Orchestrator | A unified, canonical 11-state durable task envelope contract for all workflows | State shards across bug-fix, feature, meta, config, and data changes adhere to a single consistent contract version without 7-state vs 11-state schema conflicts. | High |
 | US-002 | Security & Governance Guardian | State machine transitions to strictly validate the acting role against authorized actors in the transition matrix | Unauthorized agents or rogue processes cannot execute illegal state transitions or impersonate specialized roles (such as self-approving QA or skipping human gates). | High |
 | US-003 | Workflow Concurrency Engine | Every state transition to require and enforce CAS expected digest verification under per-shard mutual exclusion | Concurrent agent operations or stale turn resumes cannot overwrite task state blindly or corrupt state history. | High |
-| US-004 | Project Maintainer & CI Pipeline | Status projection compilation and archival to operate fail-closed with atomic file operations and compensation | Malformed shards fail CI loudly, `PROJECT_STATUS.md` is never corrupted mid-write, and terminal tasks are reconciled cleanly without ghost entries. | High |
+| US-004 | Project Maintainer & CI Pipeline | Status projection compilation and archival to operate fail-closed with atomic file operations, compensation, and crash recovery | Malformed shards fail CI loudly, `PROJECT_STATUS.md` is never corrupted mid-write, and terminal tasks are reconciled cleanly without ghost entries. | High |
 
 ---
 
@@ -82,14 +82,14 @@
 
 | AC ID | Related Story | Given | When | Then | Testable? |
 |---|---|---|---|---|---|
-| **AC-001** | US-001 | An active work item shard in `docs/records/work-items/{issue-id}/task-state.json` | Validated against repository contracts and schema rules | Shard validates successfully against canonical `durable-task-envelope.schema.json` with `contract_version: 2`, 11-state enum, valid 64-character hex `state_digest`, and integer `sequence_number` $\ge 1$. | Yes |
+| **AC-001** | US-001 | An active work item shard in `docs/records/work-items/{issue-id}/task-state.json` | Validated against repository contracts and schema rules | Shard validates successfully against canonical `durable-task-envelope.schema.json` with `contract_version: 2`, 11-state enum, valid 64-character hex `state_digest` matching `digestTaskEnvelope(shard)`, and integer `sequence_number` $\ge 1$. | Yes |
 | **AC-002** | US-001 | An active or proposed task state shard declaring legacy `contract_version: 1` or restricted 7-state vocabulary | Loaded or evaluated by the state machine engine or contract validator | Engine or validator flags or rejects the shard, requiring migration to canonical v2 envelope schema with clear diagnostic error. | Yes |
-| **AC-003** | US-002 | A task currently in state `verifying` where authorized actors are `['qa-agent']` | An actor other than `qa-agent` (e.g. `developer-agent` or `unauthorized-agent`) attempts to execute `transitionTaskState` to `handoff` | Transition is strictly rejected with error code `UNAUTHORIZED_ACTOR`, status `REJECTED`, and the state file remains completely unmutated. | Yes |
-| **AC-004** | US-002 | A task in any state defined in `TRANSITION_MATRIX` | An authorized actor listed in `matrixEntry.actors` (or an authorized human/orchestrator where designated) initiates a permitted transition with all mandatory evidence | Transition succeeds, recording the actor in history, incrementing sequence number, and computing new CAS digest. | Yes |
+| **AC-003** | US-002 | A task currently in state `verifying` where authorized actors in `TRANSITION_MATRIX` are `['qa-agent']` | An actor other than `qa-agent` (e.g. `developer-agent` or `unauthorized-agent`) attempts to execute `transitionTaskState` to `handoff` | Transition is strictly rejected with error code `UNAUTHORIZED_ACTOR`, status `REJECTED`, and the state file remains completely unmutated. | Yes |
+| **AC-004** | US-002 | A task in any state defined in `TRANSITION_MATRIX` | An authorized actor listed in `matrixEntry.actors` (or an authorized human/orchestrator where designated) initiates a permitted transition with all mandatory evidence | Transition succeeds, recording the actor in history, incrementing sequence number, and computing new CAS digest via `digestTaskEnvelope()`. | Yes |
 | **AC-005** | US-003 | A state transition or resume request submitted to `task-state-machine` or `task-machine-cli.mjs` | The request omits `expected_digest` or provides an empty string | Operation is rejected immediately with error code `MISSING_EXPECTED_DIGEST`, status `REJECTED`, and no state modification occurs. | Yes |
-| **AC-006** | US-003 | A state transition request submitted with an `expected_digest` that does not match the disk state's SHA-256 JCS digest, or two processes attempt concurrent transitions on the same digest | Mutating operation executes under per-shard lock | One operation succeeds; the second throws `CAS_CONFLICT`, returning both `current_digest` and `expected_digest` with state file untouched. | Yes |
-| **AC-007** | US-004 | A work item directory in `docs/records/work-items/` contains an unparseable or schema-invalid `task-state.json` file | `compileStatusProjection` or `validate:status-projection` is executed | Process aborts fail-closed with error code `MALFORMED_SHARD` and exit code `1`, refusing to emit a partial or deceptive projection. | Yes |
-| **AC-008** | US-004 | `updateProjectStatusFile` writes to `PROJECT_STATUS.md` or `archiveWorkItem` moves a terminal shard | Writing content to disk or archiving terminal shard | Markdown content is written via POSIX atomic file writing (`.tmp` + `fsyncSync` + atomic `rename` + dir sync); if projection compilation fails during archival, shard directory move is rolled back with compensation. | Yes |
+| **AC-006** | US-003 | A state transition request submitted with an `expected_digest` that does not match the disk state's SHA-256 JCS digest, or two processes attempt concurrent transitions on the same digest | Mutating operation executes under per-shard lock with atomic takeover protection | One operation succeeds; the second throws `CAS_CONFLICT`, returning both `current_digest` and `expected_digest` with state file untouched. | Yes |
+| **AC-007** | US-004 | A work item directory in `docs/records/work-items/` contains an unparseable, schema-invalid, or digest-mismatched `task-state.json` file | `compileStatusProjection` or `validate:status-projection` is executed | Process aborts fail-closed with error code `MALFORMED_SHARD` and exit code `1`, refusing to emit a partial or deceptive projection. | Yes |
+| **AC-008** | US-004 | `updateProjectStatusFile` writes to `PROJECT_STATUS.md` or `archiveWorkItem` moves a terminal shard | Writing content to disk or archiving terminal shard | Markdown content is written via POSIX atomic file writing (`.tmp` + write loop + temp cleanup + `fsyncSync` + atomic `rename` + dir sync); archival explicitly calls `updateProjectStatusFile()` with exception rollback; post-crash drift is reconciled by mandatory preflight. | Yes |
 
 ---
 
@@ -99,8 +99,8 @@
 |---|---|---|---|
 | **BR-001** | **Canonical Durable Envelope Authority:** `docs/contracts/schemas/durable-task-envelope.schema.json` is the sole canonical authority for durable task states in the control plane. All active task states must declare `contract_version: 2` and adhere to the 11-state lifecycle model. Legacy `task-state.schema.json` is deprecated. | Audit F-01, ADR-0026 | Task State Machine, JSON Schemas, Shard Validator |
 | **BR-002** | **Strict Matrix Actor Authorization:** Every state transition must enforce actor authorization against `TRANSITION_MATRIX[fromState].actors`. Canonicalize actor identifiers to lowercase kebab-case against `ROLE_REGISTRY`. Unauthorized transitions fail closed with `UNAUTHORIZED_ACTOR`. | Audit F-02, Least Privilege Principle | `scripts/lib/task-state-machine.mjs`, CLI |
-| **BR-003** | **Mandatory Cryptographic CAS Verification & Shard Lock:** All state modifications and resumes must supply `expected_digest` matching the current RFC 8785 JCS SHA-256 digest of the state. Transitions acquire a per-shard `.lock` via `wx` and re-read disk state under lock. Concurrent or stale mutations must be rejected with `CAS_CONFLICT`. | Audit F-03, ADR-0027, ADR-0028 | `task-state-machine.mjs`, `task-machine-cli.mjs` |
-| **BR-004** | **Fail-Closed Projection & Transactional Durability:** Projection compilation must never skip malformed or unreadable shards silently. Corrupted shards must fail CI and CLI compilation immediately. All updates to `PROJECT_STATUS.md` must use POSIX atomic file writing. Archival failure must trigger compensating rollback. | Audit W1, F-10, ADR-0029 | `compile-status-projection.mjs`, `archive-work-item.mjs` |
+| **BR-003** | **Mandatory Cryptographic CAS Verification & Shard Lock:** All state modifications and resumes must supply `expected_digest` matching `digestTaskEnvelope()`. Transitions acquire a per-shard `.lock` via `wx` with atomic stale takeover and re-read disk state under lock. Concurrent or stale mutations must be rejected with `CAS_CONFLICT`. | Audit F-03, ADR-0027, ADR-0028 | `task-state-machine.mjs`, `task-machine-cli.mjs` |
+| **BR-004** | **Fail-Closed Projection & Transactional Durability:** Projection compilation must never skip malformed, invalid, or digest-mismatched shards silently. All updates to `PROJECT_STATUS.md` must use POSIX atomic file writing with failure temp cleanup. Archival failure must trigger compensating rollback, and post-crash drift must be recovered by preflight reconciliation. | Audit W1, F-10, ADR-0029 | `compile-status-projection.mjs`, `archive-work-item.mjs` |
 
 ---
 
@@ -111,8 +111,8 @@
 | **R-001** | **Legacy Active Shard Incompatibility:** Shards for `issue-249` and `issue-275` currently have `contract_version: 1` and lack `sequence_number` and `state_digest`. | High | Provide a deterministic migration / reconciliation backfill script to upgrade active shards to v2 format prior to activating strict schema gates. |
 | **R-002** | **CLI Tool Usability Friction with Mandatory CAS:** Requiring `expected_digest` on manual CLI invocations could make quick developer testing cumbersome. | Medium | Provide an `inspect` helper command that displays the current digest so callers can supply it explicitly. |
 | **R-003** | **Actor Name Formatting Drift:** Actor names may be supplied as `developer-agent` or `Developer Agent` (capitalized with spaces). | Medium | Canonicalize actor identifiers to lowercase kebab-case (`ROLE_REGISTRY`) before matching against `matrixEntry.actors`. |
-| **R-004** | **Mid-Write Crash on File Operations:** Interrupting writes leaves files corrupted or truncated. | High | Implement `atomicWriteFileSync(targetPath, content)` with collision-safe `wx` temp files, `fsyncSync`, atomic rename, and directory sync. |
-| **R-005** | **Archival Desynchronization & Failure:** If projection fails after shard directory move, repository is left in inconsistent state. | High | Implement two-phase archival with compensating rollback: move directory back if compilation throws error. |
+| **R-004** | **Mid-Write Crash on File Operations:** Interrupting writes leaves files corrupted or truncated, or leaks temp files. | High | Implement `atomicWriteFileSync(targetPath, content)` with collision-safe `wx` temp files, catch-block temp unlink, `fsyncSync`, atomic rename, and directory sync. |
+| **R-005** | **Archival Desynchronization & Crash Drift:** If process is killed between shard move and status file update, repository is left in drift. | High | Implement two-phase archival with compensating rollback on exception, and mandatory preflight `reconcileArchivedShards` on projection/archive invocations. |
 
 ---
 
@@ -121,7 +121,7 @@
 | Invariant ID | Governance Invariant | Source | Verification |
 |---|---|---|---|
 | **QG-001** | **Review Gate Enforcement:** Any commit modifying or adding `.mjs`/`.js` files must include a corresponding QA code review record under `docs/records/qa/*-code-review.md`. | Repository CI Gate | `npm run validate:review-gate` |
-| **QG-002** | **Deterministic Functional Invariants:** Zero lost updates on concurrent mutations; crash resilience (file contains 100% old or 100% new content); zero lock leaks across both success and failure paths. | ADR-0027, ADR-0029 | Integration test suite in `test/` |
+| **QG-002** | **Deterministic Functional Invariants:** Zero lost updates on concurrent mutations; crash resilience (file contains 100% old or 100% new content); zero temp leaks; zero lock leaks across both success and failure paths. | ADR-0027, ADR-0029 | Integration test suite in `test/` |
 
 ---
 
@@ -129,41 +129,7 @@
 
 | Next Agent / Skill | Reason | Required Input |
 |---|---|---|
-| **SA Agent (`sa-architecture-design`)** | Software Design Document (SDD) reworked and approved. | Requirement Discovery artifact |
-| **Security Reviewer (`security-review`)** | Conduct formal security audit on actor policy validation, trust boundaries, and per-shard locking. | Requirement Discovery and SDD |
-| **Developer Lead (`implementation-planning`)** | Update implementation plan reflecting per-shard locking, shared validation seam, and transactional archival. | Approved SDD |
-| **QA Lead (`functional-test-design`)** | Update test plan and traceability matrix reflecting deterministic functional invariants. | Approved SDD |
-
----
-
-## 12. Illustrative Interaction Sketch
-
-> Illustrative — not a UI spec. Stops at what appears and in what order; no layout, component, or visual detail.
-
-### Hardened Checkpointed State Transition Flow with Per-Shard Lock
-
-```text
-[Acting Agent (e.g. qa-agent)]
-       │
-       ▼ (1. Inspect & Retrieve Current State & Digest)
-[task-state.json (Disk)] ──► Digest: 'a1b2c3...64hex'
-       │
-       ▼ (2. Submit Transition Request with mandatory expected_digest & actor)
-[task-state-machine: executeAtomicTransition]
-       ├─ Step A: Acquire Shard Lock (.lock via openSync 'wx' with 30s stale recovery)
-       ├─ Step B: Re-read disk state under lock
-       ├─ Step C: Validate Envelope Schema (shared validateEnvelopeSchema)
-       ├─ Step D: CAS Verification (expected_digest === digestJcs(diskState)? If mismatch -> CAS_CONFLICT)
-       ├─ Step E: Actor Authorization (canonicalActor in matrixEntry.actors? If no -> UNAUTHORIZED_ACTOR)
-       ├─ Step F: Mandatory Evidence Validation (All required keys present? If no -> MISSING_REQUIRED_EVIDENCE)
-       ├─ Step G: Rework Budget Check (rework_count < max_rework_attempts)
-       ├─ Step H: Construct Next State (seq++, append history, compute new SHA-256 JCS digest)
-       ├─ Step I: POSIX Atomic Write (.tmp-wx -> fsync fd -> rename -> fsync dir)
-       └─ Step J: Release Shard Lock in finally block (unlinkSync .lock)
-       │
-       ▼ (3. Status Projection Compilation)
-[compile-status-projection]
-       ├─ Step A: Scan work-items/* using shared validateEnvelopeSchema (Fail-closed -> MALFORMED_SHARD)
-       ├─ Step B: Exclude archive/* and reconcile terminal states
-       └─ Step C: POSIX Atomic Write to PROJECT_STATUS.md (.tmp-wx -> fsync fd -> rename -> fsync dir)
-```
+| **SA Agent (`sa-architecture-design`)** | Finalize SDD with exact `contract_version: 2`, `TRANSITION_MATRIX.actors`, atomic lock takeover, and preflight crash reconciliation. | Requirement Discovery artifact |
+| **Security Reviewer (`security-review`)** | Conditional review updated for atomic lock takeover and digest integrity scope. | Updated SDD |
+| **Developer Lead (`implementation-planning`)** | Structure sliced implementation plan following template with checkpoints. | Approved SDD |
+| **QA Lead (`functional-test-design`)** | Build automation-ready test suite with explicit fixtures, synchronization barriers, and mutation ledger. | Approved SDD |
