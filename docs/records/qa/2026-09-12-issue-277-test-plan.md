@@ -6,9 +6,10 @@
 - Title: Control-Plane State Integrity & Architecture Remediation (Package 1)
 - Owner: QA Lead (`qa-agent`)
 - Date: 2026-09-12
-- Status: Draft (Rework Round 5 — Addressing Maintainer Review #5644601391) — **Full Mode** (high-risk framework change)
-- Governing SDD: `docs/records/sdd/2026-09-12-control-plane-state-integrity-sdd.md` (Round 5, Draft)
-- Governing Security Review: `docs/records/security-review/2026-09-12-issue-277-security-review.md` (Round 5, Conditional; SEC-004 Open)
+- Status: Draft (Rework Round 6 — QA Full Mode after SA/Security/BA corrections)
+- QA Design Verdict: **BLOCKED** — authoritative artifacts are consistent and this plan is aligned, but SEC-004 requires an explicit Human Maintainer decision before blueprint approval.
+- Governing SDD: `docs/records/sdd/2026-09-12-control-plane-state-integrity-sdd.md` (Round 6, Draft)
+- Governing Security Review: `docs/records/security-review/2026-09-12-issue-277-security-review.md` (Round 6, Changes Requested; SEC-004 Open/High)
 - Governing Requirements: `docs/records/requirements/2026-09-12-control-plane-state-integrity-discovery.md` (AC-001..AC-010, BR-001..BR-005)
 
 ---
@@ -16,14 +17,16 @@
 ## 1. Scope
 
 ### In-Scope
-- Two-layer contract model: envelope v2 storage shape over workflow policy v1 behaviour, bound by `policy_contract_version`.
+- Two-layer contract model with lane-specific bindings: legacy examples compare `state.contract_version`; active durable envelopes compare `state.policy_contract_version`.
 - **Package 1 composable scope is `bug-fix` only (ADR-0031):** the durable envelope's `workflow_id`/`change_type` enums and the strict active-shard lane admit `bug-fix` and nothing else.
 - The single authority rule: legality is the **intersection** of `TRANSITION_MATRIX` and the shard's workflow policy, with evidence sourced from the policy row. No matrix fallback, no envelope-only allowlist, no exception contract.
 - Envelope hashing (`digestTaskEnvelope`) with `state_digest` self-exclusion and stored-digest equality on load.
 - Actor policy validation, terminal-state closure, and the fail-closed `UNKNOWN_SOURCE_STATE` guard.
-- Mandatory CAS under the fail-closed per-shard lock, inside `mutateTaskStateOnDisk`.
-- Shard locks in the **stable namespace** `docs/records/work-items/.locks/{task_id}.lock`, keyed by `task_id` and never derived from a directory path; pathname invariance across the archive transaction.
-- Three-outcome lock classification (young+live, old+live, dead PID) and the **maintenance-only** `unlock --quiesced` recovery surface, in which nonce verification is an operator-mistake filter and **not** a safety property.
+- Policy-authoritative `resume` from `blocked`: only to the latest interrupted `investigating` or `verifying` state, with `resume_evidence`, `approver_id`, and Human/orchestrator actor.
+- Mandatory CAS under the fail-closed per-shard lock, inside `mutateTaskStateOnDisk(rootDir, expectedTaskId, ...)`.
+- Identity-bound shard locks in `docs/records/work-items/.locks/{expectedTaskId}.lock`: the explicit ID derives the active path and lock, then the inside-lock re-read must match both it and the directory basename before CAS/write/rename.
+- Three-outcome valid-lock classification plus fail-closed `LOCK_MALFORMED`; maintenance recovery requires `--quiesced` and either a valid-lock `--nonce` or malformed-lock `--malformed` mode.
+- Deterministic I/O/race injection through `createStateIo({ fsOps, processOps, clock, random })`, with no mutable global hook or production test-only branch.
 - POSIX crash-durable atomic writing with temp cleanup and zero-progress fault handling.
 - Projection purity: zero bytes written by `compileStatusProjection`, `detectArchivedShardDrift`, and `--check`.
 - Projection transaction: projection lock, post-acquisition recompile, total lock order.
@@ -48,15 +51,18 @@
 ```text
 Agent decides a transition
   -> inspect (read digest + lock holder; read-only, no quiescence needed)
-  -> mutateTaskStateOnDisk(shard, {to, actor, expected_digest, evidence})
-       -> read task_id from the envelope
-       -> acquire work-items/.locks/{task_id}.lock
+  -> mutateTaskStateOnDisk(rootDir, expectedTaskId, {to, actor, expected_digest, evidence, mode})
+       -> validate expectedTaskId; derive work-items/{expectedTaskId}/task-state.json
+       -> acquire work-items/.locks/{expectedTaskId}.lock
             [young+live  => backoff/retry, then LOCK_ACQUISITION_TIMEOUT]
             [old+live    => LOCK_ACQUISITION_TIMEOUT + LOCK_HELD_LONG + holder diagnostics]
             [dead PID    => LOCK_ABANDONED, lock untouched, names unlock --quiesced]
+            [malformed lock => LOCK_MALFORMED, lock untouched]
        -> re-read + validate envelope   [refuse if malformed / digest mismatch]
+       -> three-way identity check      [TASK_IDENTITY_MISMATCH before CAS/write]
        -> CAS compare                   [refuse if missing or stale]
-       -> matrix INTERSECT policy legality, policy-sourced evidence
+       -> transition: matrix INTERSECT policy legality, policy-sourced evidence
+       -> resume: policy resume row + latest into-blocked history binding
                                         [refuse if illegal / unauthorized / evidence missing]
        -> pure transition + atomic write
        -> release lock (nonce-matched) in finally, against the stable namespace
@@ -67,8 +73,8 @@ Agent decides a transition
   -> CI: validate:status-projection --check  [read-only; drift => exit 1 + recovery command]
 
 Operator-only, off the normal path:
-  unlock --task T --nonce N --quiesced   [maintenance; refuses without --quiesced;
-                                          LOCK_NONCE_MISMATCH is a mistake filter, not a race guard]
+  unlock (--task T | --projection) (--nonce N | --malformed) --quiesced
+                                         [maintenance; re-read before unlink; not race-safe]
 ```
 
 ### 2.2 IPO Matrix
@@ -77,12 +83,12 @@ Operator-only, off the normal path:
 |---|---|---|---|---|---|
 | IPO-1 | `digestTaskEnvelope` | Envelope object | Shallow copy, delete `state_digest`, RFC 8785 JCS SHA-256 | 64-hex digest; argument unmodified | `Invalid envelope object` on non-object |
 | IPO-2 | `validateEnvelopeSchema` | Envelope object | Ajv envelope schema (`workflow_id` limited to `bug-fix`), then `stored === computed` | Validated envelope | `MALFORMED_SHARD`, `DIGEST_INTEGRITY_MISMATCH` (with both digests) |
-| IPO-3 | `acquireShardLock` | `(rootDir, task_id)` | `openSync('wx')` on `work-items/.locks/{task_id}.lock`; on EEXIST classify holder by PID liveness first, age second | Nonce | `LOCK_ACQUISITION_TIMEOUT` (optionally `LOCK_HELD_LONG` + holder diagnostics), `LOCK_ABANDONED` (lock left intact) |
+| IPO-3 | `acquireShardLock` | `(rootDir, expectedTaskId)` | `openSync('wx')` on `work-items/.locks/{expectedTaskId}.lock`; strictly parse an existing holder, then classify valid records by PID liveness first and age second | Nonce | `LOCK_ACQUISITION_TIMEOUT` (optionally `LOCK_HELD_LONG`), `LOCK_ABANDONED`, `LOCK_MALFORMED`; lock left intact |
 | IPO-3b | `releaseShardLock` | `(rootDir, task_id, nonce)` | Read the stable-namespace lock; unlink only when `parsed.nonce === nonce` | Lock removed | Silent no-op on nonce mismatch; lock preserved |
-| IPO-3c | `unlock` (CLI, maintenance-only) | `--task`/`--projection`, `--nonce`, `--quiesced` | Print holder + consequence, compare nonce, unlink unconditionally on the bytes observed | Lock removed | Refusal without `--quiesced`; `LOCK_NONCE_MISMATCH` on a stale nonce |
-| IPO-4 | `mutateTaskStateOnDisk` | Shard path, `{to, actor, expected_digest, evidence, mode}` | Lock by `task_id`, re-read, validate, CAS, intersection legality, pure transition, atomic write, release | New envelope on disk, `sequence_number + 1` | `MISSING_EXPECTED_DIGEST`, `CAS_CONFLICT`, `UNAUTHORIZED_ACTOR`, `ILLEGAL_TRANSITION_REJECTED`, `UNKNOWN_SOURCE_STATE`, `UNKNOWN_WORKFLOW`, `MISSING_REQUIRED_EVIDENCE` |
+| IPO-3c | `unlock` (CLI, maintenance-only) | exactly one of `--task`/`--projection`; exactly one of `--nonce`/`--malformed`; `--quiesced` | Print holder/consequence, re-read immediately before unlink; nonce mode compares valid record, malformed mode refuses if bytes became valid | Lock removed only under asserted quiescence | Missing flags refused; `LOCK_NONCE_MISMATCH`, `LOCK_MALFORMED`, `LOCK_BECAME_VALID` |
+| IPO-4 | `mutateTaskStateOnDisk` | `rootDir`, `expectedTaskId`, `{to, actor, expected_digest, evidence, mode}` | Derive path and lock from explicit ID; inside-lock re-read, validation and three-way identity check; CAS; transition intersection or policy resume; atomic write; release | New envelope on disk, `sequence_number + 1` | `TASK_IDENTITY_MISMATCH` before CAS/write, `MISSING_EXPECTED_DIGEST`, `CAS_CONFLICT`, `UNAUTHORIZED_ACTOR`, `ILLEGAL_TRANSITION_REJECTED`, `UNKNOWN_SOURCE_STATE`, `UNKNOWN_WORKFLOW`, `MISSING_REQUIRED_EVIDENCE`, `HUMAN_APPROVAL_REQUIRED`, `INVALID_RESUME_TARGET`, `RESUME_OPERATION_REQUIRED` |
 | IPO-5 | `compileStatusProjection` | Root dir | Read + validate every active shard, render table | `{markdown, digest}`; **no writes** | `MALFORMED_SHARD` |
-| IPO-5b | `discoverActiveShards` | Root dir | Enumerate `work-items/*`, **skip dot-prefixed entries before any shard-validity check** | Shard dirs only | — (a dot-prefixed entry must never reach the validity check) |
+| IPO-5b | `discoverActiveShards` | Root dir | Enumerate `work-items/*`; before validation skip exact reserved `archive/` and every dot-prefixed entry, and no other entry | Shard dirs only | `RESERVED_TASK_ID` when an active operation supplies `archive` |
 | IPO-6 | `detectArchivedShardDrift` | Root dir | Compare archive/, work-items/, `PROJECT_STATUS.md` | `{drifted, findings[]}`; **no writes** | — |
 | IPO-7 | `updateProjectStatusFile` | Root dir | Acquire projection lock, **then** compile, atomic write, release | `{updated, digest}` | `LOCK_ABANDONED`, `LOCK_ACQUISITION_TIMEOUT`, `MALFORMED_SHARD` |
 | IPO-8 | `archiveWorkItem` | Issue id | Hold shard lock, preflight reconcile, move shard, update projection, compensate on throw, release shard lock last | Shard under `archive/`, projection current, no lock at any of the three pathnames | `ARCHIVE_RECONCILIATION_FAILED` (+ `compensation_failed` when the rename back also fails) |
@@ -101,7 +107,7 @@ It already reflects SDD Component 2's amendments: the two terminal rows, the exp
 `blocked` row, and **`investigating -> implementing`** (bold), which the matrix gains so the `bug-fix`
 policy row of the same name has a counterpart to intersect with. Before that widening the intersection
 at that hop was empty and the bug-fix happy path was severed at its second transition — see the OQ-1
-resolution in §15. TC-034 is the standing guard that makes a recurrence a build failure.
+resolution in §16. TC-034 is the standing guard that makes a recurrence a build failure.
 
 | from \ to | intake | investigating | designing | planning | implementing | verifying | rework | handoff | blocked | completed | cancelled |
 |---|---|---|---|---|---|---|---|---|---|---|---|
@@ -160,20 +166,24 @@ that runs after a mutation is worthless.
 | 1 | Lock acquisition (young + live holder) | Lock held, `created_at` within 30 s, `process.kill(pid, 0)` succeeds | `LOCK_ACQUISITION_TIMEOUT` after the retry ceiling | TC-013 |
 | 1b | Lock diagnostics (old + live holder) | Older than 30 s, PID **live** | `LOCK_ACQUISITION_TIMEOUT` carrying `LOCK_HELD_LONG` + holder diagnostics — **never** `LOCK_ABANDONED` | TC-014c |
 | 1c | Lock abandonment (dead PID, any age) | `process.kill(pid, 0)` throws `ESRCH` | `LOCK_ABANDONED` (lock left byte-identical; names `unlock --quiesced`) | TC-014, TC-014c |
+| 1d | Malformed lock | Empty, truncated, invalid-JSON, or schema-invalid lock record | `LOCK_MALFORMED`; bytes unchanged; recovery named | TC-038 |
 | 2 | Envelope schema | Ajv failure, including a non-`bug-fix` `workflow_id` | `MALFORMED_SHARD` | TC-003, TC-015, TC-032 |
 | 3 | Digest integrity | `stored !== digestTaskEnvelope(data)` | `DIGEST_INTEGRITY_MISMATCH` | TC-002, TC-016 |
-| 4 | CAS presence | `expected_digest` missing or empty | `MISSING_EXPECTED_DIGEST` | TC-009, TC-010 |
-| 5 | CAS equality | `expected_digest !== stored` | `CAS_CONFLICT` | TC-011, TC-012 |
-| 6 | Source state known | No matrix entry | `UNKNOWN_SOURCE_STATE` | TC-022 |
-| 7 | Destination legality | Not in matrix **∩** policy | `ILLEGAL_TRANSITION_REJECTED` | TC-021, TC-023, TC-024, TC-025 |
-| 8 | Actor authorization | Canonical actor not in `TRANSITION_MATRIX[from].actors` | `UNAUTHORIZED_ACTOR` | TC-005, TC-006 |
-| 9 | Evidence (policy-sourced) | Key listed on the **policy** row missing or empty | `MISSING_REQUIRED_EVIDENCE` | TC-007 |
-| 9b | Terminal / blocking evidence | `handoff -> completed` without `closeout_evidence`; `-> blocked` without `stop_reason` | `MISSING_REQUIRED_EVIDENCE` | TC-025 |
-| 10 | Rework ceiling | `rework_count >= max_rework_attempts` | ceiling rejection | existing regression |
-| 11 | Human gate | Leaving `blocked` without human actor + approver | `HUMAN_APPROVAL_REQUIRED` | existing regression |
+| 4 | Task identity | Re-read `task_id`, explicit ID and derived directory basename differ | `TASK_IDENTITY_MISMATCH` before CAS/write/rename | TC-037 |
+| 5 | CAS presence | `expected_digest` missing or empty | `MISSING_EXPECTED_DIGEST` | TC-009, TC-010 |
+| 6 | CAS equality | `expected_digest !== stored` | `CAS_CONFLICT` | TC-011, TC-012 |
+| 7 | Source state known | No matrix entry | `UNKNOWN_SOURCE_STATE` | TC-022 |
+| 8 | Destination legality | Not in matrix **∩** policy | `ILLEGAL_TRANSITION_REJECTED` | TC-021, TC-023, TC-024, TC-025 |
+| 9 | Actor authorization | Canonical actor not in `TRANSITION_MATRIX[from].actors` | `UNAUTHORIZED_ACTOR` | TC-005, TC-006 |
+| 10 | Evidence (policy-sourced) | Key listed on the **policy** row missing or empty | `MISSING_REQUIRED_EVIDENCE` | TC-007 |
+| 10b | Terminal / blocking evidence | `handoff -> completed` without `closeout_evidence`; `-> blocked` without `stop_reason` | `MISSING_REQUIRED_EVIDENCE` | TC-025 |
+| 11 | Resume operation | Ordinary transition attempts a policy resume | `RESUME_OPERATION_REQUIRED` | TC-036 |
+| 12 | Resume target | Target differs from latest into-`blocked` history `from` or is outside `[investigating, verifying]` | `INVALID_RESUME_TARGET` | TC-036 |
+| 13 | Resume Human evidence | Missing/empty `resume_evidence` or `approver_id`, or actor is not Human/orchestrator | `HUMAN_APPROVAL_REQUIRED` | TC-036 |
+| 14 | Rework ceiling | `rework_count >= max_rework_attempts` | ceiling rejection | existing regression |
 | W-1 | Atomic write progress | `fs.writeSync` returns `0` | `ATOMIC_WRITE_NO_PROGRESS` (temp unlinked, target untouched) | TC-017b |
 
-The matrix's own `requires` is an authoring aid and is never consulted at validation time; guard 9 must
+The matrix's own `requires` is an authoring aid and is never consulted at validation time; guard 10 must
 be observed reading the policy. Every reject path asserts the shard file is byte-identical afterwards
 and that no lock survives at `work-items/.locks/{task_id}.lock`.
 
@@ -189,7 +199,7 @@ and that no lock survives at `work-items/.locks/{task_id}.lock`.
 | 4 | Lost update on a shard (CAS or lock defect) | Low | High | P0 | TC-011, TC-012 |
 | 5 | Digest self-reference or tampering undetected | Low | High | P0 | TC-001, TC-002, TC-016 |
 | 6 | **Shard lock travels with the archived directory** (Round 5 Blocker 2) — a release against a moved pathname leaks a lock and frees the original name mid-transaction | Medium | High — silent double-entry into a live archive transaction | P0 | TC-019b, TC-031 |
-| 7 | **`unlock` removes a replacement lock** — accepted, not prevented. Integrity rests entirely on the unconditional CAS in `mutateTaskStateOnDisk` catching the dispossessed writer | Low (maintenance-only, `--quiesced`) | Medium — aborted transition + availability, **not** silent corruption, *provided* CAS holds | P0 | TC-014b, TC-012 |
+| 7 | **False quiescence removes a live/replacement lock.** Two shard writers can both pass one-shot CAS before either writes and lose one history event; two projection writers can publish stale/last-rename-wins output | Low (maintenance-only) | High — silent state/projection loss | P0 | TC-014b |
 | 8 | **Live slow holder routed into a destructive recovery path on age alone** (withdrawn Round 4 predicate, SEC-006) | Medium | High if reintroduced | P0 | TC-014c |
 | 9 | Strict active-shard lane trips on `.locks/`, `.gitkeep` or `.projection.lock` | Medium | Medium — CI wedge on a non-shard entry | P1 | TC-033 |
 | 10 | Backfill breaks the two live shards, or writes a `sequence_number` that duplicates the last history position | Medium | Medium — recoverable from backup | P1 | TC-004, TC-029 |
@@ -198,21 +208,38 @@ and that no lock survives at `work-items/.locks/{task_id}.lock`.
 | 12 | Envelope advertises a workflow it cannot represent (Round 5 Blocker 1) | Low (narrowed to `bug-fix`) | Medium | P1 | TC-032 |
 | 13 | Abandoned lock wedges one shard or all of CI — **accepted and widened** by the dead-PID-only predicate (SEC-003): an old-but-live lock, and a lock whose writer died off-host while its PID is coincidentally live, now wedge until an operator establishes quiescence | Medium | Medium — availability traded for integrity | P1 | TC-014, TC-014c, TC-027, TC-030 |
 | 14 | Temp or lock file leakage, including a zero-progress write spin | Low | Low | P2 | TC-017, TC-017b, TC-031 |
+| 15 | A pre-read envelope selects a different lock from the path later written | Medium | High — two writers mutate one pathname under different locks | P0 | TC-037 |
+| 16 | Global version-field replacement breaks the legacy fixture lane or bypasses active-envelope policy binding | Medium | High — contracts reject valid history or accept drift | P0 | TC-035 |
+| 17 | Strict transition intersection makes `blocked` permanently terminal or resume becomes a broad bypass | Medium | High — workflow wedge or unauthorized state jump | P0 | TC-036 |
+| 18 | Empty/partial lock from crash is unreadable and unrecoverable, or is cleared automatically | Medium | High for projection lock | P0 | TC-038 |
 
 ---
 
 ## 6. Test Types In Scope
 
 - [ ] Unit — hasher, guards, matrix, writer
-- [ ] Contract — envelope v2 (`bug-fix` only), `policy_contract_version` binding, policy amendment, existing example fixtures
+- [ ] Contract — envelope v2 (`bug-fix` only), lane-specific version bindings, policy transition/resume amendment, existing example fixtures
 - [ ] Active-Shard Composition — real `work-items/` path, not the example-fixture lane
-- [ ] Concurrency & Contention — barrier-synchronized multi-process, lock order, lock-pathname invariance
-- [ ] Fault Injection & Crash Boundaries — write throw, zero-progress write, archival compensation, compensation failure, forced check/unlink interleaving
+- [ ] Concurrency & Contention — barrier-synchronized multi-process, identity binding, lock order/pathname invariance, wrong-unlock shard and projection counterexamples
+- [ ] Fault Injection & Crash Boundaries — injected `createStateIo`, write throw/zero-progress, malformed locks, archival compensation and wrong-unlock interleavings
 - [ ] Read-Only Assertion — whole-tree byte equality
 - [ ] CLI — mandatory CAS flags, `inspect`, `unlock --quiesced`
 - [ ] Integration — projection, archival, reconcile idempotency, backfill
 - [ ] Regression — full repository suite
 - [ ] Review Gate Governance — QG-001
+
+### Test Design Techniques
+
+| Technique | Application | Cases |
+|---|---|---|
+| Equivalence partitioning | Valid, stale, missing and empty digests; valid, malformed, dead/live lock records; allowed and disallowed workflow IDs | TC-009..TC-016, TC-032, TC-038 |
+| Boundary analysis | `sequence_number` continuation, zero/short writes, 30-second lock-age edge while PID liveness stays fixed | TC-004, TC-014c, TC-017b |
+| Decision tables | Ordered guards; transition matrix ∩ policy; valid/malformed recovery flags | §4, TC-024, TC-036, TC-038 |
+| State transition testing | Full computed bug-fix graph, terminal closure and policy-authoritative blocked resume | TC-007, TC-021..TC-025, TC-034, TC-036 |
+| Fault/failover injection | CAS/write barriers, wrong unlock, write/rename failures, archival compensation and lock corruption | TC-014b, TC-017..TC-020, TC-026..TC-028, TC-037..TC-038 |
+| API functional testing | N/A — Package 1 exposes local ESM functions and a CLI, with no HTTP/API contract. | N/A |
+| Performance baseline | No numeric NFR is approved; bounded lock/test timeouts are functional anti-hang assertions only. | TC-013, TC-014c, TC-017b |
+| Security fundamentals | Role authorization, fail-closed parsing, operator recovery flags, read-only purity and explicit residual-risk demonstration | TC-005..TC-007, TC-014..TC-016, TC-028, TC-038 |
 
 ---
 
@@ -221,6 +248,7 @@ and that no lock survives at `work-items/.locks/{task_id}.lock`.
 - Node.js >= 22, ESM, `node:test` + `node:assert/strict`.
 - Fixtures in isolated `os.tmpdir()` workspaces; no test touches the real repository tree.
 - Multi-process cases use `child_process.spawn` on a fixture-scoped harness script, never on repository state.
+- Fault and race cases receive a delegating adapter from `createStateIo({ fsOps, processOps, clock, random })`; tests pause real I/O operations at named barriers while production code contains no environment flag, global hook, or test-only branch.
 - Every case that can block carries an explicit `node:test` timeout, so a regression that hangs **fails** rather than stalling CI.
 
 ### Synchronization Harness (used by every multi-process case)
@@ -241,7 +269,7 @@ actor for the source state, the full policy-required evidence set, and a transit
 reached — the concurrency assertion would then pass vacuously. Each concurrency case names the single
 reject code it is allowed to observe.
 
-Child command shape, identical across TC-012, TC-014b, TC-019b, TC-026 and TC-027:
+Ordinary child command shape for TC-012, TC-019b, TC-026 and TC-027:
 
 ```bash
 node test/fixtures/issue-277/concurrent-mutator.mjs \
@@ -269,25 +297,28 @@ on stdout so the parent asserts on the code rather than on a message string.
 
 ## 8. Entry Criteria
 
-- [x] Round 5 Requirement Discovery available.
-- [x] Round 5 SDD available (**Draft** — not yet approved).
-- [x] Round 5 Security Review available (Conditional; SEC-004 **Open** pending this plan's evidence).
-- [x] Round 5 Implementation Plan available.
-- [ ] Human Maintainer approval of the Round 5 blueprint.
+- [x] Round 6 Requirement Discovery available and OQ-4 aligned with AC-006/R-006.
+- [x] Round 6 SDD available with one identity-bound mutation signature throughout.
+- [x] Round 6 Security Review available (**Changes Requested; SEC-004 Open/High**).
+- [x] Round 6 Implementation Plan available.
+- [x] OQ-2 deterministic injection seam resolved by `createStateIo`.
+- [ ] Human Maintainer decision on SEC-004 and approval of the Round 6 blueprint.
 - [ ] ADR-0026..ADR-0031 recorded in `DECISIONS.md`.
-- [x] OQ-1 resolved by SA Agent (matrix widened; see §15). TC-007, TC-024 and TC-029 are unblocked and updated.
+- [x] OQ-1 resolved by SA Agent (matrix widened; see §16). TC-007, TC-024 and TC-029 are unblocked and updated.
 
 ## 9. Exit Criteria
 
 - [ ] AC-001..AC-010 each verified by at least one passing automated case.
-- [ ] Deterministic invariants proven: zero lost updates on shard **and** projection, crash durability, zero temp leaks, zero lock leaks at any of the three archive-relevant pathnames, zero ghost entries, zero bytes written by any read-only path, no unbounded write loop.
-- [ ] **SEC-004 closing set green:** TC-012, TC-014, TC-014b, TC-014c, TC-026, TC-027, TC-028 all pass, with output attached to the security-review recheck. Until then this plan records no concurrency guarantee, and none whatsoever for `unlock`.
+- [ ] Deterministic invariants proven for executions preserving lock mutual exclusion/external quiescence: ordinary shard and projection serialization, crash durability, zero temp/lock leaks, zero ghost entries, zero bytes written by read-only paths, and no unbounded write loop.
+- [ ] TC-014b passes for both shard and projection, proving the documented wrong-quiescence residual. A pass does **not** close SEC-004 or establish safety.
+- [ ] TC-035..TC-038 pass: lane-specific version binding, policy-authoritative resume, identity-bound locking, and malformed-lock recovery.
 - [ ] TC-034 green: no in-scope policy row has an empty matrix intersection, and every in-scope policy state is reachable over the computed intersection alone.
 - [ ] Mutation ledger: every listed mutation killed by its named case.
 - [ ] Full regression green with no test weakening and no unrelated test file modified.
 - [ ] `validate:contracts`, `validate:ci-parity`, `validate:project-state`, `validate:review-gate`, `validate:status-projection` all pass.
 - [ ] **Rollout ordering respected, with a rollback point at each step:** the backfill tool and its tests land with the strict active-shard lane **disabled**; the operational migration of issue-249 and issue-275 runs next; the strict lane is enabled only afterwards. QA will not accept a step that enables the lane while a v1 shard is still live, because that step's own `validate:contracts` verification cannot pass. (Task numbering is the implementation plan's to assign; QA asserts the ordering, not the numbers.)
 - [ ] issue-249 and issue-275 migrated with the real closeout evidence recorded in the plan, archived, and absent from `PROJECT_STATUS.md`.
+- [ ] Security recheck confirms implementation matches the contract; SEC-004 remains Open/High until the Human Maintainer accepts the residual or requires fencing/conditional commit.
 
 ---
 
@@ -315,7 +346,7 @@ on stdout so the parent asserts on the code rather than on a message string.
 
 ### TC-004: Backfill Functionality, Sequence Continuation, Idempotency & Rollback
 - **Priority:** P1 | **Source:** AC-002, ADR-0026, Round 5 Blocking finding 3
-- **Action:** `backfillTaskStateV2(shardPath)` on a v1 shard with a non-empty `history`; run again; perform one further real transition through `mutateTaskStateOnDisk`; then `--rollback` from a fresh copy.
+- **Action:** `backfillTaskStateV2(shardPath)` on a v1 shard with a non-empty `history`; run again; perform one further real transition through `mutateTaskStateOnDisk(rootDir, expectedTaskId, ...)`; then `--rollback` from a fresh copy.
 - **Assertion:**
   1. First run yields `contract_version: 2`, `policy_contract_version: 1`, `sequence_number === history.length + 1`, and a matching digest.
   2. **Not** `history.length`: an equality backfill would reuse the last history position and break monotonic continuation. The case asserts the produced value is strictly greater than every `sequence_number` already recorded in `history`.
@@ -340,7 +371,7 @@ on stdout so the parent asserts on the code rather than on a message string.
 - **Priority:** P0 | **Source:** AC-004, BR-001, BR-002, ADR-0031
 - **Action:** `intake -> investigating` on a bug-fix shard as `ba-agent`, (a) supplying only the **matrix**'s `requires` for `intake` (`requirement_discovery` / `issue_ref`) and none of the policy's keys; (b) supplying the policy row's full set (`failure_description`, `repro`).
 - **Assertion:** (a) throws `MISSING_REQUIRED_EVIDENCE` naming `failure_description` and `repro` — the **policy** keys — and the presence of the matrix keys does not satisfy the guard, which is the direct evidence that the matrix's `requires` is never consulted at validation time. (b) succeeds, increments `sequence_number`, appends history, recomputes the digest.
-- **Also asserts (the hop OQ-1 severed):** `investigating -> implementing` as `developer-agent` with the policy row's `fail_path` and `hypothesis_matrix` **succeeds**, and fails with `MISSING_REQUIRED_EVIDENCE` when either key is absent. This hop is legal only because SDD Component 2 widens `TRANSITION_MATRIX.investigating.destinations` to include `implementing`; against the unwidened matrix it rejects with `ILLEGAL_TRANSITION_REJECTED`, so this assertion is the direct regression test for the widening. It no longer needs routing around — OQ-1 is resolved (§15).
+- **Also asserts (the hop OQ-1 severed):** `investigating -> implementing` as `developer-agent` with the policy row's `fail_path` and `hypothesis_matrix` **succeeds**, and fails with `MISSING_REQUIRED_EVIDENCE` when either key is absent. This hop is legal only because SDD Component 2 widens `TRANSITION_MATRIX.investigating.destinations` to include `implementing`; against the unwidened matrix it rejects with `ILLEGAL_TRANSITION_REJECTED`, so this assertion is the direct regression test for the widening. It no longer needs routing around — OQ-1 is resolved (§16).
 - **Why `intake -> investigating` still carries the evidence-sourcing half:** the `intake` matrix row's `requires` (`requirement_discovery` / `issue_ref`) is disjoint from its policy row's (`failure_description`, `repro`), which makes it the sharpest available discriminator between the two evidence sources. `investigating`'s matrix `requires` (`root_cause_analysis`) is likewise disjoint from the policy's, so step (a) is repeated on that hop as a second, independent discrimination.
 - **Cleanup:** Remove workspace.
 
@@ -361,11 +392,11 @@ on stdout so the parent asserts on the code rather than on a message string.
 - **Cleanup:** Remove workspace.
 
 ### TC-012: Two-Process Lost-Update Prevention
-- **Priority:** P0 | **Source:** AC-006, ADR-0027, **Security Review condition 7 (SEC-004 closing set)**
+- **Priority:** P0 | **Source:** AC-006, ADR-0027, Security Review condition 7
 - **Precondition:** Fixture bug-fix shard in `intake` with digest `D1`; barrier directory present.
 - **Action:** Spawn two `concurrent-mutator.mjs` children (command shape in §7). **Both target the same transition, `intake -> investigating`**, both as `ba-agent`, both carrying the full policy evidence set, both passing `--expected-digest D1`. Both wait on `barriers/observed`; the parent then creates `barriers/released`.
 - **Assertion:** Exactly one child exits 0; the other exits 1 printing `CAS_CONFLICT` — **and no other code**, in particular never `ILLEGAL_TRANSITION_REJECTED`, `UNAUTHORIZED_ACTOR` or `MISSING_REQUIRED_EVIDENCE`, any of which would mean the race was decided by an earlier guard and the case proved nothing. Final `sequence_number` is exactly 2. The shard equals the winner's expected content. No file remains at `work-items/.locks/{task_id}.lock`.
-- **Design note:** the two children must not target *different* destinations. Under the strict intersection (ADR-0031) only `intake -> investigating` is legal for `bug-fix` from `intake`, so a second child aiming at `designing` would fail deterministically on legality and never contend. This case is the integrity backstop on which the accepted `unlock` residual risk rests (Security Review §2), so a vacuous pass here is a security regression, not a test-hygiene issue.
+- **Design note:** the two children must not target different destinations. Under the strict intersection only `intake -> investigating` is legal for `bug-fix` from `intake`; another target would fail before contention. This proves ordinary lock/CAS behavior only. It is not evidence that CAS preserves integrity after a false `--quiesced` assertion.
 - **Cleanup:** Remove workspace.
 
 ### TC-013: Live Lock Contention and Nonce-Safe Release
@@ -377,7 +408,7 @@ on stdout so the parent asserts on the code rather than on a message string.
 - **Cleanup:** Remove workspace.
 
 ### TC-014: Abandoned Lock Is Refused, Never Reclaimed
-- **Priority:** P0 | **Source:** ADR-0027, **Security Review conditions 2 and 3 (SEC-004 closing set)**
+- **Priority:** P0 | **Source:** ADR-0027, Security Review conditions 2 and 3
 - **Precondition:** `work-items/.locks/{task_id}.lock` whose PID is **known dead** (`process.kill(pid, 0)` throws `ESRCH`). Age is held constant and is **not** part of this case's classification — see TC-014c.
 - **Action:** Two callers, A and B, attempt acquisition simultaneously through the barrier harness. Then an operator runs `unlock --task T --nonce <observed> --quiesced`. Then `unlock --quiesced` is attempted a second time with the now-stale nonce after a new owner has acquired the lock.
 - **Assertion:**
@@ -389,28 +420,22 @@ on stdout so the parent asserts on the code rather than on a message string.
 - **Structural note (scope of the claim, restated precisely).** What this case establishes is that **the engine** never removes a lock it does not own: there is no automatic reclaim code path, so "a live lock is never removed by another *engine* process" holds by construction, and assertion 2 plus assertion 3 are the direct evidence. It establishes **nothing** about `unlock`. `unlock` **is** a reclaim path and it is **not** race-safe; nonce verification in assertion 5 is an operator-mistake filter, not a safety property. The Round 4 claim that a `wx` sentinel made `unlock` unable to remove a replacement lock is **withdrawn in full** (Security Review §2, SDD Component 4). TC-014b pins the withdrawn claim's actual behaviour.
 - **Cleanup:** Remove workspace.
 
-### TC-014b: `unlock` Check/Unlink Interleaving — Pinning the Non-Race-Safe Contract
-- **Priority:** P0 | **Source:** ADR-0027 (Round 5 amendment b), **Security Review condition 4 (SEC-004 closing set)**, Round 5 Blocking finding 4
-- **Precondition:** Fixture bug-fix shard; an abandoned lock (dead PID) held by `nonce-OLD`; the operator has read that nonce.
-- **Mechanism (named deliberately — without it this case passes vacuously).** The read→unlink window is
-  *in-process*, so a filesystem barrier between two OS processes cannot reliably land inside it. The
-  implementation must expose a **test-only injection seam** in `unlock` — a hook invoked after the nonce
-  comparison and before `fs.unlinkSync` — and the test uses it to: unlink the observed lock, let a
-  spawned replacement acquirer take the pathname with `nonce-NEW`, wait on `barriers/b-attempt`, and
-  only then return control to `unlock`. If the implementation exposes no such seam, the fallback is a
-  spawned acquirer looping against a bounded attempt ceiling with an explicit failure (not a skip) when
-  the window is never hit; a skip would silently retire a security condition.
-- **Action:** Run `unlock --task T --nonce nonce-OLD --quiesced` with the replacement forced between the nonce read and the unlink. The replacement owner then attempts its mutation with the `expected_digest` it captured before losing its lock, while a third writer has since committed a transition.
-- **Assertion (the documented outcome, not a safety outcome):**
-  1. The **replacement** lock (`nonce-NEW`) is removed — this is the expected, documented behaviour.
-  2. `unlock` raises **no** error and reports success; it does not detect that it removed a different lock.
-  3. The dispossessed replacement owner's subsequent write is **caught** as `CAS_CONFLICT` (or `DIGEST_INTEGRITY_MISMATCH` on a torn read) — a loud, rejected mutation, **not** a silent lost update. This is the unconditional, lock-independent CAS in `mutateTaskStateOnDisk` step 5 doing the work.
-  4. The shard's history contains the third writer's transition exactly once and none from the dispossessed owner.
-- **Interpretation (normative, so a future reader cannot invert it).** A **passing** TC-014b is evidence that the documentation is **true** — that `unlock` is not race-safe and that CAS catches the consequence. It is **not** evidence that `unlock` is safe. This case exists to pin the contract so a later change cannot quietly re-assert race-safety without turning this test red.
+### TC-014b: Wrong-Unlock Four-Step Counterexamples — Shard and Projection
+- **Priority:** P0 | **Source:** AC-006, R-006, ADR-0027, Security Review condition 4 / SEC-004
+- **Mechanism:** Build the engine with a delegating adapter returned by `createStateIo({ fsOps, processOps, clock, random })`. The adapter pauses lock unlink, CAS-to-write, compile-to-write, and rename operations at explicit barriers. No sleep-based probe, environment flag, mutable global hook, subprocess monkey-patch, or production test-only branch is accepted.
+- **Shard action:**
+  1. Writer A acquires the task lock, reads digest `D0`, passes CAS, and pauses before writing.
+  2. A wrong `unlock --quiesced` removes A's live/replacement lock.
+  3. Writer B acquires the same pathname, reads `D0`, also passes CAS, and pauses before writing.
+  4. Release both writes in a fixed order so the later atomic rename overwrites the earlier result.
+- **Shard assertion:** Both writers demonstrably crossed the CAS comparison against `D0`; both report a successful write path; final `sequence_number` advances only once and exactly one of the two distinct history events is absent. This is a silent lost update, not `CAS_CONFLICT`.
+- **Projection action:** Repeat the ordering with projection writers A and B: A compiles and pauses before write, wrong unlock removes A's projection lock, B acquires and compiles from a deliberately different shard snapshot, then both rename in a fixed order.
+- **Projection assertion:** Both compilers pass their compile point; the last rename wins and the final `PROJECT_STATUS.md` can be stale relative to the final shard tree. No shard-digest CAS rejects it.
+- **Interpretation:** Passing both counterexamples proves the residual is represented truthfully. It neither closes SEC-004 nor establishes a zero-lost-update guarantee after false quiescence.
 - **Cleanup:** Remove workspace.
 
 ### TC-014c: Abandonment Predicate — Liveness Classifies, Age Only Diagnoses
-- **Priority:** P0 | **Source:** SEC-006, ADR-0027 (Round 5 amendment a), **Security Review condition 5 (SEC-004 closing set)**
+- **Priority:** P0 | **Source:** SEC-006, ADR-0027 (Round 5 amendment a), Security Review condition 5
 - **Precondition:** Three independently constructed locks, so age and liveness are never varied together.
 - **Action & Assertion:**
   1. **Old but live** — `created_at` 60 s in the past, PID of a live process: acquisition throws `LOCK_ACQUISITION_TIMEOUT` carrying a `LOCK_HELD_LONG` advisory and holder diagnostics (`pid`, `nonce`, `created_at`, age). It must **never** throw `LOCK_ABANDONED`. The message names `unlock --quiesced` as available only once the operator can establish quiescence, so this permanent-wedge tier is not a dead end. The lock is byte-identical afterwards.
@@ -506,15 +531,15 @@ on stdout so the parent asserts on the code rather than on a message string.
   3. For every pair in `MATRIX \ EFFECTIVE` (matrix-permitted, policy-silent — e.g. `intake -> designing`), assert `ILLEGAL_TRANSITION_REJECTED`. A matrix-only implementation admits these and fails here.
   4. For every pair in `POLICY \ EFFECTIVE` (policy-listed, matrix-silent), assert `ILLEGAL_TRANSITION_REJECTED`. A policy-only implementation admits these and fails here.
   5. Assert there is **no** third source of legality: no envelope-only allowlist, no fallback for policy-silent pairs, no exception contract. Concretely, the union of the pairs the engine admits over all source states equals `EFFECTIVE` exactly — set equality, both directions.
-  6. Assert `EFFECTIVE` is non-empty and that `MATRIX[from].requires` is never read on the accept path (guard 9 sources evidence from the policy, per TC-007).
+  6. Assert `EFFECTIVE` is non-empty and that `MATRIX[from].requires` is never read on the accept path (guard 10 sources evidence from the policy, per TC-007).
 - **Assertion:** The engine's admitted set equals `EFFECTIVE` exactly; the two disagreement sets are both rejected; the `MATRIX \ EFFECTIVE` set is asserted non-empty so step 3 cannot pass vacuously.
 - **Withdrawn-claim note:** the Round 4 version of this case permitted an "explicit envelope-only allowlist" for matrix pairs lacking a policy row. ADR-0031 states the rule exactly once as a strict intersection with **no** fallback and **no** allowlist, so that assertion is **removed**, not softened — step 5 now asserts the allowlist's absence.
 - **Single-authority alignment (the outstanding item from the earlier round, now closed).** SDD Component 1 states the authority rule once and adds *"QA's TC-024 must be brought into line with it by its owner."* This revision does that: the Round 4 case permitted an "explicit envelope-only allowlist", and steps 1–6 above replace it with a strict two-way set equality against a computed intersection, with step 5 asserting no allowlist, no fallback and no exception contract exists. There is no remaining wording in this plan that grants legality from any third source. Nothing further is outstanding on this item.
-- **No longer blocked.** OQ-1 is resolved by SDD Component 2's matrix widening (§15). Step 4's set is expected to be **empty** for `bug-fix`, and the case discovers that rather than asserting it — TC-034 is what turns a non-empty set into a failure.
+- **No longer blocked.** OQ-1 is resolved by SDD Component 2's matrix widening (§16). Step 4's set is expected to be **empty** for `bug-fix`, and the case discovers that rather than asserting it — TC-034 is what turns a non-empty set into a failure.
 - **Cleanup:** Remove workspace.
 
 ### TC-025: `cancelled` Is Unreachable; `completed` and `blocked` Require Their Evidence
-- **Priority:** P0 | **Source:** AC-009, ADR-0031, Guard 9b, Round 5 Additional correction 1
+- **Priority:** P0 | **Source:** AC-009, ADR-0031, Guard 10b, Round 5 Additional correction 1
 - **Action & Assertion:**
   1. Attempt `-> cancelled` from every matrix source that lists it as a destination, on a `bug-fix` shard, **with** a well-formed `cancellation_reason`. Every attempt throws `ILLEGAL_TRANSITION_REJECTED`, because `bug-fix-workflow.yaml` enumerates no `-> cancelled` row and the rule is a strict intersection. Supplying evidence does **not** help: in Package 1 `cancelled` has no ingress at all.
   2. Assert no wildcard row exists: the parsed policy contains no `from` value of `<any>` or `*`, and the validator's exact `from -> to` lookup is unchanged. Package 1 introduces no wildcard semantics, so a `* -> cancelled` entry must be absent rather than assumed to work.
@@ -524,20 +549,20 @@ on stdout so the parent asserts on the code rather than on a message string.
 - **Cleanup:** Remove workspace.
 
 ### TC-026: Archive-vs-Projection Interleaving (Lost Update Prevention)
-- **Priority:** P0 | **Source:** AC-008, BR-005, ADR-0030, **Security Review condition 8 (SEC-004 closing set)**
+- **Priority:** P0 | **Source:** AC-008, BR-005, ADR-0030, Security Review condition 8
 - **Precondition:** Fixture with two active bug-fix shards, one of them terminal.
 - **Action:** Child C calls `updateProjectStatusFile()` and blocks on `barriers/released` immediately after entering the function but before the projection lock is acquired. Child A runs `archiveWorkItem()` on the terminal shard to completion, creating `barriers/a-done`. The parent then releases C.
 - **Assertion:** The final `PROJECT_STATUS.md` matches filesystem reality — the archived shard is absent. C must have recompiled after acquiring the lock; a compile-then-lock implementation reintroduces the ghost entry and fails this case. C completes without error (it is not rejected by an earlier guard).
 - **Cleanup:** Remove workspace.
 
 ### TC-027: Projection Lock Order and Mutual Exclusion
-- **Priority:** P0 | **Source:** BR-005, ADR-0030, **Security Review condition 9 (SEC-004 closing set)**
+- **Priority:** P0 | **Source:** BR-005, ADR-0030, Security Review condition 9
 - **Action:** (a) Two concurrent `updateProjectStatusFile()` children; (b) instrument `acquireShardLock` and `acquireProjectionLock` to record order and assert no shard lock is acquired while the projection lock is held; (c) an abandoned `.projection.lock` (dead PID).
 - **Assertion:** (a) both complete, the second waits, and the final projection matches reality with neither output lost; (b) no inversion of the total order **shard lock → projection lock** is recorded anywhere in the full suite; (c) `LOCK_ABANDONED` names `unlock --projection --nonce <observed-nonce> --quiesced`, the lock file is byte-identical afterwards, and it is **refused rather than cleared** — no automatic clear exists for the projection lock either, whose blast radius is repository-wide.
 - **Cleanup:** Remove workspace.
 
 ### TC-028: Whole-Tree Byte Equality for Read-Only Paths
-- **Priority:** P0 | **Source:** AC-010, BR-004, SEC-005, **Security Review condition 10 (SEC-004 closing set)**
+- **Priority:** P0 | **Source:** AC-010, BR-004, SEC-005, Security Review condition 10
 - **Method:** Walk the fixture root, recording path, size, mtime and SHA-256 for every file. Run `compileStatusProjection()`, `detectArchivedShardDrift()`, `checkProjectStatusSync()`, the `--check` CLI, and `inspect`. Re-walk.
 - **Assertion:** The two manifests are deep-equal — not just `PROJECT_STATUS.md`, the whole tree, so a stray lock, temp file or log cannot slip through. The walk explicitly includes `work-items/.locks/` and `.projection.lock`, which a dot-skipping walker would otherwise hide.
 - **Cleanup:** Remove workspace.
@@ -575,17 +600,19 @@ on stdout so the parent asserts on the code rather than on a message string.
   2. Each of the four named workflows is **rejected by the envelope schema enum**, and the rejection is produced by the active-shard lane. Each of these has no durable shard in Package 1 by design — including Issue #277 itself, which is `framework-meta`.
   3. `"made-up"` fails closed on the same enum.
   4. **Lane-separation assertion:** this case must fail if the fixtures are moved into `docs/contracts/examples/`. `loadSchemas()` in `scripts/validate-contracts.mjs` selects only `*-state.schema.json` and deliberately keeps `durable-task-envelope.schema.json` out of that lane, so an example-lane fixture cannot detect a composition failure. The test asserts the envelope schema is **not** among the schemas the example lane loads.
-  5. The existing example-fixture lane still validates end to end after the policy amendment and the envelope's new required `policy_contract_version`. The fixture set is **discovered by globbing** `docs/contracts/examples/*.yaml` at test time and asserted non-empty; no count is written down. (The Round 4 plan and SDD asserted "eleven" for a directory holding ten `.yaml` files plus a `dispatch-receipts/` subdirectory — a count in prose is exactly the kind of claim that rots.)
+  5. The existing example-fixture lane still validates end to end after the policy amendment and remains bound to its existing `contract_version`; it neither requires nor reads `policy_contract_version`. The fixture set is **discovered by globbing** `docs/contracts/examples/*.yaml` at test time and asserted non-empty; no count is written down.
 - **Cleanup:** Remove workspace.
 
-### TC-033: Dot-Prefixed Entries Are Skipped Before Any Shard-Validity Check
-- **Priority:** P1 | **Source:** SDD Component 4 (explicit projection exclusion), ADR-0027 amendment
-- **Precondition:** Fixture `work-items/` containing one valid `bug-fix` shard plus `.locks/` (holding a lock file), `.projection.lock`, and `.gitkeep`.
+### TC-033: Canonical Active-Root Exclusions Run Before Shard Validation
+- **Priority:** P1 | **Source:** BR-004, SDD Component 4, ADR-0027 amendment
+- **Precondition:** Fixture `work-items/` containing one valid `bug-fix` shard, exact `archive/` with archived content, `.locks/`, `.projection.lock`, `.gitkeep`, and a non-dot invalid entry `scratch/`.
 - **Action:** Run `discoverActiveShards()`, `compileStatusProjection()`, and the strict active-shard validation lane.
 - **Assertion:**
-  1. `discoverActiveShards()` returns the single real shard; no dot-prefixed entry appears.
-  2. The strict lane passes — a dot-prefixed entry must be filtered **before** the shard-validity check, not rejected by it; an implementation that validates first and filters second fails with a missing-`task-state.json` error and fails this case.
-  3. The skip is non-lossy: the envelope schema constrains `task_id` to `^[a-z0-9_-]+$`, so no legitimate shard can be dot-prefixed. The case asserts the schema pattern still excludes a leading `.`, so the exclusion rule cannot silently become lossy if the pattern is later relaxed.
+  1. Both enumerators return the single real shard and never validate exact `archive/` or any dot-prefixed entry.
+  2. Filtering exact `archive/` or dot-prefixed names after validation fails this case with a missing/invalid `task-state.json`; order is observable.
+  3. `scratch/` is not skipped and fails closed. Only exact `archive/` and names beginning with `.` are excluded.
+  4. Active operations with `expectedTaskId: archive` fail `RESERVED_TASK_ID` before lock acquisition; no `.locks/archive.lock` is created.
+  5. The schema pattern still excludes a leading `.`, proving the dot-prefix exclusion is non-lossy.
 - **Cleanup:** Remove workspace.
 
 ### TC-034: Standing Guard — No Policy Row May Have an Empty Matrix Intersection
@@ -602,13 +629,43 @@ on stdout so the parent asserts on the code rather than on a message string.
 - **Out of scope, stated so it is not read as a gap:** `new-feature`, `config-change` and `data-change` are **not** in this guard's scope in Package 1. Their state vocabularies (`discovery`, `human-review`, `release`, `classifying`, `owner-review`, `sa-review`, `rollout`, `monitoring`, `complete`, `schema-design`, `data-review`, `security-review`, `human-approval`, `executing`, `validating`) are almost entirely absent from `TRANSITION_MATRIX`, so applying assertion 1 to them today would fail on nearly every row — which is Round 5 Blocking finding 1 restated, deferred by ADR-0031, not a defect this package introduces. The envelope-enum-derived scope set is what keeps that deferral honest: those workflows enter this guard on the same commit that admits them to the envelope, and TC-032 asserts they are rejected until then.
 - **Cleanup:** None — this is a static analysis over repository contracts and touches no fixture.
 
+### TC-035: Lane-Specific Contract-Version Binding
+- **Priority:** P0 | **Source:** AC-001, BR-001, ADR-0026, Round 6 Blocker 2
+- **Action:** Discover a non-empty legacy example set and validate it using `state.contract_version === policy.contract_version`; validate a temporary active durable shard using `state.policy_contract_version === policy.contract_version`.
+- **Assertion:** Both lanes pass with their own binding. Mutating the legacy lane to read `policy_contract_version` makes at least one existing example fail; mutating the active lane to read `contract_version` makes the valid durable fixture fail. Neither lane may pass vacuously.
+- **Cleanup:** Remove temporary active root; repository examples are read-only.
+
+### TC-036: Policy-Authoritative Resume from `blocked`
+- **Priority:** P0 | **Source:** AC-004, BR-001, SDD Component 2, Round 6 Blocker 3
+- **Action & Assertion:**
+  1. Drive `investigating -> blocked`; resume to `investigating` as `human` with non-empty `resume_evidence` and `approver_id`. Repeat `verifying -> blocked -> verifying` as `orchestrator`. Both succeed and append a resume history event.
+  2. Resume to the other policy-listed target (for example, `investigating -> blocked -> verifying`) and to every target outside `[investigating, verifying]`; each fails `INVALID_RESUME_TARGET` with bytes unchanged.
+  3. Omit/empty each required evidence field and use an unauthorized actor; each fails `HUMAN_APPROVAL_REQUIRED` with bytes unchanged.
+  4. Attempt the same pair in ordinary transition mode; it fails `RESUME_OPERATION_REQUIRED`.
+  5. Remove or widen the policy `resume` row, ignore the latest into-`blocked` history event, or source resume requirements from the matrix; at least one assertion above fails.
+- **Cleanup:** Remove workspace.
+
+### TC-037: Explicit Task Identity Selects Path and Lock
+- **Priority:** P0 | **Source:** BR-003, R-010, SDD Component 9, Round 6 Blocker 4
+- **Action & Assertion:**
+  1. Call transition and resume with `expectedTaskId: issue-a`; verify the active path and `.locks/issue-a.lock` are derived before any envelope read.
+  2. Replace the issue-a envelope with one declaring `task_id: issue-b` between operation start and lock acquisition. Inside lock A, the re-read fails `TASK_IDENTITY_MISMATCH` before CAS, mutation, atomic write, or rename; lock A is released and lock B is never acquired.
+  3. Repeat for `archiveWorkItem('issue-a')`; no reconcile, archive rename, or projection write occurs.
+  4. Mutate implementation to pre-read `task_id` for lock selection, omit any member of the three-way comparison, or perform identity validation after CAS/write/rename; the barriers and I/O call log make the case fail.
+- **Cleanup:** Remove workspace.
+
+### TC-038: Malformed Lock Refusal and Maintenance Recovery
+- **Priority:** P0 | **Source:** BR-003, SEC-007, SDD Component 4, Security Review condition 12
+- **Action & Assertion:** For shard and projection locks, test empty, truncated, invalid-JSON, and schema-invalid payloads. Acquisition and inspection throw `LOCK_MALFORMED`, preserve bytes exactly, and name `unlock --malformed --quiesced`. Valid nonce mode against malformed bytes fails `LOCK_MALFORMED`. Malformed recovery refuses without either flag, needs no nonce, and removes bytes only with both flags. Through `createStateIo`, change malformed bytes to a valid record immediately before unlink; recovery fails `LOCK_BECAME_VALID` and preserves the valid record. A reverse valid-to-malformed change fails closed rather than unlinking untrusted bytes.
+- **Cleanup:** Remove workspace.
+
 ---
 
 ## 11. Exploratory Charter
 
 | Charter | Scope | Timebox | Rationale |
 |---|---|---|---|
-| EC-01 | Hand-drive `task-machine-cli.mjs` through `inspect` → `transition` → `unlock --quiesced` on a scratch shard, deliberately mistyping digests, nonces and actors, omitting `--quiesced`, and acting on a stale `inspect` reading; judge whether each error message tells an operator what to do next and whether the pre-unlock consequence notice actually deters a wrong quiescence assertion | 45 min | The fail-closed design trades automatic recovery for operator action (ADR-0027), and `unlock` is now explicitly non-race-safe with the operator as the only safety mechanism. If the diagnostics or the consequence notice are unclear, SEC-003's accepted availability risk and SEC-004's accepted `unlock` residual become unacceptable ones. Scripted cases assert error *codes*; only exploration judges *usability*. |
+| EC-01 | Hand-drive `task-machine-cli.mjs` through `inspect` → `transition` → `unlock --quiesced` on a scratch shard, deliberately mistyping digests, nonces and actors, omitting `--quiesced`, and acting on a stale `inspect` reading; judge whether each error message tells an operator what to do next and whether the pre-unlock consequence notice actually deters a wrong quiescence assertion | 45 min | The fail-closed design trades automatic recovery for operator action (ADR-0027), and `unlock` is explicitly non-race-safe. If diagnostics are unclear, SEC-003's accepted availability risk grows and SEC-004 becomes harder for the Human Maintainer to assess. Scripted cases assert error codes; exploration judges usability. |
 | EC-02 | Interrupt (`SIGKILL`) a transition and an archival at varied points — before/after the shard-directory rename, between the two lock acquisitions, mid-atomic-write — and inspect the resulting tree, specifically which of the three lock pathnames survives | 45 min | Crash points between rename, write and release are combinatorial; exploration finds the interleavings the scripted fault injections did not think to model, and the stable lock namespace changes which residues are possible. |
 | EC-03 | Probe the old-but-live lock tier: hold a shard lock from a deliberately slow process, and from a process whose PID has been reused, and walk an operator through recovery | 30 min | SEC-003 is *widened* by the dead-PID-only predicate: this tier is the permanent-wedge case. It is correct by design but only survivable if the diagnostics lead somewhere. Nothing scripted can judge that. |
 
@@ -629,7 +686,9 @@ Score is **measured and recorded** for the core engine modules; no fixed thresho
 | Actor canonicalization | Drop the kebab-case normalization | TC-006 |
 | Mandatory CAS | Restore `if (expected_digest !== undefined)` | TC-009, TC-010 |
 | CAS comparison | Invert `expected !== current` | TC-011, TC-012 |
-| CAS made lock-conditional | Skip the CAS compare when the caller holds the lock it acquired | TC-012, TC-014b — this is the mutation that converts the accepted `unlock` residual into a silent lost update |
+| CAS made lock-conditional | Skip the CAS compare when the caller holds the lock it acquired | TC-011, TC-012; TC-014b still demonstrates that one-shot CAS cannot replace lost mutual exclusion |
+| Wrong-unlock residual hidden | Assert the second shard writer conflicts, or omit either writer's pre-write CAS barrier | TC-014b shard counterexample fails because both writers must pass `D0` before either write |
+| Projection residual hidden | Serialize or omit one projection writer after wrong unlock | TC-014b projection counterexample fails because both compilers must cross compile-before-write and last rename must be observable |
 | Fail-closed source guard | Restore `if (matrixEntry) { ... }` | TC-022 |
 | Terminal destinations | Give `completed` a non-empty `destinations` | TC-021 |
 | Policy evidence sourcing | Read `requires` from the matrix instead of the policy | TC-007 |
@@ -644,8 +703,17 @@ Score is **measured and recorded** for the core engine modules; no fixed thresho
 | Closeout evidence | Drop `closeout_evidence` from the `handoff -> completed` policy row | TC-025 (step 3) |
 | `cancelled` ingress | Add a `-> cancelled` policy row, or a wildcard source | TC-025 (steps 1–2) |
 | Workflow narrowing | Widen the envelope `workflow_id` enum back to five values | TC-032 |
+| Legacy version binding | Replace `state.contract_version` with `state.policy_contract_version` globally | TC-035 legacy-lane mutant |
+| Durable version binding | Replace `state.policy_contract_version` with `state.contract_version` | TC-035 active-lane mutant |
 | Lane separation | Move the envelope schema into the example-fixture lane | TC-032 (step 4) |
-| Dot-prefix skip | Filter dot-prefixed entries *after* the shard-validity check, or not at all | TC-033 |
+| Canonical root exclusions | Filter dot-prefixed or exact `archive/` entries after validation, or skip another invalid entry | TC-033 |
+| Reserved active ID | Permit `expectedTaskId === 'archive'` | TC-033 assertion 4 |
+| Resume policy row | Remove/widen the separate `resume` operation | TC-036 |
+| Resume history binding | Ignore the latest into-`blocked` event's `from` | TC-036 assertion 2 |
+| Resume Human evidence | Omit `resume_evidence`, `approver_id`, or actor enforcement | TC-036 assertion 3 |
+| Resume mode separation | Let ordinary transition consume the resume policy | TC-036 assertion 4 |
+| Identity lock selection | Pre-read envelope `task_id` to choose a lock | TC-037 assertions 1–2 |
+| Identity three-way check | Omit expected ID, directory basename, or re-read envelope comparison | TC-037 assertions 2–3 |
 | Nonce-safe release | Change `parsed.nonce === nonce` to `true` | TC-013 |
 | Lock namespace | Move the shard lock back to `work-items/{task_id}/.lock` | TC-019b (assertions 2–3) |
 | Lock API keying | Derive the lock path from `shardDir` instead of `task_id` | TC-013, TC-019b |
@@ -655,6 +723,9 @@ Score is **measured and recorded** for the core engine modules; no fixed thresho
 | `unlock` quiescence gate | Accept `unlock` without `--quiesced` | TC-014c (assertion 4) |
 | `unlock` nonce check | Skip the nonce comparison in `unlock` | TC-014 (assertion 5) |
 | Third removal site | Add any lock-removal call site beyond owner release and `unlock` | TC-014 (assertion 3) |
+| Malformed-lock parsing | Treat empty/partial/invalid records as abandoned or auto-clear them | TC-038 refusal/byte-equality variants |
+| Malformed recovery flags | Permit recovery without both `--malformed` and `--quiesced` | TC-038 |
+| Malformed re-read | Unlink after malformed→valid replacement | TC-038 `LOCK_BECAME_VALID` variant |
 | Writer temp cleanup | Remove `unlinkSync(tmpPath)` from the catch | TC-017, TC-017b |
 | Zero-progress guard | Remove the `if (n <= 0) throw` from the write loop | TC-017b (assertions 1–2, via the test timeout) |
 | Zero-progress guard, over-broad | Change `n <= 0` to `n < buffer.length` | TC-017b (assertion 4) |
@@ -672,42 +743,80 @@ Score is **measured and recorded** for the core engine modules; no fixed thresho
 
 ---
 
-## 13. Quality Gate & Governance Invariants
+## 13. AC Traceability Matrix
+
+| Requirement | Primary Cases | Mutation / Boundary Evidence | Expected Status |
+|---|---|---|---|
+| AC-001 | TC-001, TC-002, TC-035 | Self-digest inclusion and both version-field swaps fail | Covered by design |
+| AC-002 | TC-003, TC-004, TC-029 | v1 rejection, sequence off-by-one, idempotency and byte rollback | Covered by design |
+| AC-003 | TC-005, TC-006 | Authorization removal and canonicalization mutants fail | Covered by design |
+| AC-004 | TC-007, TC-008, TC-024, TC-036 | Policy evidence, strict intersection, resume target/evidence/mode mutations | Covered by design |
+| AC-005 | TC-009, TC-010 | Missing and empty digest in transition and resume | Covered by design |
+| AC-006 | TC-011, TC-012, TC-014b | Ordinary stale/concurrent behavior plus required wrong-quiescence counterexample | Covered; residual remains |
+| AC-007 | TC-015, TC-016, TC-033 | Parse/schema/digest failures and exclusion-order mutants | Covered by design |
+| AC-008 | TC-017, TC-017b, TC-018, TC-019, TC-019b, TC-026, TC-027, TC-037 | Write faults, compensation, lock order, identity-before-rename | Covered by design |
+| AC-009 | TC-021..TC-025, TC-034, TC-036 | Generated terminal/transition sets, reachability and resume mutations | Covered by design |
+| AC-010 | TC-020, TC-028 | Whole-tree manifest equality; repair-only mutation fails | Covered by design |
+| BR-001 | TC-007, TC-024, TC-034..TC-036 | Lane, intersection and resume authority | Covered by design |
+| BR-002 | TC-005..TC-007 | Actor/evidence negative partitions | Covered by design |
+| BR-003 | TC-009..TC-014c, TC-037, TC-038 | CAS, lock, identity and malformed recovery | Covered; SEC-004 open |
+| BR-004 | TC-015..TC-020, TC-028, TC-033 | Fail-closed ingestion, atomic write, read-only and exact exclusions | Covered by design |
+| BR-005 | TC-019b, TC-026, TC-027, TC-014b projection | Normal lock order plus wrong-quiescence residual | Covered; residual remains |
+
+`Covered by design` means the executable case and mutation oracle are specified. It does not mean implementation evidence exists yet.
+
+---
+
+## 14. Quality Gate & Governance Invariants
 
 1. **QG-001 Review Gate:** every commit touching `.mjs`/`.js` carries a matching `docs/records/qa/*-code-review.md`, authored by the non-implementer.
 2. **CI Parity:** 1:1 validation mirroring between `.github/workflows/validate-contracts.yml` and `.gitlab-ci.yml`.
-3. **QG-002 Deterministic Invariants:** zero lost updates on shard and projection; crash durability; zero temp leaks; zero lock leaks at any of the three archive-relevant pathnames; zero ghost entries; zero bytes written by any read-only path; no unbounded write loop.
-4. **QG-003 No Vacuous Concurrency Pass:** every multi-process case names the single reject code it may observe and asserts its generated/contended set is non-empty. A concurrency case that passes because an earlier guard rejected the child is treated as a **failure**, not a pass.
-5. **Zero Test Weakening:** no unrelated test file is modified, and no existing assertion is relaxed.
+3. **QG-002 Deterministic Invariants:** zero lost updates is asserted only while mutual exclusion/external quiescence holds; also require crash durability, zero temp/lock leaks, zero ghost entries, zero read-only writes and no unbounded write loop. TC-014b must separately demonstrate the false-quiescence loss scenario.
+4. **QG-003 No Vacuous Concurrency Pass:** every concurrency case proves its required barrier was crossed and its generated/contended set is non-empty. An earlier-guard rejection is a failure.
+5. **QG-004 Mutation Evidence:** acceptance uses killed named mutants and a recorded survivor ledger; no numeric test-count or mutation-score floor substitutes for behavioral coverage.
+6. **Zero Test Weakening:** no unrelated test file is modified, and no existing assertion is relaxed.
 
 ---
 
-## 14. QA Handoff
+## 15. QA Handoff
 
 | To | When | Evidence QA Delivers | Evidence QA Requires Back |
 |---|---|---|---|
-| Developer Agent | On any failing case | Failing case id, exact command, observed vs expected, fixture path | Fix plus the case turning green without weakening it |
-| SA Agent | OQ-1 — **closed** | The computed `POLICY \ MATRIX` disagreement set and the transitions it made unreachable; now the TC-034 guard output on every run | Ruling received: the matrix widens (SDD Component 2). Required back on any *future* TC-034 failure: a ruling on which layer changes — QA will not pick a layer |
-| Security Reviewer | After Checkpoint 2 | The **SEC-004 closing set** — TC-012, TC-014, TC-014b, TC-014c, TC-026, TC-027, TC-028 — plus the lock-order instrumentation log and the TC-014b injection-seam evidence | Recheck of conditions 2–5 and 7–10, and a decision on whether SEC-004 moves from Open to Closed |
-| Documentation Agent | After Human approval | Final AC-to-case traceability table | ADR-0026..ADR-0031 recorded in `DECISIONS.md` |
-| Human Maintainer | Before merge | Full suite result, mutation ledger outcomes and measured score, gate results, migration evidence | Merge decision |
+| Developer Agent | After Human blueprint approval | TC-001..TC-038 design, traceability, named mutants and deterministic `createStateIo` barriers | Implementation plus exact commands/results; no test-only production hook |
+| SA Agent | A future TC-034 contract conflict | Computed policy/matrix disagreement and reachability output | Ruling on the authoritative layer; QA does not change behavior |
+| Security Reviewer | After implementation Checkpoint 2 | Ordinary-lock results, malformed-lock cases, both TC-014b counterexamples, lock-order logs, and whole-tree read-only evidence | Confirm implementation matches contract; retain SEC-004 unless Human accepts residual or a new protocol eliminates it |
+| Documentation Agent | After Human blueprint approval | Final AC traceability and decision record | ADR-0026..ADR-0031 recorded in `DECISIONS.md` |
+| Human Maintainer | Before blueprint approval and before merge | This QA design verdict, SEC-004 residual, later suite/mutation/gate/migration evidence | Explicit residual-risk choice, blueprint approval, then merge decision |
 
-**Rework ceiling:** two verifying → rework cycles. A third requires an explicitly recorded Human
-Maintainer decision (Issue #210 precedent).
+**Rework ceiling:** two verifying → rework cycles. A third requires an explicitly recorded Human Maintainer decision.
 
 ---
 
-## 15. Open Questions
+## 16. Open Questions and Decisions
 
 ### Resolved
 
 | ID | Question | Resolution | Effect on this plan |
 |---|---|---|---|
-| OQ-1 | Under the strict intersection, the `bug-fix` policy row `investigating -> implementing` had no counterpart in `TRANSITION_MATRIX.investigating.destinations`, so the intersection at that hop was empty and no `bug-fix` shard could leave `investigating`. Which layer changes? | **SA Agent ruled: the matrix widens, not the policy.** `TRANSITION_MATRIX.investigating.destinations` becomes `['implementing','designing','planning','blocked','cancelled']` (SDD Component 2). `AGENTS.md` names the policy canonical for workflow behaviour and Component 1 defines the matrix as a superset the policy narrows; a superset omitting a state the canonical policy requires is simply a wrong superset. Amending the policy, and demoting the matrix to actors-only, were both considered and rejected. | §3 matrix table updated (the cell is now `Y`). TC-007 gains the hop as a positive case **and** as the regression test for the widening, and no longer routes around it. TC-024 is unblocked; its step-4 set is now expected empty and is *discovered*, not assumed. **TC-034 added** as the standing design-time guard, with four mutation-ledger rows and a new P0 risk row 11b. |
-| OQ-3 | The security review's §2 Verdict named six SEC-004 cases while its Evidence column and closing-set paragraph named seven. | **Security Reviewer corrected §2.** The seven-case set — TC-012, TC-014, TC-014b, TC-014c, TC-026, TC-027, TC-028 — is now stated identically in all three places, with TC-014c explicitly part of the set rather than an addition (the predicate defect, SEC-006, is a component of the Blocker 4 exposure). | No change required: this plan already encoded the seven-case superset in Exit Criteria, the QA Handoff row and every affected case. **Confirmed in agreement.** |
+| OQ-1 | The policy's `investigating -> implementing` row lacked a matrix counterpart. | SA widened `TRANSITION_MATRIX.investigating.destinations`; TC-034 guards recurrence. | TC-007 and TC-024 now test the complete computed intersection. |
+| OQ-2 | How can wrong-unlock and I/O races be forced deterministically without a test-only production hook? | SDD defines injected `createStateIo({ fsOps, processOps, clock, random })`; production receives real adapters and tests receive delegating adapters. | TC-014b, TC-017/17b, TC-019 and TC-038 use the shared seam. No fallback probe remains. |
+| OQ-3 | Security evidence lists disagreed on the prior SEC-004 case set. | Superseded by Round 6: test evidence demonstrates the residual but cannot close it. | Handoff no longer calls any group of cases a closing set. |
+| OQ-4 | Does unconditional CAS carry integrity after a wrong unlock? | No. Requirements, SDD and Security Review state that two admitted writers can both pass CAS before either writes. | TC-014b requires the four-step shard and projection counterexamples. |
 
-### Open
+### Open Human Decision
 
-| ID | Question | Owner | Blocks |
+| ID | Decision | Owner | Blocks |
 |---|---|---|---|
-| OQ-2 | TC-014b requires a test-only injection seam in `unlock` between the nonce comparison and the `unlink`. Without it the check/unlink window cannot be forced deterministically from another process, and Security Review condition 4 cannot be closed by anything stronger than a bounded-retry probe. Will the implementation expose that seam? | Developer Agent, with Security Reviewer concurrence | TC-014b, and therefore SEC-004 closure |
+| HD-1 / SEC-004 | Accept maintenance-only recovery with possible silent shard history loss or stale projection after a false `--quiesced` assertion, or require a demonstrated fencing/conditional-commit protocol. | Human Maintainer | Blueprint approval and implementation start |
+
+---
+
+## 17. Self-Review Checklist
+
+- [x] Every AC and BR maps to named executable cases and concrete expected results.
+- [x] Negative, boundary, state-transition, decision-table, failover and security cases are identified; non-applicable HTTP API testing is stated explicitly.
+- [x] Coverage is demonstrated through named mutants; no numeric test-count or mutation-score floor is used as acceptance evidence.
+- [x] Both authoritative contradictions are re-derived as resolved: one mutation signature/identity flow in the SDD, and no unconditional-CAS safety claim in requirements OQ-4.
+- [x] OQ-2 is closed with the injected `createStateIo` adapter, without a test-only production hook.
+- [x] SEC-004 remains Open/High and the QA verdict does not infer Human acceptance.
+- [x] Test-quality review of implementation tests is deferred until Developer Agent produces them; this blueprint does not claim FIRST/anti-pattern compliance for code that does not exist.
