@@ -6,9 +6,9 @@
 - Title: Control-Plane State Integrity & Architecture Remediation (Package 1)
 - Owner: Security Reviewer (`security-review`)
 - Date: 2026-09-12
-- Status: Changes Requested (Round 6 — security contract corrected; High residual requires Human decision)
+- Status: Changes Requested (Round 7 — ADR-0032 proof review; archive path remains unfenced)
 - Target Branch: `feat/control-plane-state-integrity`
-- Governing SDD: `docs/records/sdd/2026-09-12-control-plane-state-integrity-sdd.md` (Round 6 Rework, Draft)
+- Governing SDD: `docs/records/sdd/2026-09-12-control-plane-state-integrity-sdd.md` (Round 7 ADR-0032, Draft)
 - Governing Requirements: `docs/records/requirements/2026-09-12-control-plane-state-integrity-discovery.md`
 
 ---
@@ -73,10 +73,69 @@
   adapter across lock unlink plus state/projection write and rename operations. No production test-only
   branch or timing sleep is permitted. This can reproduce both four-step counterexamples, including both
   shard writers passing CAS before either write.
-- **Verdict:** **High residual, Human decision required.** Zero lost updates is supported only for
-  executions that preserve the external quiescence precondition. No test of one-shot CAS can close the
-  wrong-unlock residual. A Human must either accept maintenance-only recovery with possible silent shard
-  loss/stale projection after a false assertion, or require a fencing/conditional-commit protocol.
+- **Round 6 verdict superseded by the Human decision and ADR-0032.** The Maintainer rejected the
+  maintenance residual. Round 7 therefore evaluates whether the fenced protocol closes every
+  state-changing path; the result is recorded below.
+
+### 2A. Round 7 ADR-0032 Adversarial Proof Review
+
+ADR-0032 closes the original transition-writer and projection-writer counterexamples when every
+commit participant uses the scope's non-reclaimable guard. The shared guard gives those operations a
+total order: a recovery generation rename either precedes a writer's inside-guard generation check
+(the writer fails `FENCING_TOKEN_STALE`) or follows the writer's state/projection rename (the writer
+linearizes first). Crash boundaries around generation rename fail closed or leave a monotonic gap, and
+an abandoned guard is an availability failure rather than permission for an online replacement owner.
+
+The proof does **not** cover `archiveWorkItem()`. SDD Component 8 requires only the recoverable shard
+admission lock before `renameSync(work-items/{id}, archive/{id})` (lines 625–637). It neither snapshots
+the task generation nor acquires the task commit guard before either the forward archive rename or its
+compensating rename. The implementation plan repeats that path at lines 398–411 and claims the admission
+lock alone proves archive/mutation exclusion. That claim stops holding after false-quiescence recovery,
+which ADR-0032 explicitly makes safe without trusting quiescence.
+
+A valid counterexample is:
+
+1. Archiver A acquires task T's admission lock at generation `g`, validates the terminal shard, and
+   pauses immediately before the active-to-archive rename.
+2. The operator incorrectly runs `unlock --task T ... --quiesced`. Recovery acquires T's commit guard,
+   durably renames generation to `g + 1`, removes A's admission lock, and releases the guard.
+3. A resumes without acquiring the commit guard or re-reading generation and renames the shard into
+   `archive/T`. This is an old-generation state-changing commit after recovery's linearization point.
+4. A can proceed into projection update, or a newly admitted B can race the now-missing active path.
+   Either outcome violates the claimed invariant that false quiescence only revokes old work and that
+   mutation/archive cannot overlap; the protocol has no named mechanism that rejects A.
+
+The compensation path has the same defect: after a failed projection update, A may rename
+`archive/T` back to `work-items/T` without task-guard serialization or generation validation. This can
+restore a path after a newer generation has been admitted. The minimum owning-role correction is for
+the SA to make archival a fenced task commit: snapshot task generation while admitted; acquire the task
+commit guard before the forward rename; inside the guard re-read generation, envelope/digest, identity,
+and terminal eligibility; perform and directory-sync the rename; then release the task guard before
+acquiring the projection lock, preserving the declared order and the rule that commit guards are never
+nested. The compensation operation also needs a named fenced protocol; it must not blindly rename after
+releasing task serialization. The SDD and plan must supply a deadlock-free sequence or durable recovery
+state for coordinating archive commit, projection commit, and compensation.
+
+#### Required ordering/proof matrix
+
+| Attack or crash ordering | Outcome under `0a3997c` | Control / disposition |
+|---|---|---|
+| A pauses before task commit-guard acquisition; recovery increments; B gets `g+1` | Safe for transition writers | A checks generation inside the same task guard and fails stale. |
+| A already owns task commit guard when recovery begins | Safe for transition writers | Recovery waits; A's rename linearizes first. |
+| Recovery crashes before generation rename | Integrity fail closed | Old generation remains authoritative; stranded guard requires offline repair. |
+| Recovery crashes after generation rename, before admission unlink | Integrity fail closed | New generation is durable; guard/admission may wedge; retry may create a gap. |
+| Recovery crashes after unlink, before guard release | Integrity fail closed | New generation is durable; stranded guard blocks commits. |
+| Writer crashes before state rename | Integrity fail closed | Old state remains; guard may wedge. |
+| Writer crashes after state rename, before directory sync | No silent competing writer while guard is authoritative; crash durability still requires fault tests | Rename is the logical linearization point; restart may expose old or new durable state, then integrity validation must fail closed if malformed. |
+| Projection compiler predates recovery | Safe | Inside-projection-guard generation check rejects the stale compiler. |
+| Generation restart/archive/rollback/ABA | Safe as specified | Stable records survive archive/restart; reuse/reset/selective rollback forbidden; missing/corrupt/exhausted records fail closed. |
+| Malformed guard/generation | Integrity fail closed | Guard is never online-reclaimed; generation strict parsing returns named errors. |
+| Old owner unlinks replacement commit guard | Safe under the documented engine protocol | `wx` prevents replacement until owner unlink; F2 additionally requires owner-nonce release. Offline repair is outside online concurrency after writers stop/restart. |
+| Path traversal through `task_id` | Bounded by schema/entry validation | `^[a-z0-9_-]+$` prevents separators and dot-leading IDs; implementation must apply validation before path derivation. Parent-component symlink replacement remains inside the trusted local-filesystem assumption and should receive a fail-closed test if that assumption changes. |
+| Cross-scope lock order | Safe for transition/projection protocol; archive proof incomplete | Task admission → projection admission; applicable guards are not nested. Archive correction must retain this property. |
+| Candidate re-tagging after stale refusal | Forbidden, evidence pending | Retry must release/reacquire/reread/recompute; F3 mutation must kill a re-tag mutant. |
+| **Archive A pauses before rename; recovery increments and unlinks admission; A renames** | **Unsafe** | **No task commit-guard/generation check exists in Component 8; High blocker.** |
+| Archive compensation after recovery/new admission | **Unsafe / unspecified** | **No fenced compensation protocol or durable archive transaction state is named.** |
 
 ### 3. State Tampering vs State Integrity (Integrity without Authenticity)
 - **Threat:** Accidental, stale, or concurrent disk modifications; manual tampering with task state history or sequence numbers.
@@ -96,7 +155,7 @@
 | SEC-001 | Medium | Caller-declared actor parameter is not cryptographically signed. | No | Documented / Accepted | SDD NG-001; scoped as transition policy validation; cryptographic identity deferred. |
 | SEC-002 | Medium | SHA-256 provides integrity against accidental mutation, not cryptographic authenticity against malicious local attackers. | No | Documented / Clarified | SDD Component 3; integrity verification enforced; authentication deferred. |
 | SEC-003 | Medium | Fail-closed locking converts a liveness risk into an availability risk: an abandoned shard lock wedges one work item, and an abandoned projection lock wedges every status update including CI, until an operator intervenes. **Widened by the Round 5 predicate change:** narrowing abandonment to dead-PID-only means fewer locks are auto-classified, so an old-but-live lock, and a lock whose writer died off-host while its PID number is coincidentally live locally, now wedge until an operator establishes quiescence and runs `unlock --quiesced` — a slower, more deliberate intervention than before. | No | Accepted / Documented | ADR-0027 (Round 5 amendment), ADR-0030, Requirement R-006. Accepted deliberately: this is availability traded for integrity. An automatic clear is the same unsound primitive Round 4 rejected, a wrong clear on the projection lock corrupts repository-wide state, and admitting a live slow holder to the recovery path was itself the Round 5 Blocker 4 exposure. Critical sections are short; every refusal names its recovery command and its holder. |
-| SEC-004 | High | Maintenance `unlock` trusts an external quiescence assertion. If it is false, two shard writers can both pass one-shot CAS before either write and silently lose one history event; projection writers can publish stale state without a shard-digest CAS backstop. | **Yes — Human decision before blueprint approval** | Open / Human acceptance required | Round 6 re-review Blocking finding 1. The SDD carries the four-step shard and projection counterexamples. OQ-2 is resolved with an injected adapter, but test evidence can only demonstrate the residual, not eliminate it. |
+| SEC-004 | High | ADR-0032 fences transition and projection writers, but `archiveWorkItem()` and its compensating rename do not acquire the task commit guard or revalidate generation. A false-quiescence recovery can increment to `g+1` and unlink admission, after which old-generation archiver A still renames the shard. | **Yes** | **Open / Design rework required** | Round 7 proof review §2A. SDD Component 8 lines 625–637 and plan lines 398–411 rely on admission exclusion that recovery can revoke. Route to SA for a fenced forward-archive and compensation protocol. |
 | SEC-005 | Medium | A repairing `--check` would mutate the repository from inside a read-only governance gate and could mask the drift it exists to detect. | Yes | Design corrected | ADR-0029: detection is pure, repair is explicit; TC-028 asserts whole-tree byte equality. |
 | SEC-006 | Medium | The Round 4 abandonment predicate (`age > 30 s` **or** dead PID) admitted a live, slow holder into a destructive operator-recovery path on age alone; the predicate, not merely the unlink window, was part of the exposure. | Yes | Design corrected | SDD Component 4 Acquisition; ADR-0027 Round 5 amendment (a). Abandonment is now dead-PID-only; age is a diagnostic tier. Evidence: TC-014c. |
 | SEC-007 | Medium | A crash after exclusive lock creation but before payload completion leaves an empty/partial lock that cannot supply a nonce. | Yes | Design corrected; evidence pending | Strict parsing returns `LOCK_MALFORMED`; explicit `--malformed --quiesced` recovery requires no nonce, re-reads before unlink, and refuses if the record became valid. QA must cover shard and projection locks with empty, truncated, invalid-JSON, and schema-invalid payloads. |
@@ -113,29 +172,13 @@
 ## Security Verdict
 
 - **Reviewer:** Security Reviewer (`security-review`)
-- **Decision:** **CHANGES REQUESTED — Human residual-risk decision required before blueprint approval**
-- **Conditions for Final Code Merge:**
-  1. Verify `digestTaskEnvelope` excludes `state_digest` without modifying the caller's object (TC-001).
-  2. Verify lock acquisition writes `{pid, nonce, created_at}` and that **no automatic code path removes a lock the caller does not own** — the only two removal paths in the codebase are owner release (`parsed.nonce === myNonce`) and the operator `unlock` CLI; verify the abandoned lock is byte-identical after a refused acquisition (TC-014). *This condition no longer asserts that nonce verification makes removal safe; it asserts only that automatic reclaim does not exist.*
-  3. Verify `unlock` refuses a mismatched nonce with `LOCK_NONCE_MISMATCH`, as an operator-mistake filter (TC-014).
-  4. **Counterexample contract (TC-014b).** Through the injected adapter, execute the complete four-step
-     shard ordering: A passes CAS on `D0`; wrong unlock removes A's lock; B acquires and also passes CAS
-     on `D0`; both then write. Assert that the later rename overwrites one history event. Repeat the same
-     ordering for projection and show last-rename-wins/stale projection is possible. These passing tests
-     prove the residual is documented truthfully; they are not safety evidence.
-  5. **Predicate test (TC-014c).** A lock older than 30 s whose PID is live must yield `LOCK_ACQUISITION_TIMEOUT` carrying `LOCK_HELD_LONG` and holder diagnostics — **never** `LOCK_ABANDONED`; a lock with a dead PID must yield `LOCK_ABANDONED` at any age, including younger than 30 s; and `unlock` without `--quiesced` must refuse.
-  6. Verify temp files are unlinked in the atomic writer's catch block (TC-017).
-  7. Verify the barrier-synchronized two-process shard race yields exactly one success and one `CAS_CONFLICT`, with `sequence_number` exactly 2 (TC-012).
-  8. Verify the archive-vs-projection interleaving leaves a projection matching filesystem reality, proving the compile happens after the projection lock is acquired (TC-026).
-  9. Verify the total lock order is never inverted across the full suite, and that an abandoned projection lock is refused rather than cleared (TC-027).
-  10. Verify whole-tree byte equality across `--check` and both pure projection functions (TC-028).
-  11. Verify archival compensation, and that a failed compensation is reported rather than swallowed (TC-019).
-  12. Verify empty, truncated, invalid-JSON and schema-invalid shard/projection locks raise
-      `LOCK_MALFORMED`, remain byte-identical on refusal, and are recoverable only through explicit
-      `--malformed --quiesced`; verify valid↔malformed re-read changes fail closed.
-
-**SEC-004 cannot close from TC-012 or any one-shot CAS evidence.** QA must implement the injected-adapter
-counterexamples, malformed-lock cases, ordinary-lock tests, projection/archival tests, and read-only
-checks. After those tests confirm the implementation matches this contract, SEC-004 still requires a
-Human decision: accept the maintenance residual or require a fencing/conditional-commit design. This
-review does not infer that acceptance and does not grant the design gate.
+- **Decision:** **NEEDS_REWORK / BLOCKED — ADR-0032 is incomplete for archival**
+- **SEC-004 status:** **Open / High.** The shared durable generation and non-reclaimable guard close
+  the original transition and projection writer orderings in design, but archival remains a state-changing
+  old-generation commit path outside that serialization.
+- **Next owner:** `sa-agent`.
+- **Minimum correction:** Add a fenced, generation-checked task commit protocol for the forward archive
+  rename and its compensation, with a deadlock-free sequence across task and projection scopes. Update
+  requirements, SDD, plan, ADR-0032 and then return to independent Security review before QA Full Mode.
+- Planned tests are not implementation evidence. This verdict validates only the blueprint reasoning at
+  commit `0a3997c`.
