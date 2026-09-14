@@ -505,6 +505,11 @@ export function digestTaskEnvelope(envelope) {
 | A checks and pauses before acquiring guard; recovery then B | recovery bumps generation; A fails `FENCING_TOKEN_STALE`; B may commit | A reacquires and recomputes |
 | A checks inside guard and pauses; recovery waits | A rename precedes recovery bump | recovery proceeds after A releases |
 | Projection A compiles before recovery | generation mismatch rejects A inside projection guard | recompile under a new admission/generation |
+| Archive A pauses before task guard; recovery increments | A fails `FENCING_TOKEN_STALE`, no rename | reacquire/recompute archive preconditions |
+| Archive A holds task guard; recovery begins | A forward rename linearizes first; recovery waits | journal drives later projection/finalize |
+| Projection fails; compensation generation is current | fenced archive→active rename, then projection repair | complete only after repaired projection |
+| Projection fails; recovery already incremented | stale compensator performs no rename | latest-generation reconciler owns journal |
+| Duplicate archive destination or both paths exist | no overwrite; explicit conflict | Human/offline inspection |
 
 A mutation test must move the generation comparison outside the guard and must be killed by the
 A-checks/pause/recovery barrier. Another mutant that permits online commit-guard removal must be killed.
@@ -603,14 +608,13 @@ export function atomicWriteFileSync(targetPath, content) {
   `updateProjectStatusFile()` becomes: acquire projection lock → **then** `compileStatusProjection()`,
   re-reading shards fresh → `atomicWriteFileSync` → release in `finally`. Compiling before acquiring is
   precisely the defect, so the ordering is normative, not incidental.
-- **Total lock order:** **shard lock → projection lock.** No code path may acquire a shard lock while
-  holding the projection lock. `archiveWorkItem()` therefore: acquires the shard lock, reconciles and
-  moves the shard directory, then acquires the projection lock inside `updateProjectStatusFile()`,
-  releases the projection lock, and releases the shard lock last. Because acquisition is strictly
-  ordered and each lock has a bounded timeout, no cycle of waiters can form. Releasing the shard lock
-  last is only meaningful because the shard lock lives at `work-items/.locks/{task_id}.lock` and the
-  archive rename therefore does not move it (Component 4); with an in-shard lock the final release would
-  target a pathname whose file had already been carried into `archive/{task_id}`.
+- **Total lock order:** task admission may enclose projection admission, but **commit guards are never
+  nested**. An archive phase acquires and releases the task commit guard before attempting projection
+  admission/guard; projection guard is released before task guard is reacquired for finalize or
+  compensation. No code waits for one commit guard while holding another, so the wait-for graph has no
+  guard cycle. The stable task admission lock can remain held across phases as an availability hint, but
+  correctness never depends on it surviving false-quiescence recovery; generation and transaction-journal
+  checks fence every later task phase. The shard lock remains outside the renamed directory.
 - **Same fail-closed policy, wider blast radius — stated deliberately.** An abandoned projection lock
   blocks every status update including CI, not one work item. It gets the same policy because an
   automatic clear here is the same unsound primitive as in ADR-0027, and a wrong automatic clear here
@@ -620,21 +624,71 @@ export function atomicWriteFileSync(targetPath, content) {
   `task-machine-cli unlock --projection --nonce <observed-nonce> --quiesced`, and that
   the diagnostic is emitted by every validator that touches the projection, so it cannot go unnoticed.
 
-### Component 8: Transactional Archival (ADR-0029)
+### Component 8: Fenced Transactional Archival (ADR-0029, ADR-0032)
 
-- `archiveWorkItem(expectedTaskId)`: validate the expected identifier and derive the source directory →
-  acquire `.locks/{expectedTaskId}.lock` → read and validate the active envelope → require the envelope
-  `task_id` and source basename to equal `expectedTaskId` → preflight `reconcileArchivedShards()` → move `work-items/{id}` to
-  `archive/{id}` → call `updateProjectStatusFile()`. If the update throws, a compensating rename moves
-  the shard back to `work-items/{id}` and the call throws `ARCHIVE_RECONCILIATION_FAILED`. If the
-  compensating rename itself fails, the original error is rethrown with `compensation_failed: true` so
-  the operator is told the repository needs manual reconciliation rather than being told a clean lie.
-- **Lock invariant across the transaction.** `renameSync(work-items/{id}, archive/{id})` moves no lock,
-  because no lock is stored under either path. The success path, the compensating-rename path, and the
-  compensation-failure path all end with exactly one release, of
-  `work-items/.locks/{id}.lock`, and must leave no file at that path, at `work-items/{id}/.lock`, or at
-  `archive/{id}/.lock`. Barrier tests must prove that a mutation and an archive of the same shard cannot
-  overlap, and must assert all three pathnames are absent on each of the three exit paths.
+A filesystem cannot atomically rename the shard directory and `PROJECT_STATUS.md` as one transaction.
+Archival therefore uses a durable task-scoped journal at
+`.archive-transactions/{task_id}.json`: `{schema_version, txid, task_id, generation, source_digest,
+phase}` where phase is `prepared`, `moved`, `compensated`, or `complete`. Journal writes are
+crash-durable atomic writes. A journal is never silently overwritten or deleted; completed records may
+be retained for audit or compacted only by a separately approved offline operation.
+
+**Forward phase (a fenced task commit).**
+
+1. Acquire task admission; snapshot task generation `g` and active envelope/digest.
+2. Acquire the task commit guard. Inside it re-read generation, active envelope, identity, terminal
+   eligibility, digest, absence of `archive/{id}`, and absence of any non-complete journal. A mismatch
+   fails closed (`FENCING_TOKEN_STALE`, `CAS_CONFLICT`, `TASK_IDENTITY_MISMATCH`,
+   `ARCHIVE_DESTINATION_EXISTS`, or `ARCHIVE_TRANSACTION_PENDING`).
+3. Persist `prepared(txid,g,digest)`, then rename active → archive and sync both parent directories. The
+   directory rename is the archive linearization point. Persist phase `moved`, then release the task
+   commit guard. If recovery bumped generation before guard acquisition, the archiver fails stale. If
+   recovery begins after guard acquisition, it waits; the archive linearizes before the later bump.
+
+**Projection phase and successful finalize.** While still nominally owning task admission, acquire
+projection admission, compile after acquisition, then acquire projection commit guard, validate its
+generation and publish. Release projection guard/admission completely. Reacquire the task commit guard
+(no nesting), verify journal `txid`, archive identity/digest, active absence, and current task generation
+`g`, then persist `complete`. If task recovery changed generation, finalize fails
+`ARCHIVE_FINALIZE_STALE`; the durable `moved` journal remains and a latest-generation reconciler can
+verify/re-publish the projection and complete it idempotently.
+
+**Fenced compensation.** If projection update fails, release every projection lock before compensation.
+Acquire the task commit guard and re-read generation/journal/both paths. Compensation may rename
+archive → active only when generation still equals `g`, journal is the same `txid` in `moved`, active is
+absent, and archived envelope identity/digest equals the journal. The compensation rename is its
+linearization point; sync both parents and persist `compensated`. If generation changed or any predicate
+fails, perform no rename and throw `ARCHIVE_COMPENSATION_STALE`/`ARCHIVE_COMPENSATION_CONFLICT`; the
+journal makes the incomplete transaction visible. After a successful compensation, release task guard,
+run the fenced projection update again so active state is projected, then reacquire task guard and mark
+`complete` only if the same journal and generation still hold. A projection retry failure leaves
+`compensated` plus detectable projection drift, never a success response.
+
+**Crash recovery and idempotency.** `reconcileArchivedShards()` reads journals and physical paths, but
+mutates only after acquiring the relevant admission and task commit guard. `prepared + active-only`
+means forward rename did not linearize and may retry; `prepared/moved + archive-only` means it did and
+may resume projection/finalize; `moved + both/neither` is conflict; `compensated + active-only` resumes
+projection repair; `complete` must match its declared final location. A crash after rename but before
+phase write is resolved from path plus exact identity/digest, never from phase alone. Duplicate archive
+destinations and stale compensators fail closed. Offline abandoned-guard recovery preserves both
+generation and journal before reconciliation.
+
+**Crash boundaries.**
+
+| Boundary | Observable state | Safe continuation |
+|---|---|---|
+| before `prepared` rename | active only, no/new journal | retry from fresh admission |
+| after `prepared`, before forward rename | active only, prepared | same-generation reconciler retries forward |
+| after forward rename, before parent sync/`moved` | archive only, prepared | validate digest; resume after durability check |
+| after `moved`, before projection | archive only, moved | fenced projection retry |
+| after projection rename, before task finalize | archive only, moved; projection old/new complete | recompile, publish idempotently, finalize |
+| after compensation rename, before sync/phase | active only, moved | recognize exact digest as compensated, sync and record |
+| after `compensated`, before projection repair | active only, compensated; projection may be stale | fenced projection retry, then finalize |
+| after either task rename, before task-guard release | guard stranded | offline guard recovery, then journal reconciliation |
+
+The operation returns success only at `complete`. Any other durable phase is a loud, resumable recovery
+state. This provides conditional task commits and detectable cross-file convergence; it does not claim
+an impossible atomic transaction spanning the shard and Markdown projection.
 
 ### Component 9: Disk-Bound Mutation Wrapper
 
@@ -671,10 +725,7 @@ export function mutateTaskStateOnDisk(rootDir, expectedTaskId, {
   re-read fails `TASK_IDENTITY_MISMATCH` before CAS or write. Deriving only the lock identifier from a
   pre-read envelope was rejected because writer A could hold lock A while modifying an envelope now
   declaring B, concurrently with writer B under lock B.
-- `archiveWorkItem(expectedTaskId)` uses the same binding: reject a reserved/invalid identifier, acquire
-  `.locks/{expectedTaskId}.lock`, read and validate the active envelope, require its `task_id` and source
-  directory basename to equal `expectedTaskId`, then reconcile and rename. A mismatch performs no
-  rename and no projection write, and releases the acquired lock in `finally`.
+- `archiveWorkItem(expectedTaskId)` uses Component 8's journaled fenced phases. Every forward or compensating task rename revalidates task generation, journal identity, envelope identity/digest and path preconditions inside the task commit guard. A mismatch performs no rename; projection and task commit guards are never nested.
 
 ---
 

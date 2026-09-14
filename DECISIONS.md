@@ -638,6 +638,14 @@ Recovery is an offline operation after all writers are stopped and the host or e
 restarted; it preserves the current generation. Generation records survive archive and process restart,
 cannot reset or be reused, and missing/corrupt records fail closed after activation.
 
+**Archive amendment (Security rework cycle 1).** Both active-to-archive and compensating
+archive-to-active renames are task fenced commits. A durable `.archive-transactions/{task_id}.json`
+journal records `txid`, generation, source digest and phase before/after each rename. Task and projection
+commit guards are never nested: task guard is released before projection acquisition; projection guard
+is released before task finalize or compensation. A stale compensator performs no rename. Since the
+filesystem cannot atomically replace the shard path and projection together, the journal provides
+crash-detectable, idempotently resumable convergence rather than claiming cross-file atomicity.
+
 #### Alternatives Considered
 
 - **Token check followed by unconditional rename** — rejected because recovery can occur after the

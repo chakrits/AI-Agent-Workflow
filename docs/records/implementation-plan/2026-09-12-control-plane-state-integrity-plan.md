@@ -39,7 +39,7 @@
 | **Canonical Prose** | `AGENTS.md` (Bug Fix section, L274-276) | Add the layer split: policy owns states/transitions/evidence/retry budget; the durable envelope owns storage shape. |
 | **Contract Validator** | `scripts/validate-contracts.mjs` | Keep the legacy example lane comparison `state.contract_version === policy.contract_version`; add a separate `bug-fix` active-shard lane comparing `state.policy_contract_version === policy.contract_version` and validating durable envelopes through `validateEnvelopeSchema`. The active lane skips exact `archive/` and dot-prefixed entries before validation. |
 | **State Machine Engine** | `scripts/lib/task-state-machine.mjs`<br>`scripts/task-machine-cli.mjs` | `digestTaskEnvelope()`, `validateEnvelopeSchema()`; terminal matrix entries; `investigating.destinations` gains `implementing`; `UNKNOWN_SOURCE_STATE`; actor authorization; policy-sourced evidence; policy-authoritative resume bound to the latest interrupted state; fail-closed lock at `.locks/{expectedTaskId}.lock`; `mutateTaskStateOnDisk(rootDir, expectedTaskId, ...)` with inside-lock identity validation; CLI `inspect`, `resume`, and fenced admission `unlock --quiesced`; mandatory `--expected-digest`; stale writers must recompute. |
-| **Projection & Archival** | `scripts/compile-status-projection.mjs`<br>`scripts/archive-work-item.mjs` | Exact `archive/` plus dot-prefixed-entry exclusions in `discoverActiveShards()`; pure `compileStatusProjection` / `detectArchivedShardDrift`; mutating `reconcileArchivedShards`; projection lock; read-only `--check`; `--reconcile`; `atomicWriteFileSync`; archival compensation; archive identity binding before rename. |
+| **Projection & Archival** | `scripts/compile-status-projection.mjs`<br>`scripts/archive-work-item.mjs` | Pure detection/read-only `--check`; fenced projection publish; durable archive transaction journal; fenced forward/compensation renames; idempotent reconciliation; exact archive/dot exclusions. |
 | **Migration & Operations** | `scripts/backfill-task-state-v2.mjs`<br>`docs/records/work-items/issue-249/task-state.json`<br>`docs/records/work-items/issue-275/task-state.json`<br>`PROJECT_STATUS.md` | Backfill tool with `--rollback`; evidence-bound migration of the two active `bug-fix` shards. |
 | **QA Records** | `docs/records/qa/2026-09-12-control-plane-state-integrity-code-review.md` | Code review record satisfying `validate:review-gate` (QG-001), authored by the non-implementer. |
 | **Tests** | `test/task-state-machine.test.mjs`<br>`test/compile-status-projection.test.mjs`<br>`test/archive-work-item.test.mjs`<br>`test/contracts.test.mjs` | Unit, barrier-synchronized multi-process concurrency, fault injection, lock-order, and read-only-check byte-equality tests. |
@@ -91,8 +91,8 @@ the real repository.
 
 #### Task F3: Fenced Shard Conditional Commit (TDD)
 - **Prerequisite:** Task 4 admission lock plus Task F2.
-- **Owner:** Developer Agent. **Files:** state machine, CLI, archive integration, tests.
-- Red barriers: ordinary A/B; A pauses before guard then false-quiescence recovery/B; A pauses inside guard; recovery before/after generation rename; stale token and stale digest; retry cannot reuse old candidate.
+- **Owner:** Developer Agent. **Files:** state machine, CLI, archive integration/journal, tests.
+- Red barriers: ordinary A/B; A pauses before guard then false-quiescence recovery/B; A pauses inside guard; recovery before/after generation rename; stale token and stale digest; retry cannot reuse old candidate; forward archive and compensation pause before task guard and before rename.
 - Implement admission → generation snapshot → compute → commit guard → generation/digest/identity reread → atomic rename. `FENCING_TOKEN_STALE` sets `retryable: true`, `recompute_required: true`.
 - Kill mutants that move generation check before guard, omit the inside-guard reread, or permit candidate retagging.
 
@@ -150,7 +150,7 @@ phase earlier, which the 8a→9→8b split alone does not fix. Migration is cons
 | **F4** | Fenced projection conditional commit | revert fenced projection slice |
 | **F5** | Generation migration, observability, offline runbook; activate fenced writers | whole-checkpoint rollback only |
 | — | **🛑 Checkpoint 2** | last green commit |
-| **9b** | Operational: archive both shards | rename `archive/{id}` back to `work-items/{id}` **and** restore `PROJECT_STATUS.md` |
+| **9b** | Operational: archive both shards | resume/compensate through fenced journal; no raw rename |
 | **8b** | Enable the strict active-shard lane | **deactivate the lane only — do not delete the backfill tool**, the migrated shards depend on its `--rollback` path |
 | 10 | Independent code review record | n/a (record-only) |
 
@@ -391,26 +391,21 @@ can actually pass at the point it runs; where it could pass *vacuously* that is 
 - **Verification**: `node --test test/compile-status-projection.test.mjs test/archive-work-item.test.mjs`; `npm run validate:status-projection`. **This command can now pass only because Task 9a migrated the live shards** — if it fails here, the migration is incomplete, not the projection code.
 - **Rollback**: Revert both scripts.
 
-#### Task 7: Projection Lock, Lock Order & Archival Compensation (ADR-0030)
-- **Owner**: `developer-agent`
-- **Prerequisite**: Task 6.
-- **Files**: `scripts/compile-status-projection.mjs`, `scripts/archive-work-item.mjs`, `test/compile-status-projection.test.mjs`, `test/archive-work-item.test.mjs`.
-- **TDD Failing Step**: Failing tests asserting:
-  1. `updateProjectStatusFile()` acquires `docs/records/work-items/.projection.lock` **before** compiling — proven by a barrier that archives a shard between lock-attempt and compile and asserts the final projection reflects the archive.
-  2. A second concurrent `updateProjectStatusFile()` waits and then produces a projection matching filesystem reality; neither run's output is lost.
-  3. An abandoned projection admission lock names fenced `unlock`; recovery bumps projection generation under the projection commit guard before unlink. An abandoned commit guard throws `COMMIT_GUARD_ABANDONED` and has no online removal path.
-  4. Lock order: no code path acquires a shard lock while the projection lock is held (asserted by instrumenting both acquire functions and failing on inversion).
-  5. `archiveWorkItem()` calls `updateProjectStatusFile()`; when it throws, the compensating rename restores `work-items/{id}` and `ARCHIVE_RECONCILIATION_FAILED` is raised; when the compensating rename also fails, the error carries `compensation_failed: true`.
-  6. **Barrier test — mutation and archive of the same shard cannot overlap**, because both take `work-items/.locks/{id}.lock` and `archiveWorkItem()` releases it **last**, after the projection lock.
-  7. **Three-pathname lock-absence assertion on all three exit paths** (success, compensating rename, compensation failure): no file at `work-items/.locks/{id}.lock`, none at `work-items/{id}/.lock`, and none at `archive/{id}/.lock`. The last two prove the Round 5 Blocker 2 defect cannot reappear via a path-derived lock.
-  8. The projection admission lock and owned commit guard are released on every normal success/failure path; a process crash may strand either, and only admission has online fenced recovery.
-  9. `archiveWorkItem(expectedTaskId)` derives the active source from that ID, acquires its stable lock,
-     re-reads the envelope, and rejects `TASK_IDENTITY_MISMATCH` before rename when envelope ID,
-     directory basename, and argument differ. A barrier replacing A's envelope with B before A acquires
-     its lock proves no archive or projection write occurs under the wrong identity.
-- **Implementation**: Projection admission lock, commit guard, generation validation and ordering per SDD Components 4/4A/7; archival compensation per SDD Component 8. `archiveWorkItem(expectedTaskId)` derives the source directory and lock from the same explicit identifier, binds the re-read envelope to both, reconciles, renames, updates the projection, then releases the shard lock last.
-- **Verification**: `node --test test/compile-status-projection.test.mjs test/archive-work-item.test.mjs`; `npm run validate:status-projection`.
-- **Rollback**: Revert both scripts.
+#### Task 7: Projection Transaction & Journaled Fenced Archival (ADR-0029, ADR-0030, ADR-0032)
+- **Owner:** `developer-agent`; **Prerequisite:** Task 6 and F3.
+- **Files:** projection/archive scripts, fenced-commit library, focused tests.
+- **TDD red cases:**
+  1. Forward archive pauses before task guard; false recovery bumps generation; stale archive gets `FENCING_TOKEN_STALE` and performs no rename.
+  2. Forward archive already holds task guard; recovery waits; rename and durable journal `moved` linearize first.
+  3. Duplicate destination, both paths, neither path, identity/digest mismatch, different `txid`, and non-terminal state fail closed without overwrite.
+  4. Projection failure compensation reacquires task guard after releasing projection guard, verifies same generation/txid/digest and active absence, then renames. Recovery before compensation makes it fail `ARCHIVE_COMPENSATION_STALE` with no rename.
+  5. Barriers at journal `prepared`, forward rename, directory sync, `moved`, projection rename, compensation rename, `compensated`, and finalize prove restart reconciliation is deterministic and idempotent.
+  6. Instrumentation fails if task and projection commit guards overlap. Task admission may enclose phases, but no commit guard waits while another is held.
+  7. A projection-repair failure after compensation leaves a loud `compensated` journal and drift; archive never reports success before `complete`.
+- **Mutation operators:** remove task guard from either rename; move generation check outside guard; skip txid/digest/path predicate; allow stale compensator; mark complete before projection; delete/overwrite an incomplete journal. Every mutant must be killed.
+- **Implementation:** Component 8 journal/state machine. Forward and compensation are separate task fenced commits; projection is a projection fenced commit between them. Reconciliation uses journal + physical paths + exact digest and takes current admission/guard before mutation.
+- **Verification:** focused archive/projection tests, status projection check, full suite.
+- **Rollback:** whole pre-activation checkpoint only; never restore an old generation or discard an incomplete journal.
 
 > **🛑 Checkpoint 2:** Projection purity, projection transaction and archival compensation validated with barriers and fault injection; the live shards are migrated but not yet archived.
 
@@ -424,7 +419,7 @@ can actually pass at the point it runs; where it could pass *vacuously* that is 
 - **Files**: `docs/records/work-items/issue-249/`, `docs/records/work-items/issue-275/`, `PROJECT_STATUS.md`.
 - **Execution**: `node scripts/archive-work-item.mjs issue-249`, then `issue-275`, each through the Task 7 transactional path.
 - **Verification**: `npm run validate:project-state`; `npm run compile:status-projection -- --check` exits 0; neither issue appears in `PROJECT_STATUS.md`; each shard is present under `docs/records/work-items/archive/{id}/` and its `state_digest` still equals `digestTaskEnvelope` of its content (the archive move must not have rewritten it); no lock file at any of the three pathnames in Task 7 item 7.
-- **Rollback**: `mv docs/records/work-items/archive/{id} docs/records/work-items/{id}` for each shard, then `npm run compile:status-projection` to restore `PROJECT_STATUS.md`; confirm with `--check`. (Un-archiving was missing from the Round 4 rollback and is the only step that reverses this task.)
+- **Rollback**: do not run raw `mv`. Before activation use whole-checkpoint rollback. After activation invoke the fenced journal compensator for each task, then fenced projection reconciliation and `--check`; generation never decreases and journal evidence remains auditable.
 
 #### Task 8b: Enable the Strict Active-Shard Validation Lane
 - **Owner**: `developer-agent`
@@ -462,8 +457,8 @@ can actually pass at the point it runs; where it could pass *vacuously* that is 
 |---|---|---|---|
 | Unit | Yes | Hasher self-exclusion, actor guards, terminal/unknown source guards, CAS, atomic writer cleanup and zero-progress fault | `developer-agent` |
 | Contract | Yes | Matrix ∩ policy guard including blocked resume; lane-specific legacy `contract_version` and durable `policy_contract_version` bindings with field-swap mutants; `bug-fix`-only enum; every discovered fixture green | `developer-agent` |
-| Concurrency (barrier-synchronized) | Yes | Task-ID replacement between operation start and lock acquisition for transition/resume/archive; mutation-vs-archive exclusion; archive-vs-projection interleaving; lock-order inversion detection; four-step wrong-unlock counterexamples for shard and projection through the injected adapter | `developer-agent` / `qa-agent` |
-| Fault Injection | Yes | Write failure temp cleanup, zero-progress write, archival compensation, compensation-of-compensation failure, abandoned-lock refusal with byte-identical lock, empty/truncated/invalid/schema-invalid lock classification and recovery | `qa-agent` |
+| Concurrency (barrier-synchronized) | Yes | Task-ID replacement; mutation-vs-archive; archive/recovery before/inside guard; stale compensation; journal phase crashes; archive-vs-projection convergence; commit-guard non-overlap; four-step wrong-unlock counterexamples for shard and projection through the injected adapter | `developer-agent` / `qa-agent` |
+| Fault Injection | Yes | Write failure temp cleanup, zero-progress write, journal writes and every forward/compensation rename boundary, projection-repair failure, abandoned-lock refusal with byte-identical lock, empty/truncated/invalid/schema-invalid lock classification and recovery | `qa-agent` |
 | Read-Only Assertion | Yes | Byte-equality of the whole fixture tree across `--check` and across both pure functions | `qa-agent` |
 | Integration | Yes | Fail-closed projection, explicit reconcile idempotency, backfill idempotency and rollback, active-shard lane positive/negative over a fixture root | `qa-agent` |
 | Regression | Yes | Full repository suite, no test weakening | `qa-agent` |
@@ -495,7 +490,7 @@ npm test
 | Engine or concurrency test failure | Revert the slice's files on the branch; the previous commit stays green | `developer-agent` |
 | Policy amendment breaks a fixture | Revert `bug-fix-workflow.yaml`; the amendment is additive, so revert is complete | `developer-agent` |
 | Shard backfill or terminal-hop failure (9a) | `node scripts/backfill-task-state-v2.mjs --rollback`, else restore backups and verify against recorded SHA-256; regenerate the projection | `developer-agent` |
-| Archive step failure (9b) | Automatic compensating rename restores the shard; if compensation also fails the error says so; manual reversal is `mv archive/{id} work-items/{id}` plus projection regeneration | `developer-agent` |
+| Archive step failure (9b) | Do not use manual unfenced `mv`. Resume the durable journal through fenced reconciliation. Stale generation/txid/path/digest refuses; whole-checkpoint rollback only before activation. | `developer-agent` / Human Maintainer |
 | Active-shard lane rejects something unforeseen (8b) | Deactivate the lane only; keep the backfill tool | `developer-agent` |
 | Abandoned lock in CI | `unlock` acquires the commit guard, durably increments generation, then removes admission. A stranded commit guard has no online recovery; stop all writers and restart the host/session before offline repair (SDD Component 4/4A) | Human Maintainer |
 
@@ -511,7 +506,7 @@ npm test
 | Matrix and policy drift apart | High | Authority-rule parity test in Task 3 item 6: legality is the strict intersection, and matrix `requires` is proven never to be consulted at validation time. |
 | Strict intersection empties a hop and severs a happy path | High | **Already occurred at `investigating -> implementing`.** Repaired by widening the matrix (SDD Component 2, SA ruling), and permanently guarded by Task 3 item 0, which enumerates every policy row of every in-scope workflow and fails the build on any empty intersection or missing matrix destination. |
 | Strict intersection makes Human resume impossible | High | Add explicit `blocked -> investigating` and `blocked -> verifying` policy rows and bind `resume` to the latest interrupted state. Task 3 positive and negative full-path cases prevent a policy bypass. |
-| Lock identifier differs from re-read envelope | High | Explicit `expectedTaskId` selects both active path and lock; transition, resume, and archive compare the re-read envelope and directory basename under that lock before any mutation. |
+| Unfenced or stale archive/compensation rename | High | ADR-0032 archive journal; every rename validates generation, txid, identity/digest and paths inside task guard. Mutation operators remove each predicate. |
 | Terminal migration illegal under current policy | High | Task 1's additive `handoff -> completed` amendment lands before Task 9a. |
 | Active-shard validation lane breaks CI on pre-existing shards | Medium | **Resolved structurally, not mitigated.** The lane is Task 8b and lands only after Task 9b. Tasks 8a and 9a exist precisely to break the Round 4 cycle. |
 | Task 6's `validate:status-projection` fails on unmigrated shards | High | Migration (9a) is ordered before Task 6 (§4.0). This is a defect the Round 5 review did not name; it is recorded here so the ordering is not "optimized" back. |
