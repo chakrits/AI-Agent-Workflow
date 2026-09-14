@@ -646,6 +646,14 @@ is released before task finalize or compensation. A stale compensator performs n
 filesystem cannot atomically replace the shard path and projection together, the journal provides
 crash-detectable, idempotently resumable convergence rather than claiming cross-file atomicity.
 
+**Journal determinism amendment (Security rework cycle 2).** The journal is an append-only transaction ledger carrying immutable per-transaction archive intent, a self-excluding digest, monotonic revision, append-only generation-bound attempts, a current
+attempt pointer, directional intermediate phases, and distinct `terminal_archived`/`terminal_compensated`
+outcomes. Initial creation is exclusive. Every phase/revision update is conditional under task guard.
+After generation advances, a new executor may only append a fresh attempt bound to the existing intent
+and an auto-resumable phase/path cell; it must reread and recompute. Both/neither paths, malformed or
+tampered journals, generation regression, and terminal/location mismatch require Human/offline
+inspection. No direction is inferred from ambiguous evidence.
+
 #### Alternatives Considered
 
 - **Token check followed by unconditional rename** — rejected because recovery can occur after the

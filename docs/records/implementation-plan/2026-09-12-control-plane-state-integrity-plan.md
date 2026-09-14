@@ -395,15 +395,16 @@ can actually pass at the point it runs; where it could pass *vacuously* that is 
 - **Owner:** `developer-agent`; **Prerequisite:** Task 6 and F3.
 - **Files:** projection/archive scripts, fenced-commit library, focused tests.
 - **TDD red cases:**
-  1. Forward archive pauses before task guard; false recovery bumps generation; stale archive gets `FENCING_TOKEN_STALE` and performs no rename.
-  2. Forward archive already holds task guard; recovery waits; rename and durable journal `moved` linearize first.
-  3. Duplicate destination, both paths, neither path, identity/digest mismatch, different `txid`, and non-terminal state fail closed without overwrite.
-  4. Projection failure compensation reacquires task guard after releasing projection guard, verifies same generation/txid/digest and active absence, then renames. Recovery before compensation makes it fail `ARCHIVE_COMPENSATION_STALE` with no rename.
-  5. Barriers at journal `prepared`, forward rename, directory sync, `moved`, projection rename, compensation rename, `compensated`, and finalize prove restart reconciliation is deterministic and idempotent.
-  6. Instrumentation fails if task and projection commit guards overlap. Task admission may enclose phases, but no commit guard waits while another is held.
-  7. A projection-repair failure after compensation leaves a loud `compensated` journal and drift; archive never reports success before `complete`.
-- **Mutation operators:** remove task guard from either rename; move generation check outside guard; skip txid/digest/path predicate; allow stale compensator; mark complete before projection; delete/overwrite an incomplete journal. Every mutant must be killed.
-- **Implementation:** Component 8 journal/state machine. Forward and compensation are separate task fenced commits; projection is a projection fenced commit between them. Reconciliation uses journal + physical paths + exact digest and takes current admission/guard before mutation.
+  1. Strict-schema negatives: partial/unknown fields, bad journal digest, changed immutable intent, duplicate txid/attempt ID across the retained ledger, revision regression, invalid phase/outcome pair, and `EEXIST` initial creation all fail closed.
+  2. Conditional advancement rejects wrong expected txid/revision/current attempt/generation/phase/outcome or physical predicate with named codes and byte-identical state.
+  3. Execute every SDD phase × `{A,R,B,N}` × generation `{equal,greater,lower}` matrix cell. Auto cells reach the named next state; ambiguous/malformed/regressed cells make zero writes and require offline inspection.
+  4. Generation-greater adoption appends a fresh attempt linked to the predecessor; a later archive after terminal compensation appends a fresh immutable transaction, preserves immutable intent/source binding/phase/outcome, and recompiles projection. It never retags or reuses an old candidate.
+  5. Barrier each journal persist, forward/compensation rename, each parent sync, projection success/failure, adoption and terminal finalize. Include crashes after rename before sync and after sync before phase persistence.
+  6. `compensation_requested` is persisted before reverse rename. Projection failure/crash before that phase retries projection; it never infers compensation from ambiguous evidence.
+  7. Distinct terminals require `terminal_archived+R+archived` or `terminal_compensated+A+compensated`; swapped locations/outcomes fail. Success requires a freshly matching projection.
+  8. Instrumentation proves shard→projection admission order and zero overlap between task/projection commit guards; stale projection candidates are rejected/recompiled.
+- **Mutation operators:** collapse terminal phases to `complete`; remove outcome discriminator; mutate immutable intent during adoption; replace append with retag; reuse old projection candidate; skip journal digest/revision/phase/txid/path/generation predicate; infer compensation without `compensation_requested`; auto-repair `B`/`N`; allow duplicate initial create or overwrite a terminal journal instead of appending; overlap commit guards. Every mutant must be killed.
+- **Implementation:** Component 8 strict schema and matrix-driven state machine. Reconciliation accepts only named auto-resumable cells. Error codes include `ARCHIVE_JOURNAL_CONFLICT`, `ARCHIVE_JOURNAL_MALFORMED`, `ARCHIVE_JOURNAL_TAMPERED`, `ARCHIVE_EXECUTOR_STALE`, `ARCHIVE_LOCATION_AMBIGUOUS`, `ARCHIVE_ADOPTION_UNSAFE`, and `FENCE_GENERATION_REGRESSION`.
 - **Verification:** focused archive/projection tests, status projection check, full suite.
 - **Rollback:** whole pre-activation checkpoint only; never restore an old generation or discard an incomplete journal.
 

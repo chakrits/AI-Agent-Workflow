@@ -626,69 +626,134 @@ export function atomicWriteFileSync(targetPath, content) {
 
 ### Component 8: Fenced Transactional Archival (ADR-0029, ADR-0032)
 
-A filesystem cannot atomically rename the shard directory and `PROJECT_STATUS.md` as one transaction.
-Archival therefore uses a durable task-scoped journal at
-`.archive-transactions/{task_id}.json`: `{schema_version, txid, task_id, generation, source_digest,
-phase}` where phase is `prepared`, `moved`, `compensated`, or `complete`. Journal writes are
-crash-durable atomic writes. A journal is never silently overwritten or deleted; completed records may
-be retained for audit or compacted only by a separately approved offline operation.
+A filesystem cannot atomically rename the shard directory and `PROJECT_STATUS.md`. Archival uses one
+durable journal at `.archive-transactions/{task_id}.json`. The strict schema rejects unknown keys and
+requires:
 
-**Forward phase (a fenced task commit).**
+```json
+{
+  "schema_version": 1,
+  "journal_revision": 1,
+  "journal_digest": "<JCS SHA-256 excluding journal_digest>",
+  "transactions": [{
+    "intent": {
+      "txid": "<UUID-v4>",
+      "task_id": "issue-277",
+      "intended_outcome": "archived",
+      "source_digest": "<64 lowercase hex>",
+      "source_generation": 7,
+      "created_at": 1789350000000
+    },
+    "attempts": [{
+      "attempt_id": "<UUID-v4>",
+      "generation": 7,
+      "adopts_attempt_id": null,
+      "started_at": 1789350000000
+    }],
+    "current_attempt_id": "<same UUID-v4>",
+    "phase": "prepared",
+    "terminal_outcome": null
+  }],
+  "current_txid": "<same txid>"
+}
+```
 
-1. Acquire task admission; snapshot task generation `g` and active envelope/digest.
-2. Acquire the task commit guard. Inside it re-read generation, active envelope, identity, terminal
-   eligibility, digest, absence of `archive/{id}`, and absence of any non-complete journal. A mismatch
-   fails closed (`FENCING_TOKEN_STALE`, `CAS_CONFLICT`, `TASK_IDENTITY_MISMATCH`,
-   `ARCHIVE_DESTINATION_EXISTS`, or `ARCHIVE_TRANSACTION_PENDING`).
-3. Persist `prepared(txid,g,digest)`, then rename active → archive and sync both parent directories. The
-   directory rename is the archive linearization point. Persist phase `moved`, then release the task
-   commit guard. If recovery bumped generation before guard acquisition, the archiver fails stale. If
-   recovery begins after guard acquisition, it waits; the archive linearizes before the later bump.
+Each transaction `phase` is exactly one of `prepared`, `archive_moved`, `compensation_requested`,
+`compensation_moved`, `terminal_archived`, `terminal_compensated`. `terminal_outcome` is `null` for
+non-terminal phases, `archived` only with `terminal_archived`, and `compensated` only with
+`terminal_compensated`. Each transaction `intent` is immutable. `transactions` and their attempts are append-only;
+`journal_revision` increases by exactly one per phase change or adoption. UUID-v4 `txid` and `attempt_id` come from the injected cryptographic UUID source and must be unique across all retained transactions and attempts for the task. Initial creation uses `openSync(journalPath, 'wx')`, full-write loop, file sync and
+parent-directory sync while holding task commit guard. `EEXIST` never overwrites. A crash leaving empty
+or partial initial bytes yields `ARCHIVE_JOURNAL_MALFORMED` and requires Human/offline inspection; it
+never causes inferred intent. Parse/schema failure is `ARCHIVE_JOURNAL_MALFORMED`; journal-digest mismatch, immutable intent change, duplicate identifier, or revision/attempt regression is `ARCHIVE_JOURNAL_TAMPERED`.
 
-**Projection phase and successful finalize.** While still nominally owning task admission, acquire
-projection admission, compile after acquisition, then acquire projection commit guard, validate its
-generation and publish. Release projection guard/admission completely. Reacquire the task commit guard
-(no nesting), verify journal `txid`, archive identity/digest, active absence, and current task generation
-`g`, then persist `complete`. If task recovery changed generation, finalize fails
-`ARCHIVE_FINALIZE_STALE`; the durable `moved` journal remains and a latest-generation reconciler can
-verify/re-publish the projection and complete it idempotently.
+**Conditional journal advancement.** Every update holds task commit guard, re-reads the journal and
+requires the exact expected `{current_txid, txid, journal_revision, current_attempt_id, attempt.generation, phase, terminal_outcome}`, current generation, and physical path/digest predicate named below. It writes a new
+complete journal atomically and directory-syncs. A mismatch returns `ARCHIVE_JOURNAL_CONFLICT`; current
+generation below the attempt is `FENCE_GENERATION_REGRESSION`; an old executor is
+`ARCHIVE_EXECUTOR_STALE`; both/neither path cardinality or a location inconsistent with a terminal is
+`ARCHIVE_LOCATION_AMBIGUOUS`. No error path mutates a shard or journal. An adoption request against any matrix cell not explicitly marked adopt returns `ARCHIVE_ADOPTION_UNSAFE`; it never guesses a direction.
 
-**Fenced compensation.** If projection update fails, release every projection lock before compensation.
-Acquire the task commit guard and re-read generation/journal/both paths. Compensation may rename
-archive → active only when generation still equals `g`, journal is the same `txid` in `moved`, active is
-absent, and archived envelope identity/digest equals the journal. The compensation rename is its
-linearization point; sync both parents and persist `compensated`. If generation changed or any predicate
-fails, perform no rename and throw `ARCHIVE_COMPENSATION_STALE`/`ARCHIVE_COMPENSATION_CONFLICT`; the
-journal makes the incomplete transaction visible. After a successful compensation, release task guard,
-run the fenced projection update again so active state is projected, then reacquire task guard and mark
-`complete` only if the same journal and generation still hold. A projection retry failure leaves
-`compensated` plus detectable projection drift, never a success response.
+**Forward archive.** The first executor holds task admission and task guard, validates the active
+terminal envelope, generation and archive absence, creates the immutable `prepared` journal, then
+renames active → archive and syncs both parents. The rename is the archive linearization point. Under
+the same guard it conditionally advances to `archive_moved`. Recovery before guard acquisition makes
+the executor stale; recovery after acquisition waits and linearizes after the rename/guard release.
 
-**Crash recovery and idempotency.** `reconcileArchivedShards()` reads journals and physical paths, but
-mutates only after acquiring the relevant admission and task commit guard. `prepared + active-only`
-means forward rename did not linearize and may retry; `prepared/moved + archive-only` means it did and
-may resume projection/finalize; `moved + both/neither` is conflict; `compensated + active-only` resumes
-projection repair; `complete` must match its declared final location. A crash after rename but before
-phase write is resolved from path plus exact identity/digest, never from phase alone. Duplicate archive
-destinations and stale compensators fail closed. Offline abandoned-guard recovery preserves both
-generation and journal before reconciliation.
+**Projection, compensation and terminal outcomes.** At `archive_moved`, release task guard, publish a
+fresh archive-reflecting projection under projection admission/guard, release them, reacquire task guard,
+revalidate, and write `terminal_archived`/`archived`. If projection publish returns a deterministic
+failure, release all projection locks, reacquire task guard, and first persist
+`compensation_requested`; only that phase authorizes archive → active rename. Under task guard,
+revalidate generation/attempt/intent/digest and exact archive-only location, rename, sync both parents,
+and advance `compensation_moved`. Release task guard, publish a freshly compiled active-reflecting
+projection, release projection locks, reacquire task guard and write
+`terminal_compensated`/`compensated`. Success is returned only for a matching terminal phase/location
+whose fresh projection check passes.
 
-**Crash boundaries.**
+**Generation-safe adoption.** When current generation exceeds the current attempt generation, a new
+executor may adopt only an auto-resumable cell in the matrix below. Under task commit guard it validates
+the immutable intent, exact path cardinality/identity/digest and journal digest, appends a new attempt
+with a fresh `attempt_id`, `generation=current`, and `adopts_attempt_id=previous`, advances revision, and
+sets `current_attempt_id` to the new attempt. It does not alter `intent`, source digest/generation, phase,
+or terminal outcome. After adoption it rereads state and recompiles any projection candidate. It never
+retags/reuses a mutation or projection candidate computed by the old attempt. Equal generation resumes
+the existing attempt after the same checks. Lower generation is regression. A fresh archive transaction appends a new immutable transaction with a new `txid` only when no journal exists, or the current transaction is `terminal_compensated`, active-only, and its projection matches. Initial journal creation alone uses `wx`; later transactions conditionally append under task guard without deleting history. `terminal_archived` can never append because active is absent and task-ID reuse is forbidden.
 
-| Boundary | Observable state | Safe continuation |
-|---|---|---|
-| before `prepared` rename | active only, no/new journal | retry from fresh admission |
-| after `prepared`, before forward rename | active only, prepared | same-generation reconciler retries forward |
-| after forward rename, before parent sync/`moved` | archive only, prepared | validate digest; resume after durability check |
-| after `moved`, before projection | archive only, moved | fenced projection retry |
-| after projection rename, before task finalize | archive only, moved; projection old/new complete | recompile, publish idempotently, finalize |
-| after compensation rename, before sync/phase | active only, moved | recognize exact digest as compensated, sync and record |
-| after `compensated`, before projection repair | active only, compensated; projection may be stale | fenced projection retry, then finalize |
-| after either task rename, before task-guard release | guard stranded | offline guard recovery, then journal reconciliation |
+**Exhaustive recovery matrix.** `A` means active-only with exact intent task/digest, `R` archive-only
+with exact intent task/digest, `B` both paths and `N` neither. “Adopt” means append the attempt described
+above and then take the same action; it never changes intent/phase. All cells are evaluated under task
+commit guard. Before-directory-sync crashes are allowed to restart as either pre-rename or post-rename
+single-path state, so the same rows cover crash before rename, after rename before sync, and after sync
+before phase persistence.
 
-The operation returns success only at `complete`. Any other durable phase is a loud, resumable recovery
-state. This provides conditional task commits and detectable cross-file convergence; it does not claim
-an impossible atomic transaction spanning the shard and Markdown projection.
+| Journal phase | Paths | current gen = attempt | current gen > attempt | current gen < attempt |
+|---|---|---|---|---|
+| `prepared` | A | retry fenced forward rename | adopt, reread, retry forward | regression: offline |
+| `prepared` | R | record `archive_moved` (forward linearized) | adopt, then record `archive_moved` | regression: offline |
+| `prepared` | B | ambiguous: offline | ambiguous: offline, no adopt | regression: offline |
+| `prepared` | N | ambiguous: offline | ambiguous: offline, no adopt | regression: offline |
+| `archive_moved` | R | fresh projection; finalize archived or record compensation request on failure | adopt; fresh projection; same decision | regression: offline |
+| `archive_moved` | A | ambiguous: offline (no authorized reverse) | ambiguous: offline, no adopt | regression: offline |
+| `archive_moved` | B | ambiguous: offline | ambiguous: offline, no adopt | regression: offline |
+| `archive_moved` | N | ambiguous: offline | ambiguous: offline, no adopt | regression: offline |
+| `compensation_requested` | R | retry fenced compensation rename | adopt, reread, retry compensation | regression: offline |
+| `compensation_requested` | A | record `compensation_moved` (reverse linearized) | adopt, then record `compensation_moved` | regression: offline |
+| `compensation_requested` | B | ambiguous: offline | ambiguous: offline, no adopt | regression: offline |
+| `compensation_requested` | N | ambiguous: offline | ambiguous: offline, no adopt | regression: offline |
+| `compensation_moved` | A | fresh projection; finalize compensated | adopt; fresh projection; finalize compensated | regression: offline |
+| `compensation_moved` | R | ambiguous: offline | ambiguous: offline, no adopt | regression: offline |
+| `compensation_moved` | B | ambiguous: offline | ambiguous: offline, no adopt | regression: offline |
+| `compensation_moved` | N | ambiguous: offline | ambiguous: offline, no adopt | regression: offline |
+| `terminal_archived` / `archived` | R | validate projection; no-op | terminal no-op; no adoption needed | generation corruption: offline |
+| `terminal_archived` / `archived` | A | terminal mismatch: offline | terminal mismatch: offline | generation corruption: offline |
+| `terminal_archived` / `archived` | B | ambiguous: offline | ambiguous: offline | generation corruption: offline |
+| `terminal_archived` / `archived` | N | ambiguous: offline | ambiguous: offline | generation corruption: offline |
+| `terminal_compensated` / `compensated` | A | validate projection; no-op | terminal no-op; no adoption needed | generation corruption: offline |
+| `terminal_compensated` / `compensated` | R | terminal mismatch: offline | terminal mismatch: offline | generation corruption: offline |
+| `terminal_compensated` / `compensated` | B | ambiguous: offline | ambiguous: offline | generation corruption: offline |
+| `terminal_compensated` / `compensated` | N | ambiguous: offline | ambiguous: offline | generation corruption: offline |
+
+Projection success followed by a crash before terminal persistence stays `archive_moved/R` or
+`compensation_moved/A`; recovery recompiles and idempotently republishes before finalizing. Projection
+failure followed by a crash before `compensation_requested` stays `archive_moved/R` and retries the
+projection rather than guessing compensation. A crash after the request but before/during reverse rename
+maps to the two `compensation_requested` single-path rows. No transitional `B`/`N`, malformed/tampered
+journal, digest mismatch or generation regression is auto-repaired; these return the named error and
+require Human/offline inspection.
+
+**Deadlock and stale-projection proof.** Task admission may remain held across phases, preserving
+shard→projection admission order, but task and projection commit guards never overlap. Each task phase
+releases its guard before projection acquisition; projection guard/admission are released before task
+finalize/adoption/compensation. Thus no guard wait cycle exists. A generation bump can make an executor
+stale between phases, but only a guarded adoption can continue; each adopted projection is compiled
+fresh. Terminal state is written only after the matching projection is published and rechecked. A crash
+can leave detectable drift, never a success response or silent terminal ambiguity.
+
+Task generations and journals survive archive, compensation, restart and offline guard recovery.
+Selective rollback, generation decrement, journal deletion, task-ID reuse, and raw manual `mv` are
+forbidden. Offline recovery preserves the journal bytes first, validates the matrix cell, and performs no
+directional repair for an ambiguous cell.
 
 ### Component 9: Disk-Bound Mutation Wrapper
 
