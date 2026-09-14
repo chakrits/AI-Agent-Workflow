@@ -9,7 +9,7 @@
 | Risk Level | High |
 | Owner | Developer Agent (`implementation-planning`) |
 | Target Branch / Ticket | `feat/control-plane-state-integrity` / Issue #277 |
-| Revision | Round 6 SA + Security rework at `1f36fed` — resolves lane-specific version binding, policy-authoritative blocked resume, task-id/lock identity binding, canonical active-root exclusions, truthful wrong-unlock integrity bounds, malformed-lock recovery, and OQ-2's injected adapter design. SEC-004 remains a High residual requiring Human decision. |
+| Revision | Round 7 SA design — Human rejected SEC-004 residual on 2026-09-14. ADR-0032 adds durable generations and a non-reclaimable commit guard shared by commits and admission-lock recovery; Security and QA validation remain required before implementation. |
 
 > **Scope note (ADR-0031).** Package 1's durable envelope and active-shard enforcement lane are narrowed
 > to `workflow_id: "bug-fix"` only. Issue #277 is itself `framework-meta` and therefore has **no durable
@@ -24,8 +24,8 @@
 | Artifact | Status | Notes |
 |---|---|---|
 | REQUIREMENT_DISCOVERY.md | Draft (`docs/records/requirements/2026-09-12-control-plane-state-integrity-discovery.md`) | BA discovery. AC-001..AC-010, BR-001..BR-005. Round 5 correction 3 (residual "atomic lock takeover" wording) is owned by BA Agent. |
-| SDD.md | **Draft, Round 6 revision — pending Human gate** (`docs/records/sdd/2026-09-12-control-plane-state-integrity-sdd.md`) | ADR-0026..ADR-0031. Not approved; no task below may start before the Human approval gate. This plan is reconciled against the Round 6 SA and Security contract. |
-| SECURITY_REVIEW.md | Round 6 Security revision (`docs/records/security-review/2026-09-12-issue-277-security-review.md`) | Security contract corrected; SEC-004 remains High/Open pending explicit Human acceptance of maintenance-only recovery's quiescence residual. |
+| SDD.md | **Draft, Round 7 fencing revision — pending Security and QA** (`docs/records/sdd/2026-09-12-control-plane-state-integrity-sdd.md`) | ADR-0032 records the Human decision. No implementation starts before independent Security and QA validation. |
+| SECURITY_REVIEW.md | Round 6 Security revision (`docs/records/security-review/2026-09-12-issue-277-security-review.md`) | Security contract corrected; SEC-004 remains High/Open pending Security validation of ADR-0032; Human explicitly rejected residual acceptance. |
 | TEST_PLAN.md | Draft (`docs/records/qa/2026-09-12-issue-277-test-plan.md`) | Full Mode QA artifacts, TC-001..TC-031. Requires QA-owned corrections listed in §9. |
 
 ---
@@ -38,7 +38,7 @@
 | **Policy Layer** | `docs/contracts/bug-fix-workflow.yaml` | Additive only: add terminal states and `handoff -> completed`; add a separate policy `resume` operation from `blocked` to `[investigating, verifying]` requiring `resume_evidence` and `approver_id`. No cancellation wildcard. Policy version stays `1`; legacy fixtures stay valid. |
 | **Canonical Prose** | `AGENTS.md` (Bug Fix section, L274-276) | Add the layer split: policy owns states/transitions/evidence/retry budget; the durable envelope owns storage shape. |
 | **Contract Validator** | `scripts/validate-contracts.mjs` | Keep the legacy example lane comparison `state.contract_version === policy.contract_version`; add a separate `bug-fix` active-shard lane comparing `state.policy_contract_version === policy.contract_version` and validating durable envelopes through `validateEnvelopeSchema`. The active lane skips exact `archive/` and dot-prefixed entries before validation. |
-| **State Machine Engine** | `scripts/lib/task-state-machine.mjs`<br>`scripts/task-machine-cli.mjs` | `digestTaskEnvelope()`, `validateEnvelopeSchema()`; terminal matrix entries; `investigating.destinations` gains `implementing`; `UNKNOWN_SOURCE_STATE`; actor authorization; policy-sourced evidence; policy-authoritative resume bound to the latest interrupted state; fail-closed lock at `.locks/{expectedTaskId}.lock`; `mutateTaskStateOnDisk(rootDir, expectedTaskId, ...)` with inside-lock identity validation; CLI `inspect`, `resume`, and maintenance-only `unlock --quiesced`; mandatory `--expected-digest`. |
+| **State Machine Engine** | `scripts/lib/task-state-machine.mjs`<br>`scripts/task-machine-cli.mjs` | `digestTaskEnvelope()`, `validateEnvelopeSchema()`; terminal matrix entries; `investigating.destinations` gains `implementing`; `UNKNOWN_SOURCE_STATE`; actor authorization; policy-sourced evidence; policy-authoritative resume bound to the latest interrupted state; fail-closed lock at `.locks/{expectedTaskId}.lock`; `mutateTaskStateOnDisk(rootDir, expectedTaskId, ...)` with inside-lock identity validation; CLI `inspect`, `resume`, and fenced admission `unlock --quiesced`; mandatory `--expected-digest`; stale writers must recompute. |
 | **Projection & Archival** | `scripts/compile-status-projection.mjs`<br>`scripts/archive-work-item.mjs` | Exact `archive/` plus dot-prefixed-entry exclusions in `discoverActiveShards()`; pure `compileStatusProjection` / `detectArchivedShardDrift`; mutating `reconcileArchivedShards`; projection lock; read-only `--check`; `--reconcile`; `atomicWriteFileSync`; archival compensation; archive identity binding before rename. |
 | **Migration & Operations** | `scripts/backfill-task-state-v2.mjs`<br>`docs/records/work-items/issue-249/task-state.json`<br>`docs/records/work-items/issue-275/task-state.json`<br>`PROJECT_STATUS.md` | Backfill tool with `--rollback`; evidence-bound migration of the two active `bug-fix` shards. |
 | **QA Records** | `docs/records/qa/2026-09-12-control-plane-state-integrity-code-review.md` | Code review record satisfying `validate:review-gate` (QG-001), authored by the non-implementer. |
@@ -74,8 +74,47 @@ the real repository.
 
 ## 4. Task Breakdown (Reviewable Slices with Checkpoints)
 
-> **Gate:** no task starts until the Human Maintainer approves the Round 6 blueprint and
-> ADR-0026..ADR-0031 (**six** ADRs) are recorded in `DECISIONS.md`.
+### Cross-Cutting Fenced Commit Slices (ADR-0032; ordered in §4.0)
+
+#### Task F1: Durable Generation Store (TDD)
+- **Prerequisite:** Task 5 atomic writer.
+- **Owner:** Developer Agent. **Files:** new `scripts/lib/fenced-commit.mjs`, focused unit tests.
+- Red cases: missing/corrupt/exhausted generation fail closed; initialization refuses when a shard/archive/projection already exists; archive/restart never resets; atomic increment fault boundaries preserve one valid generation.
+- Implement `readGeneration`, migration-only `initializeGeneration`, and crash-durable `incrementGeneration` through injected `createStateIo`.
+- Verify mutants replacing `+ 1` with reset/reuse and permitting implicit initialization. Rollback restores the full pre-activation checkpoint, never only generation files.
+
+#### Task F2: Non-Reclaimable Commit Guard (TDD)
+- **Prerequisite:** Task F1.
+- **Owner:** Developer Agent. **Files:** `scripts/lib/fenced-commit.mjs`, CLI diagnostics, focused tests.
+- Red cases: exclusive acquisition; owner nonce release; abandoned/malformed guard returns `COMMIT_GUARD_ABANDONED`; no online command removes it; injected force-removal mutant is killed.
+- Implement stable task/projection guard namespaces. Document offline recovery: stop writers, restart host/session, preserve generation, remove guard, run integrity checks, then restart writers.
+
+#### Task F3: Fenced Shard Conditional Commit (TDD)
+- **Prerequisite:** Task 4 admission lock plus Task F2.
+- **Owner:** Developer Agent. **Files:** state machine, CLI, archive integration, tests.
+- Red barriers: ordinary A/B; A pauses before guard then false-quiescence recovery/B; A pauses inside guard; recovery before/after generation rename; stale token and stale digest; retry cannot reuse old candidate.
+- Implement admission → generation snapshot → compute → commit guard → generation/digest/identity reread → atomic rename. `FENCING_TOKEN_STALE` sets `retryable: true`, `recompute_required: true`.
+- Kill mutants that move generation check before guard, omit the inside-guard reread, or permit candidate retagging.
+
+> **🛑 Security checkpoint F:** Security independently validates the shard proof and crash table before projection work starts.
+
+#### Task F4: Fenced Projection Conditional Commit (TDD)
+- **Prerequisite:** Task 7 projection admission/archival transaction plus Task F3.
+- **Owner:** Developer Agent. **Files:** projection/archive scripts and tests.
+- Red barriers reproduce projection A compiled before recovery, B after recovery, and both write orders without shard-digest backstop.
+- Implement projection admission → generation snapshot → compile → projection commit guard → generation recheck → atomic rename. Recovery bumps projection generation under the same guard before admission unlink.
+- Verify stale compiler always throws `FENCING_TOKEN_STALE`; read-only `--check` reads no generation and creates no namespace.
+
+#### Task F5: Migration, Observability and Offline Runbook
+- **Prerequisite:** Tasks 9a, F3 and F4; completes before any fenced writer is activated.
+- **Owner:** Developer Agent + Documentation Agent. Initialize generation 1 under guards before activation; retain task generations after archive; forbid task-ID reuse. Add structured error evidence without state contents.
+- Rollback is whole-checkpoint only. Validate shards/projection/digests before and after offline guard repair.
+- Verification: migration idempotency, rollback rehearsal, restart fixture, and full repository gates.
+
+> **🛑 QA Full Mode checkpoint:** QA re-derives every interleaving, performs mutation testing, and verifies `--check` remains byte-identical. Implementation cannot begin until Security and QA approve this blueprint.
+
+
+> **Gate:** no implementation task starts until Security and QA approve the Round 7 blueprint. ADR-0032 records the Human decision; prior ADR-0026..ADR-0031 remain required blueprint inputs.
 
 ### 4.0 Ordering rationale (Round 5 Blocker 3)
 
@@ -102,16 +141,20 @@ phase earlier, which the 8a→9→8b split alone does not fix. Migration is cons
 | 4 | Shard lock (stable namespace), CLI recovery surface, mutation wrapper, dot-skip | revert lock/CLI/projection-enumerator changes |
 | — | **🛑 Checkpoint 1** | last green commit |
 | 5 | Crash-durable atomic writer | revert writer |
+| **F1–F2** | Durable generation store + non-reclaimable commit guard | revert before activation |
+| **F3** | Fenced shard conditional commit and fenced admission recovery | revert fenced shard slice |
 | **8a** | Backfill tool + tests, **lane disabled** | delete the backfill script (nothing depends on it yet) |
 | **9a** | Operational: backfill + terminal hops on both shards, **no archive** | `--rollback` + backup restore vs recorded SHA-256 |
 | 6 | Pure projection, drift detection, explicit repair | revert both scripts |
-| 7 | Projection lock, lock order, archival compensation | revert both scripts |
+| 7 | Projection admission lock, lock order, archival compensation | revert both scripts |
+| **F4** | Fenced projection conditional commit | revert fenced projection slice |
+| **F5** | Generation migration, observability, offline runbook; activate fenced writers | whole-checkpoint rollback only |
 | — | **🛑 Checkpoint 2** | last green commit |
 | **9b** | Operational: archive both shards | rename `archive/{id}` back to `work-items/{id}` **and** restore `PROJECT_STATUS.md` |
 | **8b** | Enable the strict active-shard lane | **deactivate the lane only — do not delete the backfill tool**, the migrated shards depend on its `--rollback` path |
 | 10 | Independent code review record | n/a (record-only) |
 
-9b must follow Task 7 because archival compensation is SDD Component 8 and only exists from Task 7
+F4 follows Task 7; F5 follows migration and both fenced paths. 9b must follow Task 7 and F5 because archival compensation is SDD Component 8 and only exists from Task 7
 onward. 9a must precede Task 6 for the reason above. **SA ruling (affirmed in SDD Component 6):** this
 ordering — 8a and 9a before Component 6, 9b after the projection lock and archival compensation, 8b last
 — is the design of record. Making the compiler temporarily lenient toward v1 shards to preserve the
@@ -231,7 +274,7 @@ can actually pass at the point it runs; where it could pass *vacuously* that is 
   3. **Three-tier classification, liveness dominates age:** young + live PID → randomized backoff, retry up to 5 s, then `LOCK_ACQUISITION_TIMEOUT`; old + live PID → `LOCK_ACQUISITION_TIMEOUT` with a `LOCK_HELD_LONG` advisory and holder diagnostics (`pid`, `nonce`, `created_at`, age); **dead PID at any age** → `LOCK_ABANDONED`. Age alone must **never** classify abandonment — a test with a live-but-old holder asserts it does **not** produce `LOCK_ABANDONED`.
   4. Every refusal leaves the lock file **byte-identical on disk**, and the message names `unlock --task <id> --nonce <observed> --quiesced`.
   5. `releaseShardLock(rootDir, task_id, 'nonce-B')` against a lock holding `nonce-A` does not unlink it.
-  6. `unlock --task T --nonce N --quiesced` removes the lock when the nonce matches, throws `LOCK_NONCE_MISMATCH` when it does not, and **refuses without `--quiesced`**. A test asserts the CLI prints the holder record and the consequence of a wrong quiescence assertion before acting. **No race-safety assertion is written for `unlock`** — the SDD withdraws that claim in full; nonce verification is an operator-mistake filter only.
+  6. `unlock --task T --nonce N --quiesced` removes the lock when the nonce matches, throws `LOCK_NONCE_MISMATCH` when it does not, and **refuses without `--quiesced`**. A test asserts the CLI prints the holder record and the consequence of a wrong quiescence assertion before acting. `unlock` must additionally hold the commit guard, durably increment generation, then unlink admission. The test makes the quiescence assertion false and proves the old writer fails `FENCING_TOKEN_STALE`.
   6a. Empty, truncated, invalid-JSON, and schema-invalid shard and projection locks raise
       `LOCK_MALFORMED`, remain byte-identical after acquisition/inspection refusal, and name
       `unlock --malformed --quiesced`. Malformed recovery refuses without both flags, requires no nonce,
@@ -251,16 +294,14 @@ can actually pass at the point it runs; where it could pass *vacuously* that is 
   13. Build lock behavior through the injected adapter from SDD Component 4. A delegating test adapter
       pauses `unlinkSync` at a barrier and deterministically drives the four-step shard and projection
       wrong-unlock counterexamples. No sleep-based ordering, environment flag, mutable global hook, or
-      production test-only branch is allowed. For the shard case, both writers pass `D0` before either
-      writes and the final state proves one history event can be lost. For projection, both compilers
-      pass their compile point before either write and the final output demonstrates last-rename-wins.
+      production test-only branch is allowed. For the shard case, both writers may compute from `D0`, but recovery increments generation and the old writer must fail before rename. For projection, the pre-recovery compiler must fail its inside-guard generation check; neither path demonstrates last-rename-wins.
 - **Implementation**:
   - `createStateIo({ fsOps, processOps, clock, random })` per SDD Component 4; production uses the
     narrow Node adapters and tests inject one delegating adapter across locks, state/projection writes,
     and atomic rename barriers.
   - `acquireShardLock(rootDir, expectedTaskId)` / `releaseShardLock(rootDir, expectedTaskId, nonce)` per
     SDD Component 4 — no automatic reclamation path exists. Strict lock parsing returns
-    `LOCK_MALFORMED`; only explicit quiescence-gated CLI recovery removes malformed bytes.
+    `LOCK_MALFORMED`; explicit recovery holds the commit guard and bumps generation before removing malformed admission bytes.
   - `mutateTaskStateOnDisk(rootDir, expectedTaskId, {to, actor, expected_digest, evidence, mode})` per
     SDD Component 9. Derive the active shard path from `expectedTaskId`, bind it to the re-read envelope
     under the lock, and release in `finally`; do not pre-read `task_id` to select the lock.
@@ -357,17 +398,17 @@ can actually pass at the point it runs; where it could pass *vacuously* that is 
 - **TDD Failing Step**: Failing tests asserting:
   1. `updateProjectStatusFile()` acquires `docs/records/work-items/.projection.lock` **before** compiling — proven by a barrier that archives a shard between lock-attempt and compile and asserts the final projection reflects the archive.
   2. A second concurrent `updateProjectStatusFile()` waits and then produces a projection matching filesystem reality; neither run's output is lost.
-  3. An abandoned projection lock throws `LOCK_ABANDONED` naming `unlock --projection --nonce <observed> --quiesced`, and the lock file is left untouched.
+  3. An abandoned projection admission lock names fenced `unlock`; recovery bumps projection generation under the projection commit guard before unlink. An abandoned commit guard throws `COMMIT_GUARD_ABANDONED` and has no online removal path.
   4. Lock order: no code path acquires a shard lock while the projection lock is held (asserted by instrumenting both acquire functions and failing on inversion).
   5. `archiveWorkItem()` calls `updateProjectStatusFile()`; when it throws, the compensating rename restores `work-items/{id}` and `ARCHIVE_RECONCILIATION_FAILED` is raised; when the compensating rename also fails, the error carries `compensation_failed: true`.
   6. **Barrier test — mutation and archive of the same shard cannot overlap**, because both take `work-items/.locks/{id}.lock` and `archiveWorkItem()` releases it **last**, after the projection lock.
   7. **Three-pathname lock-absence assertion on all three exit paths** (success, compensating rename, compensation failure): no file at `work-items/.locks/{id}.lock`, none at `work-items/{id}/.lock`, and none at `archive/{id}/.lock`. The last two prove the Round 5 Blocker 2 defect cannot reappear via a path-derived lock.
-  8. The projection lock is released on every success and failure path.
+  8. The projection admission lock and owned commit guard are released on every normal success/failure path; a process crash may strand either, and only admission has online fenced recovery.
   9. `archiveWorkItem(expectedTaskId)` derives the active source from that ID, acquires its stable lock,
      re-reads the envelope, and rejects `TASK_IDENTITY_MISMATCH` before rename when envelope ID,
      directory basename, and argument differ. A barrier replacing A's envelope with B before A acquires
      its lock proves no archive or projection write occurs under the wrong identity.
-- **Implementation**: Projection lock and ordering per SDD Component 7; archival compensation per SDD Component 8. `archiveWorkItem(expectedTaskId)` derives the source directory and lock from the same explicit identifier, binds the re-read envelope to both, reconciles, renames, updates the projection, then releases the shard lock last.
+- **Implementation**: Projection admission lock, commit guard, generation validation and ordering per SDD Components 4/4A/7; archival compensation per SDD Component 8. `archiveWorkItem(expectedTaskId)` derives the source directory and lock from the same explicit identifier, binds the re-read envelope to both, reconciles, renames, updates the projection, then releases the shard lock last.
 - **Verification**: `node --test test/compile-status-projection.test.mjs test/archive-work-item.test.mjs`; `npm run validate:status-projection`.
 - **Rollback**: Revert both scripts.
 
@@ -408,7 +449,7 @@ can actually pass at the point it runs; where it could pass *vacuously* that is 
 
 #### Task 10: Independent Code Review Record (QG-001)
 - **Owner**: `qa-agent` — **sole owner.** The implementer (`developer-agent`) must not author or co-author this record; implementer-verifier separation is the point of the gate.
-- **Prerequisite**: Tasks 1–5, 8a, 9a, 6, 7, 9b, 8b — the complete sequence in §4.0.
+- **Prerequisite**: Tasks 1–5, F1–F5, 8a, 9a, 6, 7, 9b, 8b — the complete sequence in §4.0.
 - **Files**: `docs/records/qa/2026-09-12-control-plane-state-integrity-code-review.md`.
 - **Implementation**: Independently review every `.mjs` change against the SDD, re-deriving each claim rather than accepting the implementer's summary.
 - **Verification**: `npm run validate:review-gate`.
@@ -456,7 +497,7 @@ npm test
 | Shard backfill or terminal-hop failure (9a) | `node scripts/backfill-task-state-v2.mjs --rollback`, else restore backups and verify against recorded SHA-256; regenerate the projection | `developer-agent` |
 | Archive step failure (9b) | Automatic compensating rename restores the shard; if compensation also fails the error says so; manual reversal is `mv archive/{id} work-items/{id}` plus projection regeneration | `developer-agent` |
 | Active-shard lane rejects something unforeseen (8b) | Deactivate the lane only; keep the backfill tool | `developer-agent` |
-| Abandoned lock in CI | `node scripts/task-machine-cli.mjs unlock --task <id> --nonce <observed> --quiesced` or `--projection`, **only after the operator has established quiescence** — this is a maintenance operation and is not race-safe (SDD Component 4) | Human Maintainer |
+| Abandoned lock in CI | `unlock` acquires the commit guard, durably increments generation, then removes admission. A stranded commit guard has no online recovery; stop all writers and restart the host/session before offline repair (SDD Component 4/4A) | Human Maintainer |
 
 ---
 
@@ -464,8 +505,8 @@ npm test
 
 | Risk / Blocker | Impact | Mitigation / Next Action |
 |---|---|---|
-| Abandoned shard lock blocks one work item | Medium | Loud error names maintenance-only `unlock`. Quiescence is an external safety precondition; CAS alone does not prevent two admitted writers from both passing before either writes. Security Blocker 1 remains open. |
-| Abandoned projection lock blocks every status update including CI | High | Deliberate (ADR-0030), justified in the SDD. Shorter critical section; diagnostic surfaced by every projection validator. |
+| Abandoned admission lock blocks one work item | Medium | Fenced `unlock` increments generation under the commit guard before removal. False quiescence revokes old writers instead of permitting silent overwrite. |
+| Abandoned projection admission lock blocks status updates | High | Fenced recovery is safe. An abandoned projection commit guard remains a deliberate fail-closed availability event requiring offline host/session restart recovery. |
 | A live-but-slow holder is misread as abandoned | Medium | Abandonment is classified by **dead PID only**; age is a diagnostic tier (`LOCK_HELD_LONG`), never a classifier (SDD Component 4). Tested in Task 4 item 3. |
 | Matrix and policy drift apart | High | Authority-rule parity test in Task 3 item 6: legality is the strict intersection, and matrix `requires` is proven never to be consulted at validation time. |
 | Strict intersection empties a hop and severs a happy path | High | **Already occurred at `investigating -> implementing`.** Repaired by widening the matrix (SDD Component 2, SA ruling), and permanently guarded by Task 3 item 0, which enumerates every policy row of every in-scope workflow and fails the build on any empty intersection or missing matrix destination. |
@@ -484,12 +525,12 @@ npm test
 
 | To | Reason | Required Evidence |
 |---|---|---|
-| Human Maintainer (gate) | Approve the Round 6 blueprint only after Security resolves Blocker 1, malformed-lock recovery, and OQ-2, and QA aligns its cases | Revised requirement, SDD, plan, QA plan, security review |
+| Human Maintainer (gate) | Review the Round 7 blueprint after Security validates ADR-0032 and QA aligns deterministic barriers/mutants | Revised requirement, SDD, plan, QA plan, security review |
 | Documentation Agent | Record ADR-0026..**ADR-0031** in `DECISIONS.md` — **six ADRs**; ADR-0031 (Package 1 scoped to `bug-fix`, single authority rule) is new in Round 5 | Approved SDD |
 | QA Agent | Update dual-lane tests and field-swap mutants; positive and negative full-path blocked resume cases; transition/resume/archive identity mismatch and between-start/lock replacement barriers; exact `archive/` plus dot-entry enumeration; malformed-lock cases; and both four-step wrong-unlock counterexamples. Use OQ-2's resolved `createStateIo` adapter seam; do not introduce a production test-only hook. | Round 6 SDD, this plan |
 | Code Review Gate | Review all production script modifications | Diff, unit tests, independently authored code review record |
 | QA Verifier | Independent verification of AC-001..AC-010 and the deterministic invariants | Full test run, mutation evidence, gate passes |
-| Security Reviewer | Round 6 security contract complete: CAS safety claim withdrawn; shard/projection counterexamples recorded; `LOCK_MALFORMED` recovery defined; OQ-2 resolved with `createStateIo`. SEC-004 remains High/Open pending explicit Human acceptance or replacement with fencing/conditional commit. | Security review, SDD Component 4, requirements BR-003/R-006 |
+| Security Reviewer | Validate ADR-0032: shared commit-guard serialization, durable monotonic generations, all crash/interleaving boundaries, and offline-only guard recovery. SEC-004 remains High/Open until that review passes. | Security review, SDD Component 4, requirements BR-003/R-006 |
 | Human Maintainer (merge) | Final merge approval | Clean CI run, approved reviews, zero gate failures |
 
 ### 9.1 Round 6 SA dry-run against the repository

@@ -5,7 +5,7 @@
 - Work Item ID: Issue #277
 - Title: Control-Plane State Integrity & Architecture Remediation (Package 1)
 - Owner: SA Agent (`sa-architecture-design`)
-- Status: Draft (Rework Round 6 — Addressing re-review at `dbfbe3e`)
+- Status: Draft (Round 7 — ADR-0032 fenced conditional commit; pending Security and QA validation)
 - Date: 2026-09-12
 - Governing Requirements: `docs/records/requirements/2026-09-12-control-plane-state-integrity-discovery.md` (AC-001..AC-010, BR-001..BR-005)
 
@@ -96,15 +96,14 @@ Round 6 at `dbfbe3e` found three SA-owned executable gaps. This revision closes 
 - **G-006 (Pure Projection, Explicit Repair — ADR-0029):** `compileStatusProjection()` and
   `detectArchivedShardDrift()` are pure. Repair lives only in `reconcileArchivedShards()`, reachable
   only from archival preflight and an explicit `--reconcile` flag. `--check` writes zero bytes.
-- **G-007 (Projection Transaction — ADR-0030):** `PROJECT_STATUS.md` mutation is serialized by a
-  projection-level lock; active shards are re-read *after* the lock is held. Total lock order is
-  shard lock → projection lock, never inverted.
+- **G-007 (Projection Transaction — ADR-0030, ADR-0032):** `PROJECT_STATUS.md` mutation is serialized by a projection admission lock and non-reclaimable commit guard; active shards are re-read after admission and the durable generation is checked inside the guard.
+- **G-008 (Fenced Conditional Commit — ADR-0032):** admission-lock recovery durably increments a monotonic generation while holding the same commit guard required by writers. A writer from an older generation cannot rename, even after a false quiescence assertion. Total order is task admission → projection admission → applicable commit guard; commit guards are never nested.
 
 ### Non-goals
 - **NG-001:** Cryptographic agent identity authentication (caller-declared role policy only).
 - **NG-002:** Unbacked numeric NFR targets.
 - **NG-003:** External database engines or distributed consensus.
-- **NG-004:** Automatic recovery from abandoned locks (explicitly rejected — see ADR-0027).
+- **NG-004:** Online recovery from an abandoned commit guard. Admission locks remain recoverable, but the serialization root is deliberately non-reclaimable while any old process could resume.
 
 ---
 
@@ -143,7 +142,9 @@ flowchart TD
         REWORK_CHECK{"8. Rework ceiling valid?"}
         HUMAN_CHECK{"9. Human gate preserved?"}
         MUTATE["10. transitionTaskState()/resumeTaskState() — pure\n(seq++, append history, digestTaskEnvelope)"]
-        ATOMIC_WRITE["11. atomicWriteFileSync to derived path"]
+        COMMIT_GUARD["11. Acquire non-reclaimable commit guard"]
+        FENCE_CHECK{"12. Re-read generation + state\nGeneration, digest, identity still match?"}
+        ATOMIC_WRITE["13. atomicWriteFileSync to derived path"]
     end
 
     REQ --> DERIVE --> LOCK_ACQ
@@ -157,7 +158,7 @@ flowchart TD
     BUSY -- No --> READ_DISK
     READ_DISK --> SCHEMA_CHECK --> IDENTITY_CHECK
     IDENTITY_CHECK -- No --> IDENTITY_REFUSE --> LOCK_REL
-    IDENTITY_CHECK -- Yes --> CAS_VERIFY --> SRC_CHECK --> ACTOR_CHECK --> POLICY_CHECK --> REWORK_CHECK --> HUMAN_CHECK --> MUTATE --> ATOMIC_WRITE --> LOCK_REL
+    IDENTITY_CHECK -- Yes --> CAS_VERIFY --> SRC_CHECK --> ACTOR_CHECK --> POLICY_CHECK --> REWORK_CHECK --> HUMAN_CHECK --> MUTATE --> COMMIT_GUARD --> FENCE_CHECK --> ATOMIC_WRITE --> LOCK_REL
 ```
 
 ### 2. Projection Call Graph (Acyclic, One-Directional)
@@ -405,59 +406,65 @@ export function digestTaskEnvelope(envelope) {
      permanently as `LOCK_ACQUISITION_TIMEOUT` + `LOCK_HELD_LONG`, which is the diagnostic tier that
      still names `unlock` for an operator who can establish quiescence. Availability cost, not a
      correctness gap (SEC-003).
-- **Recovery surface — `unlock` is a maintenance-only operation requiring explicit quiescence
-  (ADR-0027, amended Round 5).** `unlock` is the only path other than owner release that removes a
-  lock, and it is **not race-safe**. It reads the lock, compares the operator-supplied nonce, and
-  unlinks; nothing in Node's `fs` API makes that unlink conditional on the bytes just read, so a holder
-  that releases and a new holder that acquires between the read and the unlink will have the
-  *replacement* lock removed. The `wx` sentinel asserted in Round 4 is withdrawn: it was never given a
-  pathname, no acquire or release path was ever required to honour it, and a sentinel that every path
-  must honour is itself an unreclaimable lock — the same problem one level down (see *Why not a
-  sentinel*).
-  - `unlock` therefore requires an explicit `--quiesced` flag. The operator asserts that no agent, CLI
-    invocation or CI job is mutating the named task. The CLI prints the holder record and the
-    consequence of a wrong assertion before acting, and the refusal that names `unlock` says
-    "maintenance command — run only when the task is quiesced."
-  - Nonce verification is retained as a **mistake filter, not a safety property**: `unlock` refuses with
-    `LOCK_NONCE_MISMATCH` when the supplied nonce does not match the lock on disk, which catches the
-    common operator error of acting on a stale `inspect` reading. It does not close the check/unlink
-    window and is not claimed to.
-  - A malformed lock has no trustworthy nonce. `unlock --task <id> --malformed --quiesced` (or
-    `unlock --projection --malformed --quiesced`) is the only recovery path for it. `--malformed` and
-    `--nonce` are mutually exclusive. The command re-reads immediately before unlink and refuses with
-    `LOCK_BECAME_VALID` if the current bytes parse as a valid holder record; conversely nonce mode refuses
-    `LOCK_MALFORMED`. This is a stale-observation filter, not a conditional unlink, and therefore does
-    not replace quiescence. The CLI prints the pathname, raw byte length and parse failure without
-    printing arbitrary lock contents.
-  - **Four-step shard counterexample (wrong `--quiesced` assertion).** (1) State is `S0`/`D0`; writer A
-    owns lock A, reads `S0`, passes CAS against `D0`, then pauses before write. (2) The operator removes
-    lock A through valid-lock or malformed-lock recovery while A is live. (3) Writer B acquires lock B,
-    reads the still-current `S0`, also passes CAS against `D0`, then pauses before write. (4) A writes
-    `SA`; B writes `SB` (or the reverse). Both comparisons passed and the later atomic rename silently
-    overwrites the earlier history event. One-shot CAS is not a fencing or conditional-commit primitive.
-  - **Four-step projection counterexample.** (1) Compiler A owns projection lock A, compiles projection
-    `P0`, then pauses before write. (2) The operator incorrectly removes A's projection lock. (3)
-    Compiler B acquires projection lock B, compiles `P0` from the same active-shard snapshot, then pauses.
-    (4) A and B write in either order; the later rename wins. If a shard/archive change occurs between
-    the two compiles, the winner can publish a stale projection. This path has no shard-digest CAS
-    backstop at all.
-  - **Security decision.** Quiescence is an external safety precondition for both recovery modes and both
-    lock namespaces. The zero-lost-update claim is limited to executions in which it holds. Violating it
-    can silently lose a shard history event or publish stale repository-wide projection state. SEC-004
-    remains High and open until a Human explicitly accepts this maintenance residual or a real
-    fencing/conditional-commit protocol is selected and demonstrated across the counterexample above.
-  - `inspect` prints the holder and the shard's current digest without mutating anything, and is the
-    supported read-only path; it carries no quiescence requirement.
-- **Why not a sentinel (rejected route).** The alternative was a lock-management sentinel — a second
-  `wx` file that `acquire`, `release` and `unlock` all take before touching the primary lock — which
-  would genuinely close the check/unlink window. It was rejected: the sentinel has the identical
-  abandonment problem as the lock it protects (a SIGKILL between sentinel acquire and release wedges the
-  lock-management path itself, with no recovery command that is not recursive), it puts a second
-  mandatory `wx` round-trip in the hot path of every ordinary transition to protect a rare manual
-  operation, and it expands Package 1's concurrency implementation surface at the exact point Round 4
-  showed reasoning about `fs` interleavings to be error-prone. Maintenance-only `unlock` is retained as
-  the recommended operational route, subject to the external quiescence precondition and explicit Human
-  acceptance of the residual above.
+- **Fenced recovery and conditional commit (ADR-0032; Human decision 2026-09-14).** The Human
+  Maintainer rejected SEC-004's silent-loss residual. The old lock is now an **admission lock**, not the
+  commit authority. Each scope has two additional stable paths outside shard directories:
+  `.fencing/tasks/{task_id}.json` (or `.fencing/projection.json`) containing
+  `{ "schema_version": 1, "generation": <safe integer >= 1> }`, and
+  `.commit-guards/tasks/{task_id}.guard` (or `.commit-guards/projection.guard`). A commit guard is
+  acquired with `openSync(path, 'wx')`, durably populated and released by its owner in `finally`. It is
+  never removed by `unlock`, timeout, PID/age classification, or another online engine process.
+
+  **Writer protocol.** (1) Acquire the recoverable admission lock. (2) Read and strictly validate the
+  durable generation `g`; missing/corrupt state is `FENCE_STATE_MISSING`/`FENCE_STATE_MALFORMED`, never
+  an implicit reset. (3) Read state and compute a candidate from `(state, digest, g)`. (4) Acquire the
+  scope's commit guard. (5) Inside that guard, re-read generation and current state. If generation is
+  not `g`, throw `FENCING_TOKEN_STALE`; if digest changed, throw `CAS_CONFLICT`; for shards, repeat the
+  task-identity validation. (6) Only after all checks, atomically rename the candidate into place and
+  directory-sync. The successful rename is the writer's linearization point. (7) Release the commit
+  guard, then release the admission lock by nonce. A retry after either conflict must release, reacquire,
+  reread, obtain the new generation/digest, and recompute. Re-labelling a candidate computed from old
+  state with a new token is forbidden.
+
+  **Recovery protocol.** `unlock --quiesced` retains the operator warning and nonce/malformed-mode
+  checks, but truth of the assertion is no longer a safety premise. It (1) acquires the applicable
+  commit guard, (2) re-reads and validates the generation and admission lock, (3) atomically writes and
+  directory-syncs exactly `generation + 1`, then (4) removes the admission lock and syncs its directory.
+  The durable generation rename is recovery's linearization point. If the process crashes after the
+  increment but before unlink, retry increments again; gaps are allowed and reuse is forbidden. If it
+  crashes before the increment rename, the old generation remains authoritative. A crash while holding
+  the guard wedges the scope and fails closed with `COMMIT_GUARD_ABANDONED`.
+
+  **Durability and lifecycle.** Migration creates generation 1 under a newly-created commit guard before
+  fenced writers are enabled. Once a scope has a shard, archive, projection, or generation record,
+  missing generation is corruption and cannot initialize to 1. Task generations remain in the stable
+  namespace after archival; task identifiers cannot be reused. Neither deletion, archival, process
+  restart nor rollback may decrease/reset a generation. Rollback restores code and state files together
+  to a pre-activation checkpoint; it must not selectively restore an older generation.
+
+  **Why the local filesystem mechanism is sufficient, and its boundary.** Node `fs` has no atomic
+  compare-and-rename across two files. The design does not claim one. Instead every generation bump and
+  every candidate commit is serialized by the same exclusive-create guard, so the check and rename are
+  inside one critical section. The price is availability: an abandoned commit guard has no safe online
+  reclaim. Offline repair is permitted only after all repository writers are stopped and their host or
+  execution session has restarted; the runbook preserves the current generation, removes only the guard,
+  then validates every shard and projection before writers restart. A CLI flag cannot attest this state,
+  so there is no online `--force-commit-guard` command.
+
+  **Required interleavings.** Ordinary A/B writers serialize at the commit guard: the first rename wins,
+  then the second fails digest CAS. If recovery occurs while A is admitted, recovery increments `g` under
+  the guard; B receives the new generation and A later fails `FENCING_TOKEN_STALE`. If A already holds the
+  guard after checking, recovery cannot enter until A renames or releases; A linearizes first, then
+  recovery increments. The same proof applies to projection writers even without shard-digest CAS:
+  generation validation is inside the projection guard, so a pre-recovery compiler cannot publish after
+  recovery. All orderings produce one total order of generation bumps and renames; none silently commits
+  an old-generation candidate.
+
+  **Errors and observability.** `FENCING_TOKEN_STALE` reports scope, observed generation and current
+  generation with `retryable: true` and `recompute_required: true`; `CAS_CONFLICT` reports both digests;
+  `FENCE_STATE_MISSING`, `FENCE_STATE_MALFORMED`, `FENCE_GENERATION_EXHAUSTED`, and
+  `COMMIT_GUARD_ABANDONED` are fail-closed/non-retryable without operator action. Logs record scope,
+  generation, nonce, operation, result and error code, never arbitrary lock/state contents.
 - **Deterministic injection seam (OQ-2 resolved).** Disk operations are assembled through
   `createStateIo({ fsOps = nodeFsOps, processOps = nodeProcessOps, clock = Date, random = Math.random })`.
   `nodeFsOps` is a narrow production adapter exposing only the filesystem calls used by lock acquisition,
@@ -468,7 +475,7 @@ export function digestTaskEnvelope(envelope) {
   production "test-only" branch is permitted. QA can therefore place both shard writers after CAS and
   before write, or both projection compilers after compile and before write, then release the wrong-unlock
   interleaving without timing sleeps.
-- **Release:** read `.locks/{task_id}.lock`; unlink only when `parsed.nonce === myNonce`. Always in a
+- **Admission release:** read `.locks/{task_id}.lock`; unlink only when `parsed.nonce === myNonce`. Always in a
   `finally`. Because the pathname never moves, the release in `finally` refers to the same file the
   acquisition created, including on the archive path where the shard directory itself has been renamed.
 - **Why not takeover.** Every automatic-reclaim variant reachable from Node's `fs` API — rename, unlink,
@@ -482,6 +489,25 @@ export function digestTaskEnvelope(envelope) {
   item unable to transition until an operator runs `unlock`. The critical section is
   read → validate → compute → write with no network and no waits, typically single-digit milliseconds,
   so the exposure window is small and the failure is loud, diagnosed, and local to one shard.
+
+### Component 4A: Crash and Interleaving Proof Table (ADR-0032)
+
+| Boundary / ordering | Durable outcome | Required next action |
+|---|---|---|
+| Writer crashes before guard acquisition | No commit; admission may remain | fenced recovery bumps generation, then removes admission |
+| Writer crashes after guard create, before check | State/generation unchanged; guard remains | offline host/session restart recovery only |
+| Writer crashes after checks, before candidate rename | State unchanged; guard remains | offline recovery; candidate temp is cleaned/reconciled |
+| Writer crashes after candidate rename, before directory sync | File is complete but crash durability is not promised until sync completes | offline validation determines old/new complete file; never retry old candidate blindly |
+| Writer crashes after directory sync, before guard release | Commit is durable; guard remains | offline recovery preserves state and generation |
+| Recovery crashes before generation rename | Old generation authoritative; admission remains | retry recovery |
+| Recovery crashes after generation rename, before admission unlink | New generation authoritative; admission remains | retry may increment again, then unlink |
+| Recovery crashes after admission unlink, before guard release | New generation authoritative; old writers fenced; guard remains | offline recovery |
+| A checks and pauses before acquiring guard; recovery then B | recovery bumps generation; A fails `FENCING_TOKEN_STALE`; B may commit | A reacquires and recomputes |
+| A checks inside guard and pauses; recovery waits | A rename precedes recovery bump | recovery proceeds after A releases |
+| Projection A compiles before recovery | generation mismatch rejects A inside projection guard | recompile under a new admission/generation |
+
+A mutation test must move the generation comparison outside the guard and must be killed by the
+A-checks/pause/recovery barrier. Another mutant that permits online commit-guard removal must be killed.
 
 ### Component 5: Crash-Durable POSIX Atomic Writer
 
@@ -691,8 +717,13 @@ export function mutateTaskStateOnDisk(rootDir, expectedTaskId, {
     and unlock path; it was rejected because the sentinel reproduces the abandonment problem one level
     down, taxes every ordinary transition to protect a rare manual operation, and enlarges the
     concurrency surface. Round 6 invalidated the earlier CAS fallback claim: two writers can both pass
-    CAS before either writes. The resulting residual is Security-owned and remains open under SEC-004.
+    CAS before either writes. The Human rejected that residual on 2026-09-14. ADR-0032 supersedes maintenance quiescence as a safety premise: fenced recovery increments a durable generation under a non-reclaimable commit guard before removing admission.
   - *Status:* Proposed (Pending Maintainer Approval).
+- **ADR-0032: Fenced Conditional Commit for Recoverable Admission Locks**
+  - *Context:* A token checked before an unconditional rename leaves a recovery window; Node `fs` has no cross-file atomic compare-and-rename.
+  - *Decision:* Serialize every generation bump and writer rename with the same non-reclaimable commit guard. Recovery increments the durable generation before admission removal. Writers recheck generation, digest and identity inside the guard.
+  - *Consequence:* False quiescence yields `FENCING_TOKEN_STALE`, not silent overwrite. An abandoned commit guard sacrifices availability and has offline-only recovery.
+  - *Status:* Accepted for blueprint validation by Human Maintainer on 2026-09-14; Security and QA validation pending.
 - **ADR-0028: Self-Excluding RFC 8785 JCS Task Envelope Hashing**
   - *Context:* Hashing an envelope including `state_digest` is circular.
   - *Decision:* `digestTaskEnvelope()` excludes the top-level `state_digest` before `digestJcs()`;
