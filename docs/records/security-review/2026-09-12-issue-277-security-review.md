@@ -6,9 +6,9 @@
 - Title: Control-Plane State Integrity & Architecture Remediation (Package 1)
 - Owner: Security Reviewer (`security-review`)
 - Date: 2026-09-12
-- Status: Changes Requested (Round 8 — archive fencing added; journal terminal/rebase semantics incomplete)
+- Status: Security Approved (Round 9 — SEC-004 remediated in design; implementation evidence pending)
 - Target Branch: `feat/control-plane-state-integrity`
-- Governing SDD: `docs/records/sdd/2026-09-12-control-plane-state-integrity-sdd.md` (Round 8 archive-fencing rework, Draft)
+- Governing SDD: `docs/records/sdd/2026-09-12-control-plane-state-integrity-sdd.md` (Round 9 append-only archive ledger, Draft)
 - Governing Requirements: `docs/records/requirements/2026-09-12-control-plane-state-integrity-discovery.md`
 
 ---
@@ -206,6 +206,58 @@ Minimum SA correction:
 | Candidate re-tagging | Still forbidden for state candidates; journal generation adoption is undefined | Must distinguish safe transaction adoption from forbidden candidate retagging |
 
 
+
+### 2C. Final Round 9 Review of Append-Only Ledger (`4e12be0`)
+
+The second SA rework resolves both Round 8 blockers. Immutable `intent.intended_outcome` plus distinct
+`terminal_archived`/`terminal_compensated` phases and constrained `terminal_outcome` remove restart
+ambiguity. Generation advancement no longer retags a stale attempt: adoption conditionally appends a
+fresh, generation-bound attempt under the task guard, preserves the original intent and source binding,
+and requires reread/recompute before any rename or projection publish.
+
+The 24 phase/path cells, each split by equal/greater/lower generation, admit automatic action only when
+one exact source location exists with the journal-bound identity and digest. `B`, `N`, terminal/location
+mismatch, generation regression, malformed/tampered ledger, and every unlisted adoption fail closed.
+The two post-rename/pre-ledger-update single-path states prove which directional rename already
+linearized; adoption records that fact under a new attempt rather than inferring intent from an ambiguous
+location. This closes the old archiver and stale compensator attacks without trusting `--quiesced`.
+
+#### Final adversarial evidence matrix
+
+| Attack / boundary | Derived result | Design verdict |
+|---|---|---|
+| Old archiver pauses before task guard; recovery bumps generation | Inside-guard generation check rejects old executor; zero rename | Closed |
+| Archiver holds task guard when recovery begins | Archive rename and ledger advance precede recovery bump; recovery waits | Closed |
+| Stale compensator after recovery/new executor | Old attempt/generation/revision mismatch; zero reverse rename | Closed |
+| `prepared/A`, equal or greater generation | Validate exact digest; equal resumes, greater appends attempt and recomputes before forward rename | Closed |
+| `prepared/R`, equal or greater generation | Physical state proves forward rename linearized; guarded phase advance/adoption records it | Closed |
+| `archive_moved/R`, including generation adoption | Fresh projection compilation/publish precedes archived terminal | Closed |
+| `compensation_requested/R` | Only this directional phase authorizes reverse rename | Closed |
+| `compensation_requested/A` after crash | Exact active digest proves reverse rename linearized; guarded phase advance/adoption records it | Closed |
+| `compensation_moved/A`, including generation adoption | Fresh active projection precedes compensated terminal | Closed |
+| Any transitional `B` or `N` | No adoption or repair; Human/offline inspection | Integrity fail closed; availability residual |
+| Terminal archived at A/B/N or terminal compensated at R/B/N | Terminal/location mismatch or ambiguity; no mutation | Integrity fail closed |
+| Current generation lower than attempt | `FENCE_GENERATION_REGRESSION`; no mutation | Closed |
+| Missing/malformed generation or exhausted safe integer | Existing fence errors stop all mutation; no reset/reuse | Closed |
+| Restart/archive/compensation/offline guard repair | Generation and ledger retained; selective rollback/deletion/task-ID reuse/raw `mv` forbidden | Closed under documented operational boundary |
+| Crash before initial journal completion | Malformed `wx` artifact; no inferred intent, offline inspection | Integrity fail closed; availability residual |
+| Crash before/after rename, parent sync, ledger phase persist | Restart is one exact single-path pre/post state or fails into B/N; matrix resumes only exact cells | Closed; runtime fault evidence pending |
+| Duplicate executor or stale journal update | Task guard plus exact txid/revision/attempt/generation/phase/outcome CAS rejects stale update | Closed |
+| Duplicate txid/attempt or immutable-intent mutation | Strict validation and whole-ledger digest reject; UUID source is injected cryptographic UUID | Closed for accidental/protocol corruption |
+| Candidate/projection reuse after adoption | New attempt requires reread and fresh recomputation; mutants must kill retag/reuse | Closed in design; implementation evidence pending |
+| Projection compiler predates projection recovery | Inside-projection-guard generation check rejects stale publish | Closed |
+| Projection succeeds then crash before task terminal | Matrix recompiles and idempotently republishes before finalizing | Closed |
+| Projection fails/crashes before compensation request | Remains archive-moved and retries projection; reverse direction is not inferred | Closed |
+| Task/projection lock ordering | Admissions retain shard→projection order; commit guards never overlap or wait while nested | No guard deadlock cycle |
+| Path traversal/symlink | Task ID validation prevents separators/dot-leading paths; parent replacement is outside the declared trusted local-workspace boundary | No new in-scope path traversal |
+| Hostile local writer recomputes ledger digest | SHA-256 is integrity, not authenticity, as already recorded in SEC-002 | Accepted existing residual; no claim of a cryptographic digest chain |
+
+`journal_digest` protects the complete canonical ledger and conditional revision checks protect protocol
+updates; it is not a cryptographically authenticated hash chain. That distinction is acceptable only
+under the documented local-workspace trust boundary and SEC-002. Planned tests and mutants remain
+mandatory and are not treated as executed evidence here.
+
+
 ### 3. State Tampering vs State Integrity (Integrity without Authenticity)
 - **Threat:** Accidental, stale, or concurrent disk modifications; manual tampering with task state history or sequence numbers.
 - **Planned Control:** ADR-0028 specifies `digestTaskEnvelope(envelope)` which excludes top-level `state_digest` and computes canonical RFC 8785 JCS SHA-256. `validateEnvelopeSchema` will enforce `data.state_digest === digestTaskEnvelope(data)` on load, transition, and resume.
@@ -224,7 +276,7 @@ Minimum SA correction:
 | SEC-001 | Medium | Caller-declared actor parameter is not cryptographically signed. | No | Documented / Accepted | SDD NG-001; scoped as transition policy validation; cryptographic identity deferred. |
 | SEC-002 | Medium | SHA-256 provides integrity against accidental mutation, not cryptographic authenticity against malicious local attackers. | No | Documented / Clarified | SDD Component 3; integrity verification enforced; authentication deferred. |
 | SEC-003 | Medium | Fail-closed locking converts a liveness risk into an availability risk: an abandoned shard lock wedges one work item, and an abandoned projection lock wedges every status update including CI, until an operator intervenes. **Widened by the Round 5 predicate change:** narrowing abandonment to dead-PID-only means fewer locks are auto-classified, so an old-but-live lock, and a lock whose writer died off-host while its PID number is coincidentally live locally, now wedge until an operator establishes quiescence and runs `unlock --quiesced` — a slower, more deliberate intervention than before. | No | Accepted / Documented | ADR-0027 (Round 5 amendment), ADR-0030, Requirement R-006. Accepted deliberately: this is availability traded for integrity. An automatic clear is the same unsound primitive Round 4 rejected, a wrong clear on the projection lock corrupts repository-wide state, and admitting a live slow holder to the recovery path was itself the Round 5 Blocker 4 exposure. Critical sections are short; every refusal names its recovery command and its holder. |
-| SEC-004 | High | Fenced forward and compensation renames close the old-generation archive write, but the journal cannot distinguish archived vs compensated `complete`, and no generation-safe adoption/supersession transition exists for an incomplete journal after recovery increments generation. | **Yes** | **Open / Design rework required** | Round 8 §2B; SDD lines 629–674. Integrity can fail closed, but deterministic resumable convergence and safe projection repair are not yet specified. |
+| SEC-004 | High | False-quiescence admission recovery previously permitted old-generation transition, projection, archive, or compensation commits. ADR-0032 now serializes each rename/publish with its scope guard and durable generation; append-only ledger attempts fence archive adoption and require fresh recomputation. | Yes until implementation evidence | **Remediated in design / Evidence pending** | Round 9 §2C and the SDD 24-cell matrix. No reviewed cell permits an old-generation rename or stale projection publish; ambiguous cells fail closed. |
 | SEC-005 | Medium | A repairing `--check` would mutate the repository from inside a read-only governance gate and could mask the drift it exists to detect. | Yes | Design corrected | ADR-0029: detection is pure, repair is explicit; TC-028 asserts whole-tree byte equality. |
 | SEC-006 | Medium | The Round 4 abandonment predicate (`age > 30 s` **or** dead PID) admitted a live, slow holder into a destructive operator-recovery path on age alone; the predicate, not merely the unlink window, was part of the exposure. | Yes | Design corrected | SDD Component 4 Acquisition; ADR-0027 Round 5 amendment (a). Abandonment is now dead-PID-only; age is a diagnostic tier. Evidence: TC-014c. |
 | SEC-007 | Medium | A crash after exclusive lock creation but before payload completion leaves an empty/partial lock that cannot supply a nonce. | Yes | Design corrected; evidence pending | Strict parsing returns `LOCK_MALFORMED`; explicit `--malformed --quiesced` recovery requires no nonce, re-reads before unlink, and refuses if the record became valid. QA must cover shard and projection locks with empty, truncated, invalid-JSON, and schema-invalid payloads. |
@@ -241,14 +293,18 @@ Minimum SA correction:
 ## Security Verdict
 
 - **Reviewer:** Security Reviewer (`security-review`)
-- **Decision:** **NEEDS_REWORK / BLOCKED — archive renames are fenced, journal recovery is ambiguous**
-- **SEC-004 status:** **Open / High.** The Round 7 old-archiver and stale-compensator rename attacks are
-  rejected in design. SEC-004 cannot close while terminal outcome and generation-supersession semantics
-  remain unspecified, because reconciliation cannot derive one safe action from every durable state.
-- **Next owner:** `sa-agent`.
-- **Minimum correction:** Add an outcome-discriminating terminal journal state and an explicit,
-  guard-serialized adoption/supersession protocol for all incomplete phases after generation advances;
-  define strict journal creation/phase CAS and the exhaustive phase × paths × generation recovery table.
-  Return to Security review before QA Full Mode.
-- Planned barriers and mutants are not implementation evidence. This verdict reviews blueprint commit
-  `35b0ab7` only.
+- **Decision:** **PASS at blueprint/design level — proceed to QA Full Mode**
+- **SEC-004 status:** **Remediated in design; implementation and mutation evidence pending.** Every reviewed
+  transition, projection, forward archive, compensation, adoption, crash and generation ordering either
+  serializes at the applicable non-reclaimable guard or fails closed without a state-changing commit.
+- **Residuals:** Abandoned/malformed commit guards or ambiguous `B`/`N` ledger states sacrifice
+  availability and require offline Human recovery. Ledger/state digests detect accidental/protocol
+  corruption but do not authenticate a hostile local filesystem writer (SEC-002).
+- **Required QA evidence:** Execute all phase × paths × generation cells; barrier every ledger persist,
+  rename, parent sync, projection outcome, adoption and terminal write; kill mutants for collapsed
+  terminal outcomes, retagged attempts/candidates, skipped CAS predicates, ambiguous auto-repair and
+  overlapping commit guards.
+- **Next owner:** `qa-agent` using `functional-test-design` in Full Mode. Implementation remains blocked
+  until QA reconciles the plan and approves the blueprint; this review does not claim production code or
+  tests exist.
+- This verdict reviews blueprint commit `4e12be0` only.
