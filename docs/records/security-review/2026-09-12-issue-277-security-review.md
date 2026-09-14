@@ -6,9 +6,9 @@
 - Title: Control-Plane State Integrity & Architecture Remediation (Package 1)
 - Owner: Security Reviewer (`security-review`)
 - Date: 2026-09-12
-- Status: Changes Requested (Round 7 — ADR-0032 proof review; archive path remains unfenced)
+- Status: Changes Requested (Round 8 — archive fencing added; journal terminal/rebase semantics incomplete)
 - Target Branch: `feat/control-plane-state-integrity`
-- Governing SDD: `docs/records/sdd/2026-09-12-control-plane-state-integrity-sdd.md` (Round 7 ADR-0032, Draft)
+- Governing SDD: `docs/records/sdd/2026-09-12-control-plane-state-integrity-sdd.md` (Round 8 archive-fencing rework, Draft)
 - Governing Requirements: `docs/records/requirements/2026-09-12-control-plane-state-integrity-discovery.md`
 
 ---
@@ -137,6 +137,75 @@ state for coordinating archive commit, projection commit, and compensation.
 | **Archive A pauses before rename; recovery increments and unlinks admission; A renames** | **Unsafe** | **No task commit-guard/generation check exists in Component 8; High blocker.** |
 | Archive compensation after recovery/new admission | **Unsafe / unspecified** | **No fenced compensation protocol or durable archive transaction state is named.** |
 
+
+### 2B. Round 8 Re-review of Journaled Fenced Archival (`35b0ab7`)
+
+The forward and compensating renames now acquire the task commit guard and check generation, identity,
+digest, journal transaction, and both physical paths inside the guard. This closes the Round 7 ordering:
+if recovery increments before A enters the guard, A fails stale; if A already holds the guard, A's rename
+linearizes first and recovery waits. Projection publication uses its own guard after the task guard is
+released, so there is no nested-guard cycle and a stale projection compiler still fails its generation
+check. The design also correctly avoids claiming cross-file atomicity.
+
+Two journal-state gaps prevent approval:
+
+1. **The terminal journal cannot identify its terminal outcome.** The declared record contains only
+   `{schema_version, txid, task_id, generation, source_digest, phase}` and `phase: complete` is used after
+   both a successful archive and a successful compensation (SDD lines 629–665). Yet reconciliation says
+   `complete` must match its "declared final location" (line 671), although no field or distinct terminal
+   phase declares whether the shard must be archive-only or active-only. After restart, `complete +
+   active-only` can mean a valid compensated result or an invalid reversal of a completed archive. A
+   reconciler cannot distinguish them from the documented record and therefore cannot safely validate
+   or repair the projection.
+2. **A generation bump strands an incomplete journal without an adoption/supersession transition.** A
+   recovery may legitimately increment from `g` to `g+1` after the forward rename but before finalize,
+   or after compensation rename but before its phase/finalize writes. The old executor correctly fails
+   `ARCHIVE_FINALIZE_STALE`/`ARCHIVE_COMPENSATION_STALE`, but the only forward entry rule rejects every
+   non-complete journal and journal records are never deleted or overwritten (lines 633–642). Lines
+   653–654 promise that a latest-generation reconciler completes the `moved` journal, but no rule defines
+   how it may bind generation `g+1` to a journal carrying `g` without violating the stale-generation and
+   no-retag guarantees. `prepared + active-only` and `compensated + active-only` have the same hole.
+
+These are fail-closed under a conservative implementation, so the original silent-overwrite exploit is
+removed. They nevertheless create an indefinite task/projection recovery wedge and leave room for two
+incompatible implementations, one of which could retag stale intent or select the wrong physical
+outcome. The blueprint must define the state transition before QA can derive deterministic assertions.
+
+Minimum SA correction:
+
+- Give terminal journal states an unambiguous outcome, for example distinct `archive_complete` and
+  `compensation_complete` phases, or an immutable `intended_outcome` plus a terminal `outcome` field.
+- Define one guard-serialized adoption/supersession protocol for every non-complete phase when current
+  generation exceeds journal generation. It must validate `txid`, exact digest/identity, active/archive
+  path cardinality and the already-linearized direction; create a new immutable attempt/version rather
+  than relabel a stale candidate; and state when a fresh archive may begin.
+- Specify strict journal schema/errors, collision-resistant `txid` generation, exclusive initial create,
+  conditional phase advancement under the task guard, and fail-closed handling for malformed/tampered or
+  regressed phases.
+- Expand crash outcomes before directory sync to include every allowed post-restart physical state; map
+  `prepared + both/neither` and every phase/path/outcome combination explicitly to adopt, retry, conflict,
+  or offline inspection.
+
+#### Round 8 evidence matrix
+
+| Ordering / fault | Result at `35b0ab7` | Verdict |
+|---|---|---|
+| Old archiver pauses before forward guard; recovery bumps/unlinks; A resumes | Inside-guard generation mismatch rejects A before rename | Safe in design |
+| A holds forward guard; recovery starts | A rename linearizes first; recovery waits | Safe in design |
+| Stale compensator after recovery or newer admission | Generation/txid/digest/path predicates reject rename | Safe in design |
+| Forward/compensation rename followed by crash before phase write | Journal plus exact one-path/digest can identify the rename direction | Safe only when generation is unchanged; bumped-generation adoption is unspecified |
+| Crash before/after either parent-directory sync | Post-restart path set is not exhaustively enumerated for `prepared` | Incomplete fail-closed mapping |
+| Projection publish between task phases | Guards do not overlap; fresh projection compile is serialized | Safe in design |
+| Recovery bump while journal is `moved`, before finalize | Old finalize fails, but no defined latest-generation journal adoption | **Blocking gap** |
+| Recovery bump after compensation rename, before `compensated`/finalize | Physical active-only proves a rename, but no generation supersession rule exists | **Blocking gap** |
+| `complete + active-only` after restart | Could be valid compensation or invalid reversal; journal has no outcome discriminator | **Blocking ambiguity** |
+| Duplicate destination / both paths / neither path | Named conflict for `moved`; other phase combinations are not exhaustive | Partial; expand matrix |
+| Malformed/tampered journal or duplicate `txid` | Plan names tests, but SDD defines no strict schema, error codes, initial-create or conditional phase-write rule | Incomplete contract |
+| Task/projection commit-guard ordering | Guards are explicitly non-nested | Safe; availability may still wedge on abandoned guard |
+| Generation restart/archive/rollback/reuse/exhaustion | Stable monotonic generation and fail-closed errors retained | Safe as specified |
+| Candidate re-tagging | Still forbidden for state candidates; journal generation adoption is undefined | Must distinguish safe transaction adoption from forbidden candidate retagging |
+
+
 ### 3. State Tampering vs State Integrity (Integrity without Authenticity)
 - **Threat:** Accidental, stale, or concurrent disk modifications; manual tampering with task state history or sequence numbers.
 - **Planned Control:** ADR-0028 specifies `digestTaskEnvelope(envelope)` which excludes top-level `state_digest` and computes canonical RFC 8785 JCS SHA-256. `validateEnvelopeSchema` will enforce `data.state_digest === digestTaskEnvelope(data)` on load, transition, and resume.
@@ -155,7 +224,7 @@ state for coordinating archive commit, projection commit, and compensation.
 | SEC-001 | Medium | Caller-declared actor parameter is not cryptographically signed. | No | Documented / Accepted | SDD NG-001; scoped as transition policy validation; cryptographic identity deferred. |
 | SEC-002 | Medium | SHA-256 provides integrity against accidental mutation, not cryptographic authenticity against malicious local attackers. | No | Documented / Clarified | SDD Component 3; integrity verification enforced; authentication deferred. |
 | SEC-003 | Medium | Fail-closed locking converts a liveness risk into an availability risk: an abandoned shard lock wedges one work item, and an abandoned projection lock wedges every status update including CI, until an operator intervenes. **Widened by the Round 5 predicate change:** narrowing abandonment to dead-PID-only means fewer locks are auto-classified, so an old-but-live lock, and a lock whose writer died off-host while its PID number is coincidentally live locally, now wedge until an operator establishes quiescence and runs `unlock --quiesced` — a slower, more deliberate intervention than before. | No | Accepted / Documented | ADR-0027 (Round 5 amendment), ADR-0030, Requirement R-006. Accepted deliberately: this is availability traded for integrity. An automatic clear is the same unsound primitive Round 4 rejected, a wrong clear on the projection lock corrupts repository-wide state, and admitting a live slow holder to the recovery path was itself the Round 5 Blocker 4 exposure. Critical sections are short; every refusal names its recovery command and its holder. |
-| SEC-004 | High | ADR-0032 fences transition and projection writers, but `archiveWorkItem()` and its compensating rename do not acquire the task commit guard or revalidate generation. A false-quiescence recovery can increment to `g+1` and unlink admission, after which old-generation archiver A still renames the shard. | **Yes** | **Open / Design rework required** | Round 7 proof review §2A. SDD Component 8 lines 625–637 and plan lines 398–411 rely on admission exclusion that recovery can revoke. Route to SA for a fenced forward-archive and compensation protocol. |
+| SEC-004 | High | Fenced forward and compensation renames close the old-generation archive write, but the journal cannot distinguish archived vs compensated `complete`, and no generation-safe adoption/supersession transition exists for an incomplete journal after recovery increments generation. | **Yes** | **Open / Design rework required** | Round 8 §2B; SDD lines 629–674. Integrity can fail closed, but deterministic resumable convergence and safe projection repair are not yet specified. |
 | SEC-005 | Medium | A repairing `--check` would mutate the repository from inside a read-only governance gate and could mask the drift it exists to detect. | Yes | Design corrected | ADR-0029: detection is pure, repair is explicit; TC-028 asserts whole-tree byte equality. |
 | SEC-006 | Medium | The Round 4 abandonment predicate (`age > 30 s` **or** dead PID) admitted a live, slow holder into a destructive operator-recovery path on age alone; the predicate, not merely the unlink window, was part of the exposure. | Yes | Design corrected | SDD Component 4 Acquisition; ADR-0027 Round 5 amendment (a). Abandonment is now dead-PID-only; age is a diagnostic tier. Evidence: TC-014c. |
 | SEC-007 | Medium | A crash after exclusive lock creation but before payload completion leaves an empty/partial lock that cannot supply a nonce. | Yes | Design corrected; evidence pending | Strict parsing returns `LOCK_MALFORMED`; explicit `--malformed --quiesced` recovery requires no nonce, re-reads before unlink, and refuses if the record became valid. QA must cover shard and projection locks with empty, truncated, invalid-JSON, and schema-invalid payloads. |
@@ -172,13 +241,14 @@ state for coordinating archive commit, projection commit, and compensation.
 ## Security Verdict
 
 - **Reviewer:** Security Reviewer (`security-review`)
-- **Decision:** **NEEDS_REWORK / BLOCKED — ADR-0032 is incomplete for archival**
-- **SEC-004 status:** **Open / High.** The shared durable generation and non-reclaimable guard close
-  the original transition and projection writer orderings in design, but archival remains a state-changing
-  old-generation commit path outside that serialization.
+- **Decision:** **NEEDS_REWORK / BLOCKED — archive renames are fenced, journal recovery is ambiguous**
+- **SEC-004 status:** **Open / High.** The Round 7 old-archiver and stale-compensator rename attacks are
+  rejected in design. SEC-004 cannot close while terminal outcome and generation-supersession semantics
+  remain unspecified, because reconciliation cannot derive one safe action from every durable state.
 - **Next owner:** `sa-agent`.
-- **Minimum correction:** Add a fenced, generation-checked task commit protocol for the forward archive
-  rename and its compensation, with a deadlock-free sequence across task and projection scopes. Update
-  requirements, SDD, plan, ADR-0032 and then return to independent Security review before QA Full Mode.
-- Planned tests are not implementation evidence. This verdict validates only the blueprint reasoning at
-  commit `0a3997c`.
+- **Minimum correction:** Add an outcome-discriminating terminal journal state and an explicit,
+  guard-serialized adoption/supersession protocol for all incomplete phases after generation advances;
+  define strict journal creation/phase CAS and the exhaustive phase × paths × generation recovery table.
+  Return to Security review before QA Full Mode.
+- Planned barriers and mutants are not implementation evidence. This verdict reviews blueprint commit
+  `35b0ab7` only.
