@@ -6,10 +6,10 @@
 - Title: Control-Plane State Integrity & Architecture Remediation (Package 1)
 - Owner: QA Lead (`qa-agent`)
 - Date: 2026-09-12
-- Status: Draft (Rework Round 6 — QA Full Mode after SA/Security/BA corrections)
-- QA Design Verdict: **BLOCKED** — authoritative artifacts are consistent and this plan is aligned, but SEC-004 requires an explicit Human Maintainer decision before blueprint approval.
-- Governing SDD: `docs/records/sdd/2026-09-12-control-plane-state-integrity-sdd.md` (Round 6, Draft)
-- Governing Security Review: `docs/records/security-review/2026-09-12-issue-277-security-review.md` (Round 6, Changes Requested; SEC-004 Open/High)
+- Status: Draft (ADR-0032 QA Full Mode — fenced archive-ledger blueprint)
+- QA Design Verdict: **PASS** — blueprint is internally consistent, testable, and fully traced; runtime closure still requires Developer implementation plus independent QA mutation evidence.
+- Governing SDD: `docs/records/sdd/2026-09-12-control-plane-state-integrity-sdd.md` (Round 9 append-only archive ledger, Draft)
+- Governing Security Review: `docs/records/security-review/2026-09-12-issue-277-security-review.md` (ADR-0032 blueprint PASS; implementation evidence pending)
 - Governing Requirements: `docs/records/requirements/2026-09-12-control-plane-state-integrity-discovery.md` (AC-001..AC-010, BR-001..BR-005)
 
 ---
@@ -27,10 +27,12 @@
 - Identity-bound shard locks in `docs/records/work-items/.locks/{expectedTaskId}.lock`: the explicit ID derives the active path and lock, then the inside-lock re-read must match both it and the directory basename before CAS/write/rename.
 - Three-outcome valid-lock classification plus fail-closed `LOCK_MALFORMED`; maintenance recovery requires `--quiesced` and either a valid-lock `--nonce` or malformed-lock `--malformed` mode.
 - Deterministic I/O/race injection through `createStateIo({ fsOps, processOps, clock, random })`, with no mutable global hook or production test-only branch.
+- ADR-0032 conditional commits: recoverable admission locks, stable monotonic generations, and non-reclaimable per-scope `wx` commit guards shared by writers and admission recovery.
+- Fenced retry semantics: stale writers fail `FENCING_TOKEN_STALE`; retry must reacquire, reread generation/digest, and recompute rather than retagging an old candidate.
 - POSIX crash-durable atomic writing with temp cleanup and zero-progress fault handling.
 - Projection purity: zero bytes written by `compileStatusProjection`, `detectArchivedShardDrift`, and `--check`.
 - Projection transaction: projection lock, post-acquisition recompile, total lock order.
-- Transactional archival with compensation, and compensation-failure reporting.
+- Append-only, digest-protected archive transaction ledger with immutable intent, generation-bound attempts, conditional revision updates, directional phases, distinct terminal outcomes, guarded adoption, fenced forward/compensation renames, and exhaustive recovery matrix.
 - Evidence-bound migration of issue-249 and issue-275.
 
 ### Out-of-Scope
@@ -39,7 +41,7 @@
 - External database integrations — NG-003.
 - Automatic abandoned-lock recovery — NG-004, explicitly rejected by ADR-0027; tested only as a *refusal*.
 - Durable envelopes for `new-feature`, `config-change`, `data-change` and `framework-meta` — ADR-0031 defers them to a later package. Tested here only as **rejections** (TC-032).
-- Race-safety of `unlock` — the claim is withdrawn (Security Review §2, SEC-004). Tested only as a *documented, non-race-safe contract* (TC-014b).
+- Online recovery of abandoned/malformed commit guards. Commit guards are the serialization root and require offline repair after all writers stop and the host/session restarts.
 - Wildcard (`<any> -> X`) transition semantics in the validator — out of Package 1 scope per SDD Component 1.
 
 ---
@@ -58,23 +60,31 @@ Agent decides a transition
             [old+live    => LOCK_ACQUISITION_TIMEOUT + LOCK_HELD_LONG + holder diagnostics]
             [dead PID    => LOCK_ABANDONED, lock untouched, names unlock --quiesced]
             [malformed lock => LOCK_MALFORMED, lock untouched]
-       -> re-read + validate envelope   [refuse if malformed / digest mismatch]
-       -> three-way identity check      [TASK_IDENTITY_MISMATCH before CAS/write]
-       -> CAS compare                   [refuse if missing or stale]
+       -> snapshot durable generation g; read/validate state; compute candidate
+       -> acquire non-reclaimable task commit guard
+       -> inside guard re-read generation + envelope
+       -> three-way identity + digest + generation check
+                                        [CAS_CONFLICT or FENCING_TOKEN_STALE before rename]
        -> transition: matrix INTERSECT policy legality, policy-sourced evidence
        -> resume: policy resume row + latest into-blocked history binding
                                         [refuse if illegal / unauthorized / evidence missing]
        -> pure transition + atomic write
        -> release lock (nonce-matched) in finally, against the stable namespace
   -> (terminal) archiveWorkItem
-       -> hold shard lock -> reconcile preflight -> move shard dir
-          -> updateProjectStatusFile [projection lock] -> compensate on failure
-          -> release shard lock last (pathname unmoved by the rename)
+       -> hold admission; task guard creates immutable `prepared` intent
+       -> fenced active->archive rename + parent sync + `archive_moved`
+       -> release task guard; fresh projection under projection guard
+       -> task guard finalizes `terminal_archived`
+          [projection failure -> `compensation_requested` -> fenced reverse rename
+           -> `compensation_moved` -> fresh active projection -> `terminal_compensated`]
   -> CI: validate:status-projection --check  [read-only; drift => exit 1 + recovery command]
 
 Operator-only, off the normal path:
   unlock (--task T | --projection) (--nonce N | --malformed) --quiesced
-                                         [maintenance; re-read before unlink; not race-safe]
+       -> acquire same scope commit guard
+       -> durably persist generation + 1
+       -> only then unlink admission + sync directory
+                                         [false quiescence revokes; old writer cannot commit]
 ```
 
 ### 2.2 IPO Matrix
@@ -85,13 +95,16 @@ Operator-only, off the normal path:
 | IPO-2 | `validateEnvelopeSchema` | Envelope object | Ajv envelope schema (`workflow_id` limited to `bug-fix`), then `stored === computed` | Validated envelope | `MALFORMED_SHARD`, `DIGEST_INTEGRITY_MISMATCH` (with both digests) |
 | IPO-3 | `acquireShardLock` | `(rootDir, expectedTaskId)` | `openSync('wx')` on `work-items/.locks/{expectedTaskId}.lock`; strictly parse an existing holder, then classify valid records by PID liveness first and age second | Nonce | `LOCK_ACQUISITION_TIMEOUT` (optionally `LOCK_HELD_LONG`), `LOCK_ABANDONED`, `LOCK_MALFORMED`; lock left intact |
 | IPO-3b | `releaseShardLock` | `(rootDir, task_id, nonce)` | Read the stable-namespace lock; unlink only when `parsed.nonce === nonce` | Lock removed | Silent no-op on nonce mismatch; lock preserved |
-| IPO-3c | `unlock` (CLI, maintenance-only) | exactly one of `--task`/`--projection`; exactly one of `--nonce`/`--malformed`; `--quiesced` | Print holder/consequence, re-read immediately before unlink; nonce mode compares valid record, malformed mode refuses if bytes became valid | Lock removed only under asserted quiescence | Missing flags refused; `LOCK_NONCE_MISMATCH`, `LOCK_MALFORMED`, `LOCK_BECAME_VALID` |
-| IPO-4 | `mutateTaskStateOnDisk` | `rootDir`, `expectedTaskId`, `{to, actor, expected_digest, evidence, mode}` | Derive path and lock from explicit ID; inside-lock re-read, validation and three-way identity check; CAS; transition intersection or policy resume; atomic write; release | New envelope on disk, `sequence_number + 1` | `TASK_IDENTITY_MISMATCH` before CAS/write, `MISSING_EXPECTED_DIGEST`, `CAS_CONFLICT`, `UNAUTHORIZED_ACTOR`, `ILLEGAL_TRANSITION_REJECTED`, `UNKNOWN_SOURCE_STATE`, `UNKNOWN_WORKFLOW`, `MISSING_REQUIRED_EVIDENCE`, `HUMAN_APPROVAL_REQUIRED`, `INVALID_RESUME_TARGET`, `RESUME_OPERATION_REQUIRED` |
+| IPO-3c | `unlock` (fenced admission recovery) | exactly one of `--task`/`--projection`; exactly one of `--nonce`/`--malformed`; warning acknowledgement | Acquire scope commit guard; re-read lock/generation; persist and sync generation + 1 before admission unlink/sync | Admission removed; stale admitted writers revoked even if quiescence assertion was false | Missing flags refused; `LOCK_NONCE_MISMATCH`, `LOCK_MALFORMED`, `LOCK_BECAME_VALID`; fence/guard errors |
+| IPO-3d | Fenced admission recovery | Scope, observed admission, current generation | Hold scope commit guard; validate; atomically persist generation + 1 and sync; then unlink admission and sync | Admission removed; generation monotonically advanced | `FENCE_STATE_MISSING`, `FENCE_STATE_MALFORMED`, `FENCE_GENERATION_EXHAUSTED`, `COMMIT_GUARD_ABANDONED` |
+| IPO-3e | Commit guard | Task/projection scope | Exclusive `wx`; owner-nonce release only; no online reclaim path | Serializes generation bumps and commit renames | `COMMIT_GUARD_ABANDONED`; offline repair only |
+| IPO-4 | `mutateTaskStateOnDisk` | `rootDir`, `expectedTaskId`, `{to, actor, expected_digest, evidence, mode}` | Derive path/lock; snapshot generation and compute; inside task guard re-read generation/state, identity and digest; atomic rename + directory sync | New envelope on disk, `sequence_number + 1` | Prior errors plus `FENCING_TOKEN_STALE` before rename; retryable with mandatory recompute |
 | IPO-5 | `compileStatusProjection` | Root dir | Read + validate every active shard, render table | `{markdown, digest}`; **no writes** | `MALFORMED_SHARD` |
 | IPO-5b | `discoverActiveShards` | Root dir | Enumerate `work-items/*`; before validation skip exact reserved `archive/` and every dot-prefixed entry, and no other entry | Shard dirs only | `RESERVED_TASK_ID` when an active operation supplies `archive` |
 | IPO-6 | `detectArchivedShardDrift` | Root dir | Compare archive/, work-items/, `PROJECT_STATUS.md` | `{drifted, findings[]}`; **no writes** | — |
 | IPO-7 | `updateProjectStatusFile` | Root dir | Acquire projection lock, **then** compile, atomic write, release | `{updated, digest}` | `LOCK_ABANDONED`, `LOCK_ACQUISITION_TIMEOUT`, `MALFORMED_SHARD` |
-| IPO-8 | `archiveWorkItem` | Issue id | Hold shard lock, preflight reconcile, move shard, update projection, compensate on throw, release shard lock last | Shard under `archive/`, projection current, no lock at any of the three pathnames | `ARCHIVE_RECONCILIATION_FAILED` (+ `compensation_failed` when the rename back also fails) |
+| IPO-8 | `archiveWorkItem` / reconciler | Expected task ID + journal expectation tuple | Append immutable intent/attempt; conditionally advance directional phases under task guard; fenced forward/compensation rename; fresh projection under separate guard; finalize terminal | Exact terminal phase/location/outcome with matching projection | `ARCHIVE_JOURNAL_CONFLICT`, `ARCHIVE_JOURNAL_MALFORMED`, `ARCHIVE_JOURNAL_TAMPERED`, `ARCHIVE_EXECUTOR_STALE`, `ARCHIVE_LOCATION_AMBIGUOUS`, `ARCHIVE_ADOPTION_UNSAFE`, `FENCE_GENERATION_REGRESSION` |
+| IPO-8b | Archive adoption | Current generation > attempt generation in an auto-resumable matrix cell | Under task guard append fresh attempt linked to predecessor; retain intent/phase/outcome; reread and recompute | Current attempt bound to current generation | Any unlisted cell fails `ARCHIVE_ADOPTION_UNSAFE`; no retag/reuse |
 | IPO-9 | `checkProjectStatusSync` | Root dir | Pure compile + pure detect | `{inSync, digest}` or `{inSync:false, reason, recovery}` | exit 1, zero bytes changed |
 | IPO-10 | `atomicWriteFileSync` | Target path, content | `wx` temp, write-completion loop rejecting zero progress, `fsync`, rename, dir sync | File replaced atomically | `ATOMIC_WRITE_NO_PROGRESS`, propagated write/rename errors; temp always unlinked |
 | IPO-11 | `backfillTaskStateV2` | v1 shard path | Add `contract_version: 2`, `policy_contract_version`, `sequence_number = history.length + 1`, digest | v2 shard; idempotent | `--rollback` restores the byte-identical original |
@@ -167,23 +180,26 @@ that runs after a mutation is worthless.
 | 1b | Lock diagnostics (old + live holder) | Older than 30 s, PID **live** | `LOCK_ACQUISITION_TIMEOUT` carrying `LOCK_HELD_LONG` + holder diagnostics — **never** `LOCK_ABANDONED` | TC-014c |
 | 1c | Lock abandonment (dead PID, any age) | `process.kill(pid, 0)` throws `ESRCH` | `LOCK_ABANDONED` (lock left byte-identical; names `unlock --quiesced`) | TC-014, TC-014c |
 | 1d | Malformed lock | Empty, truncated, invalid-JSON, or schema-invalid lock record | `LOCK_MALFORMED`; bytes unchanged; recovery named | TC-038 |
+| 1e | Commit guard | Guard exists or is malformed/abandoned | `COMMIT_GUARD_ABANDONED`; no online removal | TC-041 |
 | 2 | Envelope schema | Ajv failure, including a non-`bug-fix` `workflow_id` | `MALFORMED_SHARD` | TC-003, TC-015, TC-032 |
+| 2b | Fence record | Missing, malformed, unsafe integer, overflow, or generation reset/reuse | `FENCE_STATE_MISSING`, `FENCE_STATE_MALFORMED`, `FENCE_GENERATION_EXHAUSTED`, or `FENCE_GENERATION_REGRESSION` | TC-040, TC-048 |
 | 3 | Digest integrity | `stored !== digestTaskEnvelope(data)` | `DIGEST_INTEGRITY_MISMATCH` | TC-002, TC-016 |
-| 4 | Task identity | Re-read `task_id`, explicit ID and derived directory basename differ | `TASK_IDENTITY_MISMATCH` before CAS/write/rename | TC-037 |
-| 5 | CAS presence | `expected_digest` missing or empty | `MISSING_EXPECTED_DIGEST` | TC-009, TC-010 |
-| 6 | CAS equality | `expected_digest !== stored` | `CAS_CONFLICT` | TC-011, TC-012 |
-| 7 | Source state known | No matrix entry | `UNKNOWN_SOURCE_STATE` | TC-022 |
-| 8 | Destination legality | Not in matrix **∩** policy | `ILLEGAL_TRANSITION_REJECTED` | TC-021, TC-023, TC-024, TC-025 |
-| 9 | Actor authorization | Canonical actor not in `TRANSITION_MATRIX[from].actors` | `UNAUTHORIZED_ACTOR` | TC-005, TC-006 |
-| 10 | Evidence (policy-sourced) | Key listed on the **policy** row missing or empty | `MISSING_REQUIRED_EVIDENCE` | TC-007 |
-| 10b | Terminal / blocking evidence | `handoff -> completed` without `closeout_evidence`; `-> blocked` without `stop_reason` | `MISSING_REQUIRED_EVIDENCE` | TC-025 |
-| 11 | Resume operation | Ordinary transition attempts a policy resume | `RESUME_OPERATION_REQUIRED` | TC-036 |
-| 12 | Resume target | Target differs from latest into-`blocked` history `from` or is outside `[investigating, verifying]` | `INVALID_RESUME_TARGET` | TC-036 |
-| 13 | Resume Human evidence | Missing/empty `resume_evidence` or `approver_id`, or actor is not Human/orchestrator | `HUMAN_APPROVAL_REQUIRED` | TC-036 |
-| 14 | Rework ceiling | `rework_count >= max_rework_attempts` | ceiling rejection | existing regression |
+| 4 | Inside-guard generation | Current generation differs from writer snapshot | `FENCING_TOKEN_STALE` before rename | TC-039, TC-042 |
+| 5 | Task identity | Re-read `task_id`, explicit ID and derived directory basename differ | `TASK_IDENTITY_MISMATCH` before CAS/write/rename | TC-037 |
+| 6 | CAS presence | `expected_digest` missing or empty | `MISSING_EXPECTED_DIGEST` | TC-009, TC-010 |
+| 7 | CAS equality | `expected_digest !== stored` | `CAS_CONFLICT` | TC-011, TC-012 |
+| 8 | Source state known | No matrix entry | `UNKNOWN_SOURCE_STATE` | TC-022 |
+| 9 | Destination legality | Not in matrix **∩** policy | `ILLEGAL_TRANSITION_REJECTED` | TC-021, TC-023, TC-024, TC-025 |
+| 10 | Actor authorization | Canonical actor not in `TRANSITION_MATRIX[from].actors` | `UNAUTHORIZED_ACTOR` | TC-005, TC-006 |
+| 11 | Evidence (policy-sourced) | Key listed on the **policy** row missing or empty | `MISSING_REQUIRED_EVIDENCE` | TC-007 |
+| 11b | Terminal / blocking evidence | `handoff -> completed` without `closeout_evidence`; `-> blocked` without `stop_reason` | `MISSING_REQUIRED_EVIDENCE` | TC-025 |
+| 12 | Resume operation | Ordinary transition attempts a policy resume | `RESUME_OPERATION_REQUIRED` | TC-036 |
+| 13 | Resume target | Target differs from latest into-`blocked` history `from` or is outside `[investigating, verifying]` | `INVALID_RESUME_TARGET` | TC-036 |
+| 14 | Resume Human evidence | Missing/empty `resume_evidence` or `approver_id`, or actor is not Human/orchestrator | `HUMAN_APPROVAL_REQUIRED` | TC-036 |
+| 15 | Rework ceiling | `rework_count >= max_rework_attempts` | ceiling rejection | existing regression |
 | W-1 | Atomic write progress | `fs.writeSync` returns `0` | `ATOMIC_WRITE_NO_PROGRESS` (temp unlinked, target untouched) | TC-017b |
 
-The matrix's own `requires` is an authoring aid and is never consulted at validation time; guard 10 must
+The matrix's own `requires` is an authoring aid and is never consulted at validation time; guard 11 must
 be observed reading the policy. Every reject path asserts the shard file is byte-identical afterwards
 and that no lock survives at `work-items/.locks/{task_id}.lock`.
 
@@ -199,7 +215,7 @@ and that no lock survives at `work-items/.locks/{task_id}.lock`.
 | 4 | Lost update on a shard (CAS or lock defect) | Low | High | P0 | TC-011, TC-012 |
 | 5 | Digest self-reference or tampering undetected | Low | High | P0 | TC-001, TC-002, TC-016 |
 | 6 | **Shard lock travels with the archived directory** (Round 5 Blocker 2) — a release against a moved pathname leaks a lock and frees the original name mid-transaction | Medium | High — silent double-entry into a live archive transaction | P0 | TC-019b, TC-031 |
-| 7 | **False quiescence removes a live/replacement lock.** Two shard writers can both pass one-shot CAS before either writes and lose one history event; two projection writers can publish stale/last-rename-wins output | Low (maintenance-only) | High — silent state/projection loss | P0 | TC-014b |
+| 7 | Generation check moved outside commit guard, or admission removed before the durable bump, reopens silent shard/projection loss after false quiescence | Low | High — violates accepted ADR-0032 | P0 | TC-014b, TC-039, TC-040, TC-042 |
 | 8 | **Live slow holder routed into a destructive recovery path on age alone** (withdrawn Round 4 predicate, SEC-006) | Medium | High if reintroduced | P0 | TC-014c |
 | 9 | Strict active-shard lane trips on `.locks/`, `.gitkeep` or `.projection.lock` | Medium | Medium — CI wedge on a non-shard entry | P1 | TC-033 |
 | 10 | Backfill breaks the two live shards, or writes a `sequence_number` that duplicates the last history position | Medium | Medium — recoverable from backup | P1 | TC-004, TC-029 |
@@ -212,6 +228,10 @@ and that no lock survives at `work-items/.locks/{task_id}.lock`.
 | 16 | Global version-field replacement breaks the legacy fixture lane or bypasses active-envelope policy binding | Medium | High — contracts reject valid history or accept drift | P0 | TC-035 |
 | 17 | Strict transition intersection makes `blocked` permanently terminal or resume becomes a broad bypass | Medium | High — workflow wedge or unauthorized state jump | P0 | TC-036 |
 | 18 | Empty/partial lock from crash is unreadable and unrecoverable, or is cleared automatically | Medium | High for projection lock | P0 | TC-038 |
+| 19 | Abandoned commit guard blocks a task or all projection publication | Low | High availability; integrity preserved | P0 | TC-041 |
+| 20 | Archive journal is overwritten, ambiguously recovered, or adopts stale candidates | Medium | High — wrong-direction rename or false terminal success | P0 | TC-043..TC-047 |
+| 21 | Generation resets/reuses across restart, archive, rollback or task-ID recreation | Low | High — ABA defeats fencing | P0 | TC-048 |
+| 22 | Symlink/traversal or hostile local files escape stable namespaces | Low under trusted local workspace | High | P0 | TC-049 |
 
 ---
 
@@ -220,8 +240,8 @@ and that no lock survives at `work-items/.locks/{task_id}.lock`.
 - [ ] Unit — hasher, guards, matrix, writer
 - [ ] Contract — envelope v2 (`bug-fix` only), lane-specific version bindings, policy transition/resume amendment, existing example fixtures
 - [ ] Active-Shard Composition — real `work-items/` path, not the example-fixture lane
-- [ ] Concurrency & Contention — barrier-synchronized multi-process, identity binding, lock order/pathname invariance, wrong-unlock shard and projection counterexamples
-- [ ] Fault Injection & Crash Boundaries — injected `createStateIo`, write throw/zero-progress, malformed locks, archival compensation and wrong-unlock interleavings
+- [ ] Concurrency & Contention — ordinary A/B serialization, false-quiescence fencing, retry recomputation, projection fencing, archive/compensation fencing, guard non-overlap
+- [ ] Fault Injection & Crash Boundaries — injected `createStateIo`, generation/admission ordering, write/sync/rename/journal/projection/compensation/finalize boundaries, malformed locks/guards/ledger
 - [ ] Read-Only Assertion — whole-tree byte equality
 - [ ] CLI — mandatory CAS flags, `inspect`, `unlock --quiesced`
 - [ ] Integration — projection, archival, reconcile idempotency, backfill
@@ -239,7 +259,7 @@ and that no lock survives at `work-items/.locks/{task_id}.lock`.
 | Fault/failover injection | CAS/write barriers, wrong unlock, write/rename failures, archival compensation and lock corruption | TC-014b, TC-017..TC-020, TC-026..TC-028, TC-037..TC-038 |
 | API functional testing | N/A — Package 1 exposes local ESM functions and a CLI, with no HTTP/API contract. | N/A |
 | Performance baseline | No numeric NFR is approved; bounded lock/test timeouts are functional anti-hang assertions only. | TC-013, TC-014c, TC-017b |
-| Security fundamentals | Role authorization, fail-closed parsing, operator recovery flags, read-only purity and explicit residual-risk demonstration | TC-005..TC-007, TC-014..TC-016, TC-028, TC-038 |
+| Security fundamentals | Role authorization, fail-closed parsing, fenced recovery, non-reclaimable guard, journal integrity, hostile paths and read-only purity | TC-005..TC-007, TC-014..TC-016, TC-028, TC-038..TC-049 |
 
 ---
 
@@ -297,20 +317,18 @@ on stdout so the parent asserts on the code rather than on a message string.
 
 ## 8. Entry Criteria
 
-- [x] Round 6 Requirement Discovery available and OQ-4 aligned with AC-006/R-006.
-- [x] Round 6 SDD available with one identity-bound mutation signature throughout.
-- [x] Round 6 Security Review available (**Changes Requested; SEC-004 Open/High**).
-- [x] Round 6 Implementation Plan available.
-- [x] OQ-2 deterministic injection seam resolved by `createStateIo`.
-- [ ] Human Maintainer decision on SEC-004 and approval of the Round 6 blueprint.
-- [ ] ADR-0026..ADR-0031 recorded in `DECISIONS.md`.
-- [x] OQ-1 resolved by SA Agent (matrix widened; see §16). TC-007, TC-024 and TC-029 are unblocked and updated.
+- [x] Human Maintainer rejected SEC-004 residual and selected fenced conditional commit.
+- [x] ADR-0032 recorded in `DECISIONS.md`; requirements, SDD and implementation plan contain the final append-only archive-ledger protocol.
+- [x] Security Review verdict is PASS at blueprint level after adversarial archive/adoption re-review.
+- [x] OQ-2 deterministic injection seam remains resolved by `createStateIo`.
+- [x] Prior Round 6 contract, resume, identity, exclusion, malformed-lock and read-only coverage remains in scope.
 
 ## 9. Exit Criteria
 
 - [ ] AC-001..AC-010 each verified by at least one passing automated case.
-- [ ] Deterministic invariants proven for executions preserving lock mutual exclusion/external quiescence: ordinary shard and projection serialization, crash durability, zero temp/lock leaks, zero ghost entries, zero bytes written by read-only paths, and no unbounded write loop.
-- [ ] TC-014b passes for both shard and projection, proving the documented wrong-quiescence residual. A pass does **not** close SEC-004 or establish safety.
+- [ ] Deterministic invariants proven across ordinary concurrency and false-quiescence admission recovery: no old-generation shard/archive/projection rename, crash durability, zero temp leaks, zero ghost entries, zero read-only writes, and no unbounded loop.
+- [ ] TC-014b and TC-039..TC-042 prove generation/guard serialization, durable-bump-before-unlink, mandatory retry recomputation, projection fencing, and offline-only commit-guard repair.
+- [ ] TC-043..TC-049 prove fenced forward/compensation archive commits, append-only journal contract, all 72 phase/path/generation variants, crash convergence, guarded adoption, non-overlapping guards, lifecycle monotonicity and hostile-path refusal.
 - [ ] TC-035..TC-038 pass: lane-specific version binding, policy-authoritative resume, identity-bound locking, and malformed-lock recovery.
 - [ ] TC-034 green: no in-scope policy row has an empty matrix intersection, and every in-scope policy state is reachable over the computed intersection alone.
 - [ ] Mutation ledger: every listed mutation killed by its named case.
@@ -318,7 +336,7 @@ on stdout so the parent asserts on the code rather than on a message string.
 - [ ] `validate:contracts`, `validate:ci-parity`, `validate:project-state`, `validate:review-gate`, `validate:status-projection` all pass.
 - [ ] **Rollout ordering respected, with a rollback point at each step:** the backfill tool and its tests land with the strict active-shard lane **disabled**; the operational migration of issue-249 and issue-275 runs next; the strict lane is enabled only afterwards. QA will not accept a step that enables the lane while a v1 shard is still live, because that step's own `validate:contracts` verification cannot pass. (Task numbering is the implementation plan's to assign; QA asserts the ordering, not the numbers.)
 - [ ] issue-249 and issue-275 migrated with the real closeout evidence recorded in the plan, archived, and absent from `PROJECT_STATUS.md`.
-- [ ] Security recheck confirms implementation matches the contract; SEC-004 remains Open/High until the Human Maintainer accepts the residual or requires fencing/conditional commit.
+- [ ] Security and QA confirm runtime implementation and mutation evidence. SEC-004 is design-remediated, but is not runtime-closed from blueprint evidence alone.
 
 ---
 
@@ -415,23 +433,20 @@ on stdout so the parent asserts on the code rather than on a message string.
   1. Both A and B throw `LOCK_ABANDONED` carrying the holder's `pid`, `nonce` and `created_at`; the message contains the literal `unlock --task` **and** `--quiesced`.
   2. The lock file is **byte-identical** after both attempts — SHA-256 compared. No automatic reclaim path exists.
   3. A static assertion over `scripts/lib/task-state-machine.mjs` and `scripts/task-machine-cli.mjs`: the only two lock-removal call sites in the codebase are the nonce-matched owner release and the operator `unlock` CLI. Any third removal site fails the case.
-  4. The first `unlock` with the matching nonce and `--quiesced` removes it; acquisition then succeeds.
+  4. The first `unlock` with matching nonce acquires the task commit guard, durably advances generation, then removes the admission lock; acquisition then succeeds at the new generation.
   5. The second `unlock` with the stale nonce throws `LOCK_NONCE_MISMATCH` and leaves the new owner's lock intact.
-- **Structural note (scope of the claim, restated precisely).** What this case establishes is that **the engine** never removes a lock it does not own: there is no automatic reclaim code path, so "a live lock is never removed by another *engine* process" holds by construction, and assertion 2 plus assertion 3 are the direct evidence. It establishes **nothing** about `unlock`. `unlock` **is** a reclaim path and it is **not** race-safe; nonce verification in assertion 5 is an operator-mistake filter, not a safety property. The Round 4 claim that a `wx` sentinel made `unlock` unable to remove a replacement lock is **withdrawn in full** (Security Review §2, SDD Component 4). TC-014b pins the withdrawn claim's actual behaviour.
+- **Structural note.** Admission-lock unlink remains unconditional on the bytes previously observed, so nonce is still only a mistake filter. ADR-0032 moves commit authority to the generation/commit guard: a replacement admission lock may be removed, but any old admitted writer must fail inside the guard before rename. TC-014b proves that property.
 - **Cleanup:** Remove workspace.
 
-### TC-014b: Wrong-Unlock Four-Step Counterexamples — Shard and Projection
-- **Priority:** P0 | **Source:** AC-006, R-006, ADR-0027, Security Review condition 4 / SEC-004
-- **Mechanism:** Build the engine with a delegating adapter returned by `createStateIo({ fsOps, processOps, clock, random })`. The adapter pauses lock unlink, CAS-to-write, compile-to-write, and rename operations at explicit barriers. No sleep-based probe, environment flag, mutable global hook, subprocess monkey-patch, or production test-only branch is accepted.
-- **Shard action:**
-  1. Writer A acquires the task lock, reads digest `D0`, passes CAS, and pauses before writing.
-  2. A wrong `unlock --quiesced` removes A's live/replacement lock.
-  3. Writer B acquires the same pathname, reads `D0`, also passes CAS, and pauses before writing.
-  4. Release both writes in a fixed order so the later atomic rename overwrites the earlier result.
-- **Shard assertion:** Both writers demonstrably crossed the CAS comparison against `D0`; both report a successful write path; final `sequence_number` advances only once and exactly one of the two distinct history events is absent. This is a silent lost update, not `CAS_CONFLICT`.
-- **Projection action:** Repeat the ordering with projection writers A and B: A compiles and pauses before write, wrong unlock removes A's projection lock, B acquires and compiles from a deliberately different shard snapshot, then both rename in a fixed order.
-- **Projection assertion:** Both compilers pass their compile point; the last rename wins and the final `PROJECT_STATUS.md` can be stale relative to the final shard tree. No shard-digest CAS rejects it.
-- **Interpretation:** Passing both counterexamples proves the residual is represented truthfully. It neither closes SEC-004 nor establishes a zero-lost-update guarantee after false quiescence.
+### TC-014b: False-Quiescence Recovery Fences Old Shard and Projection Writers
+- **Priority:** P0 | **Source:** AC-006, QG-002, ADR-0032, Security Review §2A
+- **Mechanism:** A delegating `createStateIo` adapter pauses A after each pre-commit stage in turn: admission, generation snapshot, state/digest read, candidate computation, and immediately before commit-guard acquisition. No timing sleeps or production test-only branches.
+- **Shard action/assertion:** For every pause point, recovery acquires the task guard, durably advances `g` to `g+1`, removes admission, and releases. B is admitted at `g+1`. A then acquires the guard, re-reads generation and fails `FENCING_TOKEN_STALE` with `retryable: true` and `recompute_required: true` before candidate rename. B may commit; A contributes no history event. Moving/skipping the generation check or checking it outside the guard makes the old candidate rename and fails this case.
+- **Wrong-unlock shard counterexample oracle:** Force (1) A admitted with digest `D0`, (2) recovery removes A's admission and B enters, (3) A and B both compare `D0` before either writes, and (4) B commits then A attempts its stale rename. A one-shot-CAS-only mutant loses B's event; the fenced implementation rejects A at step 4 before rename. Assert all four barriers were crossed so an early CAS conflict cannot pass vacuously.
+- **Inside-guard ordering:** When A already holds the guard after all checks, recovery waits. A renames and directory-syncs first; only after A releases may recovery durably bump generation and unlink admission. The total order contains no simultaneous commit.
+- **Projection equivalent:** Repeat every pause point with compiler A and projection recovery. A stale compilation fails `FENCING_TOKEN_STALE` inside the projection guard before publish even though projection has no shard CAS backstop. When A already holds the projection guard, A publishes first and recovery waits.
+- **Wrong-unlock projection counterexample oracle:** Force (1) A compiles old shards, (2) recovery removes A's admission and B enters, (3) B compiles newer shards and pauses before publish while A's old candidate is ready, and (4) B publishes then A attempts stale publication. A last-rename-wins mutant regresses the projection; the fenced implementation rejects A before publication. Assert each barrier and byte/digest outcome.
+- **Interpretation:** This is the ADR-0032 safety proof. A false quiescence assertion may revoke work, but cannot authorize an old-generation shard or projection commit.
 - **Cleanup:** Remove workspace.
 
 ### TC-014c: Abandonment Predicate — Liveness Classifies, Age Only Diagnoses
@@ -474,10 +489,10 @@ on stdout so the parent asserts on the code rather than on a message string.
 - **Assertion:** Shard moved to `archive/`; `updateProjectStatusFile()` called once; the archived issue no longer appears in `PROJECT_STATUS.md`.
 - **Cleanup:** Remove workspace.
 
-### TC-019: Archival Compensation, and Compensation Failure
-- **Priority:** P0 | **Source:** AC-008, ADR-0029, **Security Review condition 11**
-- **Injected Fault:** (a) `updateProjectStatusFile()` throws; (b) additionally, the compensating rename throws.
-- **Assertion:** (a) the shard is restored to `work-items/{id}` and `ARCHIVE_RECONCILIATION_FAILED` is raised; (b) the raised error carries `compensation_failed: true` and names manual reconciliation — the caller is never told the repository is clean when it is not.
+### TC-019: Journaled Projection Failure and Fenced Compensation
+- **Priority:** P0 | **Source:** AC-008, BR-005, ADR-0029, ADR-0032
+- **Injected Fault:** Projection publication returns its named deterministic failure after forward rename.
+- **Assertion:** The executor releases projection guards, persists `compensation_requested` under the task guard before any reverse rename, then revalidates generation/attempt/intent/digest and archive-only location under that guard. It renames archive→active, syncs both parents, advances `compensation_moved`, publishes a freshly compiled active projection under separate projection guards, and only then finalizes `terminal_compensated`/`compensated`. A crash or failure leaves a non-terminal journal for matrix-driven recovery; it never performs an unfenced blind rename or claims a clean terminal.
 - **Cleanup:** Remove workspace.
 
 ### TC-019b: Lock Pathname Invariance Across the Archive Transaction
@@ -485,12 +500,12 @@ on stdout so the parent asserts on the code rather than on a message string.
 - **Precondition:** Fixture with a terminal bug-fix shard at `work-items/{id}` and the stable lock namespace present.
 - **Action:**
   1. **Barrier test:** child A calls `archiveWorkItem(id)` and blocks on `barriers/released` while holding the shard lock; child B attempts `mutateTaskStateOnDisk` on the same shard; the parent then releases A.
-  2. Drive the archive three times on fresh fixtures: the **success** path, the **compensating-rename** path (TC-019 fault (a)), and the **compensation-failure** path (TC-019 fault (b)).
+  2. Drive success, projection-failure/compensation, and stale-executor paths on fresh fixtures, recording admission and commit-guard events.
 - **Assertion:**
   1. The mutation and the archive **cannot overlap**: B observes a lock-contention outcome (`LOCK_ACQUISITION_TIMEOUT`) and never enters the critical section while A holds it; the shard is never observed half-moved by a successful mutation.
   2. During the archive, the lock file exists at `work-items/.locks/{id}.lock` and **not** at `work-items/{id}/.lock` — asserted by sampling at the barrier, while the shard directory still exists.
-  3. On each of the three exit paths, **all three** pathnames are absent: `work-items/.locks/{id}.lock`, `work-items/{id}/.lock`, and `archive/{id}/.lock`. Exactly one release occurs, and it targets the stable namespace.
-  4. The shard lock is released **last** — after the projection lock has been acquired and released — and the recorded acquisition order is shard lock then projection lock, never inverted.
+  3. No lock is carried inside either shard directory; owner release targets the stable admission namespace. Journal, task fence and task guard paths remain stable across the rename.
+  4. Forward and compensating renames each validate generation, journal tuple, identity/digest and exact location inside the task guard. Projection guards never overlap a task guard; task admission may retain the shard→projection admission order.
 - **Regression note:** placing the lock at `work-items/{id}/.lock` makes assertion 3 fail on `archive/{id}/.lock` for the success path, which is precisely Round 5 Blocker 2.
 - **Cleanup:** Remove workspace.
 
@@ -659,13 +674,107 @@ on stdout so the parent asserts on the code rather than on a message string.
 - **Action & Assertion:** For shard and projection locks, test empty, truncated, invalid-JSON, and schema-invalid payloads. Acquisition and inspection throw `LOCK_MALFORMED`, preserve bytes exactly, and name `unlock --malformed --quiesced`. Valid nonce mode against malformed bytes fails `LOCK_MALFORMED`. Malformed recovery refuses without either flag, needs no nonce, and removes bytes only with both flags. Through `createStateIo`, change malformed bytes to a valid record immediately before unlink; recovery fails `LOCK_BECAME_VALID` and preserves the valid record. A reverse valid-to-malformed change fails closed rather than unlinking untrusted bytes.
 - **Cleanup:** Remove workspace.
 
+### TC-039: Writer Retry Reacquires, Rereads and Recomputes
+- **Priority:** P0 | **Source:** AC-006, BR-003, ADR-0032
+- **Action:** After TC-014b makes writer A stale, invoke the retry path while recording admission acquisition, generation/state reads, candidate identity and rename.
+- **Assertion:** Retry releases stale ownership, reacquires admission, reads current generation and digest, computes a new candidate from current state, then commits under the guard. The new candidate has a different provenance/digest from A's stale candidate. Retagging or reusing A's candidate fails the candidate-provenance assertion and final history comparison.
+- **Cleanup:** Remove workspace.
+
+### TC-040: Admission Recovery Ordering and Crash Boundaries
+- **Priority:** P0 | **Source:** BR-003, QG-002, ADR-0032 Component 4A
+- **Action:** Pause recovery before/after commit-guard create, generation temp write, generation rename, generation-directory sync, admission unlink, admission-directory sync and guard release.
+- **Assertion:** The guard is held across the linearization sequence; generation `g+1` is durably renamed and synced before admission unlink. Before generation rename, `g` remains authoritative and admission survives. After rename, `g+1` remains authoritative; retry may create a gap but never reuse `g+1`. After admission unlink, all old writers are fenced. Reordering unlink before the durable bump, omitting either sync, or validating outside the guard fails the event-order and restart-state assertions.
+- **Cleanup:** Remove workspace.
+
+### TC-041: Commit Guard Fails Closed and Has No Online Reclaim
+- **Priority:** P0 | **Source:** R-006, ADR-0032, Security Review F2
+- **Action:** Present valid-but-abandoned, empty, truncated, invalid-JSON and schema-invalid task/projection commit guards to every writer, reconciler and `unlock` command; enumerate online CLI actions and removal call sites.
+- **Assertion:** All online paths refuse `COMMIT_GUARD_ABANDONED`, preserve guard/generation/state bytes, and expose no force/remove flag. Only owner-nonce release exists online. The offline runbook is explicitly outside the online guarantee: all writers stopped, host/session restarted, current generation preserved, only guard removed, full shard/projection validation before restart.
+- **Cleanup:** Remove workspace.
+
+### TC-042: Projection Conditional Commit Without Shard CAS
+- **Priority:** P0 | **Source:** BR-005, ADR-0030, ADR-0032
+- **Action:** Run ordinary A/B projection compilers and the TC-014b recovery ordering with distinct shard snapshots.
+- **Assertion:** Ordinary writers serialize and the later compiler recompiles after admission/guard acquisition. A pre-recovery compiler fails `FENCING_TOKEN_STALE` inside the projection guard before rename. A retry rereads current generation and recompiles; reusing or retagging the stale projection candidate fails. Moving the generation check outside the guard permits stale publish and is killed.
+- **Cleanup:** Remove workspace.
+
+### TC-043: Fenced Forward Archive and Old-Archiver Counterexample
+- **Priority:** P0 | **Source:** AC-008, BR-005, ADR-0032 archive amendment
+- **Action:** A snapshots generation `g`, terminal identity/digest and pauses before task-guard acquisition. Recovery advances to `g+1` and removes admission. Resume A, then run B at `g+1`; repeat with A already holding the task guard.
+- **Assertion:** Stale A fails `ARCHIVE_EXECUTOR_STALE` before active→archive rename and journal advancement. B appends/recomputes at `g+1`. If A already owns the guard, its `prepared` creation, forward rename, parent sync and `archive_moved` update linearize before recovery waits and bumps. No forward rename occurs without exact generation, txid/attempt/revision/phase/outcome, identity/digest and active-only predicates inside the guard.
+- **Cleanup:** Remove workspace.
+
+### TC-044: Fenced Compensation and Stale-Compensator Counterexample
+- **Priority:** P0 | **Source:** AC-008, R-005, ADR-0032 archive amendment
+- **Action:** Pause compensator A after `compensation_requested` at generation `g` but before task guard. Recovery advances generation and a current executor adopts. Resume A; also test A already holding the guard.
+- **Assertion:** Stale A performs zero archive→active rename and fails on generation/attempt/revision tuple. Current executor appends a fresh attempt, rereads and recomputes before compensation. If A already holds the guard, its reverse rename, both parent syncs and `compensation_moved` update linearize before recovery. Removing the phase prerequisite or any conditional tuple member fails this case.
+- **Cleanup:** Remove workspace.
+
+### TC-045: Strict Append-Only Archive Ledger Contract
+- **Priority:** P0 | **Source:** AC-008, BR-005, SDD Component 8
+- **Action:** Validate initial creation and every phase/adoption/transaction append against the strict schema and whole-ledger JCS digest.
+- **Assertion:** Initial creation alone uses `wx`, full-write loop, file and parent sync; `EEXIST` never overwrites. `txid` and every `attempt_id` are injected cryptographic UUID-v4 values unique across retained history. Intent `{txid, task_id, intended_outcome, source_digest, source_generation, created_at}` is immutable; transactions/attempts append only; `journal_revision` increases exactly one. Every update conditionally matches `{current_txid, txid, journal_revision, current_attempt_id, attempt.generation, phase, terminal_outcome}`, current generation and physical path/digest. Parse/schema errors yield `ARCHIVE_JOURNAL_MALFORMED`; digest/immutability/duplicate/revision regression yields `ARCHIVE_JOURNAL_TAMPERED`; stale tuple yields `ARCHIVE_JOURNAL_CONFLICT`, with zero mutations.
+- **Cleanup:** Remove workspace.
+
+### TC-046: Exhaustive Archive Recovery Matrix — 24 Cells × 3 Generation Relations
+- **Priority:** P0 | **Source:** AC-008, BR-005, SDD Component 8 recovery matrix
+- **Generation oracle:** For every row below, `current < attempt` fails `FENCE_GENERATION_REGRESSION` with zero writes. For `current = attempt`, execute the `Equal` action. For `current > attempt`, auto-action is allowed only where `Greater` says adopt/no-op; adoption appends a fresh attempt before taking the equal action. An explicit adoption request in any other cell fails `ARCHIVE_ADOPTION_UNSAFE`.
+
+| Phase / outcome | Path | Equal | Greater |
+|---|---|---|---|
+| `prepared` | A | fenced forward rename | adopt + reread/recompute + forward |
+| `prepared` | R | record `archive_moved` | adopt + record `archive_moved` |
+| `prepared` | B | `ARCHIVE_LOCATION_AMBIGUOUS` | same; no adopt |
+| `prepared` | N | `ARCHIVE_LOCATION_AMBIGUOUS` | same; no adopt |
+| `archive_moved` | R | fresh projection; finalize archived or request compensation | adopt + fresh projection + same decision |
+| `archive_moved` | A | `ARCHIVE_LOCATION_AMBIGUOUS` | same; no adopt |
+| `archive_moved` | B | `ARCHIVE_LOCATION_AMBIGUOUS` | same; no adopt |
+| `archive_moved` | N | `ARCHIVE_LOCATION_AMBIGUOUS` | same; no adopt |
+| `compensation_requested` | R | fenced reverse rename | adopt + reread/recompute + reverse |
+| `compensation_requested` | A | record `compensation_moved` | adopt + record `compensation_moved` |
+| `compensation_requested` | B | `ARCHIVE_LOCATION_AMBIGUOUS` | same; no adopt |
+| `compensation_requested` | N | `ARCHIVE_LOCATION_AMBIGUOUS` | same; no adopt |
+| `compensation_moved` | A | fresh projection; finalize compensated | adopt + fresh projection + finalize |
+| `compensation_moved` | R | `ARCHIVE_LOCATION_AMBIGUOUS` | same; no adopt |
+| `compensation_moved` | B | `ARCHIVE_LOCATION_AMBIGUOUS` | same; no adopt |
+| `compensation_moved` | N | `ARCHIVE_LOCATION_AMBIGUOUS` | same; no adopt |
+| `terminal_archived` / archived | R | validate projection; no-op | terminal no-op; no adoption |
+| `terminal_archived` / archived | A | `ARCHIVE_LOCATION_AMBIGUOUS` | same; no adopt |
+| `terminal_archived` / archived | B | `ARCHIVE_LOCATION_AMBIGUOUS` | same; no adopt |
+| `terminal_archived` / archived | N | `ARCHIVE_LOCATION_AMBIGUOUS` | same; no adopt |
+| `terminal_compensated` / compensated | A | validate projection; no-op | terminal no-op; no adoption |
+| `terminal_compensated` / compensated | R | `ARCHIVE_LOCATION_AMBIGUOUS` | same; no adopt |
+| `terminal_compensated` / compensated | B | `ARCHIVE_LOCATION_AMBIGUOUS` | same; no adopt |
+| `terminal_compensated` / compensated | N | `ARCHIVE_LOCATION_AMBIGUOUS` | same; no adopt |
+
+- **Non-vacuity:** Generate and assert exactly the Cartesian product of the six phases, four path states and three generation relations; every generated variant must reach its named action/error oracle. Malformed/tampered ledger, wrong exact digest, terminal phase/outcome mismatch and unlisted adoption are additional fail-closed variants with zero mutation.
+- **Cleanup:** Remove workspace.
+
+### TC-047: Archive Crash Boundaries, Adoption and Guard Ordering
+- **Priority:** P0 | **Source:** QG-002, ADR-0032, Security Review Round 9 matrix
+- **Action:** Inject crashes before/after forward and compensation rename, each parent sync, ledger append/phase persist, projection publish, compensation request and terminal finalize; restart through TC-046. Advance generation before each resumable phase and test adoption.
+- **Assertion:** Restart maps only to the exact A/R single-path cell or fails B/N closed. Post-rename/pre-ledger states record the directional phase proved by location/digest. Projection failure before `compensation_requested` retries forward projection and never infers reverse intent. Adoption is serialized by task guard, appends an attempt linked through `adopts_attempt_id`, preserves intent/phase/outcome and rereads/recomputes all candidates. Task and projection commit guards never overlap or wait nested. Projection is freshly compiled and verified before either terminal finalize.
+- **Cleanup:** Remove workspace.
+
+### TC-048: Fence Generation Lifecycle and Non-Reuse
+- **Priority:** P0 | **Source:** BR-003, R-006, ADR-0032
+- **Action:** Restart, archive, compensate, roll back, attempt task-ID recreation, approach `Number.MAX_SAFE_INTEGER`, and inject missing/corrupt generation files after activation.
+- **Assertion:** Generation survives restart/archive/compensation/offline guard repair; every recovery increases monotonically and gaps are allowed. Selective rollback/decrement/deletion/task-ID reuse is refused. Missing/corrupt records fail `FENCE_STATE_MISSING`/`FENCE_STATE_MALFORMED`; increment at the safe-integer ceiling fails `FENCE_GENERATION_EXHAUSTED`; current generation below a retained attempt fails `FENCE_GENERATION_REGRESSION`. No path initializes or reuses generation 1 after activation.
+- **Cleanup:** Remove workspace.
+
+### TC-049: Hostile Local Paths, Symlinks and Untrusted Bytes
+- **Priority:** P0 | **Source:** Security Review residual trust boundary, BR-003, BR-005
+- **Action:** Supply `expectedTaskId` traversal/absolute/separator encodings; replace shard, fence, guard or journal path components with symlinks; create oversized, unknown-key, malformed and digest-tampered local files.
+- **Assertion:** Invalid identifiers fail before path derivation or I/O under the task-ID schema (`^[a-z0-9_-]+$`). Malformed or digest-tampered control files fail closed with the applicable identity/fence/journal error and perform zero rename/unlink/journal update. Record whether a replaced parent symlink redirects I/O; the Security Review explicitly places hostile parent-component replacement outside the trusted local-workspace boundary, so this observation is not an in-scope PASS criterion. A direct writer that recomputes the ledger digest is likewise outside authenticity guarantees (SEC-002); no size limit is claimed unless implementation/design names one.
+- **Cleanup:** Remove workspace without following symlinks.
+
 ---
 
 ## 11. Exploratory Charter
 
 | Charter | Scope | Timebox | Rationale |
 |---|---|---|---|
-| EC-01 | Hand-drive `task-machine-cli.mjs` through `inspect` → `transition` → `unlock --quiesced` on a scratch shard, deliberately mistyping digests, nonces and actors, omitting `--quiesced`, and acting on a stale `inspect` reading; judge whether each error message tells an operator what to do next and whether the pre-unlock consequence notice actually deters a wrong quiescence assertion | 45 min | The fail-closed design trades automatic recovery for operator action (ADR-0027), and `unlock` is explicitly non-race-safe. If diagnostics are unclear, SEC-003's accepted availability risk grows and SEC-004 becomes harder for the Human Maintainer to assess. Scripted cases assert error codes; exploration judges usability. |
+| EC-01 | Hand-drive `inspect` → `transition` → fenced `unlock` on a scratch shard, deliberately mistyping digests/nonces/actors and resuming a pre-recovery writer | 45 min | Confirm diagnostics explain generation revocation, `FENCING_TOKEN_STALE`, recompute-required retry, and offline-only guard repair. Scripted cases assert safety; exploration judges operator usability. |
 | EC-02 | Interrupt (`SIGKILL`) a transition and an archival at varied points — before/after the shard-directory rename, between the two lock acquisitions, mid-atomic-write — and inspect the resulting tree, specifically which of the three lock pathnames survives | 45 min | Crash points between rename, write and release are combinatorial; exploration finds the interleavings the scripted fault injections did not think to model, and the stable lock namespace changes which residues are possible. |
 | EC-03 | Probe the old-but-live lock tier: hold a shard lock from a deliberately slow process, and from a process whose PID has been reused, and walk an operator through recovery | 30 min | SEC-003 is *widened* by the dead-PID-only predicate: this tier is the permanent-wedge case. It is correct by design but only survivable if the diagnostics lead somewhere. Nothing scripted can judge that. |
 
@@ -687,8 +796,8 @@ Score is **measured and recorded** for the core engine modules; no fixed thresho
 | Mandatory CAS | Restore `if (expected_digest !== undefined)` | TC-009, TC-010 |
 | CAS comparison | Invert `expected !== current` | TC-011, TC-012 |
 | CAS made lock-conditional | Skip the CAS compare when the caller holds the lock it acquired | TC-011, TC-012; TC-014b still demonstrates that one-shot CAS cannot replace lost mutual exclusion |
-| Wrong-unlock residual hidden | Assert the second shard writer conflicts, or omit either writer's pre-write CAS barrier | TC-014b shard counterexample fails because both writers must pass `D0` before either write |
-| Projection residual hidden | Serialize or omit one projection writer after wrong unlock | TC-014b projection counterexample fails because both compilers must cross compile-before-write and last rename must be observable |
+| Wrong-unlock fencing omitted | Permit both old/new shard writers past one-shot CAS after admission removal | TC-014b shard barrier requires old writer's `FENCING_TOKEN_STALE` before rename; TC-039 rejects stale-candidate reuse |
+| Projection fencing omitted | Permit pre-recovery compilation to publish after admission removal | TC-014b projection barrier and TC-042 reject stale publish without a shard CAS backstop |
 | Fail-closed source guard | Restore `if (matrixEntry) { ... }` | TC-022 |
 | Terminal destinations | Give `completed` a non-empty `destinations` | TC-021 |
 | Policy evidence sourcing | Read `requires` from the matrix instead of the policy | TC-007 |
@@ -730,16 +839,33 @@ Score is **measured and recorded** for the core engine modules; no fixed thresho
 | Zero-progress guard | Remove the `if (n <= 0) throw` from the write loop | TC-017b (assertions 1–2, via the test timeout) |
 | Zero-progress guard, over-broad | Change `n <= 0` to `n < buffer.length` | TC-017b (assertion 4) |
 | Backfill sequence | Set `sequence_number = history.length` | TC-004 (assertions 1–3) |
-| Archival compensation | Remove the compensating rename | TC-019 |
-| Compensation honesty | Swallow a failed compensating rename | TC-019 |
+| Archival compensation | Remove the fenced compensating rename | TC-019, TC-044, TC-046 `compensation_requested/R` |
+| Compensation honesty | Swallow a failed compensating rename or claim `terminal_archived` | TC-019, TC-046 terminal discriminator |
 | Archive/mutate overlap | Drop the shard lock before the archive rename | TC-019b (assertion 1) |
-| Release ordering | Release the shard lock before the projection lock | TC-019b (assertion 4) |
+| Guard overlap | Hold task commit guard while acquiring projection commit guard | TC-047 guard event trace rejects overlap and wait cycles |
 | Projection purity | Make `compileStatusProjection` write its output | TC-028 |
 | Read-only check | Let `checkProjectStatusSync` repair | TC-020, TC-028 |
 | Projection lock ordering | Compile **before** acquiring the projection lock | TC-026 |
 | Projection lock presence | Remove the projection lock entirely | TC-026, TC-027 |
 | Projection lock auto-clear | Clear an abandoned `.projection.lock` automatically | TC-027 (c) |
 | Lock order | Acquire a shard lock while holding the projection lock | TC-027 (b) |
+| Generation check outside guard | Move the generation comparison before commit-guard acquisition or omit it | TC-014b shard/projection pre-guard barriers, TC-042 projection, TC-043 forward archive |
+| Retag old candidate | On `FENCING_TOKEN_STALE`, change the candidate generation without rereading state/recomputing | TC-039 and TC-042 provenance and final-content assertions |
+| Premature admission unlink | Remove admission before durable generation rename or directory sync | TC-040 event order and crash/restart variants; TC-014b old-writer refusal |
+| Recovery check outside guard | Release commit guard between generation validation and admission unlink | TC-040 competing-writer barrier and event trace |
+| Online guard reclaim | Add a timeout, force flag, or malformed-guard auto-clear | TC-041 byte equality and online CLI/removal-site audit |
+| Unfenced forward rename | Skip generation/identity/digest/ledger tuple check inside task guard | TC-043 stale archiver and TC-046 `prepared/A` |
+| Unfenced compensation | Reverse without `compensation_requested`, or drop generation/attempt/revision predicate | TC-044 stale compensator and TC-046 `compensation_requested/R` |
+| Ledger overwrite | Replace append-only transactions/attempts with current-entry overwrite | TC-045 retained-history and revision assertions; TC-047 adoption history |
+| Ledger weak creation | Replace `wx` with overwrite, or omit full-write/file/parent sync | TC-045 `EEXIST` and crash-created malformed artifact variants |
+| Ledger weak identity/integrity | Accept unknown keys, duplicate/non-v4 IDs, changed intent, partial record, or stale JCS digest | TC-045 strict schema, digest, UUID and immutable-history variants |
+| Conditional tuple omission | Drop any of `current_txid`, `txid`, revision, current attempt, attempt generation, phase or terminal outcome | TC-045 single-field stale-tuple variants; TC-044 stale compensator |
+| Direction collapse | Use one generic terminal or infer reverse intent from path alone | TC-046 terminal outcomes and `archive_moved/A` refusal; TC-047 pre-request crash |
+| Unsafe adoption | Adopt B/N, wrong digest, terminal mismatch, or lower generation; or reuse old candidate without reread | TC-046 every affected matrix cell plus TC-047 adoption provenance |
+| Crash inference | Repair both/neither paths or guess after a partial journal/rename/projection crash | TC-046 B/N cells and TC-047 restart boundaries |
+| Nested commit guards | Hold task guard while acquiring projection guard, or finalize terminal before fresh projection | TC-047 guard trace and publish-before-terminal ordering |
+| Generation reset/reuse | Reset/decrement/delete generation across restart/archive/rollback/recreation or allow overflow | TC-048 lifecycle and boundary variants |
+| Hostile path/bytes | Skip task-ID validation or follow malformed ledger/fence/shard contents into mutation | TC-049 invalid-ID and malformed/digest-tamper variants; parent-symlink replacement remains out of scope under SEC-002 |
 
 ---
 
@@ -752,16 +878,16 @@ Score is **measured and recorded** for the core engine modules; no fixed thresho
 | AC-003 | TC-005, TC-006 | Authorization removal and canonicalization mutants fail | Covered by design |
 | AC-004 | TC-007, TC-008, TC-024, TC-036 | Policy evidence, strict intersection, resume target/evidence/mode mutations | Covered by design |
 | AC-005 | TC-009, TC-010 | Missing and empty digest in transition and resume | Covered by design |
-| AC-006 | TC-011, TC-012, TC-014b | Ordinary stale/concurrent behavior plus required wrong-quiescence counterexample | Covered; residual remains |
+| AC-006 | TC-011, TC-012, TC-014b, TC-039..TC-042, TC-048 | Ordinary A/B, false-quiescence barriers, guarded generation bump, retry recomputation and non-reuse | Covered by design; runtime pending |
 | AC-007 | TC-015, TC-016, TC-033 | Parse/schema/digest failures and exclusion-order mutants | Covered by design |
-| AC-008 | TC-017, TC-017b, TC-018, TC-019, TC-019b, TC-026, TC-027, TC-037 | Write faults, compensation, lock order, identity-before-rename | Covered by design |
+| AC-008 | TC-017, TC-017b, TC-018, TC-019, TC-019b, TC-026, TC-027, TC-037, TC-042..TC-049 | Fenced archive/projection, strict journal, all phase/path/generation cells, adoption, crash and generation lifecycle | Covered by design; runtime pending |
 | AC-009 | TC-021..TC-025, TC-034, TC-036 | Generated terminal/transition sets, reachability and resume mutations | Covered by design |
 | AC-010 | TC-020, TC-028 | Whole-tree manifest equality; repair-only mutation fails | Covered by design |
 | BR-001 | TC-007, TC-024, TC-034..TC-036 | Lane, intersection and resume authority | Covered by design |
 | BR-002 | TC-005..TC-007 | Actor/evidence negative partitions | Covered by design |
-| BR-003 | TC-009..TC-014c, TC-037, TC-038 | CAS, lock, identity and malformed recovery | Covered; SEC-004 open |
+| BR-003 | TC-009..TC-014c, TC-037..TC-041, TC-043, TC-048, TC-049 | CAS, identity, guarded generation, malformed admission/guard, stale retry and hostile IDs | Covered by design; runtime pending |
 | BR-004 | TC-015..TC-020, TC-028, TC-033 | Fail-closed ingestion, atomic write, read-only and exact exclusions | Covered by design |
-| BR-005 | TC-019b, TC-026, TC-027, TC-014b projection | Normal lock order plus wrong-quiescence residual | Covered; residual remains |
+| BR-005 | TC-014b projection, TC-019b, TC-026, TC-027, TC-042..TC-049 | Projection fencing; journal tuple, directional phases, matrix/adoption, compensation, guard order | Covered by design; runtime pending |
 
 `Covered by design` means the executable case and mutation oracle are specified. It does not mean implementation evidence exists yet.
 
@@ -771,7 +897,7 @@ Score is **measured and recorded** for the core engine modules; no fixed thresho
 
 1. **QG-001 Review Gate:** every commit touching `.mjs`/`.js` carries a matching `docs/records/qa/*-code-review.md`, authored by the non-implementer.
 2. **CI Parity:** 1:1 validation mirroring between `.github/workflows/validate-contracts.yml` and `.gitlab-ci.yml`.
-3. **QG-002 Deterministic Invariants:** zero lost updates is asserted only while mutual exclusion/external quiescence holds; also require crash durability, zero temp/lock leaks, zero ghost entries, zero read-only writes and no unbounded write loop. TC-014b must separately demonstrate the false-quiescence loss scenario.
+3. **QG-002 Deterministic Invariants:** zero lost updates must hold under ordinary concurrency and false-quiescence admission recovery because commit-guard/generation serialization survives admission removal. Require no old-generation shard/archive/projection rename, crash durability, zero temp leaks, no ghost entries, zero read-only writes and no unbounded write loop. A stranded commit guard deliberately remains and fails closed; TC-014b proves stale refusal rather than demonstrating loss.
 4. **QG-003 No Vacuous Concurrency Pass:** every concurrency case proves its required barrier was crossed and its generated/contended set is non-empty. An earlier-guard rejection is a failure.
 5. **QG-004 Mutation Evidence:** acceptance uses killed named mutants and a recorded survivor ledger; no numeric test-count or mutation-score floor substitutes for behavioral coverage.
 6. **Zero Test Weakening:** no unrelated test file is modified, and no existing assertion is relaxed.
@@ -782,11 +908,11 @@ Score is **measured and recorded** for the core engine modules; no fixed thresho
 
 | To | When | Evidence QA Delivers | Evidence QA Requires Back |
 |---|---|---|---|
-| Developer Agent | After Human blueprint approval | TC-001..TC-038 design, traceability, named mutants and deterministic `createStateIo` barriers | Implementation plus exact commands/results; no test-only production hook |
+| Developer Agent | Next, after approved ADR-0032 blueprint | TC-001..TC-049 design, complete phase/path/generation matrix, named mutants and deterministic `createStateIo` barriers | Implementation plus exact commands/results; no test-only production hook; preserve journal and fence history |
 | SA Agent | A future TC-034 contract conflict | Computed policy/matrix disagreement and reachability output | Ruling on the authoritative layer; QA does not change behavior |
-| Security Reviewer | After implementation Checkpoint 2 | Ordinary-lock results, malformed-lock cases, both TC-014b counterexamples, lock-order logs, and whole-tree read-only evidence | Confirm implementation matches contract; retain SEC-004 unless Human accepts residual or a new protocol eliminates it |
-| Documentation Agent | After Human blueprint approval | Final AC traceability and decision record | ADR-0026..ADR-0031 recorded in `DECISIONS.md` |
-| Human Maintainer | Before blueprint approval and before merge | This QA design verdict, SEC-004 residual, later suite/mutation/gate/migration evidence | Explicit residual-risk choice, blueprint approval, then merge decision |
+| Security Reviewer | After implementation checkpoint | Ordinary and false-quiescence barriers, guarded recovery ordering, stale archive/compensation, all ledger/matrix results, lock-order logs and read-only evidence | Confirm code preserves ADR-0032 proof and close SEC-004 only after runtime/mutation evidence |
+| Documentation Agent | After implementation and QA evidence | Final AC traceability and implementation findings | Update project state and closeout through the workflow; ADR-0032 is already recorded |
+| Human Maintainer | Before merge | Blueprint PASS with Developer/QA/Security runtime evidence and residual availability/SEC-002 notes | Explicit implementation approval and merge decision; no further residual-choice request |
 
 **Rework ceiling:** two verifying → rework cycles. A third requires an explicitly recorded Human Maintainer decision.
 
@@ -800,14 +926,15 @@ Score is **measured and recorded** for the core engine modules; no fixed thresho
 |---|---|---|---|
 | OQ-1 | The policy's `investigating -> implementing` row lacked a matrix counterpart. | SA widened `TRANSITION_MATRIX.investigating.destinations`; TC-034 guards recurrence. | TC-007 and TC-024 now test the complete computed intersection. |
 | OQ-2 | How can wrong-unlock and I/O races be forced deterministically without a test-only production hook? | SDD defines injected `createStateIo({ fsOps, processOps, clock, random })`; production receives real adapters and tests receive delegating adapters. | TC-014b, TC-017/17b, TC-019 and TC-038 use the shared seam. No fallback probe remains. |
-| OQ-3 | Security evidence lists disagreed on the prior SEC-004 case set. | Superseded by Round 6: test evidence demonstrates the residual but cannot close it. | Handoff no longer calls any group of cases a closing set. |
-| OQ-4 | Does unconditional CAS carry integrity after a wrong unlock? | No. Requirements, SDD and Security Review state that two admitted writers can both pass CAS before either writes. | TC-014b requires the four-step shard and projection counterexamples. |
+| OQ-3 | What closes SEC-004 after the Human rejected the silent-loss residual? | ADR-0032 and Security Review approve the fenced design; code-level closure still requires Developer implementation and independent mutation-backed QA. | TC-014b and TC-039..TC-048 kill old-generation commit, wrong recovery ordering, unsafe adoption and journal mutants. |
+| OQ-4 | Does unconditional CAS carry integrity after a wrong unlock? | No. Two admitted writers can pass one-shot CAS before either writes. A non-reclaimable commit guard plus durable generation now serializes commit and recovery. | TC-014b forces the old counterexample ordering and expects `FENCING_TOKEN_STALE` before rename; TC-040 proves bump-before-unlink. |
 
-### Open Human Decision
+### Open implementation evidence
 
-| ID | Decision | Owner | Blocks |
+| ID | Evidence still required | Owner | Blocks |
 |---|---|---|---|
-| HD-1 / SEC-004 | Accept maintenance-only recovery with possible silent shard history loss or stale projection after a false `--quiesced` assertion, or require a demonstrated fencing/conditional-commit protocol. | Human Maintainer | Blueprint approval and implementation start |
+| SEC-004 runtime | Implement ADR-0032 and execute deterministic barrier/mutation cases for task, projection, archive, compensation and recovery. | Developer → independent QA → Security | SEC-004 implementation closure and merge |
+| SEC-002 / availability | Preserve explicit local direct-write authenticity boundary and offline-only abandoned commit-guard recovery. | Developer / Security | Honest release and operator documentation |
 
 ---
 
@@ -818,5 +945,6 @@ Score is **measured and recorded** for the core engine modules; no fixed thresho
 - [x] Coverage is demonstrated through named mutants; no numeric test-count or mutation-score floor is used as acceptance evidence.
 - [x] Both authoritative contradictions are re-derived as resolved: one mutation signature/identity flow in the SDD, and no unconditional-CAS safety claim in requirements OQ-4.
 - [x] OQ-2 is closed with the injected `createStateIo` adapter, without a test-only production hook.
-- [x] SEC-004 remains Open/High and the QA verdict does not infer Human acceptance.
+- [x] The Human rejected SEC-004's silent-loss residual; Security approved ADR-0032 at design level. This QA verdict does not claim implementation or mutation evidence.
+- [x] Fenced task/projection/archive/compensation paths, strict append-only ledger, every phase/path/generation cell, adoption and crash recovery each have named killing mutants.
 - [x] Test-quality review of implementation tests is deferred until Developer Agent produces them; this blueprint does not claim FIRST/anti-pattern compliance for code that does not exist.
