@@ -9,7 +9,7 @@
 | Risk Level | High |
 | Owner | Developer Agent (`implementation-planning`) |
 | Target Branch / Ticket | `feat/control-plane-state-integrity` / Issue #277 |
-| Revision | Round 7 SA design — Human rejected SEC-004 residual on 2026-09-14. ADR-0032 adds durable generations and a non-reclaimable commit guard shared by commits and admission-lock recovery; Security and QA validation remain required before implementation. |
+| Revision | ADR-0032 fenced design — Human rejected SEC-004 residual on 2026-09-14. Security passed the blueprint at `90e8a0d`; QA Full Mode passed the test blueprint at `f112e0d`. Human blueprint review is next; implementation and runtime evidence remain pending. |
 
 > **Scope note (ADR-0031).** Package 1's durable envelope and active-shard enforcement lane are narrowed
 > to `workflow_id: "bug-fix"` only. Issue #277 is itself `framework-meta` and therefore has **no durable
@@ -23,10 +23,10 @@
 
 | Artifact | Status | Notes |
 |---|---|---|
-| REQUIREMENT_DISCOVERY.md | Draft (`docs/records/requirements/2026-09-12-control-plane-state-integrity-discovery.md`) | BA discovery. AC-001..AC-010, BR-001..BR-005. Round 5 correction 3 (residual "atomic lock takeover" wording) is owned by BA Agent. |
-| SDD.md | **Draft, Round 7 fencing revision — pending Security and QA** (`docs/records/sdd/2026-09-12-control-plane-state-integrity-sdd.md`) | ADR-0032 records the Human decision. No implementation starts before independent Security and QA validation. |
-| SECURITY_REVIEW.md | Round 6 Security revision (`docs/records/security-review/2026-09-12-issue-277-security-review.md`) | Security contract corrected; SEC-004 remains High/Open pending Security validation of ADR-0032; Human explicitly rejected residual acceptance. |
-| TEST_PLAN.md | Draft (`docs/records/qa/2026-09-12-issue-277-test-plan.md`) | Full Mode QA artifacts, TC-001..TC-031. Requires QA-owned corrections listed in §9. |
+| REQUIREMENT_DISCOVERY.md | Draft for Human blueprint review (`docs/records/requirements/2026-09-12-control-plane-state-integrity-discovery.md`) | AC-001..AC-010 and BR-001..BR-005 reflect the Human decision to reject SEC-004's silent-loss residual. |
+| SDD.md | Draft for Human blueprint review (`docs/records/sdd/2026-09-12-control-plane-state-integrity-sdd.md`) | ADR-0032 fenced commits and the append-only archive ledger passed Security and QA design review; no implementation evidence exists yet. |
+| SECURITY_REVIEW.md | Blueprint PASS (`docs/records/security-review/2026-09-12-issue-277-security-review.md`) | Security approved the design at `90e8a0d`; SEC-004 is remediated in design, with implementation and mutation evidence pending. |
+| TEST_PLAN.md | Full Mode blueprint PASS (`docs/records/qa/2026-09-12-issue-277-test-plan.md`) | QA completed AC/BR traceability, deterministic barriers, recovery matrix and named mutation oracles at `f112e0d`; runtime execution remains pending. |
 
 ---
 
@@ -111,10 +111,10 @@ the real repository.
 - Rollback is whole-checkpoint only. Validate shards/projection/digests before and after offline guard repair.
 - Verification: migration idempotency, rollback rehearsal, restart fixture, and full repository gates.
 
-> **🛑 QA Full Mode checkpoint:** QA re-derives every interleaving, performs mutation testing, and verifies `--check` remains byte-identical. Implementation cannot begin until Security and QA approve this blueprint.
+> **🛑 QA Full Mode checkpoint:** QA has approved the test blueprint at `f112e0d`. The mutation tests and byte-identical `--check` assertions are specified but must be executed against the implementation before runtime acceptance.
 
 
-> **Gate:** no implementation task starts until Security and QA approve the Round 7 blueprint. ADR-0032 records the Human decision; prior ADR-0026..ADR-0031 remain required blueprint inputs.
+> **Gate:** Security and QA design reviews passed. No implementation task starts until the Human Maintainer reviews and approves the complete blueprint. ADR-0032 records the Human decision to reject the previous residual; prior ADR-0026..ADR-0031 remain required blueprint inputs.
 
 ### 4.0 Ordering rationale (Round 5 Blocker 3)
 
@@ -521,13 +521,12 @@ npm test
 
 | To | Reason | Required Evidence |
 |---|---|---|
-| Human Maintainer (gate) | Review the Round 7 blueprint after Security validates ADR-0032 and QA aligns deterministic barriers/mutants | Revised requirement, SDD, plan, QA plan, security review |
-| Documentation Agent | Record ADR-0026..**ADR-0031** in `DECISIONS.md` — **six ADRs**; ADR-0031 (Package 1 scoped to `bug-fix`, single authority rule) is new in Round 5 | Approved SDD |
-| QA Agent | Update dual-lane tests and field-swap mutants; positive and negative full-path blocked resume cases; transition/resume/archive identity mismatch and between-start/lock replacement barriers; exact `archive/` plus dot-entry enumeration; malformed-lock cases; and both four-step wrong-unlock counterexamples. Use OQ-2's resolved `createStateIo` adapter seam; do not introduce a production test-only hook. | Round 6 SDD, this plan |
-| Code Review Gate | Review all production script modifications | Diff, unit tests, independently authored code review record |
-| QA Verifier | Independent verification of AC-001..AC-010 and the deterministic invariants | Full test run, mutation evidence, gate passes |
-| Security Reviewer | Validate ADR-0032: shared commit-guard serialization, durable monotonic generations, all crash/interleaving boundaries, and offline-only guard recovery. SEC-004 remains High/Open until that review passes. | Security review, SDD Component 4, requirements BR-003/R-006 |
-| Human Maintainer (merge) | Final merge approval | Clean CI run, approved reviews, zero gate failures |
+| Human Maintainer (blueprint gate; next) | Review the completed requirement, SDD, plan, Security PASS and QA Full Mode PASS before authorizing implementation | This artifact set, ADR-0032, Security commit `90e8a0d`, QA commit `f112e0d` |
+| Developer Agent (after blueprint approval) | Implement reviewable slices with TDD and preserve the fenced archive-ledger contract | Approved blueprint and QA test plan |
+| Code Review Gate (after implementation) | Independently review every production script modification | Diff, unit tests, independently authored code review record |
+| QA Verifier (after implementation) | Execute AC-001..AC-010, deterministic barriers and named mutation oracles | Full test run, mutation evidence, gate passes |
+| Security Reviewer (after runtime QA) | Verify implemented fencing and archive recovery before closing SEC-004 at runtime | Security blueprint review plus implementation and mutation evidence |
+| Human Maintainer (merge gate) | Make the final merge decision | Clean CI run, approved reviews, zero gate failures |
 
 ### 9.1 Round 6 SA dry-run against the repository
 

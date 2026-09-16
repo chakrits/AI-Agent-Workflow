@@ -149,6 +149,6 @@
 
 | Next Agent / Skill | Reason | Required Input |
 |---|---|---|
-| **Security Reviewer (`security-review`)** | Resolve the wrong-`unlock` lost-update premise, malformed lock recovery, and OQ-2 injection seam. Validate ADR-0032 across every ordering. SEC-004 remains open until Security confirms the proof and QA verifies the barriers; Human has rejected residual acceptance. | Round 7 requirement, SDD and plan |
-| **QA Lead (`functional-test-design`)** | Align the QA-owned plan with dual validator lanes, operation-qualified blocked resume, transition/resume/archive identity barriers, canonical exclusions, malformed locks, and the four-step wrong-unlock counterexample. | Round 6 SDD and implementation plan plus Security decision |
-| **Human Maintainer** | Review the complete Round 7 blueprint after Security validates ADR-0032 and QA aligns its fenced-recovery cases. | Reconciled requirement, SDD, implementation plan, security review and QA plan |
+| **Human Maintainer (next)** | Review the completed blueprint before Developer implementation. Security approved the design at `90e8a0d`; QA Full Mode approved the test blueprint at `f112e0d`. SEC-004 still needs implementation and mutation evidence for runtime closure. | Requirement, SDD, implementation plan, Security Review, QA test plan and ADR-0032 |
+| **Developer Agent (after blueprint approval)** | Implement the fenced commit and archive-ledger design in reviewable slices. | Human-approved blueprint and QA mutation plan |
+| **QA Verifier / Security Reviewer (after implementation)** | Execute the deterministic barriers and named mutants, then verify the implemented controls before closing SEC-004 at runtime. | Developer evidence, exact diff and CI results |

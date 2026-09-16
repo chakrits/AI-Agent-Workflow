@@ -304,7 +304,6 @@ mandatory and are not treated as executed evidence here.
   rename, parent sync, projection outcome, adoption and terminal write; kill mutants for collapsed
   terminal outcomes, retagged attempts/candidates, skipped CAS predicates, ambiguous auto-repair and
   overlapping commit guards.
-- **Next owner:** `qa-agent` using `functional-test-design` in Full Mode. Implementation remains blocked
-  until QA reconciles the plan and approves the blueprint; this review does not claim production code or
-  tests exist.
+- **Next owner (after QA Full Mode PASS at `f112e0d`):** Human Maintainer for blueprint review before
+  Developer implementation. This Security verdict does not claim production code or runtime tests exist.
 - This verdict reviews blueprint commit `4e12be0` only.

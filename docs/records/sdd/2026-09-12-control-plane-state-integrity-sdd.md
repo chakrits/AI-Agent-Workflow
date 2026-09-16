@@ -5,7 +5,7 @@
 - Work Item ID: Issue #277
 - Title: Control-Plane State Integrity & Architecture Remediation (Package 1)
 - Owner: SA Agent (`sa-architecture-design`)
-- Status: Draft (Round 7 — ADR-0032 fenced conditional commit; pending Security and QA validation)
+- Status: Draft for Human blueprint review (ADR-0032 fenced conditional commit; Security and QA design reviews passed; implementation pending)
 - Date: 2026-09-12
 - Governing Requirements: `docs/records/requirements/2026-09-12-control-plane-state-integrity-discovery.md` (AC-001..AC-010, BR-001..BR-005)
 
@@ -839,7 +839,7 @@ export function mutateTaskStateOnDisk(rootDir, expectedTaskId, {
   - *Context:* A token checked before an unconditional rename leaves a recovery window; Node `fs` has no cross-file atomic compare-and-rename.
   - *Decision:* Serialize every generation bump and writer rename with the same non-reclaimable commit guard. Recovery increments the durable generation before admission removal. Writers recheck generation, digest and identity inside the guard.
   - *Consequence:* False quiescence yields `FENCING_TOKEN_STALE`, not silent overwrite. An abandoned commit guard sacrifices availability and has offline-only recovery.
-  - *Status:* Accepted for blueprint validation by Human Maintainer on 2026-09-14; Security and QA validation pending.
+  - *Status:* Accepted for blueprint validation by Human Maintainer on 2026-09-14; Security and QA design reviews passed; Human blueprint approval and implementation evidence pending.
 - **ADR-0028: Self-Excluding RFC 8785 JCS Task Envelope Hashing**
   - *Context:* Hashing an envelope including `state_digest` is circular.
   - *Decision:* `digestTaskEnvelope()` excludes the top-level `state_digest` before `digestJcs()`;
