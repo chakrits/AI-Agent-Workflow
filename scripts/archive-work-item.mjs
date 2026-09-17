@@ -1,124 +1,177 @@
 #!/usr/bin/env node
-
 import fs from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { randomUUID } from 'node:crypto';
+import { digestJcs } from './lib/status-jcs.mjs';
+import { validateEnvelopeSchema } from './lib/task-state-machine.mjs';
+import { atomicWriteFileSync, defaultStateIo, acquireLock, releaseLock, acquireCommitGuard, releaseCommitGuard, readGeneration } from './lib/fenced-commit.mjs';
+import { updateProjectStatusFile } from './compile-status-projection.mjs';
 
 export const WORK_ITEMS_REL_DIR = 'docs/records/work-items';
 export const ARCHIVE_REL_DIR = 'docs/records/work-items/archive';
 export const TERMINAL_STATES = ['completed', 'cancelled'];
+const PHASES = ['prepared', 'archive_moved', 'compensation_requested', 'compensation_moved', 'terminal_archived', 'terminal_compensated'];
 
-/**
- * Archive a work item shard:
- * Moves docs/records/work-items/{issue_id} to docs/records/work-items/archive/{issue_id}.
- * Refuses archival if state is not terminal ('completed' or 'cancelled').
- */
-export function archiveWorkItem(issueId, rootDir = process.cwd()) {
-  if (!issueId || typeof issueId !== 'string') {
-    throw new Error('Valid issue_id argument is required.');
-  }
-
-  // Prevent directory traversal
-  if (issueId.includes('..') || issueId.includes('/') || issueId.includes('\\')) {
-    const error = new Error(`Invalid issue_id '${issueId}': path traversal not permitted.`);
-    error.code = 'INVALID_ISSUE_ID';
-    throw error;
-  }
-
-  const workItemsDir = path.join(rootDir, WORK_ITEMS_REL_DIR);
-  const archiveDir = path.join(rootDir, ARCHIVE_REL_DIR);
-  const shardDir = path.join(workItemsDir, issueId);
-  const shardFile = path.join(shardDir, 'task-state.json');
-
-  if (!fs.existsSync(shardFile)) {
-    const error = new Error(`Task state shard not found at ${shardFile}`);
-    error.code = 'SHARD_NOT_FOUND';
-    throw error;
-  }
-
-  let stateObj;
-  try {
-    const raw = fs.readFileSync(shardFile, 'utf8');
-    stateObj = JSON.parse(raw);
-  } catch (err) {
-    const error = new Error(`Malformed JSON in shard file ${shardFile}: ${err.message}`);
-    error.code = 'MALFORMED_SHARD';
-    throw error;
-  }
-
-  const currentState = stateObj.state;
-  if (!TERMINAL_STATES.includes(currentState)) {
-    const error = new Error(
-      `Cannot archive work item '${issueId}': state '${currentState}' is not terminal. Only terminal states (${TERMINAL_STATES.join(', ')}) can be archived.`
-    );
-    error.code = 'NON_TERMINAL_STATE';
-    throw error;
-  }
-
-  // Ensure archive directory exists
-  if (!fs.existsSync(archiveDir)) {
-    fs.mkdirSync(archiveDir, { recursive: true });
-  }
-
-  const targetShardDir = path.join(archiveDir, issueId);
-  if (fs.existsSync(targetShardDir)) {
-    const error = new Error(`Target archive directory already exists at ${targetShardDir}`);
-    error.code = 'ARCHIVE_COLLISION';
-    throw error;
-  }
-
-  // Move entire work item shard directory to archive
-  fs.renameSync(shardDir, targetShardDir);
-
-  return {
-    archived: true,
-    issue_id: issueId,
-    previous_path: shardDir,
-    archived_path: targetShardDir,
-    state: currentState
-  };
+function fail(code, message, extra = {}) { return Object.assign(new Error(message), { code, status: 'REJECTED', ...extra }); }
+function validId(id) { if (typeof id !== 'string' || !/^[a-z0-9_-]+$/.test(id) || id === 'archive') throw fail(id === 'archive' ? 'RESERVED_TASK_ID' : 'INVALID_ISSUE_ID', `Invalid issue_id '${id}'`); return id; }
+function journalPath(rootDir, taskId) { return path.join(rootDir, WORK_ITEMS_REL_DIR, '.archive-transactions', `${validId(taskId)}.json`); }
+function journalDigest(journal) { const copy = { ...journal }; delete copy.journal_digest; return digestJcs(copy); }
+function writeJournal(file, journal, io) { journal.journal_digest = journalDigest(journal); atomicWriteFileSync(file, `${JSON.stringify(journal, null, 2)}\n`, io); }
+function syncDirectory(directory, io) {
+  let fd;
+  try { fd = io.fsOps.openSync(directory, 'r'); io.fsOps.fsyncSync(fd); }
+  finally { if (fd !== undefined) { try { io.fsOps.closeSync(fd); } catch {} } }
 }
-
-function parseArgs(args) {
-  const parsed = { _: [] };
-  for (let i = 0; i < args.length; i++) {
-    const arg = args[i];
-    if (arg === '--dir') {
-      parsed.dir = args[++i];
-    } else if (arg.startsWith('--dir=')) {
-      parsed.dir = arg.slice(6);
-    } else {
-      parsed._.push(arg);
+function writeInitialJournal(file, journal, io) {
+  const parent = path.dirname(file);
+  io.fsOps.mkdirSync(parent, { recursive: true });
+  const raw = `${JSON.stringify(journal, null, 2)}\n`;
+  const bytes = Buffer.from(raw, 'utf8');
+  let fd;
+  try {
+    fd = io.fsOps.openSync(file, 'wx', 0o600);
+    let offset = 0;
+    while (offset < bytes.length) {
+      const written = io.fsOps.writeSync(fd, bytes, offset, bytes.length - offset);
+      if (!Number.isInteger(written) || written <= 0) throw fail('ATOMIC_WRITE_NO_PROGRESS', `Zero-progress journal write to ${file}`);
+      offset += written;
     }
+    io.fsOps.fsyncSync(fd);
+  } catch (cause) {
+    if (fd !== undefined) { try { io.fsOps.closeSync(fd); } catch {} }
+    if (cause?.code === 'EEXIST') throw fail('ARCHIVE_JOURNAL_CONFLICT', `Archive journal already exists: ${file}`);
+    throw cause;
+  } finally { if (fd !== undefined) { try { io.fsOps.closeSync(fd); } catch {} } }
+  syncDirectory(parent, io);
+}
+function exactKeys(value, keys, code, file) {
+  if (!value || typeof value !== 'object' || Array.isArray(value) || Object.keys(value).some((key) => !keys.includes(key))) {
+    throw fail(code, `Invalid archive journal schema: ${file}`);
   }
-  return parsed;
+}
+const UUID_V4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const HEX64 = /^[a-f0-9]{64}$/;
+function loadJournal(file, io) {
+  if (!io.fsOps.existsSync(file)) return null;
+  let journal; try { journal = JSON.parse(io.fsOps.readFileSync(file, 'utf8')); } catch (cause) { throw fail('ARCHIVE_JOURNAL_MALFORMED', `Malformed archive journal: ${file}`, { cause }); }
+  exactKeys(journal, ['schema_version', 'journal_revision', 'journal_digest', 'transactions', 'current_txid'], 'ARCHIVE_JOURNAL_MALFORMED', file);
+  if (journal.schema_version !== 1 || !Number.isSafeInteger(journal.journal_revision) || journal.journal_revision < 1 || !Array.isArray(journal.transactions) || journal.transactions.length < 1 || !UUID_V4.test(journal.current_txid)) throw fail('ARCHIVE_JOURNAL_MALFORMED', `Invalid archive journal header: ${file}`);
+  if (!HEX64.test(journal.journal_digest) || journal.journal_digest !== journalDigest(journal)) throw fail('ARCHIVE_JOURNAL_TAMPERED', `Tampered archive journal: ${file}`);
+  const txids = new Set(); const attempts = new Set();
+  for (const tx of journal.transactions) {
+    exactKeys(tx, ['intent', 'attempts', 'current_attempt_id', 'phase', 'terminal_outcome'], 'ARCHIVE_JOURNAL_MALFORMED', file);
+    exactKeys(tx.intent, ['txid', 'task_id', 'intended_outcome', 'source_digest', 'source_generation', 'created_at'], 'ARCHIVE_JOURNAL_MALFORMED', file);
+    if (!UUID_V4.test(tx.intent.txid) || tx.intent.intended_outcome !== 'archived' || !/^[a-z0-9_-]+$/.test(tx.intent.task_id) || !HEX64.test(tx.intent.source_digest) || !Number.isSafeInteger(tx.intent.source_generation) || tx.intent.source_generation < 1 || !Number.isSafeInteger(tx.intent.created_at) || tx.intent.created_at < 0) throw fail('ARCHIVE_JOURNAL_MALFORMED', `Invalid archive journal intent: ${file}`);
+    if (txids.has(tx.intent.txid)) throw fail('ARCHIVE_JOURNAL_TAMPERED', `Duplicate archive transaction id: ${file}`); txids.add(tx.intent.txid);
+    if (!Array.isArray(tx.attempts) || tx.attempts.length < 1 || !UUID_V4.test(tx.current_attempt_id) || !PHASES.includes(tx.phase)) throw fail('ARCHIVE_JOURNAL_MALFORMED', `Invalid archive journal phase: ${file}`);
+    for (const attempt of tx.attempts) {
+      exactKeys(attempt, ['attempt_id', 'generation', 'adopts_attempt_id', 'started_at'], 'ARCHIVE_JOURNAL_MALFORMED', file);
+      if (!UUID_V4.test(attempt.attempt_id) || attempts.has(attempt.attempt_id) || (attempt.adopts_attempt_id !== null && !UUID_V4.test(attempt.adopts_attempt_id)) || !Number.isSafeInteger(attempt.generation) || attempt.generation < 1 || !Number.isSafeInteger(attempt.started_at) || attempt.started_at < 0) throw fail('ARCHIVE_JOURNAL_TAMPERED', `Invalid archive attempt identity: ${file}`);
+      attempts.add(attempt.attempt_id);
+    }
+    if (!tx.attempts.some((attempt) => attempt.attempt_id === tx.current_attempt_id)) throw fail('ARCHIVE_JOURNAL_TAMPERED', `Current archive attempt is not retained: ${file}`);
+    if ((tx.phase === 'terminal_archived' && tx.terminal_outcome !== 'archived') || (tx.phase === 'terminal_compensated' && tx.terminal_outcome !== 'compensated') || (!tx.phase.startsWith('terminal_') && tx.terminal_outcome !== null)) throw fail('ARCHIVE_JOURNAL_TAMPERED', `Invalid archive journal outcome: ${file}`);
+  }
+  if (!txids.has(journal.current_txid)) throw fail('ARCHIVE_JOURNAL_TAMPERED', `Current archive transaction is not retained: ${file}`);
+  return journal;
+}
+function newJournal(taskId, source, generation, io) {
+  const txid = io.uuid ? io.uuid() : randomUUID(); const attempt = io.uuid ? io.uuid() : randomUUID();
+  const now = io.clock?.now ? io.clock.now() : Date.now();
+  return { schema_version: 1, journal_revision: 1, journal_digest: '', transactions: [{ intent: { txid, task_id: taskId, intended_outcome: 'archived', source_digest: source.state_digest, source_generation: generation, created_at: now }, attempts: [{ attempt_id: attempt, generation, adopts_attempt_id: null, started_at: now }], current_attempt_id: attempt, phase: 'prepared', terminal_outcome: null }], current_txid: txid };
 }
 
-export function main() {
-  const parsed = parseArgs(process.argv.slice(2));
-  const issueId = parsed._[0];
+function archiveLocation(active, archive, taskId, expectedDigest, io) {
+  const activeExists = io.fsOps.existsSync(active);
+  const archiveExists = io.fsOps.existsSync(archive);
+  if (activeExists && archiveExists) throw fail('ARCHIVE_LOCATION_AMBIGUOUS', `Both active and archive paths exist for '${taskId}'`);
+  if (!activeExists && !archiveExists) throw fail('ARCHIVE_LOCATION_AMBIGUOUS', `Neither active nor archive path exists for '${taskId}'`);
+  const location = activeExists ? 'active' : 'archive';
+  const file = path.join(activeExists ? active : archive, 'task-state.json');
+  let state; try { state = JSON.parse(io.fsOps.readFileSync(file, 'utf8')); } catch (cause) { throw fail('ARCHIVE_JOURNAL_MALFORMED', `Malformed archive shard: ${file}`, { cause }); }
+  if (state.task_id !== taskId || state.state_digest !== expectedDigest) throw fail('ARCHIVE_LOCATION_AMBIGUOUS', `Archive path identity or digest does not match intent for '${taskId}'`);
+  return { location, state };
+}
 
-  if (!issueId) {
-    console.error('Usage: node scripts/archive-work-item.mjs <issue_id> [--dir <root_dir>]');
-    process.exit(1);
-  }
+function adoptAttempt(taskId, journal, generation, file, io) {
+  const tx = journal.transactions.at(-1);
+  const previous = tx.attempts.find((item) => item.attempt_id === tx.current_attempt_id);
+  if (generation < previous.generation) throw fail('FENCE_GENERATION_REGRESSION', 'Archive generation regressed below the current attempt.');
+  if (generation === previous.generation) return { journal, tx, attempt: previous, adopted: false };
+  const attempt_id = io.uuid ? io.uuid() : randomUUID();
+  if (!UUID_V4.test(attempt_id)) throw fail('ARCHIVE_JOURNAL_MALFORMED', 'Injected archive attempt id is not UUID-v4.');
+  if (!['prepared', 'archive_moved', 'compensation_requested'].includes(tx.phase)) throw fail('ARCHIVE_ADOPTION_UNSAFE', `Cannot adopt terminal archive phase ${tx.phase}`);
+  const attempt = { attempt_id, generation, adopts_attempt_id: previous.attempt_id, started_at: io.clock?.now ? io.clock.now() : Date.now() };
+  tx.attempts.push(attempt); tx.current_attempt_id = attempt_id; journal.journal_revision += 1; writeJournal(file, journal, io);
+  return { journal, tx, attempt, adopted: true };
+}
 
-  const rootDir = parsed.dir ? path.resolve(parsed.dir) : process.cwd();
-
+export function adoptArchiveTransaction(issueId, rootDir = process.cwd(), { io = defaultStateIo } = {}) {
+  const taskId = validId(issueId); const active = path.join(rootDir, WORK_ITEMS_REL_DIR, taskId); const archive = path.join(rootDir, ARCHIVE_REL_DIR, taskId); const file = journalPath(rootDir, taskId);
+  const admission = acquireLock(rootDir, 'task', taskId, io); let guard;
   try {
-    const result = archiveWorkItem(issueId, rootDir);
-    console.log(JSON.stringify({ status: 'OK', action: 'archive', ...result }, null, 2));
-    process.exit(0);
-  } catch (err) {
-    console.error(JSON.stringify({
-      status: 'ERROR',
-      error_code: err.code || 'ARCHIVE_FAILED',
-      message: err.message
-    }, null, 2));
-    process.exit(1);
-  }
+    const journal = loadJournal(file, io); if (!journal) throw fail('ARCHIVE_JOURNAL_MISSING', `Archive journal not found: ${file}`);
+    const generation = readGeneration(rootDir, 'task', taskId, io); guard = acquireCommitGuard(rootDir, 'task', taskId, io);
+    const current = loadJournal(file, io); const tx = current.transactions.at(-1); const attempt = tx.attempts.find((item) => item.attempt_id === tx.current_attempt_id);
+    if (generation <= attempt.generation) return { adopted: false, generation, attempt_id: attempt.attempt_id };
+    archiveLocation(active, archive, taskId, tx.intent.source_digest, io);
+    const result = adoptAttempt(taskId, current, generation, file, io);
+    return { adopted: result.adopted, generation, attempt_id: result.attempt.attempt_id, adopts_attempt_id: attempt.attempt_id, phase: tx.phase };
+  } finally { if (guard) releaseCommitGuard(rootDir, 'task', taskId, guard.nonce, io); releaseLock(rootDir, 'task', taskId, admission.nonce, io); }
 }
 
-if (import.meta.url === pathToFileURL(process.argv[1]).href) {
-  main();
+export function archiveWorkItem(issueId, rootDir = process.cwd(), { io = defaultStateIo } = {}) {
+  const taskId = validId(issueId); const active = path.join(rootDir, WORK_ITEMS_REL_DIR, taskId); const sourceFile = path.join(active, 'task-state.json'); const archive = path.join(rootDir, ARCHIVE_REL_DIR, taskId); const file = journalPath(rootDir, taskId);
+  const admission = acquireLock(rootDir, 'task', taskId, io); let guard;
+  try {
+    const sourcePath = io.fsOps.existsSync(sourceFile) ? sourceFile : (io.fsOps.existsSync(file) && io.fsOps.existsSync(path.join(archive, 'task-state.json')) ? path.join(archive, 'task-state.json') : sourceFile);
+    if (!io.fsOps.existsSync(sourcePath)) throw fail('SHARD_NOT_FOUND', `Task state shard not found at ${sourceFile}`);
+    let source; try { source = JSON.parse(io.fsOps.readFileSync(sourcePath, 'utf8')); } catch (cause) { throw fail('MALFORMED_SHARD', `Malformed JSON in shard file ${sourcePath}`, { cause }); }
+    if (source.task_id !== taskId || path.basename(active) !== taskId) throw fail('TASK_IDENTITY_MISMATCH', 'Task identity does not match the operation identifier.');
+    if (!TERMINAL_STATES.includes(source.state)) throw fail('NON_TERMINAL_STATE', `Cannot archive work item '${taskId}': state '${source.state}' is not terminal.`);
+    // Legacy v1 records are retained for the pre-migration tooling and tests.
+    if (source.contract_version !== 2 && !Object.hasOwn(source, 'policy_contract_version')) {
+      io.fsOps.mkdirSync(path.dirname(archive), { recursive: true });
+      if (io.fsOps.existsSync(archive)) throw fail('ARCHIVE_COLLISION', `Target archive directory already exists at ${archive}`);
+      io.fsOps.renameSync(active, archive);
+      return { archived: true, issue_id: taskId, previous_path: active, archived_path: archive, state: source.state };
+    }
+    validateEnvelopeSchema(source); const generation = readGeneration(rootDir, 'task', taskId, io); guard = acquireCommitGuard(rootDir, 'task', taskId, io);
+    let journal = loadJournal(file, io);
+    if (!journal) { journal = newJournal(taskId, source, generation, io); journal.journal_digest = journalDigest(journal); writeInitialJournal(file, journal, io); }
+    let tx = journal.transactions.at(-1); let attempt = tx.attempts.find((item) => item.attempt_id === tx.current_attempt_id);
+    if (tx.phase === 'terminal_archived') { archiveLocation(active, archive, taskId, tx.intent.source_digest, io); return { archived: true, issue_id: taskId, archived_path: archive, state: source.state }; }
+    if (tx.phase === 'terminal_compensated') { archiveLocation(active, archive, taskId, tx.intent.source_digest, io); return { archived: false, compensated: true, issue_id: taskId, restored_path: active, state: source.state }; }
+    if (!['prepared', 'archive_moved'].includes(tx.phase)) throw fail('ARCHIVE_JOURNAL_CONFLICT', `Archive transaction is already in phase ${tx.phase}`);
+    if (generation < attempt.generation) throw fail('FENCE_GENERATION_REGRESSION', 'Archive generation regressed below the current attempt.');
+    if (generation > attempt.generation) {
+      archiveLocation(active, archive, taskId, tx.intent.source_digest, io);
+      const adopted = adoptAttempt(taskId, journal, generation, file, io); journal = adopted.journal; tx = adopted.tx; attempt = adopted.attempt;
+    }
+    if (tx.intent.source_digest !== source.state_digest && tx.phase === 'prepared') throw fail('ARCHIVE_EXECUTOR_STALE', 'Archive executor digest is stale.');
+    if (tx.phase === 'prepared') {
+      const location = archiveLocation(active, archive, taskId, tx.intent.source_digest, io);
+      if (location.location === 'active') {
+        io.fsOps.mkdirSync(path.dirname(archive), { recursive: true });
+        io.fsOps.renameSync(active, archive); syncDirectory(path.dirname(active), io); syncDirectory(path.dirname(archive), io);
+      }
+      journal.journal_revision += 1; tx.phase = 'archive_moved'; writeJournal(file, journal, io);
+    } else {
+      archiveLocation(active, archive, taskId, tx.intent.source_digest, io);
+    }
+    releaseCommitGuard(rootDir, 'task', taskId, guard.nonce, io); guard = undefined;
+    try { updateProjectStatusFile(rootDir, io); } catch (projectionError) {
+      guard = acquireCommitGuard(rootDir, 'task', taskId, io); journal = loadJournal(file, io); const current = journal.transactions.at(-1); current.phase = 'compensation_requested'; journal.journal_revision += 1; writeJournal(file, journal, io); io.fsOps.renameSync(archive, active); syncDirectory(path.dirname(archive), io); syncDirectory(path.dirname(active), io); current.phase = 'compensation_moved'; journal.journal_revision += 1; writeJournal(file, journal, io); releaseCommitGuard(rootDir, 'task', taskId, guard.nonce, io); guard = undefined;
+      try { updateProjectStatusFile(rootDir, io); } catch (compensationProjectionError) { throw compensationProjectionError; }
+      guard = acquireCommitGuard(rootDir, 'task', taskId, io); journal = loadJournal(file, io); const compensated = journal.transactions.at(-1); compensated.phase = 'terminal_compensated'; compensated.terminal_outcome = 'compensated'; journal.journal_revision += 1; writeJournal(file, journal, io);
+      return { archived: false, compensated: true, issue_id: taskId, previous_path: archive, restored_path: active, state: source.state, journal_path: file, cause_code: projectionError.code };
+    }
+    guard = acquireCommitGuard(rootDir, 'task', taskId, io); journal = loadJournal(file, io); const current = journal.transactions.at(-1); current.phase = 'terminal_archived'; current.terminal_outcome = 'archived'; journal.journal_revision += 1; writeJournal(file, journal, io);
+    return { archived: true, issue_id: taskId, previous_path: active, archived_path: archive, state: source.state, journal_path: file };
+  } finally { if (guard) releaseCommitGuard(rootDir, 'task', taskId, guard.nonce, io); releaseLock(rootDir, 'task', taskId, admission.nonce, io); }
 }
+
+function parseArgs(args) { const parsed = { _: [] }; for (let i = 0; i < args.length; i++) { if (args[i] === '--dir') parsed.dir = args[++i]; else if (args[i].startsWith('--dir=')) parsed.dir = args[i].slice(6); else parsed._.push(args[i]); } return parsed; }
+export function main() { const parsed = parseArgs(process.argv.slice(2)); if (!parsed._[0]) { console.error('Usage: node scripts/archive-work-item.mjs <issue_id> [--dir <root_dir>]'); process.exit(1); } try { console.log(JSON.stringify({ status: 'OK', action: 'archive', ...archiveWorkItem(parsed._[0], parsed.dir ? path.resolve(parsed.dir) : process.cwd()) }, null, 2)); } catch (err) { console.error(JSON.stringify({ status: 'ERROR', error_code: err.code || 'ARCHIVE_FAILED', message: err.message }, null, 2)); process.exit(1); } }
+if (import.meta.url === pathToFileURL(process.argv[1]).href) main();
