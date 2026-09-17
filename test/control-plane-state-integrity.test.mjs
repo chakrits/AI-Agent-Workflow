@@ -4,7 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 
-import { atomicWriteFileSync, acquireCommitGuard, createStateIo, incrementGeneration, initializeGeneration, lockFilePath, readGeneration } from '../scripts/lib/fenced-commit.mjs';
+import { atomicWriteFileSync, acquireCommitGuard, commitGuardPath, createStateIo, incrementGeneration, initializeGeneration, lockFilePath, readGeneration } from '../scripts/lib/fenced-commit.mjs';
 import { digestJcs } from '../scripts/lib/status-jcs.mjs';
 import { updateProjectStatusFile } from '../scripts/compile-status-projection.mjs';
 import { backfillTaskStateV2 } from '../scripts/backfill-task-state-v2.mjs';
@@ -118,6 +118,49 @@ test('CR-009: stale forward archiver is rejected before active-to-archive rename
   }, renameSync(from, to) { if (from === active && to.endsWith(path.join('archive', 'forward-case'))) forwardRenames += 1; return fs.renameSync(from, to); }});
   assert.throws(() => archiveWorkItem('forward-case', root, { io: createStateIo({ fsOps: ops }) }), (error) => error.code === 'ARCHIVE_EXECUTOR_STALE');
   assert.equal(fs.existsSync(active), true); assert.equal(fs.existsSync(path.join(root, 'docs/records/work-items/archive/forward-case')), false); assert.equal(forwardRenames, 0); assert.equal(readGeneration(root, 'task', 'forward-case'), 2);
+});
+
+test('CR-015: stale compensation request leaves journal and shards byte-identical', () => {
+  const root = tempRoot(); const taskId = 'comp-request-stale'; const archive = path.join(root, 'docs/records/work-items/archive', taskId); fs.mkdirSync(archive, { recursive: true });
+  fs.writeFileSync(path.join(root, 'PROJECT_STATUS.md'), '<!-- active-work-items-table-start -->\n<!-- active-work-items-table-end -->\n');
+  const task = createTaskState({ task_id: taskId }); task.state = 'completed'; task.state_digest = digestTaskEnvelope(task); fs.writeFileSync(path.join(archive, 'task-state.json'), `${JSON.stringify(task)}\n`);
+  const bad = path.join(root, 'docs/records/work-items/bad-projection/task-state.json'); fs.mkdirSync(path.dirname(bad), { recursive: true }); fs.writeFileSync(bad, '{');
+  initializeGeneration(root, 'task', taskId, undefined, { allowExisting: true });
+  const journalFile = path.join(root, 'docs/records/work-items/.archive-transactions', `${taskId}.json`); fs.mkdirSync(path.dirname(journalFile), { recursive: true }); fs.writeFileSync(journalFile, `${JSON.stringify(journalFor(taskId, task, 1, 'archive_moved'))}\n`);
+  const beforeJournal = fs.readFileSync(journalFile); const beforeArchive = fs.readFileSync(path.join(archive, 'task-state.json')); const beforeProjection = fs.readFileSync(path.join(root, 'PROJECT_STATUS.md')); const generationFile = path.join(root, 'docs/records/work-items/.fencing/tasks', `${taskId}.json`); let taskGuardOpens = 0;
+  const ops = realOps({ openSync(file, ...args) {
+    if (String(file).endsWith(`${taskId}.guard`)) { taskGuardOpens += 1; if (taskGuardOpens === 2) fs.writeFileSync(generationFile, '{"schema_version":1,"generation":2}\n'); }
+    return fs.openSync(file, ...args);
+  }, renameSync(from, to) { if (from === archive && to === path.join(root, 'docs/records/work-items', taskId)) throw new Error('stale compensator must not rename'); return fs.renameSync(from, to); } });
+  assert.throws(() => archiveWorkItem(taskId, root, { io: createStateIo({ fsOps: ops }) }), (error) => error.code === 'ARCHIVE_EXECUTOR_STALE' || error.code === 'ARCHIVE_JOURNAL_CONFLICT');
+  assert.deepEqual(fs.readFileSync(journalFile), beforeJournal);
+  assert.deepEqual(fs.readFileSync(path.join(archive, 'task-state.json')), beforeArchive);
+  assert.deepEqual(fs.readFileSync(path.join(root, 'PROJECT_STATUS.md')), beforeProjection);
+  assert.equal(fs.existsSync(path.join(root, 'docs/records/work-items', taskId)), false);
+  assert.equal(fs.existsSync(archive), true);
+  assert.equal(fs.existsSync(lockFilePath(root, 'task', taskId)), false);
+  assert.equal(fs.existsSync(commitGuardPath(root, 'task', taskId)), false);
+});
+
+test('CR-015: stale compensation journal revision is rejected before conditional persist', () => {
+  const root = tempRoot(); const taskId = 'comp-journal-stale'; const archive = path.join(root, 'docs/records/work-items/archive', taskId); fs.mkdirSync(archive, { recursive: true });
+  fs.writeFileSync(path.join(root, 'PROJECT_STATUS.md'), '<!-- active-work-items-table-start -->\n<!-- active-work-items-table-end -->\n');
+  const task = createTaskState({ task_id: taskId }); task.state = 'completed'; task.state_digest = digestTaskEnvelope(task); fs.writeFileSync(path.join(archive, 'task-state.json'), `${JSON.stringify(task)}\n`);
+  const bad = path.join(root, 'docs/records/work-items/bad-journal-projection/task-state.json'); fs.mkdirSync(path.dirname(bad), { recursive: true }); fs.writeFileSync(bad, '{');
+  initializeGeneration(root, 'task', taskId, undefined, { allowExisting: true });
+  const journalFile = path.join(root, 'docs/records/work-items/.archive-transactions', `${taskId}.json`); fs.mkdirSync(path.dirname(journalFile), { recursive: true }); fs.writeFileSync(journalFile, `${JSON.stringify(journalFor(taskId, task, 1, 'archive_moved'))}\n`);
+  const beforeArchive = fs.readFileSync(path.join(archive, 'task-state.json')); let journalReads = 0; let reverseRenames = 0;
+  const ops = realOps({ readFileSync(file, encoding) {
+    const value = fs.readFileSync(file, encoding);
+    if (file === journalFile && journalReads++ === 2) {
+      const changed = JSON.parse(value); changed.journal_revision += 1; changed.journal_digest = digestJcs(Object.fromEntries(Object.entries(changed).filter(([key]) => key !== 'journal_digest'))); fs.writeFileSync(journalFile, `${JSON.stringify(changed)}\n`);
+    }
+    return value;
+  }, renameSync(from, to) { if (from === archive && to === path.join(root, 'docs/records/work-items', taskId)) reverseRenames += 1; return fs.renameSync(from, to); } });
+  assert.throws(() => archiveWorkItem(taskId, root, { io: createStateIo({ fsOps: ops }) }), (error) => error.code === 'ARCHIVE_JOURNAL_CONFLICT');
+  assert.equal(reverseRenames, 0); assert.deepEqual(fs.readFileSync(path.join(archive, 'task-state.json')), beforeArchive);
+  const journal = JSON.parse(fs.readFileSync(journalFile, 'utf8')); assert.equal(journal.journal_revision, 2); assert.equal(journal.transactions.at(-1).phase, 'archive_moved');
+  assert.equal(fs.existsSync(lockFilePath(root, 'task', taskId)), false); assert.equal(fs.existsSync(commitGuardPath(root, 'task', taskId)), false);
 });
 
 test('CR-010: digest-valid journal for another task is rejected before any move', () => {

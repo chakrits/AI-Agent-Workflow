@@ -162,10 +162,13 @@ function assertTransactionTuple(expected, current, currentJournal = null) {
     throw fail('ARCHIVE_JOURNAL_CONFLICT', 'Archive journal tuple changed before the conditional update.');
   }
 }
-function advancePhase(file, expectedJournal, expectedTx, phase, outcome, taskId, io) {
+function advancePhase(rootDir, file, expectedJournal, expectedTx, phase, outcome, taskId, io) {
   const current = loadCurrentTransaction(file, taskId, io);
   assertTransactionTuple(expectedTx, current.tx, current.journal);
   if (current.journal.journal_revision !== expectedJournal.journal_revision) throw fail('ARCHIVE_JOURNAL_CONFLICT', 'Archive journal revision changed before the conditional update.');
+  const expectedAttempt = expectedTx.attempts.find((item) => item.attempt_id === expectedTx.current_attempt_id);
+  const currentGeneration = readGeneration(rootDir, 'task', taskId, io);
+  if (!expectedAttempt || currentGeneration !== expectedAttempt.generation) throw fail('ARCHIVE_EXECUTOR_STALE', 'Archive generation changed before the conditional journal update.');
   current.tx.phase = phase; current.tx.terminal_outcome = outcome; current.journal.journal_revision += 1; writeJournal(file, current.journal, io);
   return current;
 }
@@ -264,11 +267,11 @@ export function archiveWorkItem(issueId, rootDir = process.cwd(), { io = default
     }
     if (tx.phase === 'prepared') {
       if (location.location === 'archive') {
-        const advanced = advancePhase(file, journal, tx, 'archive_moved', null, taskId, io); journal = advanced.journal; tx = advanced.tx;
+        const advanced = advancePhase(rootDir, file, journal, tx, 'archive_moved', null, taskId, io); journal = advanced.journal; tx = advanced.tx;
       } else {
         const checked = revalidateLocation(rootDir, taskId, active, archive, file, journal, tx, 'active', io);
         io.fsOps.mkdirSync(path.dirname(archive), { recursive: true }); io.fsOps.renameSync(active, archive); syncDirectory(path.dirname(active), io); syncDirectory(path.dirname(archive), io);
-        const advanced = advancePhase(file, checked.journal, checked.tx, 'archive_moved', null, taskId, io); journal = advanced.journal; tx = advanced.tx;
+        const advanced = advancePhase(rootDir, file, checked.journal, checked.tx, 'archive_moved', null, taskId, io); journal = advanced.journal; tx = advanced.tx;
       }
     }
     if (tx.phase === 'archive_moved') {
@@ -278,10 +281,10 @@ export function archiveWorkItem(issueId, rootDir = process.cwd(), { io = default
       catch (projectionError) {
         guard = acquireCommitGuard(rootDir, 'task', taskId, io); const current = loadCurrentTransaction(file, taskId, io); const currentLocation = inspectPhaseLocation(current.tx, active, archive, taskId, io);
         if (current.tx.phase !== 'archive_moved' || currentLocation.location !== 'archive') throw fail('ARCHIVE_JOURNAL_CONFLICT', 'Archive phase changed before compensation request.');
-        const requested = advancePhase(file, current.journal, current.tx, 'compensation_requested', null, taskId, io); journal = requested.journal; tx = requested.tx;
+        const requested = advancePhase(rootDir, file, current.journal, current.tx, 'compensation_requested', null, taskId, io); journal = requested.journal; tx = requested.tx;
         const comp = revalidateLocation(rootDir, taskId, active, archive, file, journal, tx, 'archive', io);
         io.fsOps.renameSync(archive, active); syncDirectory(path.dirname(archive), io); syncDirectory(path.dirname(active), io);
-        const moved = advancePhase(file, comp.journal, comp.tx, 'compensation_moved', null, taskId, io); journal = moved.journal; tx = moved.tx;
+        const moved = advancePhase(rootDir, file, comp.journal, comp.tx, 'compensation_moved', null, taskId, io); journal = moved.journal; tx = moved.tx;
         releaseCommitGuard(rootDir, 'task', taskId, guard.nonce, io); guard = undefined;
         try { updateProjectStatusFile(rootDir, io); }
         catch { throw projectionError; }
@@ -291,9 +294,9 @@ export function archiveWorkItem(issueId, rootDir = process.cwd(), { io = default
     }
     if (tx.phase === 'compensation_requested' || tx.phase === 'compensation_moved') {
       if (tx.phase === 'compensation_requested' && location.location === 'archive') {
-        const comp = revalidateLocation(rootDir, taskId, active, archive, file, journal, tx, 'archive', io); io.fsOps.renameSync(archive, active); syncDirectory(path.dirname(archive), io); syncDirectory(path.dirname(active), io); const moved = advancePhase(file, comp.journal, comp.tx, 'compensation_moved', null, taskId, io); journal = moved.journal; tx = moved.tx;
+        const comp = revalidateLocation(rootDir, taskId, active, archive, file, journal, tx, 'archive', io); io.fsOps.renameSync(archive, active); syncDirectory(path.dirname(archive), io); syncDirectory(path.dirname(active), io); const moved = advancePhase(rootDir, file, comp.journal, comp.tx, 'compensation_moved', null, taskId, io); journal = moved.journal; tx = moved.tx;
       } else if (tx.phase === 'compensation_requested' && location.location === 'active') {
-        const moved = advancePhase(file, journal, tx, 'compensation_moved', null, taskId, io); journal = moved.journal; tx = moved.tx;
+        const moved = advancePhase(rootDir, file, journal, tx, 'compensation_moved', null, taskId, io); journal = moved.journal; tx = moved.tx;
       } else if (location.location !== 'active') phaseLocationError(tx, location.location);
       const state = rereadState(sourceFile, taskId, tx.intent.source_digest, io);
       releaseCommitGuard(rootDir, 'task', taskId, guard.nonce, io); guard = undefined;
