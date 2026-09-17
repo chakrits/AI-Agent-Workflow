@@ -9,7 +9,7 @@
 | Risk Level | High |
 | Owner | Developer Agent (`implementation-planning`) |
 | Target Branch / Ticket | `feat/control-plane-state-integrity` / Issue #277 |
-| Revision | ADR-0032 fenced design — Human rejected SEC-004 residual on 2026-09-14. Security passed the blueprint at `90e8a0d`; QA Full Mode passed the test blueprint at `f112e0d`. Human blueprint review is next; implementation and runtime evidence remain pending. |
+| Revision | ADR-0032 fenced design + CR-012..CR-014 contract addendum — Human rejected SEC-004 residual on 2026-09-14 and approved rework cycle 3, limited to archive adoption/recovery semantics, on 2026-09-17. SA contract definition is complete; Developer Luna is next. |
 
 > **Scope note (ADR-0031).** Package 1's durable envelope and active-shard enforcement lane are narrowed
 > to `workflow_id: "bug-fix"` only. Issue #277 is itself `framework-meta` and therefore has **no durable
@@ -394,17 +394,41 @@ can actually pass at the point it runs; where it could pass *vacuously* that is 
 #### Task 7: Projection Transaction & Journaled Fenced Archival (ADR-0029, ADR-0030, ADR-0032)
 - **Owner:** `developer-agent`; **Prerequisite:** Task 6 and F3.
 - **Files:** projection/archive scripts, fenced-commit library, focused tests.
+
+**Rework cycle 3 contract addendum (CR-012..CR-014, Human-approved 2026-09-17).** Treat the SDD
+Component 8 matrix as a total decision function: all 72 phase × path (`A/R/B/N`) × generation
+(`equal/greater/lower`) cells must select one named action or error. The implementation must perform
+strict journal/schema/task/attempt validation, generation classification, phase/outcome validation,
+physical path cardinality, and source identity/digest validation before any equal-generation no-op or
+adoption return. `B`/`N` are always `ARCHIVE_LOCATION_AMBIGUOUS`; lower generation is always
+`FENCE_GENERATION_REGRESSION`; a single path inconsistent with an intermediate or terminal phase is
+`ARCHIVE_PHASE_LOCATION_MISMATCH` or `ARCHIVE_TERMINAL_LOCATION_MISMATCH`.
+
+Restart recovery is required for `compensation_requested` and `compensation_moved`: resume the
+fenced reverse rename only from `compensation_requested/R`, recognize an already-linearized rename
+at `compensation_requested/A`, persist `compensation_moved/A`, publish a fresh active projection,
+and finalize `terminal_compensated/A/compensated`. Crash restart must be idempotent at each journal,
+rename, parent-sync, projection and terminal-persist boundary; it must never infer a direction from
+`B`/`N`.
+
+`terminal_compensated/A` is not a recovery no-op for a new `archiveWorkItem` request. When the current
+projection matches, append a new immutable transaction with a new txid, intent, source digest,
+generation and attempt, then execute the normal forward path. A projection mismatch returns
+`ARCHIVE_PROJECTION_DRIFT` without appending; `adoptArchiveTransaction` always returns
+`ARCHIVE_ADOPTION_UNSAFE` for terminal phases. Preserve task→projection lock ordering and prove no
+nested commit guards.
+
 - **TDD red cases:**
   1. Strict-schema negatives: partial/unknown fields, bad journal digest, changed immutable intent, duplicate txid/attempt ID across the retained ledger, revision regression, invalid phase/outcome pair, and `EEXIST` initial creation all fail closed.
   2. Conditional advancement rejects wrong expected txid/revision/current attempt/generation/phase/outcome or physical predicate with named codes and byte-identical state.
-  3. Execute every SDD phase × `{A,R,B,N}` × generation `{equal,greater,lower}` matrix cell. Auto cells reach the named next state; ambiguous/malformed/regressed cells make zero writes and require offline inspection.
-  4. Generation-greater adoption appends a fresh attempt linked to the predecessor; a later archive after terminal compensation appends a fresh immutable transaction, preserves immutable intent/source binding/phase/outcome, and recompiles projection. It never retags or reuses an old candidate.
-  5. Barrier each journal persist, forward/compensation rename, each parent sync, projection success/failure, adoption and terminal finalize. Include crashes after rename before sync and after sync before phase persistence.
+  3. Execute every SDD phase × `{A,R,B,N}` × generation `{equal,greater,lower}` matrix cell. Assert the exact named action/error for all 72 cells; equal-generation `B`/`N` must fail closed, and no matrix cell may pass with an unasserted/null oracle.
+  4. Generation-greater adoption appends a fresh attempt linked to the predecessor; a later archive after terminal compensation appends a fresh immutable transaction, preserves prior ledger history, and recompiles projection. It never retags or reuses an old candidate.
+  5. Barrier each journal persist, forward/compensation rename, each parent sync, projection success/failure, adoption and terminal finalize. Include crashes after rename before sync and after sync before phase persistence, including restart from both compensation phases.
   6. `compensation_requested` is persisted before reverse rename. Projection failure/crash before that phase retries projection; it never infers compensation from ambiguous evidence.
-  7. Distinct terminals require `terminal_archived+R+archived` or `terminal_compensated+A+compensated`; swapped locations/outcomes fail. Success requires a freshly matching projection.
+  7. Distinct terminals require `terminal_archived+R+archived` or `terminal_compensated+A+compensated`; swapped locations/outcomes fail. Success requires a freshly matching projection. A subsequent archive request from `terminal_compensated+A` creates a new transaction only when that projection matches.
   8. Instrumentation proves shard→projection admission order and zero overlap between task/projection commit guards; stale projection candidates are rejected/recompiled.
 - **Mutation operators:** collapse terminal phases to `complete`; remove outcome discriminator; mutate immutable intent during adoption; replace append with retag; reuse old projection candidate; skip journal digest/revision/phase/txid/path/generation predicate; infer compensation without `compensation_requested`; auto-repair `B`/`N`; allow duplicate initial create or overwrite a terminal journal instead of appending; overlap commit guards. Every mutant must be killed.
-- **Implementation:** Component 8 strict schema and matrix-driven state machine. Reconciliation accepts only named auto-resumable cells. Error codes include `ARCHIVE_JOURNAL_CONFLICT`, `ARCHIVE_JOURNAL_MALFORMED`, `ARCHIVE_JOURNAL_TAMPERED`, `ARCHIVE_EXECUTOR_STALE`, `ARCHIVE_LOCATION_AMBIGUOUS`, `ARCHIVE_ADOPTION_UNSAFE`, and `FENCE_GENERATION_REGRESSION`.
+- **Implementation:** Component 8 strict schema and matrix-driven state machine. Reconciliation accepts only named auto-resumable cells. Error codes include `ARCHIVE_JOURNAL_CONFLICT`, `ARCHIVE_JOURNAL_MALFORMED`, `ARCHIVE_JOURNAL_TAMPERED`, `ARCHIVE_EXECUTOR_STALE`, `ARCHIVE_LOCATION_AMBIGUOUS`, `ARCHIVE_PHASE_LOCATION_MISMATCH`, `ARCHIVE_TERMINAL_LOCATION_MISMATCH`, `ARCHIVE_PROJECTION_DRIFT`, `ARCHIVE_ADOPTION_UNSAFE`, and `FENCE_GENERATION_REGRESSION`.
 - **Verification:** focused archive/projection tests, status projection check, full suite.
 - **Rollback:** whole pre-activation checkpoint only; never restore an old generation or discard an incomplete journal.
 
@@ -521,10 +545,9 @@ npm test
 
 | To | Reason | Required Evidence |
 |---|---|---|
-| Human Maintainer (blueprint gate; next) | Review the completed requirement, SDD, plan, Security PASS and QA Full Mode PASS before authorizing implementation | This artifact set, ADR-0032, Security commit `90e8a0d`, QA commit `f112e0d` |
-| Developer Agent (after blueprint approval) | Implement reviewable slices with TDD and preserve the fenced archive-ledger contract | Approved blueprint and QA test plan |
+| Developer Agent (next) | Implement the Human-approved rework cycle 3, limited to CR-012..CR-014 archive adoption/recovery semantics, with TDD and the total matrix as the oracle | Updated requirement, SDD, this plan, Security/QA blueprint evidence and ADR-0032 |
 | Code Review Gate (after implementation) | Independently review every production script modification | Diff, unit tests, independently authored code review record |
-| QA Verifier (after implementation) | Execute AC-001..AC-010, deterministic barriers and named mutation oracles | Full test run, mutation evidence, gate passes |
+| QA Verifier (after implementation) | Execute AC-001..AC-013, deterministic barriers and named mutation oracles | Full test run, mutation evidence, gate passes |
 | Security Reviewer (after runtime QA) | Verify implemented fencing and archive recovery before closing SEC-004 at runtime | Security blueprint review plus implementation and mutation evidence |
 | Human Maintainer (merge gate) | Make the final merge decision | Clean CI run, approved reviews, zero gate failures |
 

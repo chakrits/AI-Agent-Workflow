@@ -5,9 +5,9 @@
 - Work Item ID: Issue #277
 - Title: Control-Plane State Integrity & Architecture Remediation (Package 1)
 - Owner: SA Agent (`sa-architecture-design`)
-- Status: Draft for Human blueprint review (ADR-0032 fenced conditional commit; Security and QA design reviews passed; implementation pending)
+- Status: Developer rework-cycle-3 contract addendum (Human approved CR-012..CR-014 on 2026-09-17; implementation pending)
 - Date: 2026-09-12
-- Governing Requirements: `docs/records/requirements/2026-09-12-control-plane-state-integrity-discovery.md` (AC-001..AC-010, BR-001..BR-005)
+- Governing Requirements: `docs/records/requirements/2026-09-12-control-plane-state-integrity-discovery.md` (AC-001..AC-013, BR-001..BR-005)
 
 ---
 
@@ -667,12 +667,38 @@ parent-directory sync while holding task commit guard. `EEXIST` never overwrites
 or partial initial bytes yields `ARCHIVE_JOURNAL_MALFORMED` and requires Human/offline inspection; it
 never causes inferred intent. Parse/schema failure is `ARCHIVE_JOURNAL_MALFORMED`; journal-digest mismatch, immutable intent change, duplicate identifier, or revision/attempt regression is `ARCHIVE_JOURNAL_TAMPERED`.
 
-**Conditional journal advancement.** Every update holds task commit guard, re-reads the journal and
-requires the exact expected `{current_txid, txid, journal_revision, current_attempt_id, attempt.generation, phase, terminal_outcome}`, current generation, and physical path/digest predicate named below. It writes a new
-complete journal atomically and directory-syncs. A mismatch returns `ARCHIVE_JOURNAL_CONFLICT`; current
-generation below the attempt is `FENCE_GENERATION_REGRESSION`; an old executor is
-`ARCHIVE_EXECUTOR_STALE`; both/neither path cardinality or a location inconsistent with a terminal is
-`ARCHIVE_LOCATION_AMBIGUOUS`. No error path mutates a shard or journal. An adoption request against any matrix cell not explicitly marked adopt returns `ARCHIVE_ADOPTION_UNSAFE`; it never guesses a direction.
+**Validation order and conditional journal advancement.** Every recovery or adoption update follows
+this order while holding the task admission lock and then the task commit guard:
+
+1. Validate the explicit task ID, derive the active/archive/journal paths from it, and acquire the
+   stable task admission lock.
+2. Load the strict journal, verify its self-excluding digest and schema, bind every retained intent
+   and attempt to the task ID, and verify the latest transaction/current-attempt pointers.
+3. Read the durable generation inside the commit guard and classify it as `equal`, `greater`, or
+   `lower` relative to the current attempt. `lower` immediately returns
+   `FENCE_GENERATION_REGRESSION` with zero writes.
+4. Validate the phase/terminal-outcome pair and the operation kind (`recover-existing` versus
+   `new-archive-request`).
+5. Inspect both physical paths and require exactly one of active-only (`A`) or archive-only (`R`)
+   before any equal-generation no-op or adoption early return. Both (`B`) and neither (`N`) return
+   `ARCHIVE_LOCATION_AMBIGUOUS` with zero writes.
+6. Parse the selected shard, verify task identity, exact intent source digest and envelope digest,
+   and apply the phase/location predicate. A single path in the wrong intermediate or terminal
+   location returns `ARCHIVE_PHASE_LOCATION_MISMATCH` or `ARCHIVE_TERMINAL_LOCATION_MISMATCH`.
+7. Evaluate the total matrix below. A generation-greater auto cell appends a fresh attempt using a
+   conditional journal revision, then re-reads the journal, generation, selected shard and digest
+   before taking the cell's action. It never retags or reuses an old candidate.
+8. Immediately before a rename or phase advance, re-check the complete expected tuple
+   `{current_txid, journal_revision, current_attempt_id, attempt.generation, phase,
+   terminal_outcome}`, generation and physical predicate inside the same task guard. Any mismatch
+   returns `ARCHIVE_JOURNAL_CONFLICT` or `ARCHIVE_EXECUTOR_STALE` and mutates nothing.
+
+Every journal update writes a complete replacement atomically and directory-syncs. An adoption
+request against a cell not marked `ADOPT-*` returns `ARCHIVE_ADOPTION_UNSAFE`; it never guesses a
+direction. `ARCHIVE_LOCATION_AMBIGUOUS`, `ARCHIVE_PHASE_LOCATION_MISMATCH`,
+`ARCHIVE_TERMINAL_LOCATION_MISMATCH`, `ARCHIVE_JOURNAL_CONFLICT`, and
+`FENCE_GENERATION_REGRESSION` are deterministic fail-closed outcomes; none mutates a shard or
+journal.
 
 **Forward archive.** The first executor holds task admission and task guard, validates the active
 terminal envelope, generation and archive absence, creates the immutable `prepared` journal, then
@@ -691,48 +717,98 @@ projection, release projection locks, reacquire task guard and write
 `terminal_compensated`/`compensated`. Success is returned only for a matching terminal phase/location
 whose fresh projection check passes.
 
-**Generation-safe adoption.** When current generation exceeds the current attempt generation, a new
-executor may adopt only an auto-resumable cell in the matrix below. Under task commit guard it validates
+**Restart recovery for compensation phases.** `compensation_requested/R` retries the fenced
+archive→active rename, then persists `compensation_moved/A`; `compensation_requested/A` means the
+reverse rename already linearized before the phase write and only persists `compensation_moved/A`.
+Both paths then release the task guard, publish a fresh active projection, reacquire the task guard,
+and finalize `terminal_compensated/A/compensated`. `compensation_moved/A` skips the rename and resumes
+at fresh projection publication, then terminal finalization. A crash at any listed boundary restarts
+from the durable phase and exact single path; projection failure leaves `compensation_moved/A` for a
+later retry. `B`, `N`, malformed/tampered journal, wrong digest/identity, and generation regression
+remain offline-only. No recovery path infers compensation from location alone.
+
+The rework preserves the existing lock order: task admission → task commit guard for shard work,
+then release of the task guard before projection admission → projection commit guard; projection
+guards are released before task finalization or compensation. No task and projection commit guards
+are held simultaneously, so the cycle-3 recovery paths add no nested guard or wait-for cycle.
+
+**Generation-safe adoption and fresh archive requests.** When current generation exceeds the current
+attempt generation, a new executor may adopt only an auto-resumable cell in the matrix below. Under
+task commit guard it validates
 the immutable intent, exact path cardinality/identity/digest and journal digest, appends a new attempt
 with a fresh `attempt_id`, `generation=current`, and `adopts_attempt_id=previous`, advances revision, and
 sets `current_attempt_id` to the new attempt. It does not alter `intent`, source digest/generation, phase,
 or terminal outcome. After adoption it rereads state and recompiles any projection candidate. It never
 retags/reuses a mutation or projection candidate computed by the old attempt. Equal generation resumes
-the existing attempt after the same checks. Lower generation is regression. A fresh archive transaction appends a new immutable transaction with a new `txid` only when no journal exists, or the current transaction is `terminal_compensated`, active-only, and its projection matches. Initial journal creation alone uses `wx`; later transactions conditionally append under task guard without deleting history. `terminal_archived` can never append because active is absent and task-ID reuse is forbidden.
+the existing attempt after the same checks. Lower generation is regression. `adoptArchiveTransaction`
+is only a `recover-existing` operation: it always returns `ARCHIVE_ADOPTION_UNSAFE` for
+`terminal_compensated` and never creates a new transaction. A later `archiveWorkItem` invocation is a
+`new-archive-request`; it may append a new immutable transaction with a new `txid`, new intent, fresh
+source digest/generation and fresh attempt only when the current transaction is `terminal_compensated`,
+the shard is exact active-only (`A`), and the current projection matches. It then executes the normal
+prepared→archive_moved path. If the projection does not match, it returns `ARCHIVE_PROJECTION_DRIFT`
+without appending; if the location is `R`, `B`, or `N`, it returns the corresponding terminal/location
+error without mutation. A matching `terminal_archived/R` is a terminal no-op after projection
+validation. Initial journal creation alone uses `wx`; later transactions conditionally append under
+task guard without deleting history. `terminal_archived` can never append because active is absent and
+task-ID reuse is forbidden.
 
 **Exhaustive recovery matrix.** `A` means active-only with exact intent task/digest, `R` archive-only
-with exact intent task/digest, `B` both paths and `N` neither. “Adopt” means append the attempt described
-above and then take the same action; it never changes intent/phase. All cells are evaluated under task
-commit guard. Before-directory-sync crashes are allowed to restart as either pre-rename or post-rename
-single-path state, so the same rows cover crash before rename, after rename before sync, and after sync
-before phase persistence.
+with exact intent task/digest, `B` both paths and `N` neither. The three relation columns are the
+complete 72 cells (six phases × four path cardinalities × three generation relations). Every cell has
+one named action/error. `ADOPT-*` appends a fresh attempt before the action; it never changes intent,
+phase or terminal outcome until that action executes. `NEW-*` applies only to a fresh `archiveWorkItem`
+request after `terminal_compensated`; the recovery/adoption entrypoint returns
+`ARCHIVE_ADOPTION_UNSAFE` for that same cell. Before-directory-sync crashes are allowed to restart as
+either pre-rename or post-rename single-path state, so these rows cover crash before rename, after
+rename before sync, and after sync before phase persistence.
+
+| Cell outcome | Meaning |
+|---|---|
+| `E-FWD` | Retry fenced active→archive; persist `archive_moved/R`. |
+| `ADOPT-FWD` | Append a fresh attempt, reread, then `E-FWD`. |
+| `E-AM` | Treat the archive rename as linearized; persist `archive_moved/R`, then resume projection. |
+| `ADOPT-AM` | Append a fresh attempt, reread, then `E-AM`. |
+| `E-PRJ` | Publish fresh archive projection; success finalizes `terminal_archived/R/archived`, deterministic failure persists `compensation_requested/R`. |
+| `ADOPT-PRJ` | Append a fresh attempt, reread, then `E-PRJ`. |
+| `E-COMP` | Retry fenced archive→active; persist `compensation_moved/A`. |
+| `ADOPT-COMP` | Append a fresh attempt, reread, then `E-COMP`. |
+| `E-CM` | Publish fresh active projection and finalize `terminal_compensated/A/compensated`. |
+| `ADOPT-CM` | Append a fresh attempt, reread, then `E-CM`. |
+| `E-NOA` | Validate fresh projection and return terminal archived success; no journal append. |
+| `G-NOA` | Same terminal no-op; generation is not adopted. |
+| `NEW-E` / `NEW-G` | Fresh archive request appends a new tx/intent/attempt and starts prepared→archive_moved; recovery/adoption returns `ARCHIVE_ADOPTION_UNSAFE`. |
+| `PHASE-MISMATCH` | `ARCHIVE_PHASE_LOCATION_MISMATCH`, zero writes, offline inspection. |
+| `TERM-MISMATCH` | `ARCHIVE_TERMINAL_LOCATION_MISMATCH`, zero writes, offline inspection. |
+| `AMB` | `ARCHIVE_LOCATION_AMBIGUOUS`, zero writes, offline inspection. |
+| `REG` | `FENCE_GENERATION_REGRESSION`, zero writes, offline inspection. |
 
 | Journal phase | Paths | current gen = attempt | current gen > attempt | current gen < attempt |
 |---|---|---|---|---|
-| `prepared` | A | retry fenced forward rename | adopt, reread, retry forward | regression: offline |
-| `prepared` | R | record `archive_moved` (forward linearized) | adopt, then record `archive_moved` | regression: offline |
-| `prepared` | B | ambiguous: offline | ambiguous: offline, no adopt | regression: offline |
-| `prepared` | N | ambiguous: offline | ambiguous: offline, no adopt | regression: offline |
-| `archive_moved` | R | fresh projection; finalize archived or record compensation request on failure | adopt; fresh projection; same decision | regression: offline |
-| `archive_moved` | A | ambiguous: offline (no authorized reverse) | ambiguous: offline, no adopt | regression: offline |
-| `archive_moved` | B | ambiguous: offline | ambiguous: offline, no adopt | regression: offline |
-| `archive_moved` | N | ambiguous: offline | ambiguous: offline, no adopt | regression: offline |
-| `compensation_requested` | R | retry fenced compensation rename | adopt, reread, retry compensation | regression: offline |
-| `compensation_requested` | A | record `compensation_moved` (reverse linearized) | adopt, then record `compensation_moved` | regression: offline |
-| `compensation_requested` | B | ambiguous: offline | ambiguous: offline, no adopt | regression: offline |
-| `compensation_requested` | N | ambiguous: offline | ambiguous: offline, no adopt | regression: offline |
-| `compensation_moved` | A | fresh projection; finalize compensated | adopt; fresh projection; finalize compensated | regression: offline |
-| `compensation_moved` | R | ambiguous: offline | ambiguous: offline, no adopt | regression: offline |
-| `compensation_moved` | B | ambiguous: offline | ambiguous: offline, no adopt | regression: offline |
-| `compensation_moved` | N | ambiguous: offline | ambiguous: offline, no adopt | regression: offline |
-| `terminal_archived` / `archived` | R | validate projection; no-op | terminal no-op; no adoption needed | generation corruption: offline |
-| `terminal_archived` / `archived` | A | terminal mismatch: offline | terminal mismatch: offline | generation corruption: offline |
-| `terminal_archived` / `archived` | B | ambiguous: offline | ambiguous: offline | generation corruption: offline |
-| `terminal_archived` / `archived` | N | ambiguous: offline | ambiguous: offline | generation corruption: offline |
-| `terminal_compensated` / `compensated` | A | validate projection; no-op | terminal no-op; no adoption needed | generation corruption: offline |
-| `terminal_compensated` / `compensated` | R | terminal mismatch: offline | terminal mismatch: offline | generation corruption: offline |
-| `terminal_compensated` / `compensated` | B | ambiguous: offline | ambiguous: offline | generation corruption: offline |
-| `terminal_compensated` / `compensated` | N | ambiguous: offline | ambiguous: offline | generation corruption: offline |
+| `prepared` | A | E-FWD | ADOPT-FWD | REG |
+| `prepared` | R | E-AM | ADOPT-AM | REG |
+| `prepared` | B | AMB | AMB | REG |
+| `prepared` | N | AMB | AMB | REG |
+| `archive_moved` | R | E-PRJ | ADOPT-PRJ | REG |
+| `archive_moved` | A | PHASE-MISMATCH | PHASE-MISMATCH | REG |
+| `archive_moved` | B | AMB | AMB | REG |
+| `archive_moved` | N | AMB | AMB | REG |
+| `compensation_requested` | R | E-COMP | ADOPT-COMP | REG |
+| `compensation_requested` | A | E-CM | ADOPT-CM | REG |
+| `compensation_requested` | B | AMB | AMB | REG |
+| `compensation_requested` | N | AMB | AMB | REG |
+| `compensation_moved` | A | E-CM | ADOPT-CM | REG |
+| `compensation_moved` | R | PHASE-MISMATCH | PHASE-MISMATCH | REG |
+| `compensation_moved` | B | AMB | AMB | REG |
+| `compensation_moved` | N | AMB | AMB | REG |
+| `terminal_archived` / `archived` | R | E-NOA | G-NOA | REG |
+| `terminal_archived` / `archived` | A | TERM-MISMATCH | TERM-MISMATCH | REG |
+| `terminal_archived` / `archived` | B | AMB | AMB | REG |
+| `terminal_archived` / `archived` | N | AMB | AMB | REG |
+| `terminal_compensated` / `compensated` | A | NEW-E | NEW-G | REG |
+| `terminal_compensated` / `compensated` | R | TERM-MISMATCH | TERM-MISMATCH | REG |
+| `terminal_compensated` / `compensated` | B | AMB | AMB | REG |
+| `terminal_compensated` / `compensated` | N | AMB | AMB | REG |
 
 Projection success followed by a crash before terminal persistence stays `archive_moved/R` or
 `compensation_moved/A`; recovery recompiles and idempotently republishes before finalizing. Projection
