@@ -145,8 +145,8 @@ test('CR-012: stale adoption and unsafe phase/path combinations fail closed', ()
   const staleRoot = tempRoot(); const staleActive = path.join(staleRoot, 'docs/records/work-items/adopt-stale'); fs.mkdirSync(staleActive, { recursive: true });
   const staleTask = createTaskState({ task_id: 'adopt-stale' }); staleTask.state = 'completed'; staleTask.state_digest = digestTaskEnvelope(staleTask); fs.writeFileSync(path.join(staleActive, 'task-state.json'), `${JSON.stringify(staleTask)}\n`); initializeGeneration(staleRoot, 'task', 'adopt-stale', undefined, { allowExisting: true });
   const staleJournalFile = path.join(staleRoot, 'docs/records/work-items/.archive-transactions/adopt-stale.json'); fs.mkdirSync(path.dirname(staleJournalFile), { recursive: true }); fs.writeFileSync(staleJournalFile, `${JSON.stringify(journalFor('adopt-stale', staleTask, 1))}\n`);
-  const staleGenerationFile = path.join(staleRoot, 'docs/records/work-items/.fencing/tasks/adopt-stale.json'); let bumped = false;
-  const staleOps = realOps({ openSync(file, ...args) { if (!bumped && String(file).endsWith('adopt-stale.guard')) { fs.writeFileSync(staleGenerationFile, '{"schema_version":1,"generation":2}\n'); bumped = true; } return fs.openSync(file, ...args); } });
+  const staleGenerationFile = path.join(staleRoot, 'docs/records/work-items/.fencing/tasks/adopt-stale.json'); let generationReads = 0;
+  const staleOps = realOps({ readFileSync(file, encoding) { const value = fs.readFileSync(file, encoding); if (file === staleGenerationFile && generationReads++ === 0) fs.writeFileSync(staleGenerationFile, '{"schema_version":1,"generation":2}\n'); return value; } });
   assert.throws(() => adoptArchiveTransaction('adopt-stale', staleRoot, { io: createStateIo({ fsOps: staleOps }) }), (error) => error.code === 'ARCHIVE_EXECUTOR_STALE');
   assert.equal(JSON.parse(fs.readFileSync(staleJournalFile, 'utf8')).journal_revision, 1); assert.equal(fs.existsSync(staleActive), true);
 
@@ -179,12 +179,55 @@ test('CR-012: adoption oracle covers the six phases, four paths and three genera
     const attemptGeneration = relation === 'lower' ? 2 : 1; const currentGeneration = relation === 'greater' ? 2 : 1;
     const generationFile = path.join(root, 'docs/records/work-items/.fencing/tasks', `${taskId}.json`); fs.writeFileSync(generationFile, `{"schema_version":1,"generation":${currentGeneration}}\n`);
     const journalFile = path.join(root, 'docs/records/work-items/.archive-transactions', `${taskId}.json`); fs.mkdirSync(path.dirname(journalFile), { recursive: true }); fs.writeFileSync(journalFile, `${JSON.stringify(journalFor(taskId, task, attemptGeneration, phase))}\n`);
-    const expected = relation === 'lower' ? 'FENCE_GENERATION_REGRESSION' : relation === 'equal' ? null : (location === 'B' || location === 'N' ? 'ARCHIVE_LOCATION_AMBIGUOUS' : (['prepared', 'archive_moved', 'compensation_requested'].includes(phase) ? null : 'ARCHIVE_ADOPTION_UNSAFE'));
+    const validLocation = { prepared: ['A', 'R'], archive_moved: ['R'], compensation_requested: ['A', 'R'], compensation_moved: ['A'], terminal_archived: ['R'], terminal_compensated: ['A'] }[phase].includes(location);
+    const expected = relation === 'lower' ? 'FENCE_GENERATION_REGRESSION' : (location === 'B' || location === 'N' ? 'ARCHIVE_LOCATION_AMBIGUOUS' : (!validLocation ? (phase.startsWith('terminal_') ? 'ARCHIVE_TERMINAL_LOCATION_MISMATCH' : 'ARCHIVE_PHASE_LOCATION_MISMATCH') : (phase.startsWith('terminal_') ? 'ARCHIVE_ADOPTION_UNSAFE' : null)));
     if (expected) assert.throws(() => adoptArchiveTransaction(taskId, root), (error) => error.code === expected);
     else { const result = adoptArchiveTransaction(taskId, root); assert.equal(result.adopted, relation === 'greater'); }
     assert.equal(JSON.parse(fs.readFileSync(journalFile, 'utf8')).journal_revision, relation === 'greater' && expected === null ? 2 : 1);
   }
   assert.equal(cells, 72);
+});
+
+test('CR-013: compensation phases recover after restart and finalize a fresh active projection', () => {
+  for (const [phase, location] of [['compensation_requested', 'archive'], ['compensation_requested', 'active'], ['compensation_moved', 'active']]) {
+    const root = tempRoot(); const taskId = `recover-${phase.replaceAll('_', '-')}-${location}`; const active = path.join(root, 'docs/records/work-items', taskId); fs.mkdirSync(active, { recursive: true });
+    fs.writeFileSync(path.join(root, 'PROJECT_STATUS.md'), '<!-- active-work-items-table-start -->\n<!-- active-work-items-table-end -->\n');
+    const task = createTaskState({ task_id: taskId }); task.state = 'completed'; task.state_digest = digestTaskEnvelope(task); fs.writeFileSync(path.join(active, 'task-state.json'), `${JSON.stringify(task)}\n`); initializeGeneration(root, 'task', taskId, undefined, { allowExisting: true });
+    if (location === 'archive') { const archive = path.join(root, 'docs/records/work-items/archive', taskId); fs.mkdirSync(path.dirname(archive), { recursive: true }); fs.renameSync(active, archive); }
+    const journalFile = path.join(root, 'docs/records/work-items/.archive-transactions', `${taskId}.json`); fs.mkdirSync(path.dirname(journalFile), { recursive: true }); fs.writeFileSync(journalFile, `${JSON.stringify(journalFor(taskId, task, 1, phase))}\n`);
+    const result = archiveWorkItem(taskId, root); assert.equal(result.compensated, true); assert.equal(fs.existsSync(active), true); assert.equal(fs.existsSync(path.join(root, 'docs/records/work-items/archive', taskId)), false);
+    const journal = JSON.parse(fs.readFileSync(journalFile, 'utf8')); assert.equal(journal.transactions.at(-1).phase, 'terminal_compensated'); assert.equal(journal.transactions.at(-1).terminal_outcome, 'compensated');
+  }
+});
+
+test('CR-013: stale compensation recovery fails before reverse rename', () => {
+  const root = tempRoot(); const taskId = 'recover-stale'; const active = path.join(root, 'docs/records/work-items', taskId); fs.mkdirSync(active, { recursive: true });
+  const task = createTaskState({ task_id: taskId }); task.state = 'completed'; task.state_digest = digestTaskEnvelope(task); fs.writeFileSync(path.join(active, 'task-state.json'), `${JSON.stringify(task)}\n`); initializeGeneration(root, 'task', taskId, undefined, { allowExisting: true });
+  const archive = path.join(root, 'docs/records/work-items/archive', taskId); fs.mkdirSync(path.dirname(archive), { recursive: true }); fs.renameSync(active, archive);
+  const journalFile = path.join(root, 'docs/records/work-items/.archive-transactions', `${taskId}.json`); fs.mkdirSync(path.dirname(journalFile), { recursive: true }); fs.writeFileSync(journalFile, `${JSON.stringify(journalFor(taskId, task, 1, 'compensation_requested'))}\n`);
+  const generationFile = path.join(root, 'docs/records/work-items/.fencing/tasks', `${taskId}.json`); let reads = 0;
+  const ops = realOps({ readFileSync(file, encoding) { const value = fs.readFileSync(file, encoding); if (file === generationFile && reads++ === 0) fs.writeFileSync(generationFile, '{"schema_version":1,"generation":2}\n'); return value; }, renameSync() { throw new Error('reverse rename must not be reached'); } });
+  assert.throws(() => archiveWorkItem(taskId, root, { io: createStateIo({ fsOps: ops }) }), (error) => error.code === 'ARCHIVE_EXECUTOR_STALE');
+  assert.equal(fs.existsSync(archive), true); assert.equal(fs.existsSync(active), false); assert.equal(JSON.parse(fs.readFileSync(journalFile, 'utf8')).transactions.at(-1).phase, 'compensation_requested');
+});
+
+test('CR-014: terminal compensation permits a fresh immutable archive transaction only with matching projection', () => {
+  const root = tempRoot(); const taskId = 'fresh-retry'; const active = path.join(root, 'docs/records/work-items', taskId); fs.mkdirSync(active, { recursive: true });
+  const task = createTaskState({ task_id: taskId }); task.state = 'completed'; task.state_digest = digestTaskEnvelope(task); fs.writeFileSync(path.join(active, 'task-state.json'), `${JSON.stringify(task)}\n`); initializeGeneration(root, 'task', taskId, undefined, { allowExisting: true });
+  fs.writeFileSync(path.join(root, 'PROJECT_STATUS.md'), '<!-- active-work-items-table-start -->\n<!-- active-work-items-table-end -->\n'); updateProjectStatusFile(root);
+  const journalFile = path.join(root, 'docs/records/work-items/.archive-transactions', `${taskId}.json`); fs.mkdirSync(path.dirname(journalFile), { recursive: true }); fs.writeFileSync(journalFile, `${JSON.stringify(journalFor(taskId, task, 1, 'terminal_compensated'))}\n`);
+  assert.throws(() => adoptArchiveTransaction(taskId, root), (error) => error.code === 'ARCHIVE_ADOPTION_UNSAFE');
+  const result = archiveWorkItem(taskId, root); assert.equal(result.archived, true); assert.equal(fs.existsSync(active), false);
+  const journal = JSON.parse(fs.readFileSync(journalFile, 'utf8')); assert.equal(journal.transactions.length, 2); assert.notEqual(journal.transactions[0].intent.txid, journal.transactions[1].intent.txid); assert.equal(journal.transactions[0].phase, 'terminal_compensated'); assert.equal(journal.transactions[1].phase, 'terminal_archived');
+});
+
+test('CR-014: projection drift blocks a fresh transaction append', () => {
+  const root = tempRoot(); const taskId = 'fresh-drift'; const active = path.join(root, 'docs/records/work-items', taskId); fs.mkdirSync(active, { recursive: true });
+  const task = createTaskState({ task_id: taskId }); task.state = 'completed'; task.state_digest = digestTaskEnvelope(task); fs.writeFileSync(path.join(active, 'task-state.json'), `${JSON.stringify(task)}\n`); initializeGeneration(root, 'task', taskId, undefined, { allowExisting: true });
+  fs.writeFileSync(path.join(root, 'PROJECT_STATUS.md'), 'stale\n');
+  const journalFile = path.join(root, 'docs/records/work-items/.archive-transactions', `${taskId}.json`); fs.mkdirSync(path.dirname(journalFile), { recursive: true }); fs.writeFileSync(journalFile, `${JSON.stringify(journalFor(taskId, task, 1, 'terminal_compensated'))}\n`);
+  assert.throws(() => archiveWorkItem(taskId, root), (error) => error.code === 'ARCHIVE_PROJECTION_DRIFT');
+  const journal = JSON.parse(fs.readFileSync(journalFile, 'utf8')); assert.equal(journal.transactions.length, 1); assert.equal(fs.existsSync(active), true);
 });
 
 test.afterEach(() => {});
