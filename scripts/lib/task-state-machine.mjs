@@ -8,7 +8,7 @@ import { canonicalizeJcs as canonicalizeStatusJcs } from './status-jcs.mjs';
 import {
   atomicWriteFileSync, createStateIo, defaultStateIo, acquireLock, releaseLock,
   acquireCommitGuard, releaseCommitGuard, readGeneration, incrementGeneration,
-  lockFilePath
+  lockFilePath, UUID_V4
 } from './fenced-commit.mjs';
 
 export const STATES = ['intake', 'investigating', 'designing', 'planning', 'implementing', 'verifying', 'rework', 'handoff', 'blocked', 'completed', 'cancelled'];
@@ -40,6 +40,12 @@ export function digestTaskEnvelope(envelope) {
   return computeStateDigest(normalized);
 }
 function error(code, message, extra = {}) { return Object.assign(new Error(message), { code, status: 'REJECTED', ...extra }); }
+export function canonicalizeActor(actor) {
+  if (typeof actor !== 'string') throw error('UNAUTHORIZED_ACTOR', `Actor '${actor}' is not authorized.`);
+  const canonical = actor.trim().toLowerCase().replace(/[\s_]+/g, '-');
+  if (!ROLE_REGISTRY.includes(canonical)) throw error('UNAUTHORIZED_ACTOR', `Actor '${actor}' is not in ROLE_REGISTRY.`);
+  return canonical;
+}
 function schemaPath() { return fileURLToPath(new URL('../../docs/contracts/schemas/durable-task-envelope.schema.json', import.meta.url)); }
 export function validateEnvelopeSchema(data) {
   const validate = new Ajv2020({ allErrors: true, strict: false }).compile(JSON.parse(fs.readFileSync(schemaPath(), 'utf8')));
@@ -74,17 +80,19 @@ function validateEvidence(requirements, evidence) {
 }
 function makeTransition(currentState, { to, actor, evidence = {}, expected_digest, stop_reason = null, next_route = null, resume = false, clock = Date }) {
   if (!currentState || typeof currentState !== 'object') throw error('INVALID_STATE', 'Invalid currentState provided.');
-  if (expected_digest !== undefined) verifyCasAndComputeDigest(currentState, expected_digest);
+  if (!expected_digest || typeof expected_digest !== 'string') throw error('MISSING_EXPECTED_DIGEST', 'A non-empty expected_digest is required for every state mutation.');
+  verifyCasAndComputeDigest(currentState, expected_digest);
+  const canonicalActor = canonicalizeActor(actor);
   const fromState = currentState.state;
   if (!STATES.includes(to)) throw error('ILLEGAL_TRANSITION_REJECTED', `Unknown destination state: '${to}'.`);
   const matrixEntry = TRANSITION_MATRIX[fromState];
   if (!matrixEntry) throw error('UNKNOWN_SOURCE_STATE', `No transition rule defined for source state '${fromState}'.`);
   if (!matrixEntry.destinations.includes(to)) throw error('ILLEGAL_TRANSITION_REJECTED', `Illegal transition from '${fromState}' to '${to}'.`);
   if (fromState === 'blocked' && currentState.stop_reason === 'human_review_required' &&
-      (!matrixEntry.actors.includes(actor) || !meaningful(evidence.resume_evidence) || !meaningful(evidence.approver_id))) {
+      (!matrixEntry.actors.includes(canonicalActor) || !meaningful(evidence.resume_evidence) || !meaningful(evidence.approver_id))) {
     throw error('HUMAN_APPROVAL_REQUIRED', 'Transitions out of human approval gate require human actor, approver_id, and resume_evidence.');
   }
-  if (!matrixEntry.actors.includes(actor)) throw error('UNAUTHORIZED_ACTOR', `Actor '${actor}' is not authorized from '${fromState}'.`);
+  if (!matrixEntry.actors.includes(canonicalActor)) throw error('UNAUTHORIZED_ACTOR', `Actor '${actor}' is not authorized from '${fromState}'.`);
   if (resume) {
     if (fromState !== 'blocked') throw error('RESUME_OPERATION_REQUIRED', 'Resume operation requires blocked state.');
     const lastBlocked = [...(currentState.history || [])].reverse().find((event) => event.to === 'blocked');
@@ -92,7 +100,7 @@ function makeTransition(currentState, { to, actor, evidence = {}, expected_diges
     validateEvidence(['resume_evidence', 'approver_id'], evidence);
   } else {
     if (fromState === 'blocked') {
-      if (currentState.stop_reason === 'human_review_required' && (!matrixEntry.actors.includes(actor) || !meaningful(evidence.resume_evidence) || !meaningful(evidence.approver_id))) {
+      if (currentState.stop_reason === 'human_review_required' && (!matrixEntry.actors.includes(canonicalActor) || !meaningful(evidence.resume_evidence) || !meaningful(evidence.approver_id))) {
         throw error('HUMAN_APPROVAL_REQUIRED', 'Transitions out of human approval gate require human actor, approver_id, and resume_evidence.');
       }
       // Keep the historical pure-function API compatible for approved human
@@ -109,7 +117,7 @@ function makeTransition(currentState, { to, actor, evidence = {}, expected_diges
     if (reworkCount >= (currentState.max_rework_attempts ?? 2)) throw error('MAX_REWORK_EXCEEDED', `Rework retry ceiling exceeded (${reworkCount} >= ${currentState.max_rework_attempts ?? 2}). Human review required.`);
     reworkCount += 1;
   }
-  const next = { ...currentState, state: to, sequence_number: (currentState.sequence_number ?? 1) + 1, rework_count: reworkCount, history: [...(currentState.history || []), { from: fromState, to, at: new Date(clock.now ? clock.now() : Date.now()).toISOString(), actor: actor || 'orchestrator', evidence_refs: Object.keys(evidence) }], evidence: { ...(currentState.evidence || {}), ...evidence }, next_route: next_route ?? currentState.next_route ?? null, stop_reason: to === 'blocked' ? (stop_reason || 'human_review_required') : null };
+  const next = { ...currentState, state: to, sequence_number: (currentState.sequence_number ?? 1) + 1, rework_count: reworkCount, history: [...(currentState.history || []), { from: fromState, to, at: new Date(clock.now ? clock.now() : Date.now()).toISOString(), actor: canonicalActor, evidence_refs: Object.keys(evidence) }], evidence: { ...(currentState.evidence || {}), ...evidence }, next_route: next_route ?? currentState.next_route ?? null, stop_reason: to === 'blocked' ? (stop_reason || 'human_review_required') : null };
   next.state_digest = digestTaskEnvelope(next);
   return next;
 }
@@ -120,6 +128,11 @@ function policyFor(workflowId, io = defaultStateIo) {
   return YAML.parse(io.fsOps.readFileSync(fileURLToPath(new URL('../../docs/contracts/bug-fix-workflow.yaml', import.meta.url)), 'utf8'));
 }
 function policyTransition(policy, from, to, resume = false) { return (resume ? (policy.resume || []) : (policy.transitions || [])).find((row) => row.from === from && (row.to === to || row.destinations?.includes(to))); }
+function parseLockForRecovery(raw, filePath) {
+  let record; try { record = JSON.parse(raw); } catch (cause) { throw error('LOCK_MALFORMED', `Malformed lock ${filePath}; use --malformed --quiesced`, { cause }); }
+  if (!record || Object.keys(record).some((key) => !['pid', 'nonce', 'created_at'].includes(key)) || !Number.isInteger(record.pid) || record.pid <= 0 || !UUID_V4.test(record.nonce) || !Number.isSafeInteger(record.created_at) || record.created_at < 0) throw error('LOCK_MALFORMED', `Malformed lock ${filePath}; use --malformed --quiesced`);
+  return record;
+}
 function validatePolicyTransition(current, to, evidence, resume, io = defaultStateIo) {
   const row = policyTransition(policyFor(current.workflow_id, io), current.state, to, resume);
   if (!row) throw error(resume ? 'INVALID_RESUME_TARGET' : 'ILLEGAL_TRANSITION_REJECTED', `Policy does not permit ${current.state} -> ${to}`);
@@ -138,7 +151,7 @@ export function mutateTaskStateOnDisk(rootDir, expectedTaskId, { to, actor = 'or
     if (current.workflow_id !== 'bug-fix' || current.change_type !== 'bug-fix') throw error('UNKNOWN_WORKFLOW', 'Durable mutation supports bug-fix only.');
     verifyCasAndComputeDigest(current, expected_digest);
     validatePolicyTransition(current, to, evidence, mode === 'resume', io);
-    const candidate = mode === 'resume' ? resumeTaskState(current, { to, actor, evidence, stop_reason, next_route, clock: io.clock }) : transitionTaskState(current, { to, actor, expected_digest, evidence, stop_reason, next_route, clock: io.clock });
+    const candidate = mode === 'resume' ? resumeTaskState(current, { to, actor, evidence, expected_digest, stop_reason, next_route, clock: io.clock }) : transitionTaskState(current, { to, actor, expected_digest, evidence, stop_reason, next_route, clock: io.clock });
     const generation = readGeneration(rootDir, 'task', expectedTaskId, io);
     guard = acquireCommitGuard(rootDir, 'task', expectedTaskId, io);
     const fresh = JSON.parse(io.fsOps.readFileSync(shardPath, 'utf8'));
@@ -162,6 +175,16 @@ export function unlockTask(rootDir, taskId, { nonce, projection = false, malform
   let observed; try { observed = JSON.parse(io.fsOps.readFileSync(target, 'utf8')); } catch { if (!malformed) throw error('LOCK_MALFORMED', `Malformed lock ${target}; use --malformed --quiesced`); }
   if (!malformed && (!observed || observed.nonce !== nonce)) throw error('LOCK_NONCE_MISMATCH', 'Observed lock nonce does not match.');
   const guard = acquireCommitGuard(rootDir, scope, taskId, io);
-  try { const generation = incrementGeneration(rootDir, scope, taskId, io); io.fsOps.unlinkSync(target); return { unlocked: true, generation }; } finally { releaseCommitGuard(rootDir, scope, taskId, guard.nonce, io); }
+  try {
+    const latestRaw = io.fsOps.readFileSync(target, 'utf8');
+    try {
+      const latest = parseLockForRecovery(latestRaw, target);
+      if (malformed) throw error('LOCK_BECAME_VALID', 'Admission lock became valid before malformed recovery could unlink it.');
+      if (latest.nonce !== nonce) throw error('LOCK_NONCE_MISMATCH', 'Observed lock nonce does not match.');
+    } catch (lockError) {
+      if (!malformed || lockError.code === 'LOCK_BECAME_VALID') throw lockError;
+    }
+    const generation = incrementGeneration(rootDir, scope, taskId, io); io.fsOps.unlinkSync(target); return { unlocked: true, generation };
+  } finally { releaseCommitGuard(rootDir, scope, taskId, guard.nonce, io); }
 }
 export { createStateIo, defaultStateIo, acquireLock as acquireShardLock, releaseLock as releaseShardLock, acquireCommitGuard, releaseCommitGuard, readGeneration, incrementGeneration, atomicWriteFileSync };

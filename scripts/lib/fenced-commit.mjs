@@ -44,8 +44,10 @@ export function atomicWriteFileSync(targetPath, content, io = defaultStateIo) {
   const tmpPath = path.join(dir, `.tmp-${base}-${io.processOps.pid ?? process.pid}-${stamp}-${Math.floor(io.random() * 1e9).toString(36)}`);
   const buffer = Buffer.from(content, 'utf8');
   let fd;
+  let created = false;
   try {
     fd = ops.openSync(tmpPath, 'wx', 0o600);
+    created = true;
     let offset = 0;
     while (offset < buffer.length) {
       const written = ops.writeSync(fd, buffer, offset, buffer.length - offset);
@@ -55,7 +57,7 @@ export function atomicWriteFileSync(targetPath, content, io = defaultStateIo) {
     ops.fsyncSync(fd);
   } catch (error) {
     if (fd !== undefined) { try { ops.closeSync(fd); } catch {} }
-    try { ops.unlinkSync(tmpPath); } catch {}
+    if (created) { try { ops.unlinkSync(tmpPath); } catch {} }
     throw error;
   } finally {
     if (fd !== undefined) { try { ops.closeSync(fd); } catch {} }
@@ -63,7 +65,7 @@ export function atomicWriteFileSync(targetPath, content, io = defaultStateIo) {
   try {
     ops.renameSync(tmpPath, resolved);
   } catch (error) {
-    try { ops.unlinkSync(tmpPath); } catch {}
+    if (created) { try { ops.unlinkSync(tmpPath); } catch {} }
     throw error;
   }
   let dirFd;

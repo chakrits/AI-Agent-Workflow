@@ -77,8 +77,15 @@ export function updateProjectStatusFile(rootDir = process.cwd(), io = defaultSta
   let guard;
   try {
     const projection = compileStatusProjection(rootDir);
-    readGeneration(rootDir, 'projection', undefined, io);
+    const candidateGeneration = readGeneration(rootDir, 'projection', undefined, io);
     guard = acquireCommitGuard(rootDir, 'projection', undefined, io);
+    const currentGeneration = readGeneration(rootDir, 'projection', undefined, io);
+    if (currentGeneration !== candidateGeneration) {
+      throw Object.assign(new Error('Projection generation is stale; recompile and retry.'), {
+        code: 'FENCING_TOKEN_STALE', status: 'REJECTED', observed_generation: candidateGeneration,
+        current_generation: currentGeneration, retryable: true, recompute_required: true
+      });
+    }
     const current = fs.readFileSync(filePath, 'utf8');
     let block;
     if (current.includes(TABLE_START_MARKER) && current.includes(TABLE_END_MARKER)) {

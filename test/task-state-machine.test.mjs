@@ -14,13 +14,22 @@ import {
   computeStateDigest,
   verifyCasAndComputeDigest,
   createTaskState,
-  transitionTaskState,
+  transitionTaskState as rawTransitionTaskState,
   loadTaskState,
   inspectTaskState
 } from '../scripts/lib/task-state-machine.mjs';
 
 function createTempDir() {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'state-machine-test-'));
+}
+
+// The pure test helper supplies the explicit CAS precondition required by the
+// production transition API while keeping each test focused on its matrix case.
+function transitionTaskState(current, options = {}) {
+  return rawTransitionTaskState(current, {
+    ...options,
+    expected_digest: options.expected_digest ?? computeStateDigest(current)
+  });
 }
 
 test('TC-019: POSIX atomic write crash-resilience', () => {
@@ -437,7 +446,7 @@ test('TC-038: Contract schema validator verifies non-colliding envelope schemas'
 
 test('CLI: task-machine-cli commands (init, transition, resume, inspect)', () => {
   const tmpDir = createTempDir();
-  const targetFile = path.join(tmpDir, 'task-state.json');
+  const targetFile = path.join(tmpDir, 'docs', 'records', 'work-items', 'issue-cli', 'task-state.json');
 
   // 1. Init command
   execFileSync('node', [
@@ -469,7 +478,7 @@ test('CLI: task-machine-cli commands (init, transition, resume, inspect)', () =>
     '--file', targetFile,
     '--to', 'investigating',
     '--actor', 'orchestrator',
-    '--evidence', JSON.stringify({ requirement_discovery: 'req-cli' }),
+    '--evidence', JSON.stringify({ failure_description: 'failure-cli', repro: 'repro-cli', requirement_discovery: 'req-cli' }),
     '--expected-digest', digest1
   ]);
 
@@ -485,8 +494,11 @@ test('CLI: task-machine-cli commands (init, transition, resume, inspect)', () =>
     '--to', 'blocked',
     '--actor', 'sa-agent',
     '--stop-reason', 'human_review_required',
-    '--evidence', JSON.stringify({ root_cause_analysis: 'rca-cli' })
+    '--evidence', JSON.stringify({ root_cause_analysis: 'rca-cli', stop_reason: 'human_review_required' }),
+    '--expected-digest', inspect2.state_digest
   ]);
+
+  const blocked = JSON.parse(execFileSync('node', ['scripts/task-machine-cli.mjs', 'inspect', '--file', targetFile], { encoding: 'utf8' }));
 
   // 5. Resume command with human approver
   execFileSync('node', [
@@ -496,7 +508,8 @@ test('CLI: task-machine-cli commands (init, transition, resume, inspect)', () =>
     '--to', 'investigating',
     '--actor', 'human',
     '--approver-id', 'boss',
-    '--evidence', 'approved-fix'
+    '--evidence', 'approved-fix',
+    '--expected-digest', blocked.state_digest
   ]);
 
   const inspect3 = JSON.parse(execFileSync('node', ['scripts/task-machine-cli.mjs', 'inspect', '--file', targetFile], { encoding: 'utf8' }));

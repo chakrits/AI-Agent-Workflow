@@ -4,8 +4,6 @@ import path from 'node:path';
 import {
   createTaskState,
   loadTaskState,
-  transitionTaskState,
-  resumeTaskState,
   inspectTaskState,
   atomicWriteJsonSync,
   mutateTaskStateOnDisk,
@@ -133,9 +131,8 @@ function main() {
         }
 
         const context = workItemContext(filePath);
-        const updated = context
-          ? mutateTaskStateOnDisk(context.rootDir, context.taskId, { to: toState, actor, evidence, expected_digest: expectedDigest, stop_reason: stopReason, next_route: nextRoute })
-          : (() => { const current = loadTaskState(filePath); const next = transitionTaskState(current, { to: toState, actor, evidence, expected_digest: expectedDigest, stop_reason: stopReason, next_route: nextRoute }); atomicWriteJsonSync(filePath, next); return next; })();
+        if (!context) throw Object.assign(new Error('--file must be docs/records/work-items/{task_id}/task-state.json; use the guarded work-item path.'), { code: 'UNSUPPORTED_MUTATION_PATH' });
+        const updated = mutateTaskStateOnDisk(context.rootDir, context.taskId, { to: toState, actor, evidence, expected_digest: expectedDigest, stop_reason: stopReason, next_route: nextRoute });
         console.log(JSON.stringify({
           status: 'OK',
           action: 'transition',
@@ -171,9 +168,8 @@ function main() {
         };
 
         const context = workItemContext(filePath);
-        const updated = context
-          ? mutateTaskStateOnDisk(context.rootDir, context.taskId, { to: toState, actor, evidence: evidencePayload, expected_digest: parsed['expected-digest'] || parsed.expectedDigest, mode: 'resume' })
-          : (() => { const current = loadTaskState(filePath); const next = resumeTaskState(current, { to: toState, actor, evidence: evidencePayload, stop_reason: null }); atomicWriteJsonSync(filePath, next); return next; })();
+        if (!context) throw Object.assign(new Error('--file must be docs/records/work-items/{task_id}/task-state.json; use the guarded work-item path.'), { code: 'UNSUPPORTED_MUTATION_PATH' });
+        const updated = mutateTaskStateOnDisk(context.rootDir, context.taskId, { to: toState, actor, evidence: evidencePayload, expected_digest: parsed['expected-digest'] || parsed.expectedDigest, mode: 'resume' });
         console.log(JSON.stringify({
           status: 'OK',
           action: 'resume',

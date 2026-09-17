@@ -1,7 +1,7 @@
 {
   "task_id": "issue-275",
   "workflow_id": "bug-fix",
-  "contract_version": 2,
+  "contract_version": 1,
   "change_type": "bug-fix",
   "risk_level": "medium",
   "state": "verifying",
@@ -50,8 +50,5 @@
     "validation_plan": "docs/records/qa/2026-09-11-issue-275-readiness-refresh-dependencies-code-review.md"
   },
   "next_route": "qa-agent",
-  "stop_reason": null,
-  "policy_contract_version": 1,
-  "sequence_number": 4,
-  "state_digest": "81c7a5068d5eb42e669d6d77de28570f534a063e958138c6a651a2d25ee747cb"
+  "stop_reason": null
 }

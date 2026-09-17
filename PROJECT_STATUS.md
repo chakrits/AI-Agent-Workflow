@@ -5,7 +5,7 @@
 
 ## Active Work Items
 <!-- active-work-items-table-start -->
-<!-- projection-digest: 2990a73079682fdd05a49e611a0fa7e45cd1934473b68be59b56377a07154c90 -->
+<!-- projection-digest: 35697422c8aced7944eec5e7a540bb8273cc374f65db4ab6b3b789428a82a780 -->
 | Issue ID | Workflow | Current State | Next Route / Owner | Updated At |
 |---|---|---|---|---|
 | issue-249 | bug-fix | verifying | qa-agent | 2026-09-09 |
@@ -53,7 +53,7 @@
 - Issue #249 — the PR readiness gate now extracts the body from argument tokens instead of raw command text, closing the last five shapes that had passed through the gap between token-aware command detection and regex-based extraction: a backslash continuation read as the path, a repeated `--body-file` validated at the wrong occurrence while `gh` reads the last, a tab-separated value, combined shorthand, and a quoted `--title` containing `--body` hijacking extraction. `shellCommandSegments()` emits argument words from the same pass while preserving the command-string API invocation detection uses; both raw-text regexes and `unquote()` were deleted rather than added to. Scope clarified by ADR-0025 after the Issue's original AC-01 assumed argument tokens the lexer did not yet produce. Merged via PR #251 (squash) as `0c4f790`. The implementation was produced by a prior session and found uncommitted on `main`; it was moved to a branch without functional change before review. Independent QA passed at `af79ba6` (706/706) and settled the two remaining backslash refusals as correct behaviour by experiment — a `gh` shim printing argv under both bash and zsh showed the shell hands `gh` a `\r` or a space rather than the intended path, so those denies are true, not false. AC-04 verified by byte-comparing full hook output base against HEAD across 5 shapes and 4 real merged PR bodies, 20/20 identical. Security review discharged the declared input-validation gate: PASS_WITH_FINDINGS, no Critical or High, and the change **narrows** the wrong-answer input set, closing two genuine false passes with no input found where the new code is wrong and the old was right. It also established independently that ruleset `Protect main` makes `work-item-readiness-freshness` a required check with no bypass actors, so no rule this gate applies exists only locally. Evidence: https://github.com/chakrits/AI-Agent-Workflow/issues/249#issuecomment-5596393014
 
 ## In Progress
-- Issue #277 — fenced conditional commits, durable task envelope enforcement, pure projection fencing, append-only archive journal, and v1→v2 backfill tooling are implemented on the feature branch. Security closure for SEC-004 remains pending independent QA/Security evidence.
+- Issue #277 — fenced conditional commits, durable task envelope enforcement, pure projection fencing, append-only archive journal, and the v1→v2 migration are implemented on the feature branch. Real active shards `issue-249` and `issue-275` were migrated with generation records and rollback sidecars; strict active-lane validation is enabled. Security closure for SEC-004 remains pending independent QA/Security evidence.
 
 ## Blockers / Open Questions
 - Issue #236 (IMP-007): AC-02 through AC-09, AC-11, and AC-12 are merged; AC-10 remains withdrawn. The Issue is complete and no longer blocks Issue #237.

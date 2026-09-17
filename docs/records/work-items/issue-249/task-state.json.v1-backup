@@ -1,7 +1,7 @@
 {
   "task_id": "issue-249",
   "workflow_id": "bug-fix",
-  "contract_version": 2,
+  "contract_version": 1,
   "change_type": "bug-fix",
   "risk_level": "medium",
   "state": "verifying",
@@ -52,8 +52,5 @@
     "validation_plan": "docs/records/work-items/issue-249/developer-plan.md"
   },
   "next_route": "qa-agent",
-  "stop_reason": null,
-  "policy_contract_version": 1,
-  "sequence_number": 4,
-  "state_digest": "5dd90c09bead2d34c07bad1dff8a890731f75d3131c9d1d3ae353015d413a6d9"
+  "stop_reason": null
 }
