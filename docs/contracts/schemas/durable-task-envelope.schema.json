@@ -1,13 +1,14 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/chakrits/AI-Agent-Workflow/docs/contracts/schemas/durable-task-envelope.schema.json",
-  "title": "Durable Task Envelope Schema v1",
+  "title": "Durable Task Envelope Schema v2",
   "type": "object",
   "additionalProperties": false,
   "required": [
     "task_id",
     "workflow_id",
     "contract_version",
+    "policy_contract_version",
     "change_type",
     "risk_level",
     "state",
@@ -21,10 +22,11 @@
     "stop_reason"
   ],
   "properties": {
-    "task_id": { "type": "string", "pattern": "^[a-z0-9_-]+$" },
-    "workflow_id": { "type": "string", "enum": ["bug-fix", "new-feature", "framework-meta", "config-change", "data-change"] },
+    "task_id": { "type": "string", "pattern": "^(?!archive$)[a-z0-9_-]+$" },
+    "workflow_id": { "type": "string", "const": "bug-fix" },
     "contract_version": { "type": "integer", "const": 2 },
-    "change_type": { "enum": ["bug-fix", "feature", "enhancement", "framework-meta", "config-change", "data-change"] },
+    "policy_contract_version": { "type": "integer", "minimum": 1 },
+    "change_type": { "const": "bug-fix" },
     "risk_level": { "enum": ["low", "medium", "high", "critical"] },
     "state": {
       "enum": [

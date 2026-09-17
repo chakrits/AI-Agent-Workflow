@@ -5,9 +5,13 @@ import {
   createTaskState,
   loadTaskState,
   transitionTaskState,
+  resumeTaskState,
   inspectTaskState,
-  atomicWriteJsonSync
+  atomicWriteJsonSync,
+  mutateTaskStateOnDisk,
+  unlockTask
 } from './lib/task-state-machine.mjs';
+import { initializeGeneration } from './lib/fenced-commit.mjs';
 
 function parseArgs(args) {
   const parsed = { _: [] };
@@ -38,6 +42,7 @@ Commands:
   transition    Execute a verified state transition
   resume        Resume a task out of blocked state
   inspect       Inspect and verify task state and CAS digest
+  unlock        Recover an admission lock after operator-established quiescence
 
 Options:
   --file <path>             Path to task-state.json file
@@ -52,7 +57,20 @@ Options:
   --stop-reason <reason>    Stop reason when transitioning to blocked
   --approver-id <id>        Human approver ID (required for resume)
   --next-route <route>      Next routing target agent
+  --quiesced                Assert all writers are stopped before recovery
+  --nonce <uuid>            Expected admission-lock nonce
+  --malformed               Recover a malformed admission lock (offline procedure)
 `);
+}
+
+function workItemContext(filePath) {
+  const marker = `${path.sep}docs${path.sep}records${path.sep}work-items${path.sep}`;
+  const index = filePath.indexOf(marker);
+  if (index < 0) return null;
+  const rootDir = filePath.slice(0, index);
+  const remainder = filePath.slice(index + marker.length).split(path.sep);
+  if (remainder.length !== 2 || remainder[1] !== 'task-state.json') return null;
+  return { rootDir, taskId: remainder[0] };
 }
 
 function main() {
@@ -85,6 +103,8 @@ function main() {
           risk_level: riskLevel
         });
 
+        const context = workItemContext(filePath);
+        if (context) initializeGeneration(context.rootDir, 'task', context.taskId);
         atomicWriteJsonSync(filePath, task);
         console.log(JSON.stringify({ status: 'OK', action: 'init', file: filePath, state_digest: task.state_digest }, null, 2));
         break;
@@ -112,17 +132,10 @@ function main() {
           }
         }
 
-        const current = loadTaskState(filePath);
-        const updated = transitionTaskState(current, {
-          to: toState,
-          actor,
-          evidence,
-          expected_digest: expectedDigest,
-          stop_reason: stopReason,
-          next_route: nextRoute
-        });
-
-        atomicWriteJsonSync(filePath, updated);
+        const context = workItemContext(filePath);
+        const updated = context
+          ? mutateTaskStateOnDisk(context.rootDir, context.taskId, { to: toState, actor, evidence, expected_digest: expectedDigest, stop_reason: stopReason, next_route: nextRoute })
+          : (() => { const current = loadTaskState(filePath); const next = transitionTaskState(current, { to: toState, actor, evidence, expected_digest: expectedDigest, stop_reason: stopReason, next_route: nextRoute }); atomicWriteJsonSync(filePath, next); return next; })();
         console.log(JSON.stringify({
           status: 'OK',
           action: 'transition',
@@ -157,15 +170,10 @@ function main() {
           approver_id: approverId
         };
 
-        const current = loadTaskState(filePath);
-        const updated = transitionTaskState(current, {
-          to: toState,
-          actor,
-          evidence: evidencePayload,
-          stop_reason: null
-        });
-
-        atomicWriteJsonSync(filePath, updated);
+        const context = workItemContext(filePath);
+        const updated = context
+          ? mutateTaskStateOnDisk(context.rootDir, context.taskId, { to: toState, actor, evidence: evidencePayload, expected_digest: parsed['expected-digest'] || parsed.expectedDigest, mode: 'resume' })
+          : (() => { const current = loadTaskState(filePath); const next = resumeTaskState(current, { to: toState, actor, evidence: evidencePayload, stop_reason: null }); atomicWriteJsonSync(filePath, next); return next; })();
         console.log(JSON.stringify({
           status: 'OK',
           action: 'resume',
@@ -173,6 +181,15 @@ function main() {
           sequence_number: updated.sequence_number,
           state_digest: updated.state_digest
         }, null, 2));
+        break;
+      }
+
+      case 'unlock': {
+        const taskId = parsed['task-id'] || parsed.taskId;
+        const projection = Boolean(parsed.projection);
+        if (!projection && !taskId) throw new Error('--task-id is required for task unlock');
+        const result = unlockTask(process.cwd(), taskId, { nonce: parsed.nonce, projection, malformed: Boolean(parsed.malformed), quiesced: Boolean(parsed.quiesced) });
+        console.log(JSON.stringify({ status: 'OK', action: 'unlock', ...result }, null, 2));
         break;
       }
 
