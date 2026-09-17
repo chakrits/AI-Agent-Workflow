@@ -4,7 +4,7 @@ import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { randomUUID } from 'node:crypto';
 import { digestJcs } from './lib/status-jcs.mjs';
-import { validateEnvelopeSchema } from './lib/task-state-machine.mjs';
+import { digestTaskEnvelope, validateEnvelopeSchema } from './lib/task-state-machine.mjs';
 import { atomicWriteFileSync, defaultStateIo, acquireLock, releaseLock, acquireCommitGuard, releaseCommitGuard, readGeneration } from './lib/fenced-commit.mjs';
 import { updateProjectStatusFile } from './compile-status-projection.mjs';
 
@@ -74,7 +74,16 @@ function loadJournal(file, io) {
     if ((tx.phase === 'terminal_archived' && tx.terminal_outcome !== 'archived') || (tx.phase === 'terminal_compensated' && tx.terminal_outcome !== 'compensated') || (!tx.phase.startsWith('terminal_') && tx.terminal_outcome !== null)) throw fail('ARCHIVE_JOURNAL_TAMPERED', `Invalid archive journal outcome: ${file}`);
   }
   if (!txids.has(journal.current_txid)) throw fail('ARCHIVE_JOURNAL_TAMPERED', `Current archive transaction is not retained: ${file}`);
+  if (journal.transactions.at(-1).intent.txid !== journal.current_txid) throw fail('ARCHIVE_JOURNAL_TAMPERED', `Current archive transaction pointer is not the latest retained transaction: ${file}`);
   return journal;
+}
+function assertJournalBinding(journal, taskId) {
+  for (const transaction of journal.transactions) {
+    if (transaction.intent.task_id !== taskId) {
+      throw fail('TASK_IDENTITY_MISMATCH', 'Archive journal intent is bound to a different task.');
+    }
+    if (!transaction.attempts.every((attempt) => attempt.adopts_attempt_id === null || transaction.attempts.some((candidate) => candidate.attempt_id === attempt.adopts_attempt_id))) throw fail('ARCHIVE_JOURNAL_TAMPERED', 'Archive attempt adoption pointer is not retained.');
+  }
 }
 function newJournal(taskId, source, generation, io) {
   const txid = io.uuid ? io.uuid() : randomUUID(); const attempt = io.uuid ? io.uuid() : randomUUID();
@@ -111,13 +120,17 @@ export function adoptArchiveTransaction(issueId, rootDir = process.cwd(), { io =
   const taskId = validId(issueId); const active = path.join(rootDir, WORK_ITEMS_REL_DIR, taskId); const archive = path.join(rootDir, ARCHIVE_REL_DIR, taskId); const file = journalPath(rootDir, taskId);
   const admission = acquireLock(rootDir, 'task', taskId, io); let guard;
   try {
-    const journal = loadJournal(file, io); if (!journal) throw fail('ARCHIVE_JOURNAL_MISSING', `Archive journal not found: ${file}`);
+    const journal = loadJournal(file, io); if (!journal) throw fail('ARCHIVE_JOURNAL_MISSING', `Archive journal not found: ${file}`); assertJournalBinding(journal, taskId);
     const generation = readGeneration(rootDir, 'task', taskId, io); guard = acquireCommitGuard(rootDir, 'task', taskId, io);
+    const guardedGeneration = readGeneration(rootDir, 'task', taskId, io);
+    if (guardedGeneration !== generation) throw fail('ARCHIVE_EXECUTOR_STALE', 'Archive adoption generation changed before the guarded journal update.');
     const current = loadJournal(file, io); const tx = current.transactions.at(-1); const attempt = tx.attempts.find((item) => item.attempt_id === tx.current_attempt_id);
-    if (generation <= attempt.generation) return { adopted: false, generation, attempt_id: attempt.attempt_id };
+    assertJournalBinding(current, taskId);
+    if (guardedGeneration < attempt.generation) throw fail('FENCE_GENERATION_REGRESSION', 'Archive adoption generation regressed below the current attempt.');
+    if (guardedGeneration === attempt.generation) return { adopted: false, generation: guardedGeneration, attempt_id: attempt.attempt_id };
     archiveLocation(active, archive, taskId, tx.intent.source_digest, io);
-    const result = adoptAttempt(taskId, current, generation, file, io);
-    return { adopted: result.adopted, generation, attempt_id: result.attempt.attempt_id, adopts_attempt_id: attempt.attempt_id, phase: tx.phase };
+    const result = adoptAttempt(taskId, current, guardedGeneration, file, io);
+    return { adopted: result.adopted, generation: guardedGeneration, attempt_id: result.attempt.attempt_id, adopts_attempt_id: attempt.attempt_id, phase: tx.phase };
   } finally { if (guard) releaseCommitGuard(rootDir, 'task', taskId, guard.nonce, io); releaseLock(rootDir, 'task', taskId, admission.nonce, io); }
 }
 
@@ -138,8 +151,29 @@ export function archiveWorkItem(issueId, rootDir = process.cwd(), { io = default
       return { archived: true, issue_id: taskId, previous_path: active, archived_path: archive, state: source.state };
     }
     validateEnvelopeSchema(source); const generation = readGeneration(rootDir, 'task', taskId, io); guard = acquireCommitGuard(rootDir, 'task', taskId, io);
+    const guardedGeneration = readGeneration(rootDir, 'task', taskId, io);
+    if (guardedGeneration !== generation) throw fail('ARCHIVE_EXECUTOR_STALE', 'Archive generation changed before the forward commit guard was entered.');
     let journal = loadJournal(file, io);
-    if (!journal) { journal = newJournal(taskId, source, generation, io); journal.journal_digest = journalDigest(journal); writeInitialJournal(file, journal, io); }
+    if (!journal) {
+      const guardedSourceFile = path.join(active, 'task-state.json');
+      if (!io.fsOps.existsSync(guardedSourceFile)) throw fail('ARCHIVE_EXECUTOR_STALE', 'Active shard disappeared before the forward archive rename.');
+      try { source = JSON.parse(io.fsOps.readFileSync(guardedSourceFile, 'utf8')); } catch (cause) { throw fail('MALFORMED_SHARD', `Malformed JSON in shard file ${guardedSourceFile}`, { cause }); }
+      if (source.task_id !== taskId || source.state_digest !== digestTaskEnvelope(source)) throw fail('TASK_IDENTITY_MISMATCH', 'Task identity or digest changed before the forward archive rename.');
+      validateEnvelopeSchema(source);
+      journal = newJournal(taskId, source, guardedGeneration, io); journal.journal_digest = journalDigest(journal); writeInitialJournal(file, journal, io);
+    } else {
+      assertJournalBinding(journal, taskId);
+      const guardedTx = journal.transactions.at(-1);
+      if (guardedTx.phase === 'prepared') {
+        const guardedSourceFile = path.join(active, 'task-state.json');
+        if (!io.fsOps.existsSync(guardedSourceFile)) throw fail('ARCHIVE_EXECUTOR_STALE', 'Active shard disappeared before the forward archive rename.');
+        try { source = JSON.parse(io.fsOps.readFileSync(guardedSourceFile, 'utf8')); } catch (cause) { throw fail('MALFORMED_SHARD', `Malformed JSON in shard file ${guardedSourceFile}`, { cause }); }
+        if (source.task_id !== taskId || source.state_digest !== digestTaskEnvelope(source) || source.state_digest !== guardedTx.intent.source_digest) throw fail('TASK_IDENTITY_MISMATCH', 'Task identity or digest changed before the forward archive rename.');
+        validateEnvelopeSchema(source);
+      } else {
+        archiveLocation(active, archive, taskId, guardedTx.intent.source_digest, io);
+      }
+    }
     let tx = journal.transactions.at(-1); let attempt = tx.attempts.find((item) => item.attempt_id === tx.current_attempt_id);
     if (tx.phase === 'terminal_archived') { archiveLocation(active, archive, taskId, tx.intent.source_digest, io); return { archived: true, issue_id: taskId, archived_path: archive, state: source.state }; }
     if (tx.phase === 'terminal_compensated') { archiveLocation(active, archive, taskId, tx.intent.source_digest, io); return { archived: false, compensated: true, issue_id: taskId, restored_path: active, state: source.state }; }
@@ -151,6 +185,8 @@ export function archiveWorkItem(issueId, rootDir = process.cwd(), { io = default
     }
     if (tx.intent.source_digest !== source.state_digest && tx.phase === 'prepared') throw fail('ARCHIVE_EXECUTOR_STALE', 'Archive executor digest is stale.');
     if (tx.phase === 'prepared') {
+      const renameGeneration = readGeneration(rootDir, 'task', taskId, io);
+      if (renameGeneration !== attempt.generation) throw fail('ARCHIVE_EXECUTOR_STALE', 'Archive generation changed immediately before the forward rename.');
       const location = archiveLocation(active, archive, taskId, tx.intent.source_digest, io);
       if (location.location === 'active') {
         io.fsOps.mkdirSync(path.dirname(archive), { recursive: true });
@@ -162,12 +198,12 @@ export function archiveWorkItem(issueId, rootDir = process.cwd(), { io = default
     }
     releaseCommitGuard(rootDir, 'task', taskId, guard.nonce, io); guard = undefined;
     try { updateProjectStatusFile(rootDir, io); } catch (projectionError) {
-      guard = acquireCommitGuard(rootDir, 'task', taskId, io); journal = loadJournal(file, io); const current = journal.transactions.at(-1); const compensationAttempt = current.attempts.find((item) => item.attempt_id === current.current_attempt_id); const compensationGeneration = readGeneration(rootDir, 'task', taskId, io); if (current.phase !== 'archive_moved' || compensationGeneration !== compensationAttempt.generation) throw fail('ARCHIVE_EXECUTOR_STALE', 'Compensation executor generation or phase is stale.'); archiveLocation(active, archive, taskId, current.intent.source_digest, io); current.phase = 'compensation_requested'; journal.journal_revision += 1; writeJournal(file, journal, io); const checkedGeneration = readGeneration(rootDir, 'task', taskId, io); if (checkedGeneration !== compensationAttempt.generation) throw fail('ARCHIVE_EXECUTOR_STALE', 'Compensation generation changed before rename.'); archiveLocation(active, archive, taskId, current.intent.source_digest, io); io.fsOps.renameSync(archive, active); syncDirectory(path.dirname(archive), io); syncDirectory(path.dirname(active), io); current.phase = 'compensation_moved'; journal.journal_revision += 1; writeJournal(file, journal, io); releaseCommitGuard(rootDir, 'task', taskId, guard.nonce, io); guard = undefined;
+      guard = acquireCommitGuard(rootDir, 'task', taskId, io); journal = loadJournal(file, io); assertJournalBinding(journal, taskId); const current = journal.transactions.at(-1); const compensationAttempt = current.attempts.find((item) => item.attempt_id === current.current_attempt_id); const compensationGeneration = readGeneration(rootDir, 'task', taskId, io); if (current.phase !== 'archive_moved' || compensationGeneration !== compensationAttempt.generation) throw fail('ARCHIVE_EXECUTOR_STALE', 'Compensation executor generation or phase is stale.'); archiveLocation(active, archive, taskId, current.intent.source_digest, io); current.phase = 'compensation_requested'; journal.journal_revision += 1; writeJournal(file, journal, io); const checkedGeneration = readGeneration(rootDir, 'task', taskId, io); if (checkedGeneration !== compensationAttempt.generation) throw fail('ARCHIVE_EXECUTOR_STALE', 'Compensation generation changed before rename.'); archiveLocation(active, archive, taskId, current.intent.source_digest, io); io.fsOps.renameSync(archive, active); syncDirectory(path.dirname(archive), io); syncDirectory(path.dirname(active), io); current.phase = 'compensation_moved'; journal.journal_revision += 1; writeJournal(file, journal, io); releaseCommitGuard(rootDir, 'task', taskId, guard.nonce, io); guard = undefined;
       try { updateProjectStatusFile(rootDir, io); } catch (compensationProjectionError) { throw compensationProjectionError; }
-      guard = acquireCommitGuard(rootDir, 'task', taskId, io); journal = loadJournal(file, io); const compensated = journal.transactions.at(-1); const compensatedAttempt = compensated.attempts.find((item) => item.attempt_id === compensated.current_attempt_id); const compensatedGeneration = readGeneration(rootDir, 'task', taskId, io); if (compensatedGeneration !== compensatedAttempt.generation) throw fail('ARCHIVE_EXECUTOR_STALE', 'Compensation finalization generation is stale.'); archiveLocation(active, archive, taskId, compensated.intent.source_digest, io); compensated.phase = 'terminal_compensated'; compensated.terminal_outcome = 'compensated'; journal.journal_revision += 1; writeJournal(file, journal, io);
+      guard = acquireCommitGuard(rootDir, 'task', taskId, io); journal = loadJournal(file, io); assertJournalBinding(journal, taskId); const compensated = journal.transactions.at(-1); const compensatedAttempt = compensated.attempts.find((item) => item.attempt_id === compensated.current_attempt_id); const compensatedGeneration = readGeneration(rootDir, 'task', taskId, io); if (compensatedGeneration !== compensatedAttempt.generation) throw fail('ARCHIVE_EXECUTOR_STALE', 'Compensation finalization generation is stale.'); archiveLocation(active, archive, taskId, compensated.intent.source_digest, io); compensated.phase = 'terminal_compensated'; compensated.terminal_outcome = 'compensated'; journal.journal_revision += 1; writeJournal(file, journal, io);
       return { archived: false, compensated: true, issue_id: taskId, previous_path: archive, restored_path: active, state: source.state, journal_path: file, cause_code: projectionError.code };
     }
-    guard = acquireCommitGuard(rootDir, 'task', taskId, io); journal = loadJournal(file, io); const current = journal.transactions.at(-1); const finalAttempt = current.attempts.find((item) => item.attempt_id === current.current_attempt_id); const finalGeneration = readGeneration(rootDir, 'task', taskId, io); if (finalGeneration !== finalAttempt.generation) throw fail('ARCHIVE_EXECUTOR_STALE', 'Archive finalization generation is stale.'); archiveLocation(active, archive, taskId, current.intent.source_digest, io); current.phase = 'terminal_archived'; current.terminal_outcome = 'archived'; journal.journal_revision += 1; writeJournal(file, journal, io);
+    guard = acquireCommitGuard(rootDir, 'task', taskId, io); journal = loadJournal(file, io); assertJournalBinding(journal, taskId); const current = journal.transactions.at(-1); const finalAttempt = current.attempts.find((item) => item.attempt_id === current.current_attempt_id); const finalGeneration = readGeneration(rootDir, 'task', taskId, io); if (finalGeneration !== finalAttempt.generation) throw fail('ARCHIVE_EXECUTOR_STALE', 'Archive finalization generation is stale.'); archiveLocation(active, archive, taskId, current.intent.source_digest, io); current.phase = 'terminal_archived'; current.terminal_outcome = 'archived'; journal.journal_revision += 1; writeJournal(file, journal, io);
     return { archived: true, issue_id: taskId, previous_path: active, archived_path: archive, state: source.state, journal_path: file };
   } finally { if (guard) releaseCommitGuard(rootDir, 'task', taskId, guard.nonce, io); releaseLock(rootDir, 'task', taskId, admission.nonce, io); }
 }

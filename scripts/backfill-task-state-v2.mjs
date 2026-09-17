@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { digestTaskEnvelope, validateEnvelopeSchema } from './lib/task-state-machine.mjs';
-import { atomicWriteFileSync, initializeGeneration } from './lib/fenced-commit.mjs';
+import { atomicWriteFileSync, initializeGeneration, readGeneration } from './lib/fenced-commit.mjs';
 
 function fail(code, message) { return Object.assign(new Error(message), { code }); }
 function stateFile(target) { const resolved = path.resolve(target); return path.basename(resolved) === 'task-state.json' ? resolved : path.join(resolved, 'task-state.json'); }
@@ -25,7 +25,10 @@ export function backfillTaskStateV2(target, { rollback = false } = {}) {
   const markerIndex = file.indexOf(workItemsMarker);
   const migrationScope = markerIndex >= 0 ? { rootDir: file.slice(0, markerIndex), taskId: file.slice(markerIndex + workItemsMarker.length).split(path.sep)[0] } : null;
   if (state.contract_version === 2 && state.policy_contract_version === 1) {
-    if (migrationScope) initializeGeneration(migrationScope.rootDir, 'task', migrationScope.taskId, undefined, { allowExisting: true });
+    // A v2 shard is already activated. Missing or malformed fencing state is
+    // an integrity failure; generation 1 is reserved for the explicit v1
+    // migration path below and must never be recreated here.
+    if (migrationScope) readGeneration(migrationScope.rootDir, 'task', migrationScope.taskId);
     validateEnvelopeSchema(state);
     return { changed: false, file, sequence_number: state.sequence_number, state_digest: state.state_digest };
   }
