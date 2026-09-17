@@ -33,7 +33,7 @@
 
 - `node --test test/control-plane-state-integrity.test.mjs` — PASS, 12/12; the 72-cell oracle
   executed all generated cases.
-- `npm test` — PASS, 775/775.
+- `npm test` — PASS, 776/776 (the final handoff record itself is included in the repository-wide evidence scan).
 - `npm run validate:contracts` — PASS.
 - `npm run validate:project-state` — PASS.
 - `npm run validate:review-gate` — PASS.
