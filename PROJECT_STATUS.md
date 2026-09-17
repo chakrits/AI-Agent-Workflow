@@ -1,7 +1,7 @@
 # PROJECT_STATUS.md
 
 ## Current Work Item
-- None — awaiting next assignment.
+- Issue #277 — Control-plane state integrity, Package 1 implementation on `feat/control-plane-state-integrity` at developer candidate.
 
 ## Active Work Items
 <!-- active-work-items-table-start -->
@@ -13,10 +13,10 @@
 <!-- active-work-items-table-end -->
 
 ## Current Stage
-- Idle — awaiting next work item assignment.
+- Developer implementation complete; awaiting independent Code Review Gate and QA Full Mode verification.
 
 ## Change Classification
-- None — idle.
+- Framework/meta architecture remediation; high-risk security-sensitive.
 
 ## Completed
 - Issue #272 — **closed in full.** Delivered Next-Gen Autonomous Dynamic Workflow Architecture across 4 Pillars and 5 ordered implementation packages (IMP-001..IMP-005): (1) Worktree-Sharded Status Projection Compiler (`scripts/compile-status-projection.mjs`, ~21.8ms compilation, archival lifecycle `scripts/archive-work-item.mjs`), (2) Progressive Context Loading Engine (`docs/workflow/core-bootloader.md` at 2,499 tokens, 11 modular role contexts at <=415 tokens, CLI injector `scripts/inject-role-context.mjs`), (3) Checkpointed Asynchronous State Machine (`scripts/lib/task-state-machine.mjs`, POSIX atomic writes, RFC 8785 JCS SHA-256 CAS concurrency engine, 11-state matrix, mandatory evidence gates, 2-cycle rework ceiling), (4) Frontmatter-First PR Safety Gate (`docs/contracts/schemas/pr-frontmatter.schema.json`, dual AST/legacy parser in `scripts/work-item-readiness.mjs`, closeout archive allowlist), and (5) CI Parity & Quality Gates (`validate:status-projection` mirrored 1:1 in GitHub Actions and GitLab CI, 764/764 tests passed green, independent QA verification FULL_PASS across TC-001..TC-038). PR #273 merged as `c2837be`. QA Evidence: https://github.com/chakrits/AI-Agent-Workflow/blob/feat/issue-272-next-gen-dynamic-workflow-discovery/docs/records/qa/2026-09-11-issue-272-qa-verification-report.md
@@ -53,7 +53,7 @@
 - Issue #249 — the PR readiness gate now extracts the body from argument tokens instead of raw command text, closing the last five shapes that had passed through the gap between token-aware command detection and regex-based extraction: a backslash continuation read as the path, a repeated `--body-file` validated at the wrong occurrence while `gh` reads the last, a tab-separated value, combined shorthand, and a quoted `--title` containing `--body` hijacking extraction. `shellCommandSegments()` emits argument words from the same pass while preserving the command-string API invocation detection uses; both raw-text regexes and `unquote()` were deleted rather than added to. Scope clarified by ADR-0025 after the Issue's original AC-01 assumed argument tokens the lexer did not yet produce. Merged via PR #251 (squash) as `0c4f790`. The implementation was produced by a prior session and found uncommitted on `main`; it was moved to a branch without functional change before review. Independent QA passed at `af79ba6` (706/706) and settled the two remaining backslash refusals as correct behaviour by experiment — a `gh` shim printing argv under both bash and zsh showed the shell hands `gh` a `\r` or a space rather than the intended path, so those denies are true, not false. AC-04 verified by byte-comparing full hook output base against HEAD across 5 shapes and 4 real merged PR bodies, 20/20 identical. Security review discharged the declared input-validation gate: PASS_WITH_FINDINGS, no Critical or High, and the change **narrows** the wrong-answer input set, closing two genuine false passes with no input found where the new code is wrong and the old was right. It also established independently that ruleset `Protect main` makes `work-item-readiness-freshness` a required check with no bypass actors, so no rule this gate applies exists only locally. Evidence: https://github.com/chakrits/AI-Agent-Workflow/issues/249#issuecomment-5596393014
 
 ## In Progress
-- None — awaiting next assignment.
+- Issue #277 — fenced conditional commits, durable task envelope enforcement, pure projection fencing, append-only archive journal, and v1→v2 backfill tooling are implemented on the feature branch. Security closure for SEC-004 remains pending independent QA/Security evidence.
 
 ## Blockers / Open Questions
 - Issue #236 (IMP-007): AC-02 through AC-09, AC-11, and AC-12 are merged; AC-10 remains withdrawn. The Issue is complete and no longer blocks Issue #237.
