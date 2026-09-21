@@ -1,7 +1,7 @@
 # PROJECT_STATUS.md
 
 ## Current Work Item
-- Issue #281 — Astra task-triggered instruction-loading hierarchy; candidate `9d170c6` awaits independent review. SEC-004 runtime evidence for Issue #277 remains explicitly `DEFERRED_BY_HUMAN` under ADR-0033.
+- No active work item. Issue #281 merged through PR #285; #282–#284 remain planned independently. SEC-004 runtime evidence for Issue #277 remains explicitly `DEFERRED_BY_HUMAN` under ADR-0033.
 
 ## Active Work Items
 <!-- active-work-items-table-start -->
@@ -13,15 +13,16 @@
 <!-- active-work-items-table-end -->
 
 ## Planned Framework Work
-- Issue #280 — GPT-6 Astra instruction, skill, and autonomy modernization — #281 passed QA acceptance and is in `phase:human-review`; #282–#284 remain planned independently. SDD and ADR-0034 are Human-approved. PR #285 awaits Human Approval before merge.
+- Issue #280 — GPT-6 Astra instruction, skill, and autonomy modernization — #281 is complete through PR #285; #282–#284 remain planned independently. SDD and ADR-0034 are Human-approved.
 
 ## Current Stage
-- Issue #281 human review: QA acceptance and independent re-review passed; Human Approval remains required before merge. SEC-004 remains deferred and is not a security-complete claim.
+- No active #281 stage. Next modernization work is #282, subject to its own implementation plan and approval gates. SEC-004 remains deferred and is not a security-complete claim.
 
 ## Change Classification
 - Framework/meta change; medium risk. No security-sensitive enforcement change is in scope.
 
 ## Completed
+- Issue #281 — **merged via PR #285** (merge commit `a0d71ef`). Core Bootloader is the authoritative SHA-pinned Tier 1 source after `AGENTS.md`; the source matrix enforces the exact two-source boot contract, the Tier 1 budget is enforced at 2,500 approximate tokens (current 1,590), and bootloader edits require both repinning and budget validation. Independent re-review and QA acceptance passed; evidence: https://github.com/chakrits/AI-Agent-Workflow/issues/281#issuecomment-5758803434.
 - Issue #277 — Package 1 **merged via PR #278** (merge commit `5a676b1`). SEC-008 passed Developer, Independent Code Review, QA Full Mode, and Security re-review. SEC-004 runtime evidence was explicitly accepted as `DEFERRED_BY_HUMAN` under ADR-0033; separate-process TC-040/TC-047 crash/restart evidence and a complete mutation ledger remain future work. Evidence: PR #278 and closeout records through `d98a215`.
 - Issue #272 — **closed in full.** Delivered Next-Gen Autonomous Dynamic Workflow Architecture across 4 Pillars and 5 ordered implementation packages (IMP-001..IMP-005): (1) Worktree-Sharded Status Projection Compiler (`scripts/compile-status-projection.mjs`, ~21.8ms compilation, archival lifecycle `scripts/archive-work-item.mjs`), (2) Progressive Context Loading Engine (`docs/workflow/core-bootloader.md` at 2,499 tokens, 11 modular role contexts at <=415 tokens, CLI injector `scripts/inject-role-context.mjs`), (3) Checkpointed Asynchronous State Machine (`scripts/lib/task-state-machine.mjs`, POSIX atomic writes, RFC 8785 JCS SHA-256 CAS concurrency engine, 11-state matrix, mandatory evidence gates, 2-cycle rework ceiling), (4) Frontmatter-First PR Safety Gate (`docs/contracts/schemas/pr-frontmatter.schema.json`, dual AST/legacy parser in `scripts/work-item-readiness.mjs`, closeout archive allowlist), and (5) CI Parity & Quality Gates (`validate:status-projection` mirrored 1:1 in GitHub Actions and GitLab CI, 764/764 tests passed green, independent QA verification FULL_PASS across TC-001..TC-038). PR #273 merged as `c2837be`. QA Evidence: https://github.com/chakrits/AI-Agent-Workflow/blob/feat/issue-272-next-gen-dynamic-workflow-discovery/docs/records/qa/2026-09-11-issue-272-qa-verification-report.md
 - Issue #237 (IMP-008) — **closed in full.** AC-14 reviewed five non-test consumers after the `SKILL_CATALOG.md` five-column collapse: refreshed `CONTEXT_BUDGET.md` to the measured 26,196 / 30,000 baseline, confirmed four catalog-link/inventory readers required no semantic change, and added a focused contract test covering all 31 skill IDs, resolved catalog links, and stale heading/column/routing dependencies. PR #270 merged as `3afe5fb`. Independent QA passed at the merged candidate with focused tests, link-target mutation coverage, validators, repin idempotence, and `git diff --check`; the full suite recorded 719 passed / 6 known clean-clone GitHub-origin-dependent hook failures. Evidence: https://github.com/chakrits/AI-Agent-Workflow/issues/237#issuecomment-5630763664
