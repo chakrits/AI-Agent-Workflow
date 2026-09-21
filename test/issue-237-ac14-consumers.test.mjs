@@ -78,7 +78,8 @@ test('AC-14 consumers retain catalog links and do not depend on removed skill he
 
 test('AC-14 budget consumer records the measured post-collapse catalog values', async () => {
   const budget = await readFile(consumers[0], 'utf8');
-  assert.match(budget, /Commit SHA \| `d978a66` \(pre-AC-14 baseline\)/);
-  assert.match(budget, /Total tokens \(approx\.\) \| 26,196/);
+  assert.match(budget, /Date measured \| 2026-09-21T00:00:00Z/);
+  assert.match(budget, /Commit SHA \| `9d170c6` \(Issue #281 candidate\)/);
+  assert.match(budget, /Total tokens \(approx\.\) \| 26,214/);
   assert.match(budget, /`docs\/operating-model\/SKILL_CATALOG\.md` \| 19,034 \| 4,758/);
 });
