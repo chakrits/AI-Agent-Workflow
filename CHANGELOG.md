@@ -29,3 +29,4 @@
 - Two test-coverage gaps left open by Issue #214 and #215's QA: `validate-risk-register.mjs`'s intentional fail-open behavior when a comparison commit is unreadable is now locked in by a test; `repin-source-matrix.mjs`'s round-trip-guard test now uses a deliberately stale fixture hash so it proves write-prevention rather than just that the guard throws. No production code changed. (Issue #220, PR #221)
 
 ### Security
+- Issue #277 Package 1 merged via PR #278: fenced control-plane generation/commit guards, policy-authoritative durable evidence validation, archive/compensation journal checks, and admission-lock directory durability. SEC-004 runtime evidence is explicitly deferred by Human Maintainer decision in ADR-0033.
