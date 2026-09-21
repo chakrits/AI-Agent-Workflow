@@ -7,11 +7,11 @@
 ## Classification
 - Change type: Framework / Meta Change
 - Risk level: Medium
-- Lifecycle phase: `phase:requirements`
+- Lifecycle phase: `phase:design`
 - Workflow route: Documentation Agent → Reviewer / QA Agent → Human Approval
 
 ## Artifacts
-- Design / ADR: Pending; must define safe-assumption and verification boundaries before implementation
+- Design / ADR: `docs/records/sdd/2026-09-21-issue-282-safe-autonomy-proportional-verification-sdd.md`; ADR-0035
 - Implementation plan: Pending
 - PRs: Pending
 
@@ -21,4 +21,4 @@
 - Add completion-contract and risk-proportional verification guidance.
 
 ## Status
-Open — depends on #281’s loading hierarchy decision and the umbrella design/ADR approval.
+Design direction approved. Written SDD is awaiting Human Maintainer review before implementation planning; #281’s loading hierarchy is complete through PR #285.
