@@ -6,7 +6,7 @@ import { pathToFileURL } from 'node:url';
  * Target token budgets across the 3 context tiers.
  */
 export const TARGET = 30000;
-export const BOOTLOADER_TARGET = 3500;
+export const BOOTLOADER_TARGET = 2500;
 export const BOOTLOADER_FILE = 'docs/workflow/core-bootloader.md';
 export const ROLE_BUDGET_TARGET = 1500;
 export const ROLES_DIR = 'docs/workflow/roles';
@@ -27,6 +27,13 @@ export const CANONICAL_FILES = [
   'docs/operating-model/AGENT_OPERATING_MODEL.md',
   'docs/operating-model/AGENT_EVALUATION_CHECKLIST.md'
 ];
+
+/**
+ * Every source whose edit must re-run the context budget validator. The
+ * bootloader has its own Tier 1 budget, so it deliberately stays out of the
+ * Tier 3 CANONICAL_FILES total while still receiving the same edit guard.
+ */
+export const CONTEXT_BUDGET_FILES = [BOOTLOADER_FILE, ...CANONICAL_FILES];
 
 /**
  * Count approximate tokens in a file (character length / 4).

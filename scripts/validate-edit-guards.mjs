@@ -3,7 +3,7 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { pathToFileURL } from 'node:url';
 
-import { CANONICAL_FILES } from './validate-context-budget.mjs';
+import { CONTEXT_BUDGET_FILES } from './validate-context-budget.mjs';
 
 const MATRIX_RELATIVE_PATH = 'test/fixtures/context-pack-v1/required-source-matrix.json';
 const EDIT_TOOLS = new Set(['Edit', 'Write']);
@@ -64,8 +64,8 @@ export function planEditGuardsDetailed(payload, rootDir = process.cwd()) {
   if (pinnedPaths.has(relative)) {
     guards.push({ script: 'repin:source-matrix', reason: 'the edited path is pinned in required-source-matrix.json' });
   }
-  if (CANONICAL_FILES.includes(relative)) {
-    guards.push({ script: 'validate:context-budget', reason: 'the edited path is a canonical context-budget source' });
+  if (CONTEXT_BUDGET_FILES.includes(relative)) {
+    guards.push({ script: 'validate:context-budget', reason: 'the edited path is a context-budget source' });
   }
   if (isUnder(relative, '.claude/agents') || isUnder(relative, '.claude/skills')) {
     guards.push({ script: 'validate:adapter-parity', reason: 'the edited path is under a Claude adapter or skill tree' });

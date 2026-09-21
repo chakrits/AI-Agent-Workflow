@@ -1,0 +1,46 @@
+# Code Review Request: Issue #281 Core Bootloader Source Contract
+
+## Status
+
+Independent re-review passed on `872bf23`. This is code-review evidence, not the required human approval
+to merge the framework-meta change.
+
+## Candidate
+
+- Commit: `872bf23` (`fix(context): enforce bootloader NFR budget`)
+- Work item: [Issue #281](https://github.com/chakrits/AI-Agent-Workflow/issues/281)
+- Design authority: ADR-0034 and `docs/records/sdd/2026-09-21-issue-280-gpt6-astra-modernization-sdd.md`
+
+## Intent
+
+Make the repository's SHA-validated Tier 1 source set match its active Core Bootloader: `AGENTS.md` then `docs/workflow/core-bootloader.md`.
+
+## Review Focus
+
+1. `context-source-matrix/v2` must use exactly those two boot paths for all 11 roles; on-demand rows must retain their route and selected skill source.
+2. A two-source boot context must remain fail-closed for source-set/hash errors, while on-demand packs retain their minimum source count.
+3. Editing the bootloader must plan both `repin:source-matrix` and `validate:context-budget`; the Tier 3 total must not double-count the Tier 1 budget.
+4. The task-trigger map must preserve the existing human approval and security boundaries without pulling #282–#284 into this change.
+
+## Developer Evidence
+
+- Red tests: `node --test test/validate-context-compatibility.test.mjs` and `node --test test/edit-guards.test.mjs` failed against the prior v1 contract.
+- Green: focused 29 tests, `npm test` 788/788, `validate:context-compatibility`, `validate:context-budget`, `validate:contracts`, `validate:project-state`, `adr:audit`, skill/adapter parity, and `git diff --check`.
+
+## Independent Review Results
+
+- Round 1 finding: the SDD required <= 2,500 approximate tokens, while the prior candidate measured 2,721 and
+  the validator allowed 3,500.
+- Resolution: the follow-up restores the validator and boundary test to 2,500; replaces duplicated skill
+  descriptions with a task-triggered canonical-catalog pointer; and re-pins the Bootloader SHA matrix.
+- Re-review: **PASS**. The reviewed `872bf23` candidate measures 1,590/2,500 tokens; the 2,500/2,501 boundary
+  behaves correctly; exact two-source boot and on-demand context contracts remain unchanged apart from the
+  bootloader's SHA.
+- Re-review evidence: focused 31/31 tests, `validate:context-budget`, `validate:context-compatibility`,
+  `validate:review-gate`, and `git diff --check 9d170c6..872bf23` passed.
+
+## Deliberately Out of Scope
+
+- Safe autonomy and proportional verification (#282)
+- Skill metadata/catalog changes (#283)
+- Behavior corpus and rollout evidence (#284)

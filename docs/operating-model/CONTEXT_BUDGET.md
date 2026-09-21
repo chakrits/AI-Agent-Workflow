@@ -11,26 +11,32 @@ This document tracks the approximate token cost of the canonical reading files t
 - **Token target:** ≤ 30,000 tokens (approximate)
 - **Approximation:** character count ÷ 4 (conservative rule-of-thumb for English prose in UTF-8)
 
+## Tier 1 Core Bootloader
+
+The Tier 1 bootloader has its own enforced limit of **≤ 2,500 approximate tokens**, matching the approved
+Issue #280 SDD. It is measured separately so it is not double-counted in the Tier 3 canonical-library total.
+The current follow-up measurement is 6,360 characters / 1,590 approximate tokens.
+
 The approximation is deliberately coarse. The goal is not to track exact token counts for a specific model, but to detect budget drift early — before a change pushes the canonical reading set past a size where agents start dropping or ignoring context.
 
 ## Current observed baseline
 
 | Metric | Value |
 |---|---|
-| Date measured | 2026-09-11T00:00:00Z |
-| Commit SHA | `d978a66` (pre-AC-14 baseline) |
+| Date measured | 2026-09-21T00:00:00Z |
+| Commit SHA | `9d170c6` (Issue #281 candidate) |
 | Command | `npm run validate:context-budget` |
 | Files measured | 8 |
-| Total characters | 104,801 |
-| Total tokens (approx.) | 26,196 |
+| Total characters | 104,876 |
+| Total tokens (approx.) | 26,214 |
 | Target | 30,000 |
-| Headroom | 3,804 tokens |
+| Headroom | 3,786 tokens |
 
 ## Per-File Breakdown
 
 | File | Chars | Tokens (approx.) |
 |---|---:|---:|
-| `AGENTS.md` | 14,248 | 3,562 |
+| `AGENTS.md` | 14,323 | 3,580 |
 | `docs/workflow/role-definitions.md` | 33,194 | 8,298 |
 | `docs/operating-model/SKILL_CATALOG.md` | 19,034 | 4,758 |
 | `docs/workflow/handoff-contract.md` | 5,263 | 1,315 |
@@ -38,7 +44,7 @@ The approximation is deliberately coarse. The goal is not to track exact token c
 | `docs/workflow/dynamic-routing.md` | 10,258 | 2,564 |
 | `docs/operating-model/AGENT_OPERATING_MODEL.md` | 6,050 | 1,512 |
 | `docs/operating-model/AGENT_EVALUATION_CHECKLIST.md` | 9,951 | 2,487 |
-| **Total** | **104,801** | **26,196** |
+| **Total** | **104,876** | **26,214** |
 
 The previous `2026-07-25` observation was `103,641` characters / `25,910` approximate tokens and is retained as historical context only.
 
@@ -52,10 +58,10 @@ The script reads each canonical file, prints the per-file breakdown, and exits 0
 
 ## After Editing a Canonical or Skill File
 
-The files measured above (plus `docs/workflow/testing-conventions.md`, `docs/operating-model/SKILL_CATALOG.md`,
-`docs/contracts/*.yaml`, and each role's `.agents/skills/*/SKILL.md`) are also pinned by exact sha256 in
-`test/fixtures/context-pack-v1/required-source-matrix.json`. Editing any of them makes that pinned hash stale and
-fails the context-pack tests with no obvious pointer back to the matrix.
+Every path listed in `test/fixtures/context-pack-v1/required-source-matrix.json` — including the Tier 1 Core
+Bootloader — is pinned by exact sha256. Editing a pinned source makes its hash stale and fails the context-pack
+tests with no obvious pointer back to the matrix. The matrix is authoritative; do not maintain a second manual
+list here.
 
 After a legitimate edit to one of these files, re-pin the matrix rather than hand-editing the hash:
 

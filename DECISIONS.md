@@ -7,6 +7,44 @@ Restored on 2026-09-05 under Issue #208. The blank-template resets of 2026-08-12
 that currently-open issues cite; ADR-0002 through ADR-0016 and ADR-0018 remain recoverable via
 `git show afe8091:DECISIONS.md` and were left out by Human Maintainer decision.
 
+### ADR-0034: Make the Core Bootloader the SHA-pinned Tier 1 instruction contract
+
+- Date: 2026-09-21
+- Work Items: [Issue #280](https://github.com/chakrits/AI-Agent-Workflow/issues/280), [Issue #281](https://github.com/chakrits/AI-Agent-Workflow/issues/281)
+- Status: Accepted — Human Maintainer approved implementation on 2026-09-21
+
+#### Context
+
+The repository already ships `docs/workflow/core-bootloader.md` as the active Tier 1 bootloader,
+but the context-source matrix instead SHA-pinned `AGENT_OPERATING_MODEL.md` and
+`dynamic-routing.md` in every boot row. The old arrangement made the validated source set differ
+from the documented entry point and left edits to the bootloader outside the source-matrix guard.
+
+#### Decision
+
+Adopt `context-source-matrix/v2`. Every boot row contains exactly `AGENTS.md` and
+`docs/workflow/core-bootloader.md`. On-demand rows retain their existing role, workflow, and
+skill sources after that Tier 1 pair. The edit guard runs both source-matrix re-pinning and the
+Tier 1/Tier 3 context budget validation when the bootloader changes.
+
+`AGENTS.md` is the cross-platform pointer: it directs a task to the bootloader first and prohibits
+preloading the canonical library by default. The bootloader owns the task-trigger map. Existing
+human approval and fail-closed boundaries remain unchanged.
+
+#### Consequences
+
+This is a versioned source-set migration, not a manual SHA update. A valid content edit still uses
+`npm run repin:source-matrix`; a future source-path change must update the validator, fixture, and
+focused contract tests together. The separately scoped autonomy, skill-metadata, and behavior-
+evaluation work remains in Issues #282–#284.
+
+#### Alternatives Considered
+
+- Keep the v1 source set and merely re-pin files — rejected because it would continue validating
+  a boot path that does not match the active bootloader.
+- Add the bootloader alongside the two v1 policy files — rejected because it preserves blanket
+  Tier 1 loading and contradicts progressive disclosure.
+
 ### ADR-0025: Expose argument tokens from the existing lexer for Issue #249
 
 - Date: 2026-09-09

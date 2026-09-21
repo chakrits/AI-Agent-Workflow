@@ -1,7 +1,7 @@
 # PROJECT_STATUS.md
 
 ## Current Work Item
-- None — repository is idle after Issue #277 Package 1 closeout. SEC-004 runtime evidence remains explicitly `DEFERRED_BY_HUMAN` under ADR-0033.
+- Issue #281 — Astra task-triggered instruction-loading hierarchy; candidate `9d170c6` awaits independent review. SEC-004 runtime evidence for Issue #277 remains explicitly `DEFERRED_BY_HUMAN` under ADR-0033.
 
 ## Active Work Items
 <!-- active-work-items-table-start -->
@@ -12,11 +12,14 @@
 | issue-275 | bug-fix | verifying | qa-agent | 2026-09-11 |
 <!-- active-work-items-table-end -->
 
+## Planned Framework Work
+- Issue #280 — GPT-6 Astra instruction, skill, and autonomy modernization — #281 passed QA acceptance and is in `phase:human-review`; #282–#284 remain planned independently. SDD and ADR-0034 are Human-approved. PR #285 awaits Human Approval before merge.
+
 ## Current Stage
-- Idle after PR #278 merge and documentation closeout. SEC-004 remains deferred and is not a security-complete claim.
+- Issue #281 human review: QA acceptance and independent re-review passed; Human Approval remains required before merge. SEC-004 remains deferred and is not a security-complete claim.
 
 ## Change Classification
-- Framework/meta architecture remediation; high-risk security-sensitive.
+- Framework/meta change; medium risk. No security-sensitive enforcement change is in scope.
 
 ## Completed
 - Issue #277 — Package 1 **merged via PR #278** (merge commit `5a676b1`). SEC-008 passed Developer, Independent Code Review, QA Full Mode, and Security re-review. SEC-004 runtime evidence was explicitly accepted as `DEFERRED_BY_HUMAN` under ADR-0033; separate-process TC-040/TC-047 crash/restart evidence and a complete mutation ledger remain future work. Evidence: PR #278 and closeout records through `d98a215`.

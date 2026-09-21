@@ -46,6 +46,14 @@ test('AC-07: derives canonical guard from CANONICAL_FILES', () => {
   assert.deepEqual(guards.map((guard) => guard.script), ['validate:context-budget']);
 });
 
+test('core bootloader is protected by both source-matrix and context-budget guards', () => {
+  const guards = planEditGuards({
+    tool_name: 'Edit',
+    tool_input: { file_path: path.join(repoRoot, 'docs/workflow/core-bootloader.md') }
+  }, repoRoot);
+  assert.deepEqual(guards.map((guard) => guard.script), ['repin:source-matrix', 'validate:context-budget']);
+});
+
 test('AC-08: runs both parity guards for either Claude adapter or skill paths', () => {
   const root = fixtureRoot();
   for (const filePath of ['.claude/agents/developer-agent.md', '.claude/skills/example/SKILL.md']) {

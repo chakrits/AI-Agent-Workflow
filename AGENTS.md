@@ -31,14 +31,13 @@ Refactoring and feature work are two different changes — land them separately,
 
 ## Core Operating Model
 
-Before selecting an agent, selecting a skill, or marking work complete, follow the shared operating model.
+Start every repository task with [`docs/workflow/core-bootloader.md`](docs/workflow/core-bootloader.md). It classifies the task and names the minimum governing source to load next. Do not preload the whole canonical library when the task does not need it.
 
 ### Required Reading Order
 
-1. `docs/operating-model/AGENT_OPERATING_MODEL.md`
-2. `docs/operating-model/SKILL_CATALOG.md`
-3. `docs/operating-model/AGENT_EVALUATION_CHECKLIST.md`
-4. Relevant workflow/playbook under `docs/workflow/`, `docs/workflows/`, `docs/operating-model/`, or `docs/playbooks/` depending on project structure
+1. `docs/workflow/core-bootloader.md`
+2. Only the policy, role context, workflow/playbook, or skill that its task-trigger map selects
+3. The relevant quality/approval source before crossing a human gate or claiming completion
 
 ### Routing Rule
 
