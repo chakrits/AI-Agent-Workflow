@@ -8,13 +8,13 @@
 ## Classification
 - Change type: Framework / Meta Change
 - Risk level: Medium
-- Lifecycle phase: `phase:requirements`
+- Lifecycle phase: `phase:development`
 - Workflow route: Orchestrator → Documentation Agent → Reviewer / QA Agent → Human Approval
 
 ## Artifacts
 - Requirement / design brief: GitHub Issue #280
 - Proposed SDD: [[../sdd/2026-09-21-issue-280-gpt6-astra-modernization-sdd]]
-- ADR: Required before changing the default instruction hierarchy or autonomy boundary
+- ADR: ADR-0034 accepted for the default instruction hierarchy; #282 retains its own autonomy-boundary decision
 - Implementation plans: Child work items #281–#284
 - PRs: Pending
 - Closeout PR: Pending
@@ -26,4 +26,4 @@
 - [ ] #284 — Astra behavior evaluation and rollout gate
 
 ## Status
-Open — proposed SDD awaits Human Maintainer review. No policy or skill behavior has changed.
+Open — SDD approved. #281 is implemented locally and awaits independent review; #282–#284 remain separately scoped.

@@ -52,10 +52,10 @@ The script reads each canonical file, prints the per-file breakdown, and exits 0
 
 ## After Editing a Canonical or Skill File
 
-The files measured above (plus `docs/workflow/testing-conventions.md`, `docs/operating-model/SKILL_CATALOG.md`,
-`docs/contracts/*.yaml`, and each role's `.agents/skills/*/SKILL.md`) are also pinned by exact sha256 in
-`test/fixtures/context-pack-v1/required-source-matrix.json`. Editing any of them makes that pinned hash stale and
-fails the context-pack tests with no obvious pointer back to the matrix.
+Every path listed in `test/fixtures/context-pack-v1/required-source-matrix.json` — including the Tier 1 Core
+Bootloader — is pinned by exact sha256. Editing a pinned source makes its hash stale and fails the context-pack
+tests with no obvious pointer back to the matrix. The matrix is authoritative; do not maintain a second manual
+list here.
 
 After a legitimate edit to one of these files, re-pin the matrix rather than hand-editing the hash:
 

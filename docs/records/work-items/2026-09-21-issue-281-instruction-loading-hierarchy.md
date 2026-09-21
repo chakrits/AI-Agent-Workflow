@@ -7,12 +7,12 @@
 ## Classification
 - Change type: Framework / Meta Change
 - Risk level: Medium
-- Lifecycle phase: `phase:requirements`
+- Lifecycle phase: `phase:verification`
 - Workflow route: Documentation Agent → Reviewer / QA Agent → Human Approval
 
 ## Artifacts
-- Design / ADR: Pending; must define the Tier 1 entry point and document triggers before implementation
-- Implementation plan: Pending
+- Design / ADR: ADR-0034 — Core Bootloader is the SHA-pinned Tier 1 source set
+- Implementation plan: [[../implementation-plan/2026-09-21-issue-281-instruction-loading-hierarchy]]
 - PRs: Pending
 
 ## Scope
@@ -21,4 +21,4 @@
 - Preserve risk-specific governing policies and portable compatibility.
 
 ## Status
-Open — blocked on the umbrella design/ADR approval; no implementation authorized yet.
+Implemented locally — awaiting independent review and Human Approval before merge.

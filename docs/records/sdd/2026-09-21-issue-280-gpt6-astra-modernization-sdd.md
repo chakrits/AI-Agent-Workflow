@@ -4,7 +4,7 @@
 
 - Work Item ID: Issue #280
 - Owner: SA / Documentation Agent
-- Status: PROPOSED — awaiting Human Maintainer review
+- Status: ACCEPTED — Human Maintainer approved implementation on 2026-09-21
 - Date: 2026-09-21
 - Parent issue: https://github.com/chakrits/AI-Agent-Workflow/issues/280
 
@@ -114,7 +114,7 @@ The design does not relax existing gates for authentication, authorization, secr
 
 ## Proposed Decision
 
-Adopt alternative 3 through the independently revertible child issues #281–#284. This is not an approved ADR yet. A Human Maintainer must approve this SDD and the resulting ADR before any behavioral-policy implementation starts.
+Adopt alternative 3 through the independently revertible child issues #281–#284. ADR-0034 records the approved Tier 1 loading migration for #281. Each remaining child issue retains its own implementation and human-review gate.
 
 ## Testability Notes
 

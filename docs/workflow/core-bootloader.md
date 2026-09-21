@@ -30,6 +30,21 @@ Stop execution, preserve task checkpoint, set state to `blocked` with `stop_reas
 - Removing or weakening tests, validations, lint rules, or security controls.
 - Ambiguous requirements that materially change expected runtime behavior.
 
+## Task-Triggered Source Loading
+
+After applying the gates above, load only the sources needed for the task class:
+
+| Task class | Minimum next source |
+|---|---|
+| Readonly/advisory | Relevant evidence only; do not preload the canonical library. |
+| Framework/meta or routing | `docs/workflow/dynamic-routing.md`, then the matching workflow. |
+| Role-owned implementation or review | The matching file in `docs/workflow/roles/`, then the selected skill. |
+| Lifecycle handoff | `docs/workflow/dynamic-routing.md` and `docs/workflow/handoff-contract.md`. |
+| Security-sensitive | The security workflow/review source before a mutation. |
+| Release, production data, or irreversible action | The applicable release/data workflow and the human approval gate. |
+
+If a task matches no row or sources conflict, stop and request routing guidance rather than loading every reference by default.
+
 ## 3. Universal Stop Conditions & Boundary Rules
 
 Stop instead of continuing autonomously when:

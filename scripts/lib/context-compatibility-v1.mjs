@@ -13,7 +13,7 @@ const ROLES = ['Orchestrator Agent', 'PM Agent', 'BA Agent', 'SA Agent', 'Develo
 const LOAD_MODES = ['boot', 'on-demand'];
 const MEASUREMENT_STATUSES = ['available', 'unsupported', 'unavailable', 'not_requested'];
 const LOAD_RESULTS = ['loaded', 'fallback', 'rejected'];
-const BOOT_SOURCES = ['AGENTS.md', 'docs/operating-model/AGENT_OPERATING_MODEL.md', 'docs/workflow/dynamic-routing.md'];
+const BOOT_SOURCES = ['AGENTS.md', 'docs/workflow/core-bootloader.md'];
 const ON_DEMAND_BASE_SOURCES = ['docs/workflow/role-definitions.md', 'docs/workflow/quality-gates.md', 'docs/workflow/handoff-contract.md', 'docs/operating-model/AGENT_EVALUATION_CHECKLIST.md', 'docs/operating-model/SKILL_CATALOG.md'];
 const ROLE_SOURCE_CONTRACT = {
   'Orchestrator Agent': ['docs/workflow/dispatch-packet-contract.md', 'dynamic-workflow'],
@@ -114,7 +114,7 @@ export async function loadContextPackFixtures(rootDir) {
 export async function validateSourceMatrix(rootDir, matrix) {
   const errors = [];
   const skillCatalog = await readFile(path.join(rootDir, 'docs/operating-model/SKILL_CATALOG.md'), 'utf8');
-  if (matrix?.schemaVersion !== 'context-source-matrix/v1') errors.push('source matrix: unsupported schemaVersion');
+  if (matrix?.schemaVersion !== 'context-source-matrix/v2') errors.push('source matrix: unsupported schemaVersion');
   if (JSON.stringify(matrix?.roles) !== JSON.stringify(ROLES)) errors.push('source matrix: role set/order must match the closed role enum');
   if (!Array.isArray(matrix?.rows) || matrix.rows.length !== ROLES.length * LOAD_MODES.length) errors.push('source matrix: expected exactly two rows per role');
   const seen = new Set();
@@ -162,7 +162,10 @@ export async function validateContextPack(rootDir, pack, matrix) {
   if (!LOAD_MODES.includes(pack?.loadMode)) errors.push('context pack: invalid loadMode');
   if (!MEASUREMENT_STATUSES.includes(pack?.measurementStatus)) errors.push('context pack: invalid measurementStatus');
   if (pack?.fallbackReason !== null && (typeof pack?.fallbackReason !== 'string' || pack.fallbackReason.length === 0)) errors.push('context pack: fallbackReason must be null or non-empty');
-  if (!Array.isArray(pack?.sources) || pack.sources.length < 3) errors.push('context pack: sources must have at least three entries');
+  const minimumSourceCount = pack?.loadMode === 'boot' ? 2 : 3;
+  if (!Array.isArray(pack?.sources) || pack.sources.length < minimumSourceCount) {
+    errors.push(`context pack: sources must have at least ${minimumSourceCount} entries`);
+  }
   const row = matrix?.rows?.find((candidate) => candidate.role === pack?.role && candidate.loadMode === pack?.loadMode);
   if (!row) errors.push('context pack: no registered source-matrix row');
   const seen = new Set();

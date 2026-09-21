@@ -29,6 +29,13 @@ export const CANONICAL_FILES = [
 ];
 
 /**
+ * Every source whose edit must re-run the context budget validator. The
+ * bootloader has its own Tier 1 budget, so it deliberately stays out of the
+ * Tier 3 CANONICAL_FILES total while still receiving the same edit guard.
+ */
+export const CONTEXT_BUDGET_FILES = [BOOTLOADER_FILE, ...CANONICAL_FILES];
+
+/**
  * Count approximate tokens in a file (character length / 4).
  * Returns 0 when the file does not exist so that the budget report
  * still prints, but a missing file is surfaced separately.

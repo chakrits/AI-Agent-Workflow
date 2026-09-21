@@ -78,6 +78,18 @@ test('context-pack/v1 accepts exact boot and cumulative on-demand rows', async (
   assert.deepEqual(await validateContextPack(rootDir, packFor('QA Agent', 'on-demand'), matrix), { valid: true, errors: [] });
 });
 
+test('context-source-matrix/v2 makes the core bootloader the sole policy entry after AGENTS.md', () => {
+  assert.equal(matrix.schemaVersion, 'context-source-matrix/v2');
+  const expectedBootSources = ['AGENTS.md', 'docs/workflow/core-bootloader.md'];
+  for (const row of matrix.rows.filter((candidate) => candidate.loadMode === 'boot')) {
+    assert.deepEqual(
+      row.requiredSources.map(({ path: sourcePath }) => sourcePath),
+      expectedBootSources,
+      `${row.role} must use the task-triggered Tier 1 source set`
+    );
+  }
+});
+
 test('source matrix rejects duplicate rows and stale source hashes', async () => {
   const duplicate = { ...matrix, rows: [...matrix.rows, matrix.rows[0]] };
   assert.equal((await validateSourceMatrix(rootDir, duplicate)).valid, false);
