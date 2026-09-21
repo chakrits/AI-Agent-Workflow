@@ -1,7 +1,7 @@
 # PROJECT_STATUS.md
 
 ## Current Work Item
-- Issue #277 — Control-plane state integrity, Package 1. QA-277-001 remediation is implemented at `87967f3`; independent Code Review is next before QA Full Mode rerun.
+- Issue #277 — Control-plane state integrity, Package 1. QA-277-001 remediation at `87967f3` passed independent Code Review; QA Full Mode rerun is next.
 
 ## Active Work Items
 <!-- active-work-items-table-start -->
@@ -13,7 +13,7 @@
 <!-- active-work-items-table-end -->
 
 ## Current Stage
-- Developer implementation complete for the approved QA-277-001 seam; independent Code Review is next, followed by QA Full Mode.
+- QA-277-001 implementation and independent Code Review are complete; QA Full Mode rerun is next.
 
 ## Change Classification
 - Framework/meta architecture remediation; high-risk security-sensitive.
@@ -57,7 +57,7 @@
 - QA Full Mode at `dca2165` passed the available CR-015 barriers (2/2), focused control-plane suite (18/18 across three runs), full suite (782/782), and repository validators, but found QA-277-001: disk-bound mutation rejected the policy-authoritative evidence set with `MISSING_REQUIRED_EVIDENCE`. Human approved the SA clarification and another Developer rework cycle on 2026-09-21; implementation is now at `87967f3` with TC-007/TC-024 regressions. The named mutation/crash campaign is also incomplete in this environment; SEC-004 remains not runtime-closed.
 
 ## Blockers / Open Questions
-- Issue #277 QA-277-001 — **Implementation complete; awaiting independent review and QA confirmation:** durable mutation now uses policy-row evidence exactly once through a private policy-authoritative constructor, while the pure API keeps matrix-evidence compatibility. New TC-007 positive/negative byte-identity tests and TC-024b destination-drift guard pass at `87967f3`. QA evidence gap remains open for the complete mutation/crash campaign. Evidence: `docs/records/qa/2026-09-21-issue-277-qa-277-001-developer-handoff.md`.
+- Issue #277 QA-277-001 — **Implementation and independent review complete; awaiting QA confirmation:** durable mutation now uses policy-row evidence exactly once through a private policy-authoritative constructor, while the pure API keeps matrix-evidence compatibility. New TC-007 positive/negative byte-identity tests and TC-024b destination-drift guard pass at `87967f3`; independent review passed at `c3d29e3`. QA evidence gap remains open for the complete mutation/crash campaign. Evidence: `docs/records/qa/2026-09-21-issue-277-qa-277-001-independent-code-review.md`.
 - Issue #277 QA evidence gap — **blocker for SEC-004 closure:** no Stryker/mutmut runner or configured mutation campaign is present, and no executable process-kill/restart harness covers TC-040/TC-047. The two CR-015 temporary mutations were killed, but the complete named ledger remains unverified. QA evidence: `docs/records/qa/2026-09-18-issue-277-package1-full-qa.md`.
 - Issue #236 (IMP-007): AC-02 through AC-09, AC-11, and AC-12 are merged; AC-10 remains withdrawn. The Issue is complete and no longer blocks Issue #237.
 - Carried forward from Issue #249, none blocking. **Medium:** several allow-path warnings state a false cause — a glob or brace-expanded `--body-file` reports "does not exist yet at hook time" when the file exists and the token is simply wrong, and escaped-character paths render as `path \r` with no hint. This matters because ADR-0024 made that warning the compensating control for allowing unreadable bodies. **Low:** ANSI-C quoting (`$'…'`) is read literally, so the parser can validate text longer than what `gh` submits; and a TOCTOU where the hook reads the body file before an earlier command in the same string rewrites it, structural to the hook point. **Minor:** `extractBodyFromCommand()` narrowed to a single segment while its docstring still describes a full command string — not live, since the only caller passes one segment. Three mutation survivors remain on the new token path, which the implementer ran no mutant against.
@@ -80,10 +80,10 @@
 - Framework assessment: `docs/records/misc/2026-09-05-framework-sdlc-assessment.md`
 
 ## Next Quality Gate
-- Independent Code Review of `87967f3`, then QA Full Mode rerun. SEC-004 remains gated on complete QA and Security runtime evidence.
+- QA Full Mode rerun for `c3d29e3`. SEC-004 remains gated on complete QA and Security runtime evidence.
 
 ## Recommended Next Agent
-- Independent Code Review Agent.
+- QA Agent.
 
 ## Notes
 - Reset to template baseline by `npm run reset:template`.
