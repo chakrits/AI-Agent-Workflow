@@ -13,10 +13,10 @@
 <!-- active-work-items-table-end -->
 
 ## Planned Framework Work
-- Issue #280 — GPT-6 Astra instruction, skill, and autonomy modernization — `phase:verification` for #281; #282–#284 remain planned independently. SDD and ADR-0034 are Human-approved. Draft PR #285 is addressing an independent-review finding: the Tier 1 bootloader limit must remain <= 2,500 approximate tokens before re-review and merge.
+- Issue #280 — GPT-6 Astra instruction, skill, and autonomy modernization — `phase:verification` for #281; #282–#284 remain planned independently. SDD and ADR-0034 are Human-approved. Draft PR #285 passed independent re-review at `872bf23`; it awaits Human Approval before merge.
 
 ## Current Stage
-- Issue #281 verification: Round 1 independent review found a Tier 1 NFR mismatch; the follow-up has a focused TDD check and awaits re-review. Human Approval remains required before merge. SEC-004 remains deferred and is not a security-complete claim.
+- Issue #281 verification: Round 1's Tier 1 NFR mismatch was resolved and independent re-review passed. Human Approval remains required before merge. SEC-004 remains deferred and is not a security-complete claim.
 
 ## Change Classification
 - Framework/meta change; medium risk. No security-sensitive enforcement change is in scope.

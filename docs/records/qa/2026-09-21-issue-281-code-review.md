@@ -2,12 +2,12 @@
 
 ## Status
 
-Round 1 independent review found a Major NFR mismatch. A scoped follow-up is submitted for re-review; this
-record is not an approval.
+Independent re-review passed on `872bf23`. This is code-review evidence, not the required human approval
+to merge the framework-meta change.
 
 ## Candidate
 
-- Commit: `9d170c6` (`feat(context): make core bootloader authoritative`)
+- Commit: `872bf23` (`fix(context): enforce bootloader NFR budget`)
 - Work item: [Issue #281](https://github.com/chakrits/AI-Agent-Workflow/issues/281)
 - Design authority: ADR-0034 and `docs/records/sdd/2026-09-21-issue-280-gpt6-astra-modernization-sdd.md`
 
@@ -27,14 +27,17 @@ Make the repository's SHA-validated Tier 1 source set match its active Core Boot
 - Red tests: `node --test test/validate-context-compatibility.test.mjs` and `node --test test/edit-guards.test.mjs` failed against the prior v1 contract.
 - Green: focused 29 tests, `npm test` 788/788, `validate:context-compatibility`, `validate:context-budget`, `validate:contracts`, `validate:project-state`, `adr:audit`, skill/adapter parity, and `git diff --check`.
 
-## Round 1 Independent Review Result
+## Independent Review Results
 
-- Finding: the SDD requires the Tier 1 bootloader to stay at or below 2,500 approximate tokens, while the
-  validator allowed 3,500 and the prior candidate measured 2,721.
-- Resolution submitted: restore the validator and boundary test to 2,500; reduce the bootloader by replacing
-  its duplicated skill table with a task-triggered pointer to the canonical catalog; re-pin its SHA matrix.
-- Re-review focus: confirm the follow-up measures at or below 2,500, fails at 2,501, and preserves the exact
-  two-source boot contract plus on-demand behavior.
+- Round 1 finding: the SDD required <= 2,500 approximate tokens, while the prior candidate measured 2,721 and
+  the validator allowed 3,500.
+- Resolution: the follow-up restores the validator and boundary test to 2,500; replaces duplicated skill
+  descriptions with a task-triggered canonical-catalog pointer; and re-pins the Bootloader SHA matrix.
+- Re-review: **PASS**. The reviewed `872bf23` candidate measures 1,590/2,500 tokens; the 2,500/2,501 boundary
+  behaves correctly; exact two-source boot and on-demand context contracts remain unchanged apart from the
+  bootloader's SHA.
+- Re-review evidence: focused 31/31 tests, `validate:context-budget`, `validate:context-compatibility`,
+  `validate:review-gate`, and `git diff --check 9d170c6..872bf23` passed.
 
 ## Deliberately Out of Scope
 
