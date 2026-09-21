@@ -12,6 +12,9 @@
 | issue-275 | bug-fix | verifying | qa-agent | 2026-09-11 |
 <!-- active-work-items-table-end -->
 
+## Planned Framework Work
+- Issue #280 — GPT-6 Astra instruction, skill, and autonomy modernization — `phase:design`; umbrella for #281–#284. Proposed SDD is awaiting Human Maintainer review. No policy or skill behavior has changed; implementation remains gated on design/ADR and human approval.
+
 ## Current Stage
 - Idle after PR #278 merge and documentation closeout. SEC-004 remains deferred and is not a security-complete claim.
 
