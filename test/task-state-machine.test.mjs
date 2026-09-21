@@ -5,6 +5,7 @@ import path from 'node:path';
 import os from 'node:os';
 import { execFileSync } from 'node:child_process';
 import Ajv2020 from 'ajv/dist/2020.js';
+import YAML from 'yaml';
 import {
   STATES,
   ROLE_REGISTRY,
@@ -14,13 +15,24 @@ import {
   computeStateDigest,
   verifyCasAndComputeDigest,
   createTaskState,
-  transitionTaskState,
+  transitionTaskState as rawTransitionTaskState,
   loadTaskState,
-  inspectTaskState
+  inspectTaskState,
+  mutateTaskStateOnDisk
 } from '../scripts/lib/task-state-machine.mjs';
+import { commitGuardPath, initializeGeneration, lockFilePath } from '../scripts/lib/fenced-commit.mjs';
 
 function createTempDir() {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'state-machine-test-'));
+}
+
+// The pure test helper supplies the explicit CAS precondition required by the
+// production transition API while keeping each test focused on its matrix case.
+function transitionTaskState(current, options = {}) {
+  return rawTransitionTaskState(current, {
+    ...options,
+    expected_digest: options.expected_digest ?? computeStateDigest(current)
+  });
 }
 
 test('TC-019: POSIX atomic write crash-resilience', () => {
@@ -349,6 +361,98 @@ test('TC-024: Rework retry budget enforcement (fails closed at >2 cycles)', () =
   assert.equal(task.stop_reason, 'human_review_required');
 });
 
+test('TC-024b: policy and matrix destinations must remain a strict intersection', () => {
+  const policy = YAML.parse(fs.readFileSync('docs/contracts/bug-fix-workflow.yaml', 'utf8'));
+  for (const row of policy.transitions || []) {
+    const destinations = row.to ? [row.to] : row.destinations || [];
+    assert.ok(TRANSITION_MATRIX[row.from], `Missing matrix source for policy source '${row.from}'`);
+    for (const destination of destinations) {
+      assert.ok(
+        TRANSITION_MATRIX[row.from].destinations.includes(destination),
+        `Policy destination '${row.from} -> ${destination}' must exist in the transition matrix`
+      );
+    }
+  }
+  for (const row of policy.resume || []) {
+    assert.ok(TRANSITION_MATRIX[row.from], `Missing matrix source for resume source '${row.from}'`);
+    for (const destination of row.destinations || []) {
+      assert.ok(
+        TRANSITION_MATRIX[row.from].destinations.includes(destination),
+        `Policy resume destination '${row.from} -> ${destination}' must exist in the transition matrix`
+      );
+    }
+  }
+});
+
+function createDurableTaskRoot(taskId = 'durable-evidence') {
+  const root = createTempDir();
+  const taskDir = path.join(root, 'docs', 'records', 'work-items', taskId);
+  fs.mkdirSync(taskDir, { recursive: true });
+  const task = createTaskState({ task_id: taskId, workflow_id: 'bug-fix', change_type: 'bug-fix', risk_level: 'medium' });
+  const taskFile = path.join(taskDir, 'task-state.json');
+  atomicWriteJsonSync(taskFile, task);
+  initializeGeneration(root, 'task', taskId, undefined, { allowExisting: true });
+  return { root, task, taskFile };
+}
+
+test('TC-007: durable transition uses policy evidence without matrix-only keys', () => {
+  const { root, task, taskFile } = createDurableTaskRoot();
+  try {
+    assert.throws(
+      () => rawTransitionTaskState(task, {
+        to: 'investigating',
+        actor: 'ba-agent',
+        expected_digest: task.state_digest,
+        evidence: { failure_description: 'fd', repro: 'rp' },
+        validateMatrixEvidence: false
+      }),
+      (error) => error.code === 'MISSING_REQUIRED_EVIDENCE',
+      'pure transitionTaskState must retain matrix evidence compatibility'
+    );
+    const next = mutateTaskStateOnDisk(root, task.task_id, {
+      to: 'investigating',
+      actor: 'ba-agent',
+      expected_digest: task.state_digest,
+      evidence: { failure_description: 'fd', repro: 'rp' }
+    });
+    assert.equal(next.state, 'investigating');
+    assert.equal(next.sequence_number, 2);
+    assert.deepEqual(next.history.at(-1).evidence_refs.sort(), ['failure_description', 'repro']);
+    assert.equal(JSON.parse(fs.readFileSync(taskFile, 'utf8')).state, 'investigating');
+    assert.equal(fs.existsSync(lockFilePath(root, 'task', task.task_id)), false);
+    assert.equal(fs.existsSync(commitGuardPath(root, 'task', task.task_id)), false);
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('TC-007: durable policy evidence rejection preserves bytes and cleans guards', () => {
+  for (const evidence of [
+    { failure_description: 'fd' },
+    { repro: 'rp' },
+    { requirement_discovery: 'rd', issue_ref: '1' }
+  ]) {
+    const { root, task, taskFile } = createDurableTaskRoot(`durable-evidence-${Object.keys(evidence).join('-')}`);
+    try {
+      const before = fs.readFileSync(taskFile);
+      assert.throws(
+        () => mutateTaskStateOnDisk(root, task.task_id, {
+          to: 'investigating',
+          actor: 'ba-agent',
+          expected_digest: task.state_digest,
+          evidence
+        }),
+        (error) => error.code === 'MISSING_REQUIRED_EVIDENCE'
+      );
+      assert.deepEqual(fs.readFileSync(taskFile), before);
+      assert.equal(fs.existsSync(lockFilePath(root, 'task', task.task_id)), false);
+      assert.equal(fs.existsSync(commitGuardPath(root, 'task', task.task_id)), false);
+    } finally {
+      fs.rmSync(root, { recursive: true, force: true });
+    }
+  }
+});
+
 test('TC-025: Asynchronous pause and checkpoint resumption', () => {
   const tmpDir = createTempDir();
   const targetFile = path.join(tmpDir, 'task-state.json');
@@ -437,7 +541,7 @@ test('TC-038: Contract schema validator verifies non-colliding envelope schemas'
 
 test('CLI: task-machine-cli commands (init, transition, resume, inspect)', () => {
   const tmpDir = createTempDir();
-  const targetFile = path.join(tmpDir, 'task-state.json');
+  const targetFile = path.join(tmpDir, 'docs', 'records', 'work-items', 'issue-cli', 'task-state.json');
 
   // 1. Init command
   execFileSync('node', [
@@ -469,7 +573,7 @@ test('CLI: task-machine-cli commands (init, transition, resume, inspect)', () =>
     '--file', targetFile,
     '--to', 'investigating',
     '--actor', 'orchestrator',
-    '--evidence', JSON.stringify({ requirement_discovery: 'req-cli' }),
+    '--evidence', JSON.stringify({ failure_description: 'failure-cli', repro: 'repro-cli', requirement_discovery: 'req-cli' }),
     '--expected-digest', digest1
   ]);
 
@@ -485,8 +589,11 @@ test('CLI: task-machine-cli commands (init, transition, resume, inspect)', () =>
     '--to', 'blocked',
     '--actor', 'sa-agent',
     '--stop-reason', 'human_review_required',
-    '--evidence', JSON.stringify({ root_cause_analysis: 'rca-cli' })
+    '--evidence', JSON.stringify({ root_cause_analysis: 'rca-cli', stop_reason: 'human_review_required' }),
+    '--expected-digest', inspect2.state_digest
   ]);
+
+  const blocked = JSON.parse(execFileSync('node', ['scripts/task-machine-cli.mjs', 'inspect', '--file', targetFile], { encoding: 'utf8' }));
 
   // 5. Resume command with human approver
   execFileSync('node', [
@@ -496,7 +603,8 @@ test('CLI: task-machine-cli commands (init, transition, resume, inspect)', () =>
     '--to', 'investigating',
     '--actor', 'human',
     '--approver-id', 'boss',
-    '--evidence', 'approved-fix'
+    '--evidence', 'approved-fix',
+    '--expected-digest', blocked.state_digest
   ]);
 
   const inspect3 = JSON.parse(execFileSync('node', ['scripts/task-machine-cli.mjs', 'inspect', '--file', targetFile], { encoding: 'utf8' }));

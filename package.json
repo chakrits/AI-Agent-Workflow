@@ -35,6 +35,7 @@
     "task:machine": "node scripts/task-machine-cli.mjs",
     "compile:status-projection": "node scripts/compile-status-projection.mjs",
     "archive:work-item": "node scripts/archive-work-item.mjs",
+    "backfill:task-state-v2": "node scripts/backfill-task-state-v2.mjs",
     "status:compile": "node scripts/compile-status-projection.mjs",
     "validate:status-projection": "node scripts/compile-status-projection.mjs --check"
   },

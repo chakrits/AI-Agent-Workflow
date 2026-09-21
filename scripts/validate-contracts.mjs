@@ -1,8 +1,9 @@
-import { readFile, readdir } from 'node:fs/promises';
+import { access, readFile, readdir } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import Ajv2020 from 'ajv/dist/2020.js';
 import YAML from 'yaml';
+import { validateEnvelopeSchema } from './lib/task-state-machine.mjs';
 
 async function readYaml(file) {
   return YAML.parse(await readFile(file, 'utf8'));
@@ -13,6 +14,32 @@ async function examplePaths(rootDir) {
   return (await readdir(directory))
     .filter((name) => name.endsWith('.yaml'))
     .map((name) => path.join('docs/contracts/examples', name));
+}
+
+export async function activeShardPaths(rootDir) {
+  const directory = path.join(rootDir, 'docs/records/work-items');
+  if (!(await access(directory).then(() => true).catch(() => false))) return [];
+  return (await readdir(directory, { withFileTypes: true }))
+    .filter((entry) => entry.isDirectory() && entry.name !== 'archive' && !entry.name.startsWith('.'))
+    .map((entry) => path.join('docs/records/work-items', entry.name, 'task-state.json'));
+}
+
+export async function validateActiveShards(rootDir) {
+  const paths = await activeShardPaths(rootDir);
+  const errors = [];
+  let validated = 0;
+  for (const relativePath of paths) {
+    const fullPath = path.join(rootDir, relativePath);
+    let state;
+    try { state = JSON.parse(await readFile(fullPath, 'utf8')); } catch (err) { errors.push(`${relativePath}: MALFORMED_SHARD (${err.message})`); continue; }
+    try {
+      validateEnvelopeSchema(state);
+      if (state.policy_contract_version !== 1) errors.push(`${relativePath}: policy_contract_version does not match bug-fix policy`);
+      if (state.sequence_number !== state.history.length + 1) errors.push(`${relativePath}: sequence_number must equal history.length + 1`);
+      validated += 1;
+    } catch (err) { errors.push(`${relativePath}: ${err.code || 'MALFORMED_SHARD'}: ${err.message}`); }
+  }
+  return { errors, validated, discovered: paths.length };
 }
 
 async function loadPolicies(rootDir) {
@@ -245,6 +272,19 @@ export async function validateContracts(rootDir, statePaths = []) {
       continue;
     }
     errors.push(...validateHistory(policy, state, relativePath));
+  }
+  // The active durable-envelope lane is intentionally separate from the
+  // legacy example lane. It is enabled once migration has produced v2 shards;
+  // pre-migration v1 records remain covered by the legacy policy lane.
+  if (!statePaths.length) {
+    const active = await activeShardPaths(rootDir);
+    const activeStates = await Promise.all(active.map(async (p) => {
+      try { return JSON.parse(await readFile(path.join(rootDir, p), 'utf8')); } catch { return null; }
+    }));
+    if (active.length && activeStates.every((state) => state && state.contract_version === 2)) {
+      const result = await validateActiveShards(rootDir);
+      errors.push(...result.errors);
+    }
   }
   return errors;
 }

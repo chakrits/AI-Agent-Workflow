@@ -609,3 +609,78 @@ rewrite; all prior commits remain recoverable through Git history.
 - Alternatives Considered: Immediate cutover (rejected because host behavior and consumer completeness are not yet proven); permanent dual-write (rejected because it creates split-brain and attribution ambiguity); long-lived manual A/B worktrees (rejected because behavior can be paired using disposable worktrees without housekeeping debt); accepting an 85% context-reduction claim from corpus size alone (rejected because corpus size does not prove host boot loading).
 - Consequences: #132 and #133 have separate implementation/Go decisions; new code must include normalized compatibility evidence and fail-closed fallback; feature branches do not independently commit a changing root status projection; compatibility removal requires a later Human approval. Existing dirty, detached, or host-managed worktrees remain preserved until owner disposition.
 - Owner: Human Maintainer / Orchestrator / SA Agent
+
+### ADR-0032: Fence recoverable admission locks with a non-reclaimable commit guard and durable generation
+
+- Date: 2026-09-14
+- Work Items: [Issue #277](https://github.com/chakrits/AI-Agent-Workflow/issues/277)
+- Status: Accepted for blueprint validation — Human Maintainer rejected SEC-004 residual; implementation remains blocked on Security and QA
+
+#### Context
+
+A one-shot digest comparison followed by an unconditional filesystem rename is not a conditional
+commit. If an operator incorrectly removes a live lock, two writers can both compare the same digest
+before either rename; the later rename silently loses shard history or publishes a stale projection.
+Node's local `fs` API has no primitive that atomically compares one file and renames another.
+
+#### Decision
+
+Keep the existing per-scope lock as a recoverable admission lock. Add a stable durable monotonic
+generation and a separate `wx` commit guard for every task and for the projection. Every writer and
+every admission-lock recovery must hold the same scope commit guard for its linearization point.
+A writer rechecks generation, digest (for shards), and identity inside the guard immediately before
+atomic rename. Recovery atomically persists `generation + 1` inside the guard before removing the
+admission lock. An old writer therefore fails `FENCING_TOKEN_STALE`, reacquires, rereads, obtains a new
+digest and recomputes; attaching a new token to an old candidate is forbidden.
+
+Commit guards are never reclaimed by an online command. If one is abandoned, the scope fails closed.
+Recovery is an offline operation after all writers are stopped and the host or execution session is
+restarted; it preserves the current generation. Generation records survive archive and process restart,
+cannot reset or be reused, and missing/corrupt records fail closed after activation.
+
+**Archive amendment (Security rework cycle 1).** Both active-to-archive and compensating
+archive-to-active renames are task fenced commits. A durable `.archive-transactions/{task_id}.json`
+journal records `txid`, generation, source digest and phase before/after each rename. Task and projection
+commit guards are never nested: task guard is released before projection acquisition; projection guard
+is released before task finalize or compensation. A stale compensator performs no rename. Since the
+filesystem cannot atomically replace the shard path and projection together, the journal provides
+crash-detectable, idempotently resumable convergence rather than claiming cross-file atomicity.
+
+**Journal determinism amendment (Security rework cycle 2).** The journal is an append-only transaction ledger carrying immutable per-transaction archive intent, a self-excluding digest, monotonic revision, append-only generation-bound attempts, a current
+attempt pointer, directional intermediate phases, and distinct `terminal_archived`/`terminal_compensated`
+outcomes. Initial creation is exclusive. Every phase/revision update is conditional under task guard.
+After generation advances, a new executor may only append a fresh attempt bound to the existing intent
+and an auto-resumable phase/path cell; it must reread and recompute. Both/neither paths, malformed or
+tampered journals, generation regression, and terminal/location mismatch require Human/offline
+inspection. No direction is inferred from ambiguous evidence.
+
+#### Alternatives Considered
+
+- **Token check followed by unconditional rename** — rejected because recovery can occur after the
+  check and before rename.
+- **Force-removing a commit guard using nonce, PID, age, or `--quiesced`** — rejected because it
+  recursively recreates SEC-004 at the serialization root.
+- **SQLite or an external coordinator** — not selected for Package 1. Both provide a transaction or
+  serialized authority but add a new durable authority/runtime service to a local Git-native repository.
+  Revisit if online recovery of the commit guard becomes a demonstrated availability requirement.
+- **Accept maintenance-only silent-loss residual** — explicitly rejected by the Human Maintainer on
+  2026-09-14.
+
+#### Consequences
+
+- False quiescence during admission-lock recovery can revoke work but cannot allow an old-generation
+  commit. Silent lost update/stale projection is replaced with explicit stale-writer refusal.
+- Integrity is favored over availability: an abandoned commit guard blocks its scope until offline
+  recovery. There is deliberately no online force flag.
+- Implementation starts only after Security validates the proof and QA Full Mode aligns deterministic
+  barriers and mutation operators. Merge still requires Human approval.
+
+### ADR-0033: Defer SEC-004 runtime evidence for Issue #277 Package 1
+
+- Date: 2026-09-21
+- Work Items: Issue #277, Package 1
+- Status: Accepted — Human Maintainer explicitly approved deferral on 2026-09-21
+- Decision: Mark SEC-004 as `DEFERRED_BY_HUMAN` for the current package. Do not claim runtime security closure or merge readiness. Retain the requirement for a future separate-process TC-040/TC-047 crash/restart campaign and complete mutation ledger.
+- Rationale: Functional behavior, deterministic fencing, SEC-008 durability, and named in-process mutations have passed independent QA and Security review. The required runtime harness and mutation runner are unavailable in the current environment; the residual is explicit and reviewable.
+- Consequences: SEC-008 may remain PASS, while SEC-004 remains a documented residual. Draft PR work may proceed with the residual banner. Reopening SEC-004 requires the crash/restart evidence and mutation ledger defined by the QA plan.
+- Owner: Human Maintainer / Security Reviewer

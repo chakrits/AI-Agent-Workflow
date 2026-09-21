@@ -1,11 +1,11 @@
 # PROJECT_STATUS.md
 
 ## Current Work Item
-- None — awaiting next assignment.
+- Issue #277 — Control-plane state integrity, Package 1. SEC-008 remediation at `ded9f81` passed Independent Code Review and final QA at `21d5862`; Security re-review passed SEC-008 and recorded SEC-004 as `DEFERRED_BY_HUMAN`; Human merge gate remains. SEC-004 runtime evidence is deferred, not closed.
 
 ## Active Work Items
 <!-- active-work-items-table-start -->
-<!-- projection-digest: 2990a73079682fdd05a49e611a0fa7e45cd1934473b68be59b56377a07154c90 -->
+<!-- projection-digest: 35697422c8aced7944eec5e7a540bb8273cc374f65db4ab6b3b789428a82a780 -->
 | Issue ID | Workflow | Current State | Next Route / Owner | Updated At |
 |---|---|---|---|---|
 | issue-249 | bug-fix | verifying | qa-agent | 2026-09-09 |
@@ -13,10 +13,10 @@
 <!-- active-work-items-table-end -->
 
 ## Current Stage
-- Idle — awaiting next work item assignment.
+- SEC-008 implementation, Independent Code Review, QA, and Security re-review are complete. SEC-004 is `DEFERRED_BY_HUMAN` for this package; runtime closure remains a future evidence task before any security-complete claim.
 
 ## Change Classification
-- None — idle.
+- Framework/meta architecture remediation; high-risk security-sensitive.
 
 ## Completed
 - Issue #272 — **closed in full.** Delivered Next-Gen Autonomous Dynamic Workflow Architecture across 4 Pillars and 5 ordered implementation packages (IMP-001..IMP-005): (1) Worktree-Sharded Status Projection Compiler (`scripts/compile-status-projection.mjs`, ~21.8ms compilation, archival lifecycle `scripts/archive-work-item.mjs`), (2) Progressive Context Loading Engine (`docs/workflow/core-bootloader.md` at 2,499 tokens, 11 modular role contexts at <=415 tokens, CLI injector `scripts/inject-role-context.mjs`), (3) Checkpointed Asynchronous State Machine (`scripts/lib/task-state-machine.mjs`, POSIX atomic writes, RFC 8785 JCS SHA-256 CAS concurrency engine, 11-state matrix, mandatory evidence gates, 2-cycle rework ceiling), (4) Frontmatter-First PR Safety Gate (`docs/contracts/schemas/pr-frontmatter.schema.json`, dual AST/legacy parser in `scripts/work-item-readiness.mjs`, closeout archive allowlist), and (5) CI Parity & Quality Gates (`validate:status-projection` mirrored 1:1 in GitHub Actions and GitLab CI, 764/764 tests passed green, independent QA verification FULL_PASS across TC-001..TC-038). PR #273 merged as `c2837be`. QA Evidence: https://github.com/chakrits/AI-Agent-Workflow/blob/feat/issue-272-next-gen-dynamic-workflow-discovery/docs/records/qa/2026-09-11-issue-272-qa-verification-report.md
@@ -53,9 +53,15 @@
 - Issue #249 — the PR readiness gate now extracts the body from argument tokens instead of raw command text, closing the last five shapes that had passed through the gap between token-aware command detection and regex-based extraction: a backslash continuation read as the path, a repeated `--body-file` validated at the wrong occurrence while `gh` reads the last, a tab-separated value, combined shorthand, and a quoted `--title` containing `--body` hijacking extraction. `shellCommandSegments()` emits argument words from the same pass while preserving the command-string API invocation detection uses; both raw-text regexes and `unquote()` were deleted rather than added to. Scope clarified by ADR-0025 after the Issue's original AC-01 assumed argument tokens the lexer did not yet produce. Merged via PR #251 (squash) as `0c4f790`. The implementation was produced by a prior session and found uncommitted on `main`; it was moved to a branch without functional change before review. Independent QA passed at `af79ba6` (706/706) and settled the two remaining backslash refusals as correct behaviour by experiment — a `gh` shim printing argv under both bash and zsh showed the shell hands `gh` a `\r` or a space rather than the intended path, so those denies are true, not false. AC-04 verified by byte-comparing full hook output base against HEAD across 5 shapes and 4 real merged PR bodies, 20/20 identical. Security review discharged the declared input-validation gate: PASS_WITH_FINDINGS, no Critical or High, and the change **narrows** the wrong-answer input set, closing two genuine false passes with no input found where the new code is wrong and the old was right. It also established independently that ruleset `Protect main` makes `work-item-readiness-freshness` a required check with no bypass actors, so no rule this gate applies exists only locally. Evidence: https://github.com/chakrits/AI-Agent-Workflow/issues/249#issuecomment-5596393014
 
 ## In Progress
-- None — awaiting next assignment.
+- Issue #277 — fenced conditional commits, durable task envelope enforcement, pure projection fencing, append-only archive journal, and the v1→v2 migration are implemented on the feature branch. Human-approved rework cycle 3 completes CR-012..CR-014 at `5db4250`, and the post-cycle corrective exception at `a7702b2` closes CR-015: conditional archive journal phase advancement now rechecks generation immediately before persist, with stale compensation leaving journal and shards unchanged. Real active shards `issue-249` and `issue-275` were migrated with generation records and rollback sidecars; strict active-lane validation is enabled. Security closure for SEC-004 remains pending independent QA/Security evidence.
+- QA Full Mode at `dca2165` passed the available CR-015 barriers (2/2), focused control-plane suite (18/18 across three runs), full suite (782/782), and repository validators, but found QA-277-001: disk-bound mutation rejected the policy-authoritative evidence set with `MISSING_REQUIRED_EVIDENCE`. Human approved the SA clarification and another Developer rework cycle on 2026-09-21; implementation is now at `87967f3` with TC-007/TC-024 regressions. The named mutation/crash campaign is also incomplete in this environment; SEC-004 remains not runtime-closed.
+- Final QA Full Mode at `df17d30` independently closed QA-277-001: policy-only durable evidence succeeds, missing and matrix-only evidence fail closed with byte identity, pure API compatibility remains intact, and the strict destination intersection rejects policy-silent fallback. CR-001–CR-015 ran 18/18 across three runs, `npm test` passed 785/785, and both named QA-277-001 mutations were killed. The complete Stryker/mutmut and process-kill/restart campaigns remain unavailable, so SEC-004 is still not runtime-closed.
+- SEC-008 remediation at `ded9f81` adds the shared `syncDirectorySync()` primitive and syncs the admission-lock parent immediately after recovery unlink. Independent QA at `21d5862` reproduced the `EIO` fail-closed boundary, preserved the generation bump, confirmed guard cleanup, and killed named mutations removing the sync call or directory `fsync`. Security re-review at `c89878d` passed SEC-008. Evidence: `docs/records/security-review/2026-09-21-issue-277-sec004-sec008-rereview.md`.
 
 ## Blockers / Open Questions
+- Issue #277 QA-277-001 — **Functional PASS:** policy-authoritative durable evidence, pure API compatibility, strict destination intersection, byte identity and CR-001–CR-015 regression checks pass at `df17d30`. Evidence: `docs/records/qa/2026-09-21-issue-277-package1-final-qa.md`.
+- Issue #277 SEC-004 runtime evidence — **BLOCKED:** no Stryker/mutmut runner or configured mutation campaign is present, and no executable process-kill/restart harness covers TC-040/TC-047. Security re-review confirms the deterministic fencing controls pass but runtime closure is not demonstrated. Human merge approval remains required. Evidence: `docs/records/security-review/2026-09-21-issue-277-sec004-sec008-rereview.md`.
+- Issue #277 SEC-008 — **Security PASS:** recovery directory-syncs the admission-lock parent after unlink; fault injection, named sync mutations, ordering, failure cleanup and CR-001–CR-015 regression checks pass. SEC-008 is closed; it does not close the separate SEC-004 runtime evidence gap. Evidence: `docs/records/security-review/2026-09-21-issue-277-sec004-sec008-rereview.md`.
 - Issue #236 (IMP-007): AC-02 through AC-09, AC-11, and AC-12 are merged; AC-10 remains withdrawn. The Issue is complete and no longer blocks Issue #237.
 - Carried forward from Issue #249, none blocking. **Medium:** several allow-path warnings state a false cause — a glob or brace-expanded `--body-file` reports "does not exist yet at hook time" when the file exists and the token is simply wrong, and escaped-character paths render as `path \r` with no hint. This matters because ADR-0024 made that warning the compensating control for allowing unreadable bodies. **Low:** ANSI-C quoting (`$'…'`) is read literally, so the parser can validate text longer than what `gh` submits; and a TOCTOU where the hook reads the body file before an earlier command in the same string rewrites it, structural to the hook point. **Minor:** `extractBodyFromCommand()` narrowed to a single segment while its docstring still describes a full command string — not live, since the only caller passes one segment. Three mutation survivors remain on the new token path, which the implementer ran no mutant against.
 - Pre-existing and outside Issue #249's diff: `validate-documentation-impact` is not in the `Protect main` ruleset's required-check list, so a Documentation Impact failure is a visible red run but not merge-blocking.
@@ -77,10 +83,10 @@
 - Framework assessment: `docs/records/misc/2026-09-05-framework-sdlc-assessment.md`
 
 ## Next Quality Gate
-- None — awaiting next assignment.
+- Human Maintainer decision on the SEC-004 runtime evidence gap after Security re-review; merge remains blocked until the required evidence route is supplied or a documented Human decision accepts the residual.
 
 ## Recommended Next Agent
-- None — awaiting next assignment.
+- Human Maintainer.
 
 ## Notes
 - Reset to template baseline by `npm run reset:template`.
