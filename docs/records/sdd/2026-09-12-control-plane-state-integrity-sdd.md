@@ -5,7 +5,7 @@
 - Work Item ID: Issue #277
 - Title: Control-Plane State Integrity & Architecture Remediation (Package 1)
 - Owner: SA Agent (`sa-architecture-design`)
-- Status: Developer rework-cycle-3 contract addendum (Human approved CR-012..CR-014 on 2026-09-17; implementation pending)
+- Status: SA QA-277-001 contract clarification complete (Human approved Developer rework on 2026-09-21; implementation pending)
 - Date: 2026-09-12
 - Governing Requirements: `docs/records/requirements/2026-09-12-control-plane-state-integrity-discovery.md` (AC-001..AC-013, BR-001..BR-005)
 
@@ -211,6 +211,16 @@ writes to the filesystem. `reconcileArchivedShards()` calls `updateProjectStatus
   wins by construction, because legality is an intersection. An unknown `workflow_id`, an unknown source
   state, or a policy-silent transition all fail closed. Requirements and plan
   restate this same rule for traceability; QA's TC-024 must be brought into line with it by its owner.
+- **QA-277-001 validation seam (SA addendum, 2026-09-21).** The public pure
+  `transitionTaskState()` / `resumeTaskState()` compatibility surface retains its existing matrix
+  evidence behavior for direct callers. The durable `mutateTaskStateOnDisk()` path first validates
+  the policy row and must then invoke state construction in an explicit policy-evidence mode that
+  skips only the matrix `requires` check. It still enforces matrix actor/source/destination
+  legality, the policy/matrix destination intersection, CAS/digest, human resume rules, fencing and
+  byte-identity on rejection. For `intake -> investigating`, `{failure_description, repro}` is
+  sufficient and `{requirement_discovery, issue_ref}` is neither required nor a substitute. See
+  `docs/records/sdd/2026-09-21-issue-277-qa-277-001-contract-addendum.md` for the exact regression
+  cases and Developer → QA handoff.
 - **Policy amendment required (additive, no version bump).** `bug-fix-workflow.yaml` today has neither
   a `completed` state nor a `handoff -> completed` transition, so Task 9a's migration of issue-249 /
   issue-275 is illegal under the current policy. The policy gains `completed` and `cancelled` to its
