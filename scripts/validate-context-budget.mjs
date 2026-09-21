@@ -6,7 +6,7 @@ import { pathToFileURL } from 'node:url';
  * Target token budgets across the 3 context tiers.
  */
 export const TARGET = 30000;
-export const BOOTLOADER_TARGET = 3500;
+export const BOOTLOADER_TARGET = 2500;
 export const BOOTLOADER_FILE = 'docs/workflow/core-bootloader.md';
 export const ROLE_BUDGET_TARGET = 1500;
 export const ROLES_DIR = 'docs/workflow/roles';

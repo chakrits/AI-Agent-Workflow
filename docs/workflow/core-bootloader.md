@@ -83,46 +83,8 @@ Handoffs between agents must be structured, deterministic, and verifiable. Prose
 | `release-agent` | Release Agent | Release checklists, deployment strategy, changelog, versioning, and release evidence. |
 | `documentation-agent` | Documentation Agent | Documentation sync, architecture records, pre-merge impact, and post-merge closeout. |
 
-### Available Skills (31)
+### Available Skills
 
-| Skill Identifier | Primary Discipline | Brief Description |
-|---|---|---|
-| `dynamic-workflow` | Routing & Workflow | Classifies change types, enforces gates, and selects minimum safe workflow. |
-| `ba-requirement-analysis` | Requirements | Analyzes user stories, acceptance criteria, and business rules. |
-| `requirement-brainstorming` | Discovery | Explores early feature ideas and clarifies ambiguous business needs. |
-| `sa-architecture-design` | Architecture | Designs modular systems, service layers, and architectural decision records. |
-| `implementation-planning` | Planning | Breaks approved designs into phased, test-driven implementation tasks. |
-| `tdd-implementation` | Implementation | Executes red-green-refactor cycle for verifiable code behavior changes. |
-| `coding-standards` | Code Quality | Enforces immutability, clean error handling, naming conventions, and style. |
-| `backend-patterns` | Backend Architecture | Implements repository patterns, query optimizations, caching, and jobs. |
-| `frontend-ui-engineering` | Frontend Engineering | Builds accessible, responsive UI layouts adhering to design system specs. |
-| `frontend-react-patterns` | React Engineering | Implements state scoping, memoization, hooks, and error boundaries. |
-| `frontend-visual-design` | Visual Design | Establishes visual identity, typography, and aesthetic design direction. |
-| `functional-test-design` | Test Design | Designs functional test cases using BVA, EP, decision tables, and IPO matrices. |
-| `qa-playwright-testing` | Automation | Implements browser E2E flows, visual regression, and WCAG accessibility tests. |
-| `api-test-design` | API Testing | Designs comprehensive API test suites from contract endpoint schemas. |
-| `api-testing-tooling` | API Tooling | Implements scripted HTTP tests using Supertest, Bruno, or Newman. |
-| `api-contract-testing` | Schema Validation | Validates live API responses against published OpenAPI contract schemas. |
-| `performance-testing` | Performance QA | Measures latency, throughput, and stability under load/stress/spike tests. |
-| `mutation-testing` | Test Effectiveness | Evaluates test harness quality and mutant survival rates via mutation testing. |
-| `test-quality-discipline` | Test Architecture | Audits test suites for FIRST principles, overmocking, and fragile assertions. |
-| `static-logic-review` | Static Verification | Traces changed production decision logic against approved specifications. |
-| `defect-analysis` | Triage | Analyzes failures, logs, and traces to generate reproducible defect reports. |
-| `debugging-discipline` | Investigation | Diagnoses root causes for failing tests, regressions, and flaky behaviors. |
-| `engineering-postmortem` | Postmortem | Documents durable root cause analysis, timelines, and corrective actions. |
-| `security-review` | Security Audit | Evaluates authorization, secrets, input validation, and trust boundaries. |
-| `api-security-patterns` | API Security | Verifies object-level authorization (BOLA/IDOR) and OWASP API Top 10 risks. |
-| `api-compliance-patterns` | Compliance | Implements audit logging, encryption, and GDPR/HIPAA/PCI data protections. |
-| `api-versioning-deprecation` | API Governance | Manages schema evolution, backward compatibility, and sunset workflows. |
-| `api-observability-monitoring` | Observability | Configures telemetry, health checks, SLA/SLO metrics, and structured logs. |
-| `api-integration-patterns` | Integration | Implements resilient webhook handlers, retries, and async service patterns. |
-| `api-mocking-sandbox` | Simulation | Creates mock HTTP fixtures and sandbox environments for isolated testing. |
-| `js-unit-testing` | JS/TS Testing | Develops unit and component tests with Node native test runner or Jest. |
-| `python-unit-testing` | Python Testing | Develops unit tests and fixtures using pytest with isolated mocking boundaries. |
-| `data-config-change` | Config & Data | Prepares non-destructive SQL, rollback scripts, and feature flag lifecycles. |
-| `git-workflow-and-versioning` | Source Control | Enforces atomic commits, conventional commit types, and clean branch hygiene. |
-| `code-review-gate` | Peer Review | Evaluates code diffs against architectural standards and quality checklists. |
-| `release-readiness-checklist` | Release QA | Verifies SemVer bumps, changelog entries, rollback plans, and deployment notes. |
-| `documentation-closeout` | Documentation | Reconciles project status, syncs references, and handles post-merge audits. |
-| `management-status-update` | Communication | Drafts non-binding executive status briefs and stakeholder updates. |
-| `verification-before-completion` | Verification Gate | Enforces evidence collection and test suite execution prior to task closeout. |
+The exact, current skill inventory and routing criteria are in `docs/operating-model/SKILL_CATALOG.md`.
+Choose the most specific matching skill after classification; do not load the catalog unless the task needs
+skill selection or a skill contract.

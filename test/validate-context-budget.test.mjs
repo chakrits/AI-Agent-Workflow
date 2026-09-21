@@ -95,7 +95,7 @@ test('collectBudget flags over=true when total exceeds TARGET', () => {
 
 // --- Bootloader and Role Budget unit tests (TC-001..TC-004, TC-007) ----------
 
-test('TC-001: evaluateBootloader reports <= 3,500 tokens for real repo bootloader', () => {
+test('TC-001: evaluateBootloader reports <= 2,500 tokens for real repo bootloader', () => {
   const result = evaluateBootloader();
   assert.equal(result.exists, true, 'Bootloader file must exist');
   assert.ok(result.tokens <= BOOTLOADER_TARGET, `Bootloader tokens ${result.tokens} must be <= ${BOOTLOADER_TARGET}`);
@@ -115,22 +115,22 @@ test('TC-002: Core Bootloader contains required golden rules, human approval gat
   assert.match(content, /qa-agent/);
 });
 
-test('TC-003: Bootloader size boundary check at 3,500 and 3,501 tokens', () => {
+test('TC-003: Bootloader size boundary check at 2,500 and 2,501 tokens', () => {
   const root = mkdtempSync(path.join(tmpdir(), 'bootloader-boundary-'));
   try {
     const bootDir = path.join(root, 'docs/workflow');
     mkdirSync(bootDir, { recursive: true });
 
-    // 14,000 chars -> 3,500 tokens (PASS)
-    writeFileSync(path.join(bootDir, 'core-bootloader.md'), 'A'.repeat(3500 * 4));
+    // 10,000 chars -> 2,500 tokens (PASS)
+    writeFileSync(path.join(bootDir, 'core-bootloader.md'), 'A'.repeat(2500 * 4));
     const passResult = evaluateBootloader(root);
-    assert.equal(passResult.tokens, 3500);
+    assert.equal(passResult.tokens, 2500);
     assert.equal(passResult.over, false);
 
-    // 14,004 chars -> 3,501 tokens (FAIL)
-    writeFileSync(path.join(bootDir, 'core-bootloader.md'), 'A'.repeat(3501 * 4));
+    // 10,004 chars -> 2,501 tokens (FAIL)
+    writeFileSync(path.join(bootDir, 'core-bootloader.md'), 'A'.repeat(2501 * 4));
     const failResult = evaluateBootloader(root);
-    assert.equal(failResult.tokens, 3501);
+    assert.equal(failResult.tokens, 2501);
     assert.equal(failResult.over, true);
   } finally {
     rmSync(root, { recursive: true, force: true });

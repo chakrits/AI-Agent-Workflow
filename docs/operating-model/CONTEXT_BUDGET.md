@@ -11,6 +11,12 @@ This document tracks the approximate token cost of the canonical reading files t
 - **Token target:** ≤ 30,000 tokens (approximate)
 - **Approximation:** character count ÷ 4 (conservative rule-of-thumb for English prose in UTF-8)
 
+## Tier 1 Core Bootloader
+
+The Tier 1 bootloader has its own enforced limit of **≤ 2,500 approximate tokens**, matching the approved
+Issue #280 SDD. It is measured separately so it is not double-counted in the Tier 3 canonical-library total.
+The current follow-up measurement is 6,360 characters / 1,590 approximate tokens.
+
 The approximation is deliberately coarse. The goal is not to track exact token counts for a specific model, but to detect budget drift early — before a change pushes the canonical reading set past a size where agents start dropping or ignoring context.
 
 ## Current observed baseline
