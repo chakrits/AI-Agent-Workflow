@@ -8,7 +8,7 @@ import { canonicalizeJcs as canonicalizeStatusJcs } from './status-jcs.mjs';
 import {
   atomicWriteFileSync, createStateIo, defaultStateIo, acquireLock, releaseLock,
   acquireCommitGuard, releaseCommitGuard, readGeneration, incrementGeneration,
-  lockFilePath, UUID_V4
+  lockFilePath, syncDirectorySync, UUID_V4
 } from './fenced-commit.mjs';
 
 export const STATES = ['intake', 'investigating', 'designing', 'planning', 'implementing', 'verifying', 'rework', 'handoff', 'blocked', 'completed', 'cancelled'];
@@ -193,7 +193,10 @@ export function unlockTask(rootDir, taskId, { nonce, projection = false, malform
     } catch (lockError) {
       if (!malformed || lockError.code === 'LOCK_BECAME_VALID') throw lockError;
     }
-    const generation = incrementGeneration(rootDir, scope, taskId, io); io.fsOps.unlinkSync(target); return { unlocked: true, generation };
+    const generation = incrementGeneration(rootDir, scope, taskId, io);
+    io.fsOps.unlinkSync(target);
+    syncDirectorySync(path.dirname(target), io);
+    return { unlocked: true, generation };
   } finally { releaseCommitGuard(rootDir, scope, taskId, guard.nonce, io); }
 }
 export { createStateIo, defaultStateIo, acquireLock as acquireShardLock, releaseLock as releaseShardLock, acquireCommitGuard, releaseCommitGuard, readGeneration, incrementGeneration, atomicWriteFileSync };

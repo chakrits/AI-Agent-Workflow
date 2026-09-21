@@ -64,6 +64,32 @@ test('CR-005: malformed recovery re-reads and preserves a replacement valid lock
   assert.equal(fs.readFileSync(lock, 'utf8'), valid); assert.equal(readGeneration(root, 'task', 'lock-case'), 1);
 });
 
+test('SEC-008: unlock fails closed when admission-lock directory sync fails after unlink', () => {
+  const root = tempRoot(); const taskId = 'unlock-sync-failure';
+  fs.mkdirSync(path.join(root, 'docs/records/work-items'), { recursive: true });
+  initializeGeneration(root, 'task', taskId, undefined, { allowExisting: true });
+  const lock = lockFilePath(root, 'task', taskId); fs.mkdirSync(path.dirname(lock), { recursive: true });
+  const nonce = '11111111-1111-4111-8111-111111111111';
+  fs.writeFileSync(lock, `${JSON.stringify({ pid: process.pid, nonce, created_at: 1 })}\n`);
+  const opened = new Map(); let failLockDirectorySync = true;
+  const ops = realOps({
+    openSync(file, ...args) { const fd = fs.openSync(file, ...args); opened.set(fd, file); return fd; },
+    fsyncSync(fd) {
+      const file = opened.get(fd);
+      if (failLockDirectorySync && file === path.dirname(lock)) {
+        failLockDirectorySync = false;
+        const error = new Error('injected admission-lock directory sync failure'); error.code = 'EIO'; throw error;
+      }
+      return fs.fsyncSync(fd);
+    },
+    closeSync(fd) { opened.delete(fd); return fs.closeSync(fd); }
+  });
+  assert.throws(() => unlockTask(root, taskId, { nonce, quiesced: true, io: createStateIo({ fsOps: ops }) }), (error) => error.code === 'EIO');
+  assert.equal(readGeneration(root, 'task', taskId), 2);
+  assert.equal(fs.existsSync(lock), false, 'the lock unlink occurred before the failed directory sync');
+  assert.equal(fs.existsSync(commitGuardPath(root, 'task', taskId)), false, 'commit guard must be cleaned up on sync failure');
+});
+
 test('CR-006: v1 backfill is idempotent, generation-bound and byte-restorable', () => {
   const root = tempRoot(); const dir = path.join(root, 'docs/records/work-items/issue-249'); fs.mkdirSync(dir, { recursive: true });
   const original = fs.readFileSync('docs/records/work-items/issue-249/task-state.json.v1-backup', 'utf8'); const file = path.join(dir, 'task-state.json'); fs.writeFileSync(file, original);

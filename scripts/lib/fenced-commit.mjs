@@ -17,6 +17,19 @@ export function createStateIo({ fsOps = nodeFsOps, processOps = nodeProcessOps, 
   return { fsOps, processOps, clock, random, uuid };
 }
 
+export function syncDirectorySync(directory, io = defaultStateIo) {
+  const ops = io.fsOps;
+  let dirFd;
+  try {
+    dirFd = ops.openSync(directory, 'r');
+    ops.fsyncSync(dirFd);
+  } finally {
+    if (dirFd !== undefined) {
+      try { ops.closeSync(dirFd); } catch {}
+    }
+  }
+}
+
 export const defaultStateIo = createStateIo();
 
 function failure(code, message, extra = {}) {
@@ -68,8 +81,7 @@ export function atomicWriteFileSync(targetPath, content, io = defaultStateIo) {
     if (created) { try { ops.unlinkSync(tmpPath); } catch {} }
     throw error;
   }
-  let dirFd;
-  try { dirFd = ops.openSync(dir, 'r'); ops.fsyncSync(dirFd); } finally { if (dirFd !== undefined) { try { ops.closeSync(dirFd); } catch {} } }
+  syncDirectorySync(dir, io);
 }
 
 export function readJsonStrict(filePath, io = defaultStateIo) {
