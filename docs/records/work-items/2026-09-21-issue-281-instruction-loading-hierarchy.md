@@ -7,7 +7,7 @@
 ## Classification
 - Change type: Framework / Meta Change
 - Risk level: Medium
-- Lifecycle phase: completed (merged via PR #285)
+- Lifecycle phase: `phase:human-review`
 - Workflow route: Documentation Agent → Reviewer / QA Agent → Human Approval
 
 ## Artifacts
@@ -22,5 +22,5 @@
 - Preserve risk-specific governing policies and portable compatibility.
 
 ## Status
-Merged to `main` via PR #285 at `a0d71ef`. Independent re-review and QA acceptance passed before Human Approval;
-the normal post-merge closeout is tracked by the source PR's `post-merge-closeout` label.
+QA acceptance passed. `status:spec-ready`, `status:development-done`, and `status:verification-done` are present;
+the work item is in `phase:human-review` and awaits Human Approval before merge.
