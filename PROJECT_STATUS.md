@@ -1,7 +1,7 @@
 # PROJECT_STATUS.md
 
 ## Current Work Item
-- Issue #277 — Control-plane state integrity, Package 1. QA-277-001 remediation at `87967f3` passed independent Code Review and final QA functional checks; SEC-004 runtime review is next.
+- Issue #277 — Control-plane state integrity, Package 1. QA-277-001 remediation at `87967f3` passed independent Code Review and final QA functional checks; Security Review blocks SEC-004 runtime closure on missing process-kill/restart and complete mutation evidence, and identifies SEC-008 directory-sync gap at recovery unlink.
 
 ## Active Work Items
 <!-- active-work-items-table-start -->
@@ -13,7 +13,7 @@
 <!-- active-work-items-table-end -->
 
 ## Current Stage
-- QA-277-001 implementation, independent Code Review and functional QA rerun are complete; Security runtime review for SEC-004 is next.
+- QA-277-001 implementation, independent Code Review and functional QA rerun are complete; Security Review is blocked on SEC-004 runtime evidence and SEC-008 recovery directory durability.
 
 ## Change Classification
 - Framework/meta architecture remediation; high-risk security-sensitive.
