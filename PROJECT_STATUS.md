@@ -1,7 +1,7 @@
 # PROJECT_STATUS.md
 
 ## Current Work Item
-- Issue #277 — Control-plane state integrity, Package 1. SEC-008 remediation at `ded9f81` passed Independent Code Review and final QA at `21d5862`; Security re-review passed SEC-008 and recorded SEC-004 as `DEFERRED_BY_HUMAN`; Human merge gate remains. SEC-004 runtime evidence is deferred, not closed.
+- None — repository is idle after Issue #277 Package 1 closeout. SEC-004 runtime evidence remains explicitly `DEFERRED_BY_HUMAN` under ADR-0033.
 
 ## Active Work Items
 <!-- active-work-items-table-start -->
@@ -13,12 +13,13 @@
 <!-- active-work-items-table-end -->
 
 ## Current Stage
-- SEC-008 implementation, Independent Code Review, QA, and Security re-review are complete. SEC-004 is `DEFERRED_BY_HUMAN` for this package; runtime closure remains a future evidence task before any security-complete claim.
+- Idle after PR #278 merge and documentation closeout. SEC-004 remains deferred and is not a security-complete claim.
 
 ## Change Classification
 - Framework/meta architecture remediation; high-risk security-sensitive.
 
 ## Completed
+- Issue #277 — Package 1 **merged via PR #278** (merge commit `5a676b1`). SEC-008 passed Developer, Independent Code Review, QA Full Mode, and Security re-review. SEC-004 runtime evidence was explicitly accepted as `DEFERRED_BY_HUMAN` under ADR-0033; separate-process TC-040/TC-047 crash/restart evidence and a complete mutation ledger remain future work. Evidence: PR #278 and closeout records through `d98a215`.
 - Issue #272 — **closed in full.** Delivered Next-Gen Autonomous Dynamic Workflow Architecture across 4 Pillars and 5 ordered implementation packages (IMP-001..IMP-005): (1) Worktree-Sharded Status Projection Compiler (`scripts/compile-status-projection.mjs`, ~21.8ms compilation, archival lifecycle `scripts/archive-work-item.mjs`), (2) Progressive Context Loading Engine (`docs/workflow/core-bootloader.md` at 2,499 tokens, 11 modular role contexts at <=415 tokens, CLI injector `scripts/inject-role-context.mjs`), (3) Checkpointed Asynchronous State Machine (`scripts/lib/task-state-machine.mjs`, POSIX atomic writes, RFC 8785 JCS SHA-256 CAS concurrency engine, 11-state matrix, mandatory evidence gates, 2-cycle rework ceiling), (4) Frontmatter-First PR Safety Gate (`docs/contracts/schemas/pr-frontmatter.schema.json`, dual AST/legacy parser in `scripts/work-item-readiness.mjs`, closeout archive allowlist), and (5) CI Parity & Quality Gates (`validate:status-projection` mirrored 1:1 in GitHub Actions and GitLab CI, 764/764 tests passed green, independent QA verification FULL_PASS across TC-001..TC-038). PR #273 merged as `c2837be`. QA Evidence: https://github.com/chakrits/AI-Agent-Workflow/blob/feat/issue-272-next-gen-dynamic-workflow-discovery/docs/records/qa/2026-09-11-issue-272-qa-verification-report.md
 - Issue #237 (IMP-008) — **closed in full.** AC-14 reviewed five non-test consumers after the `SKILL_CATALOG.md` five-column collapse: refreshed `CONTEXT_BUDGET.md` to the measured 26,196 / 30,000 baseline, confirmed four catalog-link/inventory readers required no semantic change, and added a focused contract test covering all 31 skill IDs, resolved catalog links, and stale heading/column/routing dependencies. PR #270 merged as `3afe5fb`. Independent QA passed at the merged candidate with focused tests, link-target mutation coverage, validators, repin idempotence, and `git diff --check`; the full suite recorded 719 passed / 6 known clean-clone GitHub-origin-dependent hook failures. Evidence: https://github.com/chakrits/AI-Agent-Workflow/issues/237#issuecomment-5630763664
 - Issue #237 (IMP-008), AC-11 — independently verified the post-AC-08/09 context budget at 26,196 / 30,000 (current baseline; the earlier 26,065 measurement is historical). The current exact-main verification was 719 passed / 6 environment-dependent pre-existing failures, and the current budget is 26,196 / 30,000.
