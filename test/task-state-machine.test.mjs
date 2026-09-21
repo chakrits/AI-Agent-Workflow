@@ -5,6 +5,7 @@ import path from 'node:path';
 import os from 'node:os';
 import { execFileSync } from 'node:child_process';
 import Ajv2020 from 'ajv/dist/2020.js';
+import YAML from 'yaml';
 import {
   STATES,
   ROLE_REGISTRY,
@@ -16,8 +17,10 @@ import {
   createTaskState,
   transitionTaskState as rawTransitionTaskState,
   loadTaskState,
-  inspectTaskState
+  inspectTaskState,
+  mutateTaskStateOnDisk
 } from '../scripts/lib/task-state-machine.mjs';
+import { commitGuardPath, initializeGeneration, lockFilePath } from '../scripts/lib/fenced-commit.mjs';
 
 function createTempDir() {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'state-machine-test-'));
@@ -356,6 +359,98 @@ test('TC-024: Rework retry budget enforcement (fails closed at >2 cycles)', () =
   });
   assert.equal(task.state, 'blocked');
   assert.equal(task.stop_reason, 'human_review_required');
+});
+
+test('TC-024b: policy and matrix destinations must remain a strict intersection', () => {
+  const policy = YAML.parse(fs.readFileSync('docs/contracts/bug-fix-workflow.yaml', 'utf8'));
+  for (const row of policy.transitions || []) {
+    const destinations = row.to ? [row.to] : row.destinations || [];
+    assert.ok(TRANSITION_MATRIX[row.from], `Missing matrix source for policy source '${row.from}'`);
+    for (const destination of destinations) {
+      assert.ok(
+        TRANSITION_MATRIX[row.from].destinations.includes(destination),
+        `Policy destination '${row.from} -> ${destination}' must exist in the transition matrix`
+      );
+    }
+  }
+  for (const row of policy.resume || []) {
+    assert.ok(TRANSITION_MATRIX[row.from], `Missing matrix source for resume source '${row.from}'`);
+    for (const destination of row.destinations || []) {
+      assert.ok(
+        TRANSITION_MATRIX[row.from].destinations.includes(destination),
+        `Policy resume destination '${row.from} -> ${destination}' must exist in the transition matrix`
+      );
+    }
+  }
+});
+
+function createDurableTaskRoot(taskId = 'durable-evidence') {
+  const root = createTempDir();
+  const taskDir = path.join(root, 'docs', 'records', 'work-items', taskId);
+  fs.mkdirSync(taskDir, { recursive: true });
+  const task = createTaskState({ task_id: taskId, workflow_id: 'bug-fix', change_type: 'bug-fix', risk_level: 'medium' });
+  const taskFile = path.join(taskDir, 'task-state.json');
+  atomicWriteJsonSync(taskFile, task);
+  initializeGeneration(root, 'task', taskId, undefined, { allowExisting: true });
+  return { root, task, taskFile };
+}
+
+test('TC-007: durable transition uses policy evidence without matrix-only keys', () => {
+  const { root, task, taskFile } = createDurableTaskRoot();
+  try {
+    assert.throws(
+      () => rawTransitionTaskState(task, {
+        to: 'investigating',
+        actor: 'ba-agent',
+        expected_digest: task.state_digest,
+        evidence: { failure_description: 'fd', repro: 'rp' },
+        validateMatrixEvidence: false
+      }),
+      (error) => error.code === 'MISSING_REQUIRED_EVIDENCE',
+      'pure transitionTaskState must retain matrix evidence compatibility'
+    );
+    const next = mutateTaskStateOnDisk(root, task.task_id, {
+      to: 'investigating',
+      actor: 'ba-agent',
+      expected_digest: task.state_digest,
+      evidence: { failure_description: 'fd', repro: 'rp' }
+    });
+    assert.equal(next.state, 'investigating');
+    assert.equal(next.sequence_number, 2);
+    assert.deepEqual(next.history.at(-1).evidence_refs.sort(), ['failure_description', 'repro']);
+    assert.equal(JSON.parse(fs.readFileSync(taskFile, 'utf8')).state, 'investigating');
+    assert.equal(fs.existsSync(lockFilePath(root, 'task', task.task_id)), false);
+    assert.equal(fs.existsSync(commitGuardPath(root, 'task', task.task_id)), false);
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('TC-007: durable policy evidence rejection preserves bytes and cleans guards', () => {
+  for (const evidence of [
+    { failure_description: 'fd' },
+    { repro: 'rp' },
+    { requirement_discovery: 'rd', issue_ref: '1' }
+  ]) {
+    const { root, task, taskFile } = createDurableTaskRoot(`durable-evidence-${Object.keys(evidence).join('-')}`);
+    try {
+      const before = fs.readFileSync(taskFile);
+      assert.throws(
+        () => mutateTaskStateOnDisk(root, task.task_id, {
+          to: 'investigating',
+          actor: 'ba-agent',
+          expected_digest: task.state_digest,
+          evidence
+        }),
+        (error) => error.code === 'MISSING_REQUIRED_EVIDENCE'
+      );
+      assert.deepEqual(fs.readFileSync(taskFile), before);
+      assert.equal(fs.existsSync(lockFilePath(root, 'task', task.task_id)), false);
+      assert.equal(fs.existsSync(commitGuardPath(root, 'task', task.task_id)), false);
+    } finally {
+      fs.rmSync(root, { recursive: true, force: true });
+    }
+  }
 });
 
 test('TC-025: Asynchronous pause and checkpoint resumption', () => {

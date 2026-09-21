@@ -78,7 +78,7 @@ function validateEvidence(requirements, evidence) {
     else if (!meaningful(evidence[requirement])) throw error('MISSING_REQUIRED_EVIDENCE', `Missing mandatory evidence: '${requirement}'`);
   }
 }
-function makeTransition(currentState, { to, actor, evidence = {}, expected_digest, stop_reason = null, next_route = null, resume = false, clock = Date }) {
+function makeTransition(currentState, { to, actor, evidence = {}, expected_digest, stop_reason = null, next_route = null, resume = false, validateMatrixEvidence = true, clock = Date }) {
   if (!currentState || typeof currentState !== 'object') throw error('INVALID_STATE', 'Invalid currentState provided.');
   if (!expected_digest || typeof expected_digest !== 'string') throw error('MISSING_EXPECTED_DIGEST', 'A non-empty expected_digest is required for every state mutation.');
   verifyCasAndComputeDigest(currentState, expected_digest);
@@ -110,7 +110,7 @@ function makeTransition(currentState, { to, actor, evidence = {}, expected_diges
     }
     // The pure helper preserves the historical blocked-state construction
     // seam; disk-bound mutations apply the policy row before calling it.
-    if (to !== 'blocked' && to !== 'cancelled') validateEvidence(matrixEntry.requires, evidence);
+    if (validateMatrixEvidence && to !== 'blocked' && to !== 'cancelled') validateEvidence(matrixEntry.requires, evidence);
   }
   let reworkCount = currentState.rework_count ?? 0;
   if (to === 'rework') {
@@ -121,8 +121,15 @@ function makeTransition(currentState, { to, actor, evidence = {}, expected_diges
   next.state_digest = digestTaskEnvelope(next);
   return next;
 }
-export function transitionTaskState(currentState, options) { return makeTransition(currentState, options); }
-export function resumeTaskState(currentState, options) { return makeTransition(currentState, { ...options, resume: true }); }
+export function transitionTaskState(currentState, options) {
+  return makeTransition(currentState, { ...options, validateMatrixEvidence: true });
+}
+export function resumeTaskState(currentState, options) {
+  return makeTransition(currentState, { ...options, resume: true, validateMatrixEvidence: true });
+}
+function transitionTaskStateWithPolicyEvidence(currentState, options) {
+  return makeTransition(currentState, { ...options, validateMatrixEvidence: false });
+}
 function policyFor(workflowId, io = defaultStateIo) {
   if (workflowId !== 'bug-fix') throw error('UNKNOWN_WORKFLOW', `Unsupported durable workflow: ${workflowId}`);
   return YAML.parse(io.fsOps.readFileSync(fileURLToPath(new URL('../../docs/contracts/bug-fix-workflow.yaml', import.meta.url)), 'utf8'));
@@ -151,7 +158,9 @@ export function mutateTaskStateOnDisk(rootDir, expectedTaskId, { to, actor = 'or
     if (current.workflow_id !== 'bug-fix' || current.change_type !== 'bug-fix') throw error('UNKNOWN_WORKFLOW', 'Durable mutation supports bug-fix only.');
     verifyCasAndComputeDigest(current, expected_digest);
     validatePolicyTransition(current, to, evidence, mode === 'resume', io);
-    const candidate = mode === 'resume' ? resumeTaskState(current, { to, actor, evidence, expected_digest, stop_reason, next_route, clock: io.clock }) : transitionTaskState(current, { to, actor, expected_digest, evidence, stop_reason, next_route, clock: io.clock });
+    const candidate = mode === 'resume'
+      ? resumeTaskState(current, { to, actor, evidence, expected_digest, stop_reason, next_route, clock: io.clock })
+      : transitionTaskStateWithPolicyEvidence(current, { to, actor, expected_digest, evidence, stop_reason, next_route, clock: io.clock });
     const generation = readGeneration(rootDir, 'task', expectedTaskId, io);
     guard = acquireCommitGuard(rootDir, 'task', expectedTaskId, io);
     const fresh = JSON.parse(io.fsOps.readFileSync(shardPath, 'utf8'));
