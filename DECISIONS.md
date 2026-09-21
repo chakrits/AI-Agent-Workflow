@@ -674,3 +674,13 @@ inspection. No direction is inferred from ambiguous evidence.
   recovery. There is deliberately no online force flag.
 - Implementation starts only after Security validates the proof and QA Full Mode aligns deterministic
   barriers and mutation operators. Merge still requires Human approval.
+
+### ADR-0033: Defer SEC-004 runtime evidence for Issue #277 Package 1
+
+- Date: 2026-09-21
+- Work Items: Issue #277, Package 1
+- Status: Accepted — Human Maintainer explicitly approved deferral on 2026-09-21
+- Decision: Mark SEC-004 as `DEFERRED_BY_HUMAN` for the current package. Do not claim runtime security closure or merge readiness. Retain the requirement for a future separate-process TC-040/TC-047 crash/restart campaign and complete mutation ledger.
+- Rationale: Functional behavior, deterministic fencing, SEC-008 durability, and named in-process mutations have passed independent QA and Security review. The required runtime harness and mutation runner are unavailable in the current environment; the residual is explicit and reviewable.
+- Consequences: SEC-008 may remain PASS, while SEC-004 remains a documented residual. Draft PR work may proceed with the residual banner. Reopening SEC-004 requires the crash/restart evidence and mutation ledger defined by the QA plan.
+- Owner: Human Maintainer / Security Reviewer

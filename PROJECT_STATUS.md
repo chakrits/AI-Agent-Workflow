@@ -1,7 +1,7 @@
 # PROJECT_STATUS.md
 
 ## Current Work Item
-- Issue #277 — Control-plane state integrity, Package 1. SEC-008 remediation at `ded9f81` passed Independent Code Review and final QA at `21d5862`; Security re-review and the Human merge gate remain. SEC-004 process-kill/restart and complete mutation evidence remain open.
+- Issue #277 — Control-plane state integrity, Package 1. SEC-008 remediation at `ded9f81` passed Independent Code Review and final QA at `21d5862`; Security re-review passed SEC-008 and recorded SEC-004 as `DEFERRED_BY_HUMAN`; Human merge gate remains. SEC-004 runtime evidence is deferred, not closed.
 
 ## Active Work Items
 <!-- active-work-items-table-start -->
@@ -13,7 +13,7 @@
 <!-- active-work-items-table-end -->
 
 ## Current Stage
-- SEC-008 implementation, Independent Code Review and QA are complete; the branch is awaiting Security re-review. SEC-004 runtime evidence remains blocked.
+- SEC-008 implementation, Independent Code Review, QA, and Security re-review are complete. SEC-004 is `DEFERRED_BY_HUMAN` for this package; runtime closure remains a future evidence task before any security-complete claim.
 
 ## Change Classification
 - Framework/meta architecture remediation; high-risk security-sensitive.
