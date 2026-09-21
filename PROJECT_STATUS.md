@@ -1,7 +1,7 @@
 # PROJECT_STATUS.md
 
 ## Current Work Item
-- Issue #277 — Control-plane state integrity, Package 1. QA-277-001 remediation at `87967f3` passed independent Code Review; QA Full Mode rerun is next.
+- Issue #277 — Control-plane state integrity, Package 1. QA-277-001 remediation at `87967f3` passed independent Code Review and final QA functional checks; SEC-004 runtime review is next.
 
 ## Active Work Items
 <!-- active-work-items-table-start -->
@@ -13,7 +13,7 @@
 <!-- active-work-items-table-end -->
 
 ## Current Stage
-- QA-277-001 implementation and independent Code Review are complete; QA Full Mode rerun is next.
+- QA-277-001 implementation, independent Code Review and functional QA rerun are complete; Security runtime review for SEC-004 is next.
 
 ## Change Classification
 - Framework/meta architecture remediation; high-risk security-sensitive.
@@ -55,10 +55,11 @@
 ## In Progress
 - Issue #277 — fenced conditional commits, durable task envelope enforcement, pure projection fencing, append-only archive journal, and the v1→v2 migration are implemented on the feature branch. Human-approved rework cycle 3 completes CR-012..CR-014 at `5db4250`, and the post-cycle corrective exception at `a7702b2` closes CR-015: conditional archive journal phase advancement now rechecks generation immediately before persist, with stale compensation leaving journal and shards unchanged. Real active shards `issue-249` and `issue-275` were migrated with generation records and rollback sidecars; strict active-lane validation is enabled. Security closure for SEC-004 remains pending independent QA/Security evidence.
 - QA Full Mode at `dca2165` passed the available CR-015 barriers (2/2), focused control-plane suite (18/18 across three runs), full suite (782/782), and repository validators, but found QA-277-001: disk-bound mutation rejected the policy-authoritative evidence set with `MISSING_REQUIRED_EVIDENCE`. Human approved the SA clarification and another Developer rework cycle on 2026-09-21; implementation is now at `87967f3` with TC-007/TC-024 regressions. The named mutation/crash campaign is also incomplete in this environment; SEC-004 remains not runtime-closed.
+- Final QA Full Mode at `df17d30` independently closed QA-277-001: policy-only durable evidence succeeds, missing and matrix-only evidence fail closed with byte identity, pure API compatibility remains intact, and the strict destination intersection rejects policy-silent fallback. CR-001–CR-015 ran 18/18 across three runs, `npm test` passed 785/785, and both named QA-277-001 mutations were killed. The complete Stryker/mutmut and process-kill/restart campaigns remain unavailable, so SEC-004 is still not runtime-closed.
 
 ## Blockers / Open Questions
-- Issue #277 QA-277-001 — **Implementation and independent review complete; awaiting QA confirmation:** durable mutation now uses policy-row evidence exactly once through a private policy-authoritative constructor, while the pure API keeps matrix-evidence compatibility. New TC-007 positive/negative byte-identity tests and TC-024b destination-drift guard pass at `87967f3`; independent review passed at `c3d29e3`. QA evidence gap remains open for the complete mutation/crash campaign. Evidence: `docs/records/qa/2026-09-21-issue-277-qa-277-001-independent-code-review.md`.
-- Issue #277 QA evidence gap — **blocker for SEC-004 closure:** no Stryker/mutmut runner or configured mutation campaign is present, and no executable process-kill/restart harness covers TC-040/TC-047. The two CR-015 temporary mutations were killed, but the complete named ledger remains unverified. QA evidence: `docs/records/qa/2026-09-18-issue-277-package1-full-qa.md`.
+- Issue #277 QA-277-001 — **Functional PASS:** policy-authoritative durable evidence, pure API compatibility, strict destination intersection, byte identity and CR-001–CR-015 regression checks pass at `df17d30`. Evidence: `docs/records/qa/2026-09-21-issue-277-package1-final-qa.md`.
+- Issue #277 SEC-004 runtime evidence — **BLOCKED:** no Stryker/mutmut runner or configured mutation campaign is present, and no executable process-kill/restart harness covers TC-040/TC-047. Security Review is the next gate; merge and completion remain Human-gated.
 - Issue #236 (IMP-007): AC-02 through AC-09, AC-11, and AC-12 are merged; AC-10 remains withdrawn. The Issue is complete and no longer blocks Issue #237.
 - Carried forward from Issue #249, none blocking. **Medium:** several allow-path warnings state a false cause — a glob or brace-expanded `--body-file` reports "does not exist yet at hook time" when the file exists and the token is simply wrong, and escaped-character paths render as `path \r` with no hint. This matters because ADR-0024 made that warning the compensating control for allowing unreadable bodies. **Low:** ANSI-C quoting (`$'…'`) is read literally, so the parser can validate text longer than what `gh` submits; and a TOCTOU where the hook reads the body file before an earlier command in the same string rewrites it, structural to the hook point. **Minor:** `extractBodyFromCommand()` narrowed to a single segment while its docstring still describes a full command string — not live, since the only caller passes one segment. Three mutation survivors remain on the new token path, which the implementer ran no mutant against.
 - Pre-existing and outside Issue #249's diff: `validate-documentation-impact` is not in the `Protect main` ruleset's required-check list, so a Documentation Impact failure is a visible red run but not merge-blocking.
@@ -80,10 +81,10 @@
 - Framework assessment: `docs/records/misc/2026-09-05-framework-sdlc-assessment.md`
 
 ## Next Quality Gate
-- QA Full Mode rerun for `c3d29e3`. SEC-004 remains gated on complete QA and Security runtime evidence.
+- Security Reviewer runtime assessment of SEC-004 using the final QA record at `df17d30`, followed by the Human merge gate.
 
 ## Recommended Next Agent
-- QA Agent.
+- Security Reviewer.
 
 ## Notes
 - Reset to template baseline by `npm run reset:template`.
