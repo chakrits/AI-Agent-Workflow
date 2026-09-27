@@ -37,4 +37,4 @@
 | AC-05 | Positive autonomy and negative boundary scenarios are covered. | `test/issue-282-policy-contract.test.mjs` (5 focused tests) | Pending independent QA |
 
 ## Status
-Approved SDD and implementation plan; developer changes are complete. Draft PR #287 is in independent review/QA.
+Approved SDD and implementation plan remain the authority. The stale frozen handoff-vocabulary expectation was updated from 46 to 50 fields; the full local suite passes 793/793. PR #287 remains draft while fresh CI and independent QA verify the corrected candidate.
