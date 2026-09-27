@@ -1,7 +1,7 @@
 # PROJECT_STATUS.md
 
 ## Current Work Item
-- Issue #282 — safe autonomy, persistence, and proportional verification. Independent code review and QA passed; local full suite passes 793/793 and CI passes on candidate `8e726230`. Work item is in `phase:human-review`; PR #287 awaits final evidence synchronization and human merge approval. SEC-004 runtime evidence for Issue #277 remains explicitly `DEFERRED_BY_HUMAN` under ADR-0033.
+- Issue #282 — safe autonomy, persistence, and proportional verification. Independent code review and QA passed; local full suite passes 793/793 and CI passes on candidate `51fe6cf`. Work item is in `phase:human-review`; PR #287 is Ready for review and awaits the Human Maintainer's merge decision. SEC-004 runtime evidence for Issue #277 remains explicitly `DEFERRED_BY_HUMAN` under ADR-0033.
 
 ## Active Work Items
 <!-- active-work-items-table-start -->
@@ -16,7 +16,7 @@
 - Issue #280 — GPT-6 Astra instruction, skill, and autonomy modernization — #281 is complete through PR #285; #282 passed verification and is in human review under its approved child SDD and implementation plan; #283–#284 remain planned independently. Parent SDD and ADR-0034 are Human-approved.
 
 ## Current Stage
-- Issue #282 human review. Next route: synchronize QA evidence and PR readiness, then Human Maintainer merge decision. SEC-004 remains deferred and is not a security-complete claim.
+- Issue #282 human review. Next route: Human Maintainer review and merge decision. SEC-004 remains deferred and is not a security-complete claim.
 
 ## Change Classification
 - Framework/meta change; medium risk. No security-sensitive enforcement change is in scope.

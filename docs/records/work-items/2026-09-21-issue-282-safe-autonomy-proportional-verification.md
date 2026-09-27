@@ -13,7 +13,7 @@
 ## Artifacts
 - Design / ADR: `docs/records/sdd/2026-09-21-issue-282-safe-autonomy-proportional-verification-sdd.md`; ADR-0035
 - Implementation plan: `docs/records/implementation-plan/2026-09-27-issue-282-safe-autonomy-plan.md`
-- PRs: [#287](https://github.com/chakrits/AI-Agent-Workflow/pull/287) — QA passed; awaiting ready-for-review lifecycle synchronization, linked to Issue #282
+- PRs: [#287](https://github.com/chakrits/AI-Agent-Workflow/pull/287) — Ready for review, linked to Issue #282
 
 ## Scope
 - Define when reversible low-risk assumptions may proceed with disclosure.
@@ -37,4 +37,4 @@
 | AC-05 | Positive autonomy and negative boundary scenarios are covered. | `test/issue-282-policy-contract.test.mjs` (5 focused tests) | PASS — independent QA verified positive and stop-before-mutation scenarios at `8e7262305ee21ee5b387206602e2f6ad1a6e5500`. |
 
 ## Status
-Approved SDD and implementation plan remain the authority. Independent code review and QA passed; the stale frozen handoff-vocabulary expectation was updated from 46 to 50 fields. Local full suite passed 793/793 and CI passed on candidate `8e7262305ee21ee5b387206602e2f6ad1a6e5500`. QA report: `docs/records/qa/2026-09-28-issue-282-final-qa.md`. Human merge approval remains required.
+Approved SDD and implementation plan remain the authority. Independent code review and QA passed; the stale frozen handoff-vocabulary expectation was updated from 46 to 50 fields. Local full suite passed 793/793 and CI passed on candidate `51fe6cfae1db14fb2b88b39a3875744a397251ac`. QA report: `docs/records/qa/2026-09-28-issue-282-final-qa.md`. PR #287 is Ready for review. Human merge approval remains required.
