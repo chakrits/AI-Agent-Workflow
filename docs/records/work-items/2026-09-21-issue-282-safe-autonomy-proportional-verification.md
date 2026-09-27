@@ -37,4 +37,4 @@
 | AC-05 | Positive autonomy and negative boundary scenarios are covered. | `test/issue-282-policy-contract.test.mjs` (5 focused tests) | PASS — independent QA verified positive and stop-before-mutation scenarios at `8e7262305ee21ee5b387206602e2f6ad1a6e5500`. |
 
 ## Status
-Closed — PR #287 merged to `main` on 2026-09-27 as `cd0a3267c03f24b86fa637cbf10da04b46720d75`. Approved SDD and implementation plan were completed; independent code review and QA passed AC-01–AC-05, local full suite passed 793/793, and CI passed. QA report: `docs/records/qa/2026-09-28-issue-282-final-qa.md`. Post-merge project-state closeout is tracked in a separate closeout PR.
+Approved SDD and implementation plan remain the authority. Independent code review and QA passed; the stale frozen handoff-vocabulary expectation was updated from 46 to 50 fields. Local full suite passed 793/793 and CI passed on candidate `51fe6cfae1db14fb2b88b39a3875744a397251ac`. QA report: `docs/records/qa/2026-09-28-issue-282-final-qa.md`. PR #287 is Ready for review. Human merge approval remains required.
