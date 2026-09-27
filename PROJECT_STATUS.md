@@ -1,7 +1,7 @@
 # PROJECT_STATUS.md
 
 ## Current Work Item
-- Issue #282 — safe autonomy, persistence, and proportional verification. QA identified a stale exact-field expectation (46 expected vs. 50 canonical); the test was corrected and the full local suite passes 793/793. Candidate is back in `phase:verification`; PR #287 remains draft pending fresh CI and independent QA. SEC-004 runtime evidence for Issue #277 remains explicitly `DEFERRED_BY_HUMAN` under ADR-0033.
+- Issue #282 — safe autonomy, persistence, and proportional verification. Independent code review and QA passed; local full suite passes 793/793 and CI passes on candidate `8e726230`. Work item is in `phase:human-review`; PR #287 awaits final evidence synchronization and human merge approval. SEC-004 runtime evidence for Issue #277 remains explicitly `DEFERRED_BY_HUMAN` under ADR-0033.
 
 ## Active Work Items
 <!-- active-work-items-table-start -->
@@ -13,10 +13,10 @@
 <!-- active-work-items-table-end -->
 
 ## Planned Framework Work
-- Issue #280 — GPT-6 Astra instruction, skill, and autonomy modernization — #281 is complete through PR #285; #282 is in verification under its approved child SDD and implementation plan; #283–#284 remain planned independently. Parent SDD and ADR-0034 are Human-approved.
+- Issue #280 — GPT-6 Astra instruction, skill, and autonomy modernization — #281 is complete through PR #285; #282 passed verification and is in human review under its approved child SDD and implementation plan; #283–#284 remain planned independently. Parent SDD and ADR-0034 are Human-approved.
 
 ## Current Stage
-- Issue #282 verification. Next route: fresh CI and Independent Reviewer / QA → Human Approval. SEC-004 remains deferred and is not a security-complete claim.
+- Issue #282 human review. Next route: synchronize QA evidence and PR readiness, then Human Maintainer merge decision. SEC-004 remains deferred and is not a security-complete claim.
 
 ## Change Classification
 - Framework/meta change; medium risk. No security-sensitive enforcement change is in scope.
