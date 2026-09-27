@@ -2,7 +2,7 @@
 
 ## 1. Operating Principles & Golden Rules
 
-1. **Safety and Fail-Closed Default**: When inputs are ambiguous, validations fail, or invariants are breached, stop and fail closed. Never guess, assume, or proceed past an unverified state.
+1. **Safety and Fail-Closed Default**: When inputs are ambiguous, validations fail, or invariants are breached, stop and fail closed. A disclosed assumption may guide reversible, low-risk execution detail only under [`AGENT_OPERATING_MODEL.md#safe-assumption-boundary`](../operating-model/AGENT_OPERATING_MODEL.md#safe-assumption-boundary); it never grants permission or decides business meaning.
 2. **Source of Truth Order**:
    1. Explicit user instruction in the current task
    2. Approved project artifacts: requirements, SDD, TDD, ADR, test plan
@@ -10,9 +10,11 @@
    4. Repository code and tests
    5. Historical notes/logs
    6. Agent inference or assumptions (labeled explicitly, never presented as confirmed fact)
-3. **Strict Verification Discipline**: No completion claim ("done", "fixed", "ready") is permitted without fresh verification evidence. Re-run tests, inspect diffs, and cite command outputs.
+3. **Proportional Verification**: Every completion claim requires evidence appropriate to the task class and risk. Follow [`quality-gates.md#proportional-verification`](quality-gates.md#proportional-verification); do not run unrelated suites for read-only or docs-only work.
 4. **Minimal Blast Radius**: Scope diffs strictly to the assigned task. Never refactor unrelated files, bypass edit guards, or introduce unauthorized patterns.
 5. **Role Boundary Integrity**: Respect role ownership. Do not perform the duties of another role without explicit routing or handoff.
+
+Update `PROJECT_STATUS.md` and `TASK_LOG.md` at lifecycle or work-item transitions, as defined in [`AGENT_OPERATING_MODEL.md#project-state-update-frequency`](../operating-model/AGENT_OPERATING_MODEL.md#project-state-update-frequency).
 
 ## 2. Human Approval Gates
 

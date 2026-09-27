@@ -1,7 +1,7 @@
 # PROJECT_STATUS.md
 
 ## Current Work Item
-- Issue #282 — safe autonomy, persistence, and proportional verification. Child SDD and ADR-0035 are drafted from the Human-approved direction; written-spec review is required before implementation planning. SEC-004 runtime evidence for Issue #277 remains explicitly `DEFERRED_BY_HUMAN` under ADR-0033.
+- Issue #282 — safe autonomy, persistence, and proportional verification. Child SDD was approved on 2026-09-27; implementation plan is complete and the work is entering development. SEC-004 runtime evidence for Issue #277 remains explicitly `DEFERRED_BY_HUMAN` under ADR-0033.
 
 ## Active Work Items
 <!-- active-work-items-table-start -->
@@ -13,10 +13,10 @@
 <!-- active-work-items-table-end -->
 
 ## Planned Framework Work
-- Issue #280 — GPT-6 Astra instruction, skill, and autonomy modernization — #281 is complete through PR #285; #282 child SDD/ADR is awaiting written-spec review; #283–#284 remain planned independently. Parent SDD and ADR-0034 are Human-approved.
+- Issue #280 — GPT-6 Astra instruction, skill, and autonomy modernization — #281 is complete through PR #285; #282 is in development under its approved child SDD and implementation plan; #283–#284 remain planned independently. Parent SDD and ADR-0034 are Human-approved.
 
 ## Current Stage
-- Issue #282 design review. On written-spec approval, route to implementation planning, then Documentation → Reviewer / QA → Human Approval. SEC-004 remains deferred and is not a security-complete claim.
+- Issue #282 development. Next route: Documentation → Independent Reviewer / QA → Human Approval. SEC-004 remains deferred and is not a security-complete claim.
 
 ## Change Classification
 - Framework/meta change; medium risk. No security-sensitive enforcement change is in scope.

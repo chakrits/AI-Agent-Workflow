@@ -22,6 +22,12 @@
 - Sub-A (#NN): <description> — [[../../scripts/...]] or [[../../.agents/skills/.../SKILL.md]]
 - Sub-B (#NN): <description>
 
+## Completion Contract
+- Done when: <observable artifacts and verification evidence required for completion>
+- May proceed through: <reversible, in-scope work permitted by the user's request and active autonomy level>
+- Must stop for: <human decisions and existing approval gates>
+- Assumptions: <disclosed assumption, effect, rationale, and reversal path; or None>
+
 ## Lessons Learned
 - [[../lessons-learned/YYYY-MM-DD-slug]] or N/A
 

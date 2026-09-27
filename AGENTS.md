@@ -13,7 +13,7 @@ The workflow is dynamic, bidirectional, and risk-based. Do not force all request
 3. Use role-specific agents or skills when the platform supports them.
 4. Keep implementer and verifier responsibilities separate.
 5. Use artifacts and handoff contracts, not informal summaries.
-6. Update project state after every meaningful step.
+6. Update `PROJECT_STATUS.md` and `TASK_LOG.md` only at lifecycle or work-item transitions; follow the canonical [project-state update frequency](docs/operating-model/AGENT_OPERATING_MODEL.md#project-state-update-frequency).
 7. Stop at human approval gates.
 8. Do not skip security review for security-sensitive changes.
 9. Do not make unrelated changes.
@@ -213,6 +213,7 @@ For behavior changes, the agent must create or identify a failing test before im
 Use `verification-before-completion` before claiming work is done, fixed, ready for QA, ready for review, or ready for release.
 
 The agent must not say tests passed unless tests actually ran or a CI result is referenced.
+Select verification evidence by task class and risk using [`docs/workflow/quality-gates.md#proportional-verification`](docs/workflow/quality-gates.md#proportional-verification).
 
 ### Code Review Gate Rule
 
@@ -379,6 +380,5 @@ A work item is done only when:
 - Required artifacts exist
 - Required tests/checks are complete or explicitly not applicable
 - Risks and limitations are documented
-- PROJECT_STATUS.md is updated
-- TASK_LOG.md is updated
+- PROJECT_STATUS.md and TASK_LOG.md reflect the latest lifecycle or work-item transition
 - Next owner is clear

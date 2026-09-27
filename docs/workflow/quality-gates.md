@@ -8,6 +8,25 @@
 - Skipped agents justified
 - Required artifacts listed
 
+## Proportional Verification
+
+Choose the minimum verification set by task class and risk. This matrix does not replace or reduce a stricter requirement in an existing workflow, contract, skill, security policy, or human approval gate.
+
+| Task class | Minimum evidence | Escalate when |
+|---|---|---|
+| Read-only / advisory | Inspect relevant sources and cite the evidence; tests are not required by default. | Advice affects security, release, or a material business decision. |
+| Documentation-only / framework text | Run validators and link/path checks that cover the changed artifacts; review affected contracts. Do not run unrelated test suites. | Wording changes a mandatory gate, security policy, or machine-consumed rule. |
+| Code / behavior / configuration | Run affected automated tests and static checks; inspect changed decision logic. | Authorization, sensitive data, production configuration, migrations, or financial behavior are involved. |
+| High-risk security, data, release, or irreversible work | Expanded domain review, applicable tests, rollback evidence, and required human approval. | This is the minimum; do not downgrade it. |
+
+Every completion claim cites the evidence actually collected and states what was not checked. Proportional scope does not relax evidence truthfulness or relevance.
+
+## Completion Contract Gate
+
+- The work item and handoff identify `Done when`, `May proceed through`, `Must stop for`, and `Assumptions`.
+- Safe assumptions satisfy every condition in `docs/operating-model/AGENT_OPERATING_MODEL.md#safe-assumption-boundary`; uncertainty routes to Human Approval before mutation.
+- Project-state records change at lifecycle or work-item transitions, not for routine execution steps.
+
 ## PM -> BA Gate
 
 - Business problem is clear

@@ -21,6 +21,15 @@ Completion means: the output is useful, grounded, reviewable, and ready for the 
 | Minimal Change | No unrelated changes or scope creep were introduced | TODO |
 | Next Step Clear | Next agent/action/stop condition is explicit | TODO |
 
+## Safe Autonomy and Proportional Verification
+
+| Check | Requirement | Status |
+|---|---|---|
+| Assumption Boundary | Any autonomous assumption is reversible, low risk, in scope, disclosed, and does not decide business or policy meaning; otherwise work stops before mutation | TODO |
+| Completion Contract | `Done when`, `May proceed through`, `Must stop for`, and `Assumptions` are present in the work item and handoff | TODO |
+| Verification Scope | Evidence matches task class and risk; read-only/docs work does not run unrelated suites; stricter gates remain in force | TODO |
+| State Update Frequency | `PROJECT_STATUS.md` and `TASK_LOG.md` reflect lifecycle/work-item transitions without routine step-by-step entries | TODO |
+
 ## Bug Fix Contract Evaluation
 
 | Check | Requirement | Status |
