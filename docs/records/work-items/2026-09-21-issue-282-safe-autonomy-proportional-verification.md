@@ -13,7 +13,7 @@
 ## Artifacts
 - Design / ADR: `docs/records/sdd/2026-09-21-issue-282-safe-autonomy-proportional-verification-sdd.md`; ADR-0035
 - Implementation plan: `docs/records/implementation-plan/2026-09-27-issue-282-safe-autonomy-plan.md`
-- PRs: Draft PR pending creation
+- PRs: [#287](https://github.com/chakrits/AI-Agent-Workflow/pull/287) — Draft, linked to Issue #282
 
 ## Scope
 - Define when reversible low-risk assumptions may proceed with disclosure.
@@ -37,4 +37,4 @@
 | AC-05 | Positive autonomy and negative boundary scenarios are covered. | `test/issue-282-policy-contract.test.mjs` (5 focused tests) | Pending independent QA |
 
 ## Status
-Approved SDD and implementation plan; developer changes are complete. Candidate `5c5bf9e` is entering independent review/QA.
+Approved SDD and implementation plan; developer changes are complete. Draft PR #287 is in independent review/QA.
