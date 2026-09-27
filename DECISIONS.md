@@ -7,6 +7,15 @@ Restored on 2026-09-05 under Issue #208. The blank-template resets of 2026-08-12
 that currently-open issues cite; ADR-0002 through ADR-0016 and ADR-0018 remain recoverable via
 `git show afe8091:DECISIONS.md` and were left out by Human Maintainer decision.
 
+### ADR-0035: Define Safe Autonomy Through a Completion Contract and Risk-Based Verification
+
+- **Status:** Accepted
+- **Date:** 2026-09-21
+- **Context:** The Astra modernization program needs agents to make safe progress without silently crossing product, security, operational, or release authority boundaries. A universal verification burden also makes low-risk work needlessly slow while failing to state the higher bar for irreversible work.
+- **Decision:** Permit autonomous assumptions only when they are disclosed, reversible, low risk, within user scope, and do not choose business meaning or a material policy. Require every handoff to state `Done when`, `May proceed through`, `Must stop for`, and assumptions. Select a minimum verification set by task class and risk; stricter existing workflow, security, and approval requirements remain controlling.
+- **Consequences:** Agents can proceed predictably on bounded execution details, while ambiguity fails closed to Human Approval. Canonical policy will live in the operating model and quality-gate sources; bootloaders and adapters will link to it rather than duplicate it.
+- **Approval:** Human Maintainer approved the design direction on 2026-09-21.
+
 ### ADR-0034: Make the Core Bootloader the SHA-pinned Tier 1 instruction contract
 
 - Date: 2026-09-21

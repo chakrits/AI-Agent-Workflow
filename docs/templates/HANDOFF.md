@@ -59,6 +59,22 @@ Evidence and approval reference:
 
 - 
 
+## Done when
+
+<Observable artifacts and verification evidence required for completion>
+
+## May proceed through
+
+<Reversible, in-scope work permitted by the user's request and active autonomy level>
+
+## Must stop for
+
+<Human decisions and existing approval gates>
+
+## Assumptions
+
+<Disclosed assumption, effect, rationale, and reversal path; or None>
+
 ## Artifacts Produced
 
 - 

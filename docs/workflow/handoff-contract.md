@@ -18,6 +18,10 @@ Every handoff must be structured. Do not pass work with vague statements such as
 - Contract Version
 - Rework Count
 - Completed Work
+- Done when
+- May proceed through
+- Must stop for
+- Assumptions
 - Artifacts Produced
 - Files Changed
 - Verification Performed
@@ -52,6 +56,7 @@ Every handoff must be structured. Do not pass work with vague statements such as
 - Timeout / Cancellation Reason
 
 Use `docs/templates/HANDOFF.md`.
+Completion-contract field meaning and safe-assumption limits are defined in `docs/operating-model/AGENT_OPERATING_MODEL.md#completion-contract` and `#safe-assumption-boundary`.
 
 ## Handoff Rules
 

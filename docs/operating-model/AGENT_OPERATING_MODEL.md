@@ -59,6 +59,35 @@ Stop and request human approval before proceeding when the task involves:
 - Removing or weakening tests, validations, or security controls
 - Ambiguous requirement that materially changes expected behavior
 
+## Safe Assumption Boundary
+
+Within the user's authorized task and the active autonomy level, an agent may proceed without another confirmation only when every condition below is true:
+
+- The assumption is reversible without data loss, production impact, or a meaningful external side effect.
+- The assumption is low risk and does not change security, privacy, financial, regulated, or release posture.
+- The work remains inside the user's stated scope and is an execution detail, not a new task or permission.
+- The assumption and its effect are disclosed in the work-item handoff.
+- The assumption does not decide business meaning, product policy, public messaging, or a material architectural direction.
+
+If any condition is false or unclear, stop before mutation and request a human decision. Missing critical inputs, conflicting sources, and every Human Approval Gate above remain fail-closed. This boundary does not grant permission to perform an action outside the user's request or active autonomy level.
+
+## Completion Contract
+
+Every work-item handoff states:
+
+| Field | Required content |
+|---|---|
+| Done when | Observable artifacts and evidence required to complete the work. |
+| May proceed through | Reversible, in-scope work permitted by the user's request and active autonomy level. |
+| Must stop for | Decisions or actions requiring human approval, including existing approval gates. |
+| Assumptions | Each safe assumption, its effect, rationale, and reversal path. |
+
+Use the canonical fields in `docs/templates/WORK_ITEM.md` and `docs/templates/HANDOFF.md`.
+
+## Project-State Update Frequency
+
+Update `PROJECT_STATUS.md` and `TASK_LOG.md` only when the lifecycle phase, work-item state, owner, blocker, or handoff changes. Do not add entries for routine execution steps that do not change work-item state. Keep the current status accurate at each such transition.
+
 ## Role Ownership
 
 | Role / Agent | Owns | Should Not Own |
@@ -85,7 +114,7 @@ Every agent should follow this cycle:
 4. Produce/update the required artifact.
 5. Run applicable quality checks.
 6. Create a handoff entry.
-7. Update `PROJECT_STATUS.md` and/or `TASK_LOG.md` when appropriate.
+7. Update `PROJECT_STATUS.md` and/or `TASK_LOG.md` at lifecycle or work-item transitions, as defined in [Project-State Update Frequency](#project-state-update-frequency).
 8. Recommend the next agent or stop condition.
 
 ## Stop Conditions

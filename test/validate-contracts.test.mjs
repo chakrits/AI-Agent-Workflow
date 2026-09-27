@@ -144,7 +144,7 @@ test('Bug Fix documentation points to the canonical contract and uses the two-re
   assert.doesNotMatch(routing, /more than 3 fix attempts/);
 });
 
-test('handoff contract pointer preserves the canonical 46-field vocabulary', async () => {
+test('handoff contract pointer preserves the canonical 50-field vocabulary', async () => {
   const [agents, contract, template] = await Promise.all([
     readFile('AGENTS.md', 'utf8'),
     readFile('docs/workflow/handoff-contract.md', 'utf8'),
@@ -165,6 +165,10 @@ test('handoff contract pointer preserves the canonical 46-field vocabulary', asy
     'Contract Version',
     'Rework Count',
     'Completed Work',
+    'Done when',
+    'May proceed through',
+    'Must stop for',
+    'Assumptions',
     'Artifacts Produced',
     'Files Changed',
     'Verification Performed',

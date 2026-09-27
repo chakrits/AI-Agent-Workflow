@@ -20,11 +20,11 @@
       "requiredSources": [
         {
           "path": "AGENTS.md",
-          "sha256": "d83cf85ac86095c562be4eb43787c2a07f85e230544e73cf39f93349326e1738"
+          "sha256": "19bbb01de8b05b8e642fd8cc3040da882e02ad5eabc6067c2481d7d0724b032d"
         },
         {
           "path": "docs/workflow/core-bootloader.md",
-          "sha256": "ec6ce2433ff6027e2166d1dfb13017328fef6feb2cc444b18afa4d0c4ff4b678"
+          "sha256": "49206bc9dfe3969d730a375236593923ca0e6d08fff53896b5f48b9550099d97"
         }
       ],
       "allowedTriggerReasons": [
@@ -38,11 +38,11 @@
       "requiredSources": [
         {
           "path": "AGENTS.md",
-          "sha256": "d83cf85ac86095c562be4eb43787c2a07f85e230544e73cf39f93349326e1738"
+          "sha256": "19bbb01de8b05b8e642fd8cc3040da882e02ad5eabc6067c2481d7d0724b032d"
         },
         {
           "path": "docs/workflow/core-bootloader.md",
-          "sha256": "ec6ce2433ff6027e2166d1dfb13017328fef6feb2cc444b18afa4d0c4ff4b678"
+          "sha256": "49206bc9dfe3969d730a375236593923ca0e6d08fff53896b5f48b9550099d97"
         }
       ],
       "allowedTriggerReasons": [
@@ -56,11 +56,11 @@
       "requiredSources": [
         {
           "path": "AGENTS.md",
-          "sha256": "d83cf85ac86095c562be4eb43787c2a07f85e230544e73cf39f93349326e1738"
+          "sha256": "19bbb01de8b05b8e642fd8cc3040da882e02ad5eabc6067c2481d7d0724b032d"
         },
         {
           "path": "docs/workflow/core-bootloader.md",
-          "sha256": "ec6ce2433ff6027e2166d1dfb13017328fef6feb2cc444b18afa4d0c4ff4b678"
+          "sha256": "49206bc9dfe3969d730a375236593923ca0e6d08fff53896b5f48b9550099d97"
         }
       ],
       "allowedTriggerReasons": [
@@ -74,11 +74,11 @@
       "requiredSources": [
         {
           "path": "AGENTS.md",
-          "sha256": "d83cf85ac86095c562be4eb43787c2a07f85e230544e73cf39f93349326e1738"
+          "sha256": "19bbb01de8b05b8e642fd8cc3040da882e02ad5eabc6067c2481d7d0724b032d"
         },
         {
           "path": "docs/workflow/core-bootloader.md",
-          "sha256": "ec6ce2433ff6027e2166d1dfb13017328fef6feb2cc444b18afa4d0c4ff4b678"
+          "sha256": "49206bc9dfe3969d730a375236593923ca0e6d08fff53896b5f48b9550099d97"
         }
       ],
       "allowedTriggerReasons": [
@@ -92,11 +92,11 @@
       "requiredSources": [
         {
           "path": "AGENTS.md",
-          "sha256": "d83cf85ac86095c562be4eb43787c2a07f85e230544e73cf39f93349326e1738"
+          "sha256": "19bbb01de8b05b8e642fd8cc3040da882e02ad5eabc6067c2481d7d0724b032d"
         },
         {
           "path": "docs/workflow/core-bootloader.md",
-          "sha256": "ec6ce2433ff6027e2166d1dfb13017328fef6feb2cc444b18afa4d0c4ff4b678"
+          "sha256": "49206bc9dfe3969d730a375236593923ca0e6d08fff53896b5f48b9550099d97"
         }
       ],
       "allowedTriggerReasons": [
@@ -110,11 +110,11 @@
       "requiredSources": [
         {
           "path": "AGENTS.md",
-          "sha256": "d83cf85ac86095c562be4eb43787c2a07f85e230544e73cf39f93349326e1738"
+          "sha256": "19bbb01de8b05b8e642fd8cc3040da882e02ad5eabc6067c2481d7d0724b032d"
         },
         {
           "path": "docs/workflow/core-bootloader.md",
-          "sha256": "ec6ce2433ff6027e2166d1dfb13017328fef6feb2cc444b18afa4d0c4ff4b678"
+          "sha256": "49206bc9dfe3969d730a375236593923ca0e6d08fff53896b5f48b9550099d97"
         }
       ],
       "allowedTriggerReasons": [
@@ -128,11 +128,11 @@
       "requiredSources": [
         {
           "path": "AGENTS.md",
-          "sha256": "d83cf85ac86095c562be4eb43787c2a07f85e230544e73cf39f93349326e1738"
+          "sha256": "19bbb01de8b05b8e642fd8cc3040da882e02ad5eabc6067c2481d7d0724b032d"
         },
         {
           "path": "docs/workflow/core-bootloader.md",
-          "sha256": "ec6ce2433ff6027e2166d1dfb13017328fef6feb2cc444b18afa4d0c4ff4b678"
+          "sha256": "49206bc9dfe3969d730a375236593923ca0e6d08fff53896b5f48b9550099d97"
         }
       ],
       "allowedTriggerReasons": [
@@ -146,11 +146,11 @@
       "requiredSources": [
         {
           "path": "AGENTS.md",
-          "sha256": "d83cf85ac86095c562be4eb43787c2a07f85e230544e73cf39f93349326e1738"
+          "sha256": "19bbb01de8b05b8e642fd8cc3040da882e02ad5eabc6067c2481d7d0724b032d"
         },
         {
           "path": "docs/workflow/core-bootloader.md",
-          "sha256": "ec6ce2433ff6027e2166d1dfb13017328fef6feb2cc444b18afa4d0c4ff4b678"
+          "sha256": "49206bc9dfe3969d730a375236593923ca0e6d08fff53896b5f48b9550099d97"
         }
       ],
       "allowedTriggerReasons": [
@@ -164,11 +164,11 @@
       "requiredSources": [
         {
           "path": "AGENTS.md",
-          "sha256": "d83cf85ac86095c562be4eb43787c2a07f85e230544e73cf39f93349326e1738"
+          "sha256": "19bbb01de8b05b8e642fd8cc3040da882e02ad5eabc6067c2481d7d0724b032d"
         },
         {
           "path": "docs/workflow/core-bootloader.md",
-          "sha256": "ec6ce2433ff6027e2166d1dfb13017328fef6feb2cc444b18afa4d0c4ff4b678"
+          "sha256": "49206bc9dfe3969d730a375236593923ca0e6d08fff53896b5f48b9550099d97"
         }
       ],
       "allowedTriggerReasons": [
@@ -182,11 +182,11 @@
       "requiredSources": [
         {
           "path": "AGENTS.md",
-          "sha256": "d83cf85ac86095c562be4eb43787c2a07f85e230544e73cf39f93349326e1738"
+          "sha256": "19bbb01de8b05b8e642fd8cc3040da882e02ad5eabc6067c2481d7d0724b032d"
         },
         {
           "path": "docs/workflow/core-bootloader.md",
-          "sha256": "ec6ce2433ff6027e2166d1dfb13017328fef6feb2cc444b18afa4d0c4ff4b678"
+          "sha256": "49206bc9dfe3969d730a375236593923ca0e6d08fff53896b5f48b9550099d97"
         }
       ],
       "allowedTriggerReasons": [
@@ -200,11 +200,11 @@
       "requiredSources": [
         {
           "path": "AGENTS.md",
-          "sha256": "d83cf85ac86095c562be4eb43787c2a07f85e230544e73cf39f93349326e1738"
+          "sha256": "19bbb01de8b05b8e642fd8cc3040da882e02ad5eabc6067c2481d7d0724b032d"
         },
         {
           "path": "docs/workflow/core-bootloader.md",
-          "sha256": "ec6ce2433ff6027e2166d1dfb13017328fef6feb2cc444b18afa4d0c4ff4b678"
+          "sha256": "49206bc9dfe3969d730a375236593923ca0e6d08fff53896b5f48b9550099d97"
         }
       ],
       "allowedTriggerReasons": [
@@ -218,11 +218,11 @@
       "requiredSources": [
         {
           "path": "AGENTS.md",
-          "sha256": "d83cf85ac86095c562be4eb43787c2a07f85e230544e73cf39f93349326e1738"
+          "sha256": "19bbb01de8b05b8e642fd8cc3040da882e02ad5eabc6067c2481d7d0724b032d"
         },
         {
           "path": "docs/workflow/core-bootloader.md",
-          "sha256": "ec6ce2433ff6027e2166d1dfb13017328fef6feb2cc444b18afa4d0c4ff4b678"
+          "sha256": "49206bc9dfe3969d730a375236593923ca0e6d08fff53896b5f48b9550099d97"
         },
         {
           "path": "docs/workflow/role-definitions.md",
@@ -230,15 +230,15 @@
         },
         {
           "path": "docs/workflow/quality-gates.md",
-          "sha256": "5b50942ae6e760e169c4fcb2bbed8aa314b49d3a8a68c643c6ef63433e8c2927"
+          "sha256": "93e266b98b9e11d55746cc7acf5e3d512e4a2eb2cc3002c92fac96a393b3337b"
         },
         {
           "path": "docs/workflow/handoff-contract.md",
-          "sha256": "467892846fd15250f820045a0aceb7701ea5e23796f99b84afd64d8aa45a892a"
+          "sha256": "d28e61397f1a0a0ebda5f7fc8ec45c6d1b505aa10ce4f26b4c591c0af9a58eaf"
         },
         {
           "path": "docs/operating-model/AGENT_EVALUATION_CHECKLIST.md",
-          "sha256": "d8b2eaa56aaaf2a5d9cb4f0b8e277821c527ccc9607a7fe07642f4dac22157af"
+          "sha256": "973ac9a0a302be514d167985952dda6a7815172cee296393fbf4abe7c7befe43"
         },
         {
           "path": "docs/operating-model/SKILL_CATALOG.md",
@@ -267,11 +267,11 @@
       "requiredSources": [
         {
           "path": "AGENTS.md",
-          "sha256": "d83cf85ac86095c562be4eb43787c2a07f85e230544e73cf39f93349326e1738"
+          "sha256": "19bbb01de8b05b8e642fd8cc3040da882e02ad5eabc6067c2481d7d0724b032d"
         },
         {
           "path": "docs/workflow/core-bootloader.md",
-          "sha256": "ec6ce2433ff6027e2166d1dfb13017328fef6feb2cc444b18afa4d0c4ff4b678"
+          "sha256": "49206bc9dfe3969d730a375236593923ca0e6d08fff53896b5f48b9550099d97"
         },
         {
           "path": "docs/workflow/role-definitions.md",
@@ -279,15 +279,15 @@
         },
         {
           "path": "docs/workflow/quality-gates.md",
-          "sha256": "5b50942ae6e760e169c4fcb2bbed8aa314b49d3a8a68c643c6ef63433e8c2927"
+          "sha256": "93e266b98b9e11d55746cc7acf5e3d512e4a2eb2cc3002c92fac96a393b3337b"
         },
         {
           "path": "docs/workflow/handoff-contract.md",
-          "sha256": "467892846fd15250f820045a0aceb7701ea5e23796f99b84afd64d8aa45a892a"
+          "sha256": "d28e61397f1a0a0ebda5f7fc8ec45c6d1b505aa10ce4f26b4c591c0af9a58eaf"
         },
         {
           "path": "docs/operating-model/AGENT_EVALUATION_CHECKLIST.md",
-          "sha256": "d8b2eaa56aaaf2a5d9cb4f0b8e277821c527ccc9607a7fe07642f4dac22157af"
+          "sha256": "973ac9a0a302be514d167985952dda6a7815172cee296393fbf4abe7c7befe43"
         },
         {
           "path": "docs/operating-model/SKILL_CATALOG.md",
@@ -316,11 +316,11 @@
       "requiredSources": [
         {
           "path": "AGENTS.md",
-          "sha256": "d83cf85ac86095c562be4eb43787c2a07f85e230544e73cf39f93349326e1738"
+          "sha256": "19bbb01de8b05b8e642fd8cc3040da882e02ad5eabc6067c2481d7d0724b032d"
         },
         {
           "path": "docs/workflow/core-bootloader.md",
-          "sha256": "ec6ce2433ff6027e2166d1dfb13017328fef6feb2cc444b18afa4d0c4ff4b678"
+          "sha256": "49206bc9dfe3969d730a375236593923ca0e6d08fff53896b5f48b9550099d97"
         },
         {
           "path": "docs/workflow/role-definitions.md",
@@ -328,15 +328,15 @@
         },
         {
           "path": "docs/workflow/quality-gates.md",
-          "sha256": "5b50942ae6e760e169c4fcb2bbed8aa314b49d3a8a68c643c6ef63433e8c2927"
+          "sha256": "93e266b98b9e11d55746cc7acf5e3d512e4a2eb2cc3002c92fac96a393b3337b"
         },
         {
           "path": "docs/workflow/handoff-contract.md",
-          "sha256": "467892846fd15250f820045a0aceb7701ea5e23796f99b84afd64d8aa45a892a"
+          "sha256": "d28e61397f1a0a0ebda5f7fc8ec45c6d1b505aa10ce4f26b4c591c0af9a58eaf"
         },
         {
           "path": "docs/operating-model/AGENT_EVALUATION_CHECKLIST.md",
-          "sha256": "d8b2eaa56aaaf2a5d9cb4f0b8e277821c527ccc9607a7fe07642f4dac22157af"
+          "sha256": "973ac9a0a302be514d167985952dda6a7815172cee296393fbf4abe7c7befe43"
         },
         {
           "path": "docs/operating-model/SKILL_CATALOG.md",
@@ -365,11 +365,11 @@
       "requiredSources": [
         {
           "path": "AGENTS.md",
-          "sha256": "d83cf85ac86095c562be4eb43787c2a07f85e230544e73cf39f93349326e1738"
+          "sha256": "19bbb01de8b05b8e642fd8cc3040da882e02ad5eabc6067c2481d7d0724b032d"
         },
         {
           "path": "docs/workflow/core-bootloader.md",
-          "sha256": "ec6ce2433ff6027e2166d1dfb13017328fef6feb2cc444b18afa4d0c4ff4b678"
+          "sha256": "49206bc9dfe3969d730a375236593923ca0e6d08fff53896b5f48b9550099d97"
         },
         {
           "path": "docs/workflow/role-definitions.md",
@@ -377,15 +377,15 @@
         },
         {
           "path": "docs/workflow/quality-gates.md",
-          "sha256": "5b50942ae6e760e169c4fcb2bbed8aa314b49d3a8a68c643c6ef63433e8c2927"
+          "sha256": "93e266b98b9e11d55746cc7acf5e3d512e4a2eb2cc3002c92fac96a393b3337b"
         },
         {
           "path": "docs/workflow/handoff-contract.md",
-          "sha256": "467892846fd15250f820045a0aceb7701ea5e23796f99b84afd64d8aa45a892a"
+          "sha256": "d28e61397f1a0a0ebda5f7fc8ec45c6d1b505aa10ce4f26b4c591c0af9a58eaf"
         },
         {
           "path": "docs/operating-model/AGENT_EVALUATION_CHECKLIST.md",
-          "sha256": "d8b2eaa56aaaf2a5d9cb4f0b8e277821c527ccc9607a7fe07642f4dac22157af"
+          "sha256": "973ac9a0a302be514d167985952dda6a7815172cee296393fbf4abe7c7befe43"
         },
         {
           "path": "docs/operating-model/SKILL_CATALOG.md",
@@ -414,11 +414,11 @@
       "requiredSources": [
         {
           "path": "AGENTS.md",
-          "sha256": "d83cf85ac86095c562be4eb43787c2a07f85e230544e73cf39f93349326e1738"
+          "sha256": "19bbb01de8b05b8e642fd8cc3040da882e02ad5eabc6067c2481d7d0724b032d"
         },
         {
           "path": "docs/workflow/core-bootloader.md",
-          "sha256": "ec6ce2433ff6027e2166d1dfb13017328fef6feb2cc444b18afa4d0c4ff4b678"
+          "sha256": "49206bc9dfe3969d730a375236593923ca0e6d08fff53896b5f48b9550099d97"
         },
         {
           "path": "docs/workflow/role-definitions.md",
@@ -426,15 +426,15 @@
         },
         {
           "path": "docs/workflow/quality-gates.md",
-          "sha256": "5b50942ae6e760e169c4fcb2bbed8aa314b49d3a8a68c643c6ef63433e8c2927"
+          "sha256": "93e266b98b9e11d55746cc7acf5e3d512e4a2eb2cc3002c92fac96a393b3337b"
         },
         {
           "path": "docs/workflow/handoff-contract.md",
-          "sha256": "467892846fd15250f820045a0aceb7701ea5e23796f99b84afd64d8aa45a892a"
+          "sha256": "d28e61397f1a0a0ebda5f7fc8ec45c6d1b505aa10ce4f26b4c591c0af9a58eaf"
         },
         {
           "path": "docs/operating-model/AGENT_EVALUATION_CHECKLIST.md",
-          "sha256": "d8b2eaa56aaaf2a5d9cb4f0b8e277821c527ccc9607a7fe07642f4dac22157af"
+          "sha256": "973ac9a0a302be514d167985952dda6a7815172cee296393fbf4abe7c7befe43"
         },
         {
           "path": "docs/operating-model/SKILL_CATALOG.md",
@@ -463,11 +463,11 @@
       "requiredSources": [
         {
           "path": "AGENTS.md",
-          "sha256": "d83cf85ac86095c562be4eb43787c2a07f85e230544e73cf39f93349326e1738"
+          "sha256": "19bbb01de8b05b8e642fd8cc3040da882e02ad5eabc6067c2481d7d0724b032d"
         },
         {
           "path": "docs/workflow/core-bootloader.md",
-          "sha256": "ec6ce2433ff6027e2166d1dfb13017328fef6feb2cc444b18afa4d0c4ff4b678"
+          "sha256": "49206bc9dfe3969d730a375236593923ca0e6d08fff53896b5f48b9550099d97"
         },
         {
           "path": "docs/workflow/role-definitions.md",
@@ -475,15 +475,15 @@
         },
         {
           "path": "docs/workflow/quality-gates.md",
-          "sha256": "5b50942ae6e760e169c4fcb2bbed8aa314b49d3a8a68c643c6ef63433e8c2927"
+          "sha256": "93e266b98b9e11d55746cc7acf5e3d512e4a2eb2cc3002c92fac96a393b3337b"
         },
         {
           "path": "docs/workflow/handoff-contract.md",
-          "sha256": "467892846fd15250f820045a0aceb7701ea5e23796f99b84afd64d8aa45a892a"
+          "sha256": "d28e61397f1a0a0ebda5f7fc8ec45c6d1b505aa10ce4f26b4c591c0af9a58eaf"
         },
         {
           "path": "docs/operating-model/AGENT_EVALUATION_CHECKLIST.md",
-          "sha256": "d8b2eaa56aaaf2a5d9cb4f0b8e277821c527ccc9607a7fe07642f4dac22157af"
+          "sha256": "973ac9a0a302be514d167985952dda6a7815172cee296393fbf4abe7c7befe43"
         },
         {
           "path": "docs/operating-model/SKILL_CATALOG.md",
@@ -512,11 +512,11 @@
       "requiredSources": [
         {
           "path": "AGENTS.md",
-          "sha256": "d83cf85ac86095c562be4eb43787c2a07f85e230544e73cf39f93349326e1738"
+          "sha256": "19bbb01de8b05b8e642fd8cc3040da882e02ad5eabc6067c2481d7d0724b032d"
         },
         {
           "path": "docs/workflow/core-bootloader.md",
-          "sha256": "ec6ce2433ff6027e2166d1dfb13017328fef6feb2cc444b18afa4d0c4ff4b678"
+          "sha256": "49206bc9dfe3969d730a375236593923ca0e6d08fff53896b5f48b9550099d97"
         },
         {
           "path": "docs/workflow/role-definitions.md",
@@ -524,15 +524,15 @@
         },
         {
           "path": "docs/workflow/quality-gates.md",
-          "sha256": "5b50942ae6e760e169c4fcb2bbed8aa314b49d3a8a68c643c6ef63433e8c2927"
+          "sha256": "93e266b98b9e11d55746cc7acf5e3d512e4a2eb2cc3002c92fac96a393b3337b"
         },
         {
           "path": "docs/workflow/handoff-contract.md",
-          "sha256": "467892846fd15250f820045a0aceb7701ea5e23796f99b84afd64d8aa45a892a"
+          "sha256": "d28e61397f1a0a0ebda5f7fc8ec45c6d1b505aa10ce4f26b4c591c0af9a58eaf"
         },
         {
           "path": "docs/operating-model/AGENT_EVALUATION_CHECKLIST.md",
-          "sha256": "d8b2eaa56aaaf2a5d9cb4f0b8e277821c527ccc9607a7fe07642f4dac22157af"
+          "sha256": "973ac9a0a302be514d167985952dda6a7815172cee296393fbf4abe7c7befe43"
         },
         {
           "path": "docs/operating-model/SKILL_CATALOG.md",
@@ -561,11 +561,11 @@
       "requiredSources": [
         {
           "path": "AGENTS.md",
-          "sha256": "d83cf85ac86095c562be4eb43787c2a07f85e230544e73cf39f93349326e1738"
+          "sha256": "19bbb01de8b05b8e642fd8cc3040da882e02ad5eabc6067c2481d7d0724b032d"
         },
         {
           "path": "docs/workflow/core-bootloader.md",
-          "sha256": "ec6ce2433ff6027e2166d1dfb13017328fef6feb2cc444b18afa4d0c4ff4b678"
+          "sha256": "49206bc9dfe3969d730a375236593923ca0e6d08fff53896b5f48b9550099d97"
         },
         {
           "path": "docs/workflow/role-definitions.md",
@@ -573,15 +573,15 @@
         },
         {
           "path": "docs/workflow/quality-gates.md",
-          "sha256": "5b50942ae6e760e169c4fcb2bbed8aa314b49d3a8a68c643c6ef63433e8c2927"
+          "sha256": "93e266b98b9e11d55746cc7acf5e3d512e4a2eb2cc3002c92fac96a393b3337b"
         },
         {
           "path": "docs/workflow/handoff-contract.md",
-          "sha256": "467892846fd15250f820045a0aceb7701ea5e23796f99b84afd64d8aa45a892a"
+          "sha256": "d28e61397f1a0a0ebda5f7fc8ec45c6d1b505aa10ce4f26b4c591c0af9a58eaf"
         },
         {
           "path": "docs/operating-model/AGENT_EVALUATION_CHECKLIST.md",
-          "sha256": "d8b2eaa56aaaf2a5d9cb4f0b8e277821c527ccc9607a7fe07642f4dac22157af"
+          "sha256": "973ac9a0a302be514d167985952dda6a7815172cee296393fbf4abe7c7befe43"
         },
         {
           "path": "docs/operating-model/SKILL_CATALOG.md",
@@ -610,11 +610,11 @@
       "requiredSources": [
         {
           "path": "AGENTS.md",
-          "sha256": "d83cf85ac86095c562be4eb43787c2a07f85e230544e73cf39f93349326e1738"
+          "sha256": "19bbb01de8b05b8e642fd8cc3040da882e02ad5eabc6067c2481d7d0724b032d"
         },
         {
           "path": "docs/workflow/core-bootloader.md",
-          "sha256": "ec6ce2433ff6027e2166d1dfb13017328fef6feb2cc444b18afa4d0c4ff4b678"
+          "sha256": "49206bc9dfe3969d730a375236593923ca0e6d08fff53896b5f48b9550099d97"
         },
         {
           "path": "docs/workflow/role-definitions.md",
@@ -622,15 +622,15 @@
         },
         {
           "path": "docs/workflow/quality-gates.md",
-          "sha256": "5b50942ae6e760e169c4fcb2bbed8aa314b49d3a8a68c643c6ef63433e8c2927"
+          "sha256": "93e266b98b9e11d55746cc7acf5e3d512e4a2eb2cc3002c92fac96a393b3337b"
         },
         {
           "path": "docs/workflow/handoff-contract.md",
-          "sha256": "467892846fd15250f820045a0aceb7701ea5e23796f99b84afd64d8aa45a892a"
+          "sha256": "d28e61397f1a0a0ebda5f7fc8ec45c6d1b505aa10ce4f26b4c591c0af9a58eaf"
         },
         {
           "path": "docs/operating-model/AGENT_EVALUATION_CHECKLIST.md",
-          "sha256": "d8b2eaa56aaaf2a5d9cb4f0b8e277821c527ccc9607a7fe07642f4dac22157af"
+          "sha256": "973ac9a0a302be514d167985952dda6a7815172cee296393fbf4abe7c7befe43"
         },
         {
           "path": "docs/operating-model/SKILL_CATALOG.md",
@@ -659,11 +659,11 @@
       "requiredSources": [
         {
           "path": "AGENTS.md",
-          "sha256": "d83cf85ac86095c562be4eb43787c2a07f85e230544e73cf39f93349326e1738"
+          "sha256": "19bbb01de8b05b8e642fd8cc3040da882e02ad5eabc6067c2481d7d0724b032d"
         },
         {
           "path": "docs/workflow/core-bootloader.md",
-          "sha256": "ec6ce2433ff6027e2166d1dfb13017328fef6feb2cc444b18afa4d0c4ff4b678"
+          "sha256": "49206bc9dfe3969d730a375236593923ca0e6d08fff53896b5f48b9550099d97"
         },
         {
           "path": "docs/workflow/role-definitions.md",
@@ -671,15 +671,15 @@
         },
         {
           "path": "docs/workflow/quality-gates.md",
-          "sha256": "5b50942ae6e760e169c4fcb2bbed8aa314b49d3a8a68c643c6ef63433e8c2927"
+          "sha256": "93e266b98b9e11d55746cc7acf5e3d512e4a2eb2cc3002c92fac96a393b3337b"
         },
         {
           "path": "docs/workflow/handoff-contract.md",
-          "sha256": "467892846fd15250f820045a0aceb7701ea5e23796f99b84afd64d8aa45a892a"
+          "sha256": "d28e61397f1a0a0ebda5f7fc8ec45c6d1b505aa10ce4f26b4c591c0af9a58eaf"
         },
         {
           "path": "docs/operating-model/AGENT_EVALUATION_CHECKLIST.md",
-          "sha256": "d8b2eaa56aaaf2a5d9cb4f0b8e277821c527ccc9607a7fe07642f4dac22157af"
+          "sha256": "973ac9a0a302be514d167985952dda6a7815172cee296393fbf4abe7c7befe43"
         },
         {
           "path": "docs/operating-model/SKILL_CATALOG.md",
@@ -708,11 +708,11 @@
       "requiredSources": [
         {
           "path": "AGENTS.md",
-          "sha256": "d83cf85ac86095c562be4eb43787c2a07f85e230544e73cf39f93349326e1738"
+          "sha256": "19bbb01de8b05b8e642fd8cc3040da882e02ad5eabc6067c2481d7d0724b032d"
         },
         {
           "path": "docs/workflow/core-bootloader.md",
-          "sha256": "ec6ce2433ff6027e2166d1dfb13017328fef6feb2cc444b18afa4d0c4ff4b678"
+          "sha256": "49206bc9dfe3969d730a375236593923ca0e6d08fff53896b5f48b9550099d97"
         },
         {
           "path": "docs/workflow/role-definitions.md",
@@ -720,15 +720,15 @@
         },
         {
           "path": "docs/workflow/quality-gates.md",
-          "sha256": "5b50942ae6e760e169c4fcb2bbed8aa314b49d3a8a68c643c6ef63433e8c2927"
+          "sha256": "93e266b98b9e11d55746cc7acf5e3d512e4a2eb2cc3002c92fac96a393b3337b"
         },
         {
           "path": "docs/workflow/handoff-contract.md",
-          "sha256": "467892846fd15250f820045a0aceb7701ea5e23796f99b84afd64d8aa45a892a"
+          "sha256": "d28e61397f1a0a0ebda5f7fc8ec45c6d1b505aa10ce4f26b4c591c0af9a58eaf"
         },
         {
           "path": "docs/operating-model/AGENT_EVALUATION_CHECKLIST.md",
-          "sha256": "d8b2eaa56aaaf2a5d9cb4f0b8e277821c527ccc9607a7fe07642f4dac22157af"
+          "sha256": "973ac9a0a302be514d167985952dda6a7815172cee296393fbf4abe7c7befe43"
         },
         {
           "path": "docs/operating-model/SKILL_CATALOG.md",
