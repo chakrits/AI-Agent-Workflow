@@ -1,7 +1,7 @@
 # PROJECT_STATUS.md
 
 ## Current Work Item
-- Issue #282 — safe autonomy, persistence, and proportional verification. Independent code review and QA passed; local full suite passes 793/793 and CI passes on candidate `51fe6cf`. Work item is in `phase:human-review`; PR #287 is Ready for review and awaits the Human Maintainer's merge decision. SEC-004 runtime evidence for Issue #277 remains explicitly `DEFERRED_BY_HUMAN` under ADR-0033.
+- No active work item. Issue #282 completed via PR #287; Issues #283–#284 remain planned independently. SEC-004 runtime evidence for Issue #277 remains explicitly `DEFERRED_BY_HUMAN` under ADR-0033.
 
 ## Active Work Items
 <!-- active-work-items-table-start -->
@@ -13,15 +13,16 @@
 <!-- active-work-items-table-end -->
 
 ## Planned Framework Work
-- Issue #280 — GPT-6 Astra instruction, skill, and autonomy modernization — #281 is complete through PR #285; #282 passed verification and is in human review under its approved child SDD and implementation plan; #283–#284 remain planned independently. Parent SDD and ADR-0034 are Human-approved.
+- Issue #280 — GPT-6 Astra instruction, skill, and autonomy modernization — #281 is complete through PR #285; #282 is complete through PR #287; #283–#284 remain planned independently. Parent SDD and ADR-0034 are Human-approved.
 
 ## Current Stage
-- Issue #282 human review. Next route: Human Maintainer review and merge decision. SEC-004 remains deferred and is not a security-complete claim.
+- No active Issue #282 stage. Next modernization work is #283, subject to its own specification and approval gates. SEC-004 remains deferred and is not a security-complete claim.
 
 ## Change Classification
 - Framework/meta change; medium risk. No security-sensitive enforcement change is in scope.
 
 ## Completed
+- Issue #282 — **merged via PR #287** (merge commit `cd0a3267c03f24b86fa637cbf10da04b46720d75`). Added the safe-assumption boundary, four-field completion contract, proportional verification guidance, lifecycle-only state updates, and positive/negative policy contract coverage. Independent code review and QA passed AC-01–AC-05; full CI passed. QA evidence: https://github.com/chakrits/AI-Agent-Workflow/issues/282#issuecomment-5858035937. Post-merge documentation closeout is tracked separately.
 - Issue #281 — **merged via PR #285** (merge commit `a0d71ef`). Core Bootloader is the authoritative SHA-pinned Tier 1 source after `AGENTS.md`; the source matrix enforces the exact two-source boot contract, the Tier 1 budget is enforced at 2,500 approximate tokens (current 1,590), and bootloader edits require both repinning and budget validation. Independent re-review and QA acceptance passed; evidence: https://github.com/chakrits/AI-Agent-Workflow/issues/281#issuecomment-5758803434.
 - Issue #277 — Package 1 **merged via PR #278** (merge commit `5a676b1`). SEC-008 passed Developer, Independent Code Review, QA Full Mode, and Security re-review. SEC-004 runtime evidence was explicitly accepted as `DEFERRED_BY_HUMAN` under ADR-0033; separate-process TC-040/TC-047 crash/restart evidence and a complete mutation ledger remain future work. Evidence: PR #278 and closeout records through `d98a215`.
 - Issue #272 — **closed in full.** Delivered Next-Gen Autonomous Dynamic Workflow Architecture across 4 Pillars and 5 ordered implementation packages (IMP-001..IMP-005): (1) Worktree-Sharded Status Projection Compiler (`scripts/compile-status-projection.mjs`, ~21.8ms compilation, archival lifecycle `scripts/archive-work-item.mjs`), (2) Progressive Context Loading Engine (`docs/workflow/core-bootloader.md` at 2,499 tokens, 11 modular role contexts at <=415 tokens, CLI injector `scripts/inject-role-context.mjs`), (3) Checkpointed Asynchronous State Machine (`scripts/lib/task-state-machine.mjs`, POSIX atomic writes, RFC 8785 JCS SHA-256 CAS concurrency engine, 11-state matrix, mandatory evidence gates, 2-cycle rework ceiling), (4) Frontmatter-First PR Safety Gate (`docs/contracts/schemas/pr-frontmatter.schema.json`, dual AST/legacy parser in `scripts/work-item-readiness.mjs`, closeout archive allowlist), and (5) CI Parity & Quality Gates (`validate:status-projection` mirrored 1:1 in GitHub Actions and GitLab CI, 764/764 tests passed green, independent QA verification FULL_PASS across TC-001..TC-038). PR #273 merged as `c2837be`. QA Evidence: https://github.com/chakrits/AI-Agent-Workflow/blob/feat/issue-272-next-gen-dynamic-workflow-discovery/docs/records/qa/2026-09-11-issue-272-qa-verification-report.md
