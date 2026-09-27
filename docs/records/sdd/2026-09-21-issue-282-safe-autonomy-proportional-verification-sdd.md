@@ -8,9 +8,10 @@
 | Parent | [Issue #280](https://github.com/chakrits/AI-Agent-Workflow/issues/280) |
 | Change type | Framework / Meta |
 | Risk | Medium |
-| Status | `READY_FOR_WRITTEN_SPEC_REVIEW` |
+| Status | `APPROVED_FOR_IMPLEMENTATION` |
 | Owner | Documentation / Architecture |
 | Approved direction | Human Maintainer, 2026-09-21 |
+| Written SDD approval | Human Maintainer, 2026-09-27 |
 
 ## Context
 
@@ -24,6 +25,7 @@ Issue #281 established the small always-loaded bootloader. This work defines the
 2. Preserve existing stop conditions for security, production access or data, releases, external communications, destructive actions, and material scope changes.
 3. Define a completion contract that makes both the completed work and its remaining approval boundary explicit.
 4. Map verification to task class and risk while retaining mandatory checks where policy already requires them.
+5. Update `PROJECT_STATUS.md` and `TASK_LOG.md` at lifecycle or work-item transitions, not after routine execution steps.
 
 ## Non-goals
 
@@ -69,6 +71,10 @@ Each work-item handoff must state these fields:
 
 This table selects a minimum verification set. It does not override a stricter requirement in an existing workflow, contract, skill, or approval gate.
 
+## Project-State Update Frequency
+
+Update project-state files when the lifecycle phase, work-item state, owner, blocker, or handoff changes. Routine execution steps that do not change work-item state do not create status or task-log entries.
+
 ## Intended Canonical Ownership
 
 | Component | Responsibility |
@@ -90,6 +96,7 @@ The implementation plan must identify deterministic repository checks for:
 2. completion-contract fields in affected templates or validators;
 3. proportional-verification references without duplicate or contradictory thresholds; and
 4. unchanged security and human-approval requirements.
+5. project-state update wording limits records to lifecycle or work-item transitions.
 
 ## Rollback
 
