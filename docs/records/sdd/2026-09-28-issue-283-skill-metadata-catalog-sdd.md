@@ -4,7 +4,7 @@
 
 - Work Item ID: Issue #283
 - Parent: Issue #280 / ADR-0034
-- Status: PROPOSED — child design for Human Maintainer review
+- Status: ACCEPTED — Human Maintainer approved the revised design on 2026-09-28
 - Date: 2026-09-28
 - Governing design: `docs/records/sdd/2026-09-21-issue-280-gpt6-astra-modernization-sdd.md`
 

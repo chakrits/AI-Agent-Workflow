@@ -7,12 +7,12 @@
 ## Classification
 - Change type: Framework / Meta Change
 - Risk level: Medium
-- Lifecycle phase: `phase:requirements`
+- Lifecycle phase: `phase:planning` (local record; remote GitHub label not verified)
 - Workflow route: Documentation Agent → Reviewer / QA Agent → Human Approval
 
 ## Artifacts
-- Design: Pending; must preserve skill parity and resolve catalog ownership before implementation
-- Implementation plan: Pending
+- Design: Accepted — `docs/records/sdd/2026-09-28-issue-283-skill-metadata-catalog-sdd.md` (Human approval: 2026-09-28)
+- Implementation plan: Draft prepared; awaiting Human Maintainer review and execution-method selection — `docs/records/implementation-plan/2026-09-28-issue-283-skill-metadata-catalog-plan.md`
 - PRs: Pending
 
 ## Scope
@@ -21,4 +21,4 @@
 - Preserve all portable mirrors and their parity checks.
 
 ## Status
-Open — may be planned in parallel after umbrella design approval; implementation follows #281.
+Open — child SDD accepted and implementation plan drafted. No implementation has started. Await plan approval and remote lifecycle-label verification before `status:spec-ready` or development.
