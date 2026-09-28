@@ -68,7 +68,7 @@ This is the entry point for browsing this repo as an Obsidian vault. The vault r
 
 ## Skills — three portable copies (`.agents/`, `.claude/`, `.agent/`)
 
-All 37 skills are mirrored across all three platforms (Claude Code, portable, Antigravity); none are role-specific-only anymore.
+The skills below are mirrored across all three platforms (Claude Code, portable, Antigravity); none are role-specific-only anymore.
 
 **Mirrored (all three platforms):**
 
@@ -86,8 +86,10 @@ All 37 skills are mirrored across all three platforms (Claude Code, portable, An
 - mutation-testing — [[../../.agents/skills/mutation-testing/SKILL.md|portable]] · [[../../.claude/skills/mutation-testing/SKILL.md|claude]] · [[../../.agent/skills/mutation-testing/SKILL.md|antigravity]]
 - performance-testing — [[../../.agents/skills/performance-testing/SKILL.md|portable]] · [[../../.claude/skills/performance-testing/SKILL.md|claude]] · [[../../.agent/skills/performance-testing/SKILL.md|antigravity]]
 - requirement-brainstorming — [[../../.agents/skills/requirement-brainstorming/SKILL.md|portable]] · [[../../.claude/skills/requirement-brainstorming/SKILL.md|claude]] · [[../../.agent/skills/requirement-brainstorming/SKILL.md|antigravity]]
+- release-readiness-checklist — [[../../.agents/skills/release-readiness-checklist/SKILL.md|portable]] · [[../../.claude/skills/release-readiness-checklist/SKILL.md|claude]] · [[../../.agent/skills/release-readiness-checklist/SKILL.md|antigravity]]
 - tdd-implementation — [[../../.agents/skills/tdd-implementation/SKILL.md|portable]] · [[../../.claude/skills/tdd-implementation/SKILL.md|claude]] · [[../../.agent/skills/tdd-implementation/SKILL.md|antigravity]]
 - test-quality-discipline — [[../../.agents/skills/test-quality-discipline/SKILL.md|portable]] · [[../../.claude/skills/test-quality-discipline/SKILL.md|claude]] · [[../../.agent/skills/test-quality-discipline/SKILL.md|antigravity]]
+- static-logic-review — [[../../.agents/skills/static-logic-review/SKILL.md|portable]] · [[../../.claude/skills/static-logic-review/SKILL.md|claude]] · [[../../.agent/skills/static-logic-review/SKILL.md|antigravity]]
 - verification-before-completion — [[../../.agents/skills/verification-before-completion/SKILL.md|portable]] · [[../../.claude/skills/verification-before-completion/SKILL.md|claude]] · [[../../.agent/skills/verification-before-completion/SKILL.md|antigravity]]
 - git-workflow-and-versioning — [[../../.agents/skills/git-workflow-and-versioning/SKILL.md|portable]] · [[../../.claude/skills/git-workflow-and-versioning/SKILL.md|claude]] · [[../../.agent/skills/git-workflow-and-versioning/SKILL.md|antigravity]]
 - ba-requirement-analysis — [[../../.agents/skills/ba-requirement-analysis/SKILL.md|portable]] · [[../../.claude/skills/ba-requirement-analysis/SKILL.md|claude]] · [[../../.agent/skills/ba-requirement-analysis/SKILL.md|antigravity]]
