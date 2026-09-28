@@ -57,10 +57,16 @@ function withTempRepo(options, action) {
   }
 }
 
-function assertInvalid(root, expectedDetail) {
+function assertInvalid(root, expectedCategory) {
   const result = validateSkillCatalog(root);
   assert.ok(result.errors.length > 0, 'expected at least one validation error');
-  if (expectedDetail) assert.match(result.errors.join('\n'), expectedDetail);
+  if (expectedCategory) {
+    assert.match(
+      result.errors.join('\n'),
+      expectedCategory,
+      `expected a ${expectedCategory} diagnostic, got: ${result.errors.join('; ')}`
+    );
+  }
 }
 
 test('accepts_exact_inventory_and_description_budgets', () => {
@@ -76,36 +82,44 @@ test('accepts_exact_inventory_and_description_budgets', () => {
 test('rejects_missing_or_mirror_only_skill_directories', () => {
   withTempRepo({}, (root) => {
     rmSync(path.join(root, '.agents/skills/alpha'), { recursive: true, force: true });
-    assertInvalid(root);
+    assertInvalid(root, /inventory|canonical/i);
+  });
+
+  withTempRepo({}, (root) => {
+    rmSync(path.join(root, '.claude/skills/alpha'), { recursive: true, force: true });
+    assertInvalid(root, /inventory|mirror|claude/i);
   });
 
   withTempRepo({}, (root) => {
     const mirrorOnly = path.join(root, '.claude/skills/orphan');
     mkdirSync(mirrorOnly, { recursive: true });
     writeFileSync(path.join(mirrorOnly, 'SKILL.md'), frontmatter('orphan', 'orphan trigger'));
-    assertInvalid(root);
+    assertInvalid(root, /inventory|mirror|orphan/i);
   });
 });
 
 test('rejects_missing_stale_or_duplicate_catalog_entries', () => {
-  withTempRepo({ catalogIds: ['alpha'] }, (root) => assertInvalid(root));
-  withTempRepo({ catalogIds: ['alpha', 'beta', 'stale'] }, (root) => assertInvalid(root));
-  withTempRepo({ catalogIds: ['alpha', 'alpha', 'beta'] }, (root) => assertInvalid(root));
+  withTempRepo({ catalogIds: ['alpha'] }, (root) => assertInvalid(root, /catalog/i));
+  withTempRepo({ catalogIds: ['alpha', 'beta', 'stale'] }, (root) => assertInvalid(root, /catalog/i));
+  withTempRepo({ catalogIds: ['alpha', 'alpha', 'beta'] }, (root) => assertInvalid(root, /catalog/i));
 });
 
 test('rejects_missing_stale_or_duplicate_vault_links', () => {
-  withTempRepo({ vaultIds: ['alpha'] }, (root) => assertInvalid(root));
-  withTempRepo({ vaultIds: ['alpha', 'beta', 'stale'] }, (root) => assertInvalid(root));
-  withTempRepo({ vaultIds: ['alpha', 'alpha', 'beta'] }, (root) => assertInvalid(root));
+  withTempRepo({ vaultIds: ['alpha'] }, (root) => assertInvalid(root, /vault|index/i));
+  withTempRepo({ vaultIds: ['alpha', 'beta', 'stale'] }, (root) => assertInvalid(root, /vault|index/i));
+  withTempRepo({ vaultIds: ['alpha', 'alpha', 'beta'] }, (root) => assertInvalid(root, /vault|index/i));
 });
 
 test('rejects_invalid_or_empty_skill_frontmatter', () => {
   withTempRepo({}, (root) => {
-    writeFileSync(path.join(root, '.agents/skills/alpha/SKILL.md'), '# missing frontmatter\n');
-    assertInvalid(root);
+    const malformed = '# missing frontmatter\n';
+    for (const tree of skillTrees) {
+      writeFileSync(path.join(root, tree, 'alpha/SKILL.md'), malformed);
+    }
+    assertInvalid(root, /frontmatter/i);
   });
 
-  withTempRepo({ skills: { alpha: '' } }, (root) => assertInvalid(root));
+  withTempRepo({ skills: { alpha: '' } }, (root) => assertInvalid(root, /description|frontmatter/i));
 });
 
 test('accepts_160_code_points_and_rejects_161', () => {
@@ -117,7 +131,7 @@ test('accepts_160_code_points_and_rejects_161', () => {
     assert.equal(result.totalDescriptionCodePoints, 160);
   });
 
-  withTempRepo({ skills: { alpha: '😀'.repeat(161) } }, (root) => assertInvalid(root));
+  withTempRepo({ skills: { alpha: '😀'.repeat(161) } }, (root) => assertInvalid(root, /description/i));
 });
 
 test('accepts_5500_total_code_points_and_rejects_5501', () => {
@@ -133,5 +147,5 @@ test('accepts_5500_total_code_points_and_rejects_5501', () => {
   });
 
   const overLimit = { ...atLimit, 'skill-34': 'x'.repeat(61) };
-  withTempRepo({ skills: overLimit }, (root) => assertInvalid(root));
+  withTempRepo({ skills: overLimit }, (root) => assertInvalid(root, /description/i));
 });
