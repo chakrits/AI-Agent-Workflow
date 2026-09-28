@@ -1,6 +1,6 @@
 ---
 name: frontend-react-patterns
-description: React/Next.js component architecture patterns — composition, compound components, custom hooks, state-scope selection, memoization, form handling, and error boundaries. Distinct from frontend-ui-engineering (accessibility/responsive/design-system delivery workflow) and frontend-visual-design (aesthetic direction) — this skill is the component-architecture reference those two draw on.
+description: Use when designing React/Next.js component composition, hooks, state scope, memoization, forms, or error boundaries.
 ---
 
 # frontend-react-patterns

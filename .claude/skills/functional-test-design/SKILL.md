@@ -1,6 +1,6 @@
 ---
 name: functional-test-design
-description: Use this skill when the task requires functional test analysis, business requirement coverage, function specification analysis, IPO matrix, happy/negative test cases, BVA/EP, Decision Table Testing, State Transition Testing, risk-based testing, exploratory charters, API functional test cases, or traceability from requirements to test cases. Do not use this skill to implement automation scripts unless explicitly requested.
+description: Use when requirements need functional test cases, boundary/negative coverage, or traceability before browser automation.
 ---
 
 # Functional Test Design Skill

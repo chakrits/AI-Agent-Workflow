@@ -1,6 +1,6 @@
 ---
 name: requirement-brainstorming
-description: Use this skill when a business idea, feature request, vague requirement, stakeholder note, or early product concept needs to be refined into clear scope, assumptions, open questions, user stories, acceptance criteria, and handoff-ready requirement artifacts. Do not use this skill for implementation, architecture design, test automation, or bug fixing.
+description: Use when a vague business idea, feature request, or stakeholder note needs scope and testable acceptance criteria.
 ---
 
 # Requirement Brainstorming Skill

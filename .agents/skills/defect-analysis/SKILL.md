@@ -1,6 +1,6 @@
 ---
 name: defect-analysis
-description: Use this skill to analyze a test failure, log, screenshot, or network payload and turn it into a severity-classified, reproducible defect report. Do not use this skill for post-fix root-cause write-ups or for the roll-up summary already in TEST_REPORT.md.
+description: Use when test-failure evidence needs a reproducible, severity-classified defect report before routing.
 ---
 
 # Defect Analysis Skill

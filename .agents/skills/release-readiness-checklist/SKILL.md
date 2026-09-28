@@ -1,6 +1,6 @@
 ---
 name: release-readiness-checklist
-description: Use for release checklist, versioning/changelog, release evidence, triple rollback confirmation, and deployment strategy statement before final release handoff.
+description: Use when preparing a release that needs version/changelog, release evidence, rollback paths, or deployment strategy confirmed.
 ---
 
 # release-readiness-checklist

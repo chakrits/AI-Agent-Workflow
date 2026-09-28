@@ -1,6 +1,6 @@
 ---
 name: mutation-testing
-description: Validate that Python or JS/TS test suites actually catch bugs, using mutmut (Python) or Stryker (JS/TS) to introduce deliberate code mutations and measure how many are killed. Use for QA Agent's Test Effectiveness rule on core business-logic/service-layer modules.
+description: Use when core Python or JS/TS business logic needs mutation testing to assess whether its tests catch defects.
 ---
 
 # mutation-testing

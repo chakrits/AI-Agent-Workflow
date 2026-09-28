@@ -1,6 +1,6 @@
 ---
 name: tdd-implementation
-description: Use this skill for code behavior changes where tests should drive or accompany implementation. Apply red-green-refactor discipline: write or identify a failing test first, implement the smallest change, then refactor after tests pass. Do not use for pure documentation, config-only, reference-data-only, or exploratory debugging without a known behavior target.
+description: Use when implementing a feature, known-root-cause bug fix, or refactor that changes code behavior.
 ---
 
 # TDD Implementation Skill

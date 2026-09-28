@@ -1,6 +1,6 @@
 ---
 name: engineering-postmortem
-description: Use this skill after a fixed and validated bug when the task asks for RCA, postmortem, root cause analysis, document this fix, close out a bug, or engineering write-up. Requires reliable repro, known root cause, identified fix, and validated fix. Do not use for unresolved bugs, incidents/outages, or speculative hypotheses.
+description: Use when a fixed and validated bug with known repro and root cause needs an engineering RCA or postmortem.
 ---
 
 # Engineering Postmortem

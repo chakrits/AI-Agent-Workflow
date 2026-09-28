@@ -1,6 +1,6 @@
 ---
 name: data-config-change
-description: Use for config changes, reference data, master data, validation SQL, rollback SQL, and non-code operational changes.
+description: Use when changing configuration or master/reference data without code, including validation and rollback planning.
 ---
 
 # data-config-change

@@ -1,6 +1,6 @@
 ---
 name: api-security-patterns
-description: Design and verify API-specific authN/authZ and OWASP API Security Top 10 patterns — broken object-level authorization (BOLA/IDOR), broken authentication, excessive data exposure, mass assignment, and resource-consumption abuse. Distinct from security-review's project-wide generic Scan Checklist, which this skill extends for API surfaces specifically.
+description: Use when a new or changed API needs object-level authorization checks, OAuth/JWT/RBAC design, or an API security review.
 ---
 
 # api-security-patterns

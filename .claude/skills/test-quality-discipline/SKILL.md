@@ -1,6 +1,6 @@
 ---
 name: test-quality-discipline
-description: Review Developer Agent's unit/component tests for effectiveness and anti-patterns — overmocking, fragile assertions, test-only production code, incomplete mocks. Use for QA Agent's Test Effectiveness rule on any change that adds or modifies unit/component tests.
+description: Use when QA reviews new or changed unit/component tests for weak assertions, overmocking, brittle structure, or test-only code.
 ---
 
 # test-quality-discipline

@@ -1,6 +1,6 @@
 ---
 name: qa-playwright-testing
-description: Use for QA strategy, test cases, Playwright E2E automation, API tests, regression, and defect reports.
+description: Use when implementing or running Playwright browser E2E tests, UI flow checks, or WCAG 2.1 AA accessibility checks.
 ---
 
 # qa-playwright-testing

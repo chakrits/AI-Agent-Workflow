@@ -1,6 +1,6 @@
 ---
 name: api-versioning-deprecation
-description: Classify an API change as breaking vs non-breaking, choose a versioning approach (URI vs header), and design a deprecation/sunset flow for a retired API version. Distinct from Release Agent's project-wide SemVer rule, which versions releases, not individual API surfaces that may retire on their own independent timeline.
+description: Use when an endpoint change may break consumers or an API version needs deprecation, sunset, or migration planning.
 ---
 
 # api-versioning-deprecation

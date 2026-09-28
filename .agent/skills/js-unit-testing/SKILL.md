@@ -1,6 +1,6 @@
 ---
 name: js-unit-testing
-description: Write and run unit/component tests for JS/TS code with Jest or Vitest. Use to operationalize tdd-implementation's red-green-refactor discipline with concrete tooling.
+description: Use when a JS/TS behavior change needs Jest or Vitest unit/component tests.
 ---
 
 # js-unit-testing

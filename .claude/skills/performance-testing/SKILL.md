@@ -1,6 +1,6 @@
 ---
 name: performance-testing
-description: Execute Performance/Reliability/Scalability NFR targets stated in an SDD — load, stress, spike, and soak testing methodology. Use when QA Agent's NFR Validation rule applies and the SDD states a measurable NFR target.
+description: Use when an SDD states measurable performance, reliability, or scalability targets needing load, stress, spike, or soak validation.
 ---
 
 # performance-testing
