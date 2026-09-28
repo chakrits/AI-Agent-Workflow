@@ -44,18 +44,23 @@ function compareMembership(label, expected, actual, errors) {
   }
 }
 
-function catalogIds(content) {
+function catalogIds(content, errors) {
   const counts = new Map();
   let inDirectory = false;
-  for (const line of content.split(/\r?\n/)) {
+  for (const [index, line] of content.split(/\r?\n/).entries()) {
     if (/^##\s+Available Skills\s*$/.test(line)) {
       inDirectory = true;
       continue;
     }
     if (inDirectory && /^##\s+/.test(line)) break;
-    if (!inDirectory || !line.startsWith('|')) continue;
-    const cells = line.split('|').slice(1, -1).map((cell) => cell.trim());
-    if (cells.length !== 5 || cells[0] === 'Skill' || /^:?-{3,}:?$/.test(cells[0])) continue;
+    const row = line.trim();
+    if (!inDirectory || !row.startsWith('|')) continue;
+    const cells = row.endsWith('|') ? row.split('|').slice(1, -1).map((cell) => cell.trim()) : [];
+    if (cells.length !== 5) {
+      errors.push(`Malformed catalog row at ${CATALOG}:${index + 1}: expected five columns`);
+      continue;
+    }
+    if (cells[0] === 'Skill' || /^:?-{3,}:?$/.test(cells[0])) continue;
     const id = cells[0].replace(/^.*\(`([^`]+)`\).*$/, '$1');
     counts.set(id, (counts.get(id) ?? 0) + 1);
   }
@@ -139,7 +144,7 @@ export function validateSkillCatalog(rootDir = process.cwd()) {
 
   const catalog = readRequired(rootDir, CATALOG, errors);
   if (catalog !== null) {
-    const { counts, found } = catalogIds(catalog);
+    const { counts, found } = catalogIds(catalog, errors);
     if (!found) errors.push(`${CATALOG}: missing Available Skills directory`);
     validateCounts('Catalog', canonicalIds, counts, errors);
   }

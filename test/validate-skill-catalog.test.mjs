@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
@@ -102,6 +102,22 @@ test('rejects_missing_stale_or_duplicate_catalog_entries', () => {
   withTempRepo({ catalogIds: ['alpha'] }, (root) => assertInvalid(root, /catalog/i));
   withTempRepo({ catalogIds: ['alpha', 'beta', 'stale'] }, (root) => assertInvalid(root, /catalog/i));
   withTempRepo({ catalogIds: ['alpha', 'alpha', 'beta'] }, (root) => assertInvalid(root, /catalog/i));
+});
+
+test('rejects_malformed_catalog_rows_even_when_valid_entries_are_complete', () => {
+  for (const id of ['stale', 'alpha']) {
+    withTempRepo({}, (root) => {
+      const catalogFile = path.join(root, catalogPath);
+      const validCatalog = readFileSync(catalogFile, 'utf8');
+      writeFileSync(
+        catalogFile,
+        `${validCatalog}\n### QA\n\nThis prose is not a skill row.\n| ${id} | trigger | QA Agent | exclusion | next-agent | extra cell |\n`
+      );
+      const result = validateSkillCatalog(root);
+      assert.equal(result.errors.length, 1, `expected only the malformed row error: ${result.errors.join('; ')}`);
+      assert.match(result.errors[0], /malformed catalog row/i);
+    });
+  }
 });
 
 test('rejects_missing_stale_or_duplicate_vault_links', () => {
