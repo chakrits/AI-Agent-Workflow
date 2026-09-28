@@ -20,7 +20,7 @@ The approved limits remain: every canonical description is at most 160 character
 - `.claude/skills/<skill>/SKILL.md` and `.agent/skills/<skill>/SKILL.md` are portable byte-for-byte mirrors; no platform-specific description variants are introduced.
 - Frontmatter `description` states only the task and precise activation trigger. Detailed exclusions, overlap distinctions, and procedures remain in the canonical skill body and/or the on-demand `SKILL_CATALOG.md`.
 - `docs/operating-model/SKILL_CATALOG.md` owns curated routing/navigation guidance, not a second copy of frontmatter descriptions. Its existing selection rules and five-column row contract remain; the available-skill directory is grouped under workflow, engineering, QA, API, frontend, and security/data headings.
-- Inventory is derived from canonical skill directories. No manually maintained skill count is authoritative. The catalog must contain each canonical skill exactly once in its detailed directory, and mirrors must contain exactly the canonical inventory.
+- Inventory is derived from canonical skill directories. No manually maintained skill count is authoritative. The catalog and `docs/vault/00-Index.md` must each link every canonical skill exactly once in their respective detailed inventories, and mirrors must contain exactly the canonical inventory.
 
 ## Proposed Component Changes
 
@@ -29,6 +29,7 @@ The approved limits remain: every canonical description is at most 160 character
 3. Add an executable skill-catalog/inventory validator. It derives canonical inventory, verifies one catalog entry per skill and no stale entries, validates description limits and total budget, and checks mirror inventory. Existing byte-parity validation remains authoritative for file content.
 4. Add routing-contract tests for the overlap set `functional-test-design`, `qa-playwright-testing`, `api-test-design`, `api-contract-testing`, and `api-testing-tooling`. These tests pin the catalog's explicit distinctions; they do not claim to replace Issue #284's model-behavior evaluation.
 5. Wire the new validator into the existing required validation paths on GitHub and GitLab, preserving CI command parity.
+6. Remove the stale literal skill count from the Vault index and validate its linked skill inventory against the canonical directory set.
 
 ## Interfaces and Compatibility
 
@@ -41,7 +42,7 @@ The approved limits remain: every canonical description is at most 160 character
 
 Required checks include:
 
-- Focused validator and overlap-routing tests, including missing/orphan mirror entries, missing/stale/duplicate catalog entries, 160/161-character boundaries, and 5,500/5,501-character total boundaries.
+- Focused validator and overlap-routing tests, including missing/orphan mirror entries, missing/stale/duplicate catalog and Vault index entries, 160/161-character boundaries, and 5,500/5,501-character total boundaries.
 - `npm run validate:skill-parity`, `npm run validate:adapter-parity`, `npm run validate:context-budget`, `npm run validate:context-compatibility`, `npm run validate:contracts`, and `npm run validate:ci-parity`.
 - Full `npm test` and the repository's required project-state / source-matrix checks.
 - Independent review of every changed description for trigger clarity and preservation of any previously unique routing constraint.
@@ -55,6 +56,7 @@ Issue #284 remains the separate behavior-evaluation gate; static catalog tests a
 | A short description becomes too generic and selects the wrong skill | Review each trigger and add explicit overlap-contract tests for the named five-skill set; defer behavioral claims to #284. |
 | Detailed boundary guidance is lost during shortening | Search old descriptions against skill bodies/catalog before removal; test that unique distinctions remain available on demand. |
 | A mirror-only skill or catalog row silently escapes count-based validation | Compare exact directory sets and catalog membership, not only counts. |
+| A secondary index retains a stale count or omits new skills | Remove the literal Vault count and compare its linked inventory against the canonical directory set. |
 | Catalog reshaping breaks consumers or historical contracts | Preserve the five-column table shape and selection rules; inspect and update every identified consumer/test. |
 | Pinned-source hashes become stale | Run the repository source-matrix repin tool, then verify the exact staged diff and all context validators. |
 
