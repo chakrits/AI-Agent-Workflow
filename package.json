@@ -15,6 +15,7 @@
     "validate:workflow-evidence": "node scripts/validate-workflow-evidence.mjs",
     "housekeeping:worktrees": "node scripts/housekeeping-worktrees.mjs",
     "validate:skill-parity": "node scripts/validate-skill-parity.mjs",
+    "validate:skill-catalog": "node scripts/validate-skill-catalog.mjs",
     "validate:adapter-parity": "node scripts/validate-adapter-parity.mjs",
     "adr:audit": "node scripts/adr-audit.mjs",
     "reset:template": "node scripts/reset-to-template.mjs",
