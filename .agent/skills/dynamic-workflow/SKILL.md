@@ -1,6 +1,6 @@
 ---
 name: dynamic-workflow
-description: Use for dynamic AI agent routing, change classification, risk classification, quality gates, and agent handoff in software engineering workflows.
+description: Use when classifying a software change, selecting its agent workflow and gates, or preparing a structured handoff.
 ---
 
 # dynamic-workflow

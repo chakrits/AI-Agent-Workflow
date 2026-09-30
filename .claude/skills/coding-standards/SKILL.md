@@ -1,6 +1,6 @@
 ---
 name: coding-standards
-description: Baseline naming, immutability, error-handling, and code-smell conventions shared across every stack this project targets (Python/Django today, TypeScript/React/Next.js/Supabase/Redis for a future target app). Use for general code-quality review; route to `backend-patterns`/`frontend-react-patterns` for framework-specific architecture, or `sa-architecture-design` for structural decisions.
+description: Use when writing or reviewing code for cross-stack naming, mutability, error handling, readability, or code smells.
 ---
 
 # coding-standards

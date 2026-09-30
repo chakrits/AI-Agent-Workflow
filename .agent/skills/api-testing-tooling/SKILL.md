@@ -1,6 +1,6 @@
 ---
 name: api-testing-tooling
-description: Write and run hand-scripted API tests with Supertest (Node/Express HTTP assertions), manage versionable API collections with Bruno, or run existing Postman collections via Newman in CI. Use for functional API test cases distinct from api-contract-testing's OpenAPI schema-fuzzing.
+description: Use when writing or running hand-scripted API tests or versionable HTTP request collections against an endpoint.
 ---
 
 # api-testing-tooling

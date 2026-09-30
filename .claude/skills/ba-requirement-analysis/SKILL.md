@@ -1,6 +1,6 @@
 ---
 name: ba-requirement-analysis
-description: Use for requirements, user stories, acceptance criteria, business rules, process flows, and ambiguity analysis.
+description: Use when defined business scope needs requirements, user stories, acceptance criteria, or business rules created, updated, or analyzed.
 ---
 
 # ba-requirement-analysis

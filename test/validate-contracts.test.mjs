@@ -13,6 +13,90 @@ const adapterPaths = [
   '.agent/skills/dynamic-workflow/SKILL.md'
 ];
 
+const catalogDomains = {
+  Workflow: ['ba-requirement-analysis', 'documentation-closeout', 'dynamic-workflow', 'engineering-postmortem', 'git-workflow-and-versioning', 'implementation-planning', 'management-status-update', 'release-readiness-checklist', 'requirement-brainstorming', 'verification-before-completion'],
+  Engineering: ['backend-patterns', 'code-review-gate', 'coding-standards', 'debugging-discipline', 'sa-architecture-design', 'tdd-implementation'],
+  QA: ['defect-analysis', 'functional-test-design', 'js-unit-testing', 'mutation-testing', 'performance-testing', 'python-unit-testing', 'qa-playwright-testing', 'static-logic-review', 'test-quality-discipline'],
+  API: ['api-compliance-patterns', 'api-contract-testing', 'api-integration-patterns', 'api-mocking-sandbox', 'api-observability-monitoring', 'api-security-patterns', 'api-test-design', 'api-testing-tooling', 'api-versioning-deprecation'],
+  Frontend: ['frontend-react-patterns', 'frontend-ui-engineering', 'frontend-visual-design'],
+  'Security / Data': ['data-config-change', 'security-review']
+};
+
+function availableCatalogRows(catalog) {
+  return catalog.slice(catalog.indexOf('## Available Skills'), catalog.indexOf('## Skill Activation Examples'));
+}
+
+test('groups_catalog_rows_under_the_six_domains_without_changing_row_schema', async () => {
+  const available = availableCatalogRows(await readFile('docs/operating-model/SKILL_CATALOG.md', 'utf8'));
+  const headings = [...available.matchAll(/^### (.+)$/gm)];
+  assert.deepEqual(headings.map((match) => match[1]), Object.keys(catalogDomains));
+
+  const seen = [];
+  for (const [index, heading] of headings.entries()) {
+    const section = available.slice(heading.index + heading[0].length, headings[index + 1]?.index ?? available.length);
+    assert.match(section, /^\n\n\| Skill \| Trigger \| Primary Agent \| Do Not Use When \| Next Skill \/ Agent \|\n\|---\|---\|---\|---\|---\|/);
+    const rows = section.split('\n').filter((line) => /^\| [a-z][a-z0-9-]+ \|/.test(line));
+    const ids = rows.map((row) => row.split('|')[1].trim());
+    assert.deepEqual(ids, catalogDomains[heading[1]], `${heading[1]} has missing, extra, or misordered rows`);
+    for (const row of rows) {
+      assert.equal(row.split('|').length, 7, `${row} must have five cells`);
+      assert.ok(row.split('|').slice(1, -1).every((cell) => cell.trim()), `${row} has an empty cell`);
+    }
+    seen.push(...ids);
+  }
+  assert.equal(new Set(seen).size, seen.length, 'a skill must appear in exactly one domain');
+});
+
+test('vault_index_has_no_manual_skill_count', async () => {
+  const vault = await readFile('docs/vault/00-Index.md', 'utf8');
+  assert.doesNotMatch(vault, /All 37 skills|All \d+ skills/i);
+});
+
+test('vault_index_links_every_canonical_skill_exactly_once', async () => {
+  const [entries, vault] = await Promise.all([
+    readdir('.agents/skills', { withFileTypes: true }),
+    readFile('docs/vault/00-Index.md', 'utf8')
+  ]);
+  const canonical = entries.filter((entry) => entry.isDirectory()).map((entry) => entry.name).sort();
+  const skillSection = vault.slice(vault.indexOf('## Skills —'), vault.indexOf('## Codex Host Adapters'));
+  const lines = skillSection.split('\n').filter((line) => /^- [a-z][a-z0-9-]+ —/.test(line));
+  const linked = lines.map((line) => line.match(/^- ([a-z][a-z0-9-]+) —/)[1]).sort();
+  assert.deepEqual(linked, canonical);
+  for (const id of canonical) {
+    const line = lines.find((entry) => entry.startsWith(`- ${id} — `));
+    for (const tree of ['.agents', '.claude', '.agent']) {
+      assert.ok(line.includes(`[[../../${tree}/skills/${id}/SKILL.md|`), `${id} is missing its ${tree} link`);
+    }
+    assert.equal((line.match(/SKILL\.md\|/g) ?? []).length, 3, `${id} must link exactly three adapters`);
+  }
+});
+
+test('catalog_overlap_boundaries_keep_distinct_triggers_and_next_routes', async () => {
+  const available = availableCatalogRows(await readFile('docs/operating-model/SKILL_CATALOG.md', 'utf8'));
+  const row = (id) => available.split('\n').find((line) => line.startsWith(`| ${id} |`));
+  const functional = row('functional-test-design');
+  const playwright = row('qa-playwright-testing');
+  assert.match(functional, /test cases|test design/i);
+  assert.match(functional, /automation/i);
+  assert.match(functional, /qa-playwright-testing/);
+  assert.match(playwright, /browser E2E|automation/i);
+  assert.match(playwright, /test design/i);
+  assert.match(playwright, /QA Agent|defect-analysis/);
+
+  const design = row('api-test-design');
+  const contract = row('api-contract-testing');
+  const tooling = row('api-testing-tooling');
+  assert.match(design, /test case list/);
+  assert.match(design, /api-testing-tooling/);
+  assert.match(design, /api-contract-testing/);
+  assert.match(contract, /published.*schema/);
+  assert.match(contract, /api-test-design/);
+  assert.match(contract, /Developer Agent.*SA Agent/);
+  assert.match(tooling, /hand-written|hand-scripted/);
+  assert.match(tooling, /api-contract-testing/);
+  assert.match(tooling, /Developer Agent/);
+});
+
 test('every .agents/skills/ directory is named somewhere in SKILL_CATALOG.md', async () => {
   const [entries, catalog] = await Promise.all([
     readdir('.agents/skills', { withFileTypes: true }),
@@ -1507,10 +1591,11 @@ test('SKILL_CATALOG.md carries all 7 new API skill entries', async () => {
   assert.doesNotMatch(catalog, /\| API Test Design \|/);
 });
 
-test('docs/vault/00-Index.md links all 7 new API skills and the mirrored-skill count is 36', async () => {
+test('docs/vault/00-Index.md links all 7 new API skills without a manual count', async () => {
   const vaultIndex = await readFile('docs/vault/00-Index.md', 'utf8');
 
-  assert.match(vaultIndex, /All 37 skills are mirrored/);
+  assert.match(vaultIndex, /skills below are mirrored across all three platforms/i);
+  assert.doesNotMatch(vaultIndex, /All \d+ skills are mirrored/i);
   for (const skill of [
     'api-test-design',
     'api-compliance-patterns',

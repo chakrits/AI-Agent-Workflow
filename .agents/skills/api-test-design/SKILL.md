@@ -1,6 +1,6 @@
 ---
 name: api-test-design
-description: Design API test cases (happy path, negative, boundary, auth, pagination, error-format) from an OpenAPI schema, request/response example, or endpoint description. Distinct from api-contract-testing's schema-fuzzing (validates an existing implementation) and api-testing-tooling's execution (Supertest/Bruno/Postman) — this skill decides what test cases an endpoint needs before any script or fuzz run exists.
+description: Use when API test cases need design from a schema or endpoint description. Distinct from api-contract-testing or hand-scripted API execution.
 ---
 
 # api-test-design

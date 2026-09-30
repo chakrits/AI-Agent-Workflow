@@ -1,6 +1,6 @@
 ---
 name: python-unit-testing
-description: Write and run unit/component tests for Python code with pytest. Use to operationalize tdd-implementation's red-green-refactor discipline with concrete tooling.
+description: Use when a Python behavior change needs pytest unit/component tests.
 ---
 
 # python-unit-testing

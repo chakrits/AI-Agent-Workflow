@@ -1,6 +1,6 @@
 ---
 name: debugging-discipline
-description: Use this skill when debugging starts: bug reports, failing tests, CI failures, stack traces, flaky behavior, regressions, unexpected behavior, or requests to diagnose/investigate. Enforce reproduce → fail-path trace → hypothesis falsification → breadcrumb ledger before proposing fixes. Do not use for writing the final postmortem after a validated fix; use engineering-postmortem for that.
+description: Use when a bug, failing test, CI failure, stack trace, flaky behavior, regression, or unexpected runtime behavior needs diagnosis.
 ---
 
 # Debugging Discipline

@@ -1,6 +1,6 @@
 ---
 name: api-compliance-patterns
-description: Design GDPR/HIPAA/PCI-DSS/SOC2-aligned API patterns — field-level PII/PHI classification, masking in logs/responses, retention and right-to-be-forgotten endpoints, consent capture, and audit-log schema. Use for any endpoint that handles personal, health, or payment data.
+description: Use when an API handles personal, health, or payment data, or needs retention, consent, deletion, or audit-trail design.
 ---
 
 # api-compliance-patterns

@@ -1,11 +1,13 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { mkdtempSync, rmSync, mkdirSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, rmSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
+import { parse } from 'yaml';
 import {
   githubJobCommands,
   findMissingFromGitlab,
+  normaliseCommand,
   HOST_ONLY_COMMANDS
 } from '../scripts/validate-ci-parity.mjs';
 
@@ -104,6 +106,37 @@ test('this repository runs the same portable validators on GitHub and GitLab', (
     [],
     'a validator GitHub enforces but GitLab does not means a GitLab clone is gated more weakly'
   );
+});
+
+function assertSkillCatalogCi(root) {
+  const command = 'npm run validate:skill-catalog';
+  const github = githubJobCommands(path.join(root, '.github/workflows/validate-contracts.yml'));
+  assert.ok(github.has(command), 'GitHub validate job must run the skill catalog validator');
+
+  const gitlab = parse(readFileSync(path.join(root, '.gitlab-ci.yml'), 'utf8'));
+  const steps = gitlab?.validate_skill_catalog?.script;
+  assert.ok(Array.isArray(steps) && steps.length > 0, 'GitLab validate_skill_catalog job must have a script');
+  assert.ok(steps.some((step) => normaliseCommand(step) === command),
+    'GitLab validate_skill_catalog job must run the skill catalog validator');
+}
+
+test('this repository enforces skill catalog validation in both required CI jobs', () => {
+  assertSkillCatalogCi(process.cwd());
+});
+
+test('skill catalog CI coverage fails when the GitLab job is missing or empty', () => {
+  for (const gitlab of ['validate:\n  script:\n    - npm test\n',
+    'validate_skill_catalog:\n  script: []\n']) {
+    const root = makeRepo({
+      github: GH_JOB(['npm run validate:skill-catalog']),
+      gitlab
+    });
+    try {
+      assert.throws(() => assertSkillCatalogCi(root), /GitLab validate_skill_catalog job must have a script/);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  }
 });
 
 // --- QA findings on the Issue #210 candidate 973180d ---

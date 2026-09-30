@@ -1,6 +1,6 @@
 ---
 name: api-mocking-sandbox
-description: Produce mock server, stub, or fixture definitions for a dependency's API so a consumer can be developed and tested in isolation, before or independent of the real dependency being available. Distinct from api-testing-tooling, which tests against a real running endpoint.
+description: Use when an API consumer needs a mock or fixture because its provider is unavailable, unstable, slow, or rate-limited.
 ---
 
 # api-mocking-sandbox

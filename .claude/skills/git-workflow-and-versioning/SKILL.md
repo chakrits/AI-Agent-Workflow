@@ -1,6 +1,6 @@
 ---
 name: git-workflow-and-versioning
-description: Use for every commit. Covers atomic commits, commit message conventions, pre-commit hygiene, and the change-summary format used when handing off a diff for review.
+description: Use when preparing any commit or handing a changed diff to a reviewer.
 ---
 
 # Git Workflow and Versioning Skill

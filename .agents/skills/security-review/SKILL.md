@@ -1,6 +1,6 @@
 ---
 name: security-review
-description: Use for authentication, authorization, secrets, sensitive data, input validation, dependency risk, and trust-boundary review.
+description: Use when a change touches authentication, authorization, secrets, sensitive data, input validation, dependencies, or trust boundaries.
 ---
 
 # security-review

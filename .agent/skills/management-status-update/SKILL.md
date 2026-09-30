@@ -1,6 +1,6 @@
 ---
 name: management-status-update
-description: Draft Thai-first, evidence-backed Boss, Leadership, team, and defect status updates for GitHub, Slack, standup, email, or meetings. Use for communication drafts only; do not use to replace formal engineering artifacts or post externally.
+description: Use when drafting a Thai-first Boss, leadership, team, or defect status update from engineering evidence.
 ---
 
 # Management Status Update

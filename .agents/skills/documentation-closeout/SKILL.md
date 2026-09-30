@@ -1,6 +1,6 @@
 ---
 name: documentation-closeout
-description: Post-merge documentation closeout — update project state, create closeout PR, remove post-merge-closeout labels.
+description: Use when a merged PR has the post-merge-closeout label and a passing default-branch audit.
 ---
 
 # Documentation Closeout

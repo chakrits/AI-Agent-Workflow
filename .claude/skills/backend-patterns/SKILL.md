@@ -1,6 +1,6 @@
 ---
 name: backend-patterns
-description: Backend architecture patterns for repository/service layering, N+1 query prevention, caching, background jobs, and structured logging — for Django/DRF (this repo's default stack) or Node.js/Next.js API routes with Supabase/Redis (a future target app's stack). Distinct from api-security-patterns (authN/authZ) and performance-testing (rate-limit verification), which this skill cross-references rather than duplicates.
+description: Use when implementing or reviewing service/repository layers, data access, N+1 queries, caching, or background jobs.
 ---
 
 # backend-patterns

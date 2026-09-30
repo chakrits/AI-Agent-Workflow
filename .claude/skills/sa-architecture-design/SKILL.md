@@ -1,6 +1,6 @@
 ---
 name: sa-architecture-design
-description: Use for software architecture, API contracts, data design, integration flow, NFRs, and ADRs.
+description: Use when a defined requirement needs software architecture, API contract, data design, NFR, integration flow, or ADR.
 ---
 
 # sa-architecture-design

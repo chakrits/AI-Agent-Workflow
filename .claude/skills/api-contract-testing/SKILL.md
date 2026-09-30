@@ -1,6 +1,6 @@
 ---
 name: api-contract-testing
-description: Validate REST API implementations against SA Agent's OpenAPI schema (request/response compliance, error format, pagination, versioning, auth). Use when SA Agent has published a machine-readable API contract and Developer Agent's implementation needs contract verification before QA sign-off.
+description: Use when an implemented REST endpoint needs validation against a published OpenAPI schema before QA sign-off.
 ---
 
 # api-contract-testing

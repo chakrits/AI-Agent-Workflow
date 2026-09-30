@@ -1,6 +1,6 @@
 ---
 name: static-logic-review
-description: Review changed production logic by dry-running source-level input/output traces against an approved requirement, acceptance criterion, specification, or API contract. QA-owned; not a runtime test or universal PR gate.
+description: Use when changed production decision logic has an approved requirement or contract for QA source-level trace review.
 ---
 
 # Static Logic Review Skill

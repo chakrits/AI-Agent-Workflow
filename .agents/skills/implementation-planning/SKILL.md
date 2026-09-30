@@ -1,6 +1,6 @@
 ---
 name: implementation-planning
-description: Use this skill after requirements and technical direction are clear, before implementation starts. It converts approved requirements, SDD/TDD, API contracts, or bug-fix decisions into small executable tasks with file targets, test strategy, verification commands, rollback notes, risks, and handoff checkpoints. Do not use for vague requirements or active debugging.
+description: Use when approved requirements or a known bug fix need an executable plan before non-trivial implementation.
 ---
 
 # Implementation Planning Skill

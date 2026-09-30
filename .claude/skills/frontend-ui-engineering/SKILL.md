@@ -1,6 +1,6 @@
 ---
 name: frontend-ui-engineering
-description: Use when building or changing user-facing interfaces, pages, components, responsive layouts, or visual/UX behavior. Produces accessible, maintainable UI that follows the host project's design system; do not use for backend-only changes.
+description: Use when building or changing user-facing UI, interaction states, responsive behavior, or accessibility.
 ---
 
 # Frontend UI Engineering

@@ -1,6 +1,6 @@
 ---
 name: api-observability-monitoring
-description: Design health-check endpoints, SLA/SLO/SLI targets, and API-specific structured logging/alerting for a service. Distinct from performance-testing, which measures a system against these targets under load rather than defining what the targets and log fields should be.
+description: Use when defining API health checks, SLA/SLO/SLI targets, request logging, or alerts for a service or endpoint tier.
 ---
 
 # api-observability-monitoring

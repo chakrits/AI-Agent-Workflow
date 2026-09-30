@@ -1,6 +1,6 @@
 ---
 name: api-integration-patterns
-description: Design webhook, event-driven, and API-chaining integration patterns between services or apps that call each other's APIs — inbound signature verification, outbound retry/idempotency, correlation-ID propagation, and dead-letter handling for failed async events.
+description: Use when services call each other's APIs or exchange webhooks or async events that need integration design.
 ---
 
 # api-integration-patterns

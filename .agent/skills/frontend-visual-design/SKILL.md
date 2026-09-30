@@ -1,6 +1,6 @@
 ---
 name: frontend-visual-design
-description: Aesthetic direction for a new UI or a visual reshape — palette, typography, layout, motion, and copywriting voice that reads as a deliberate choice for this specific product rather than a generic AI-default look. Distinct from frontend-ui-engineering (accessibility/responsive delivery) and frontend-react-patterns (component architecture) — this skill governs how the result should look and read, not how it's built.
+description: Use when a new or templated UI needs a deliberate visual identity and the design brief leaves aesthetic direction open.
 ---
 
 # frontend-visual-design

@@ -1,6 +1,6 @@
 ---
 name: verification-before-completion
-description: Use this skill before saying work is done, fixed, ready for QA, ready for review, or ready for release. It forces evidence-based completion: commands run, tests passed, artifacts updated, risks stated, and validation scope made explicit. Do not use to perform the implementation itself.
+description: Use when about to claim work done, fixed, verified, or ready for QA, review, or release.
 ---
 
 # Verification Before Completion Skill

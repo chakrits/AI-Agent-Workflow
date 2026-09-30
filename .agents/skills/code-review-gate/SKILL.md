@@ -1,6 +1,6 @@
 ---
 name: code-review-gate
-description: Use this skill when code changes are ready for engineering review, especially after implementation and before QA/release. It produces a review request, review checklist, risk-focused review scope, and required fixes. Do not use for business requirement review or test-case design.
+description: Use when changed code is ready for engineering review before QA, PR submission, merge, or release.
 ---
 
 # Code Review Gate Skill
