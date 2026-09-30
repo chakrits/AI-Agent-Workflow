@@ -92,7 +92,7 @@ test('SEC-008: unlock fails closed when admission-lock directory sync fails afte
 
 test('CR-006: v1 backfill is idempotent, generation-bound and byte-restorable', () => {
   const root = tempRoot(); const dir = path.join(root, 'docs/records/work-items/issue-249'); fs.mkdirSync(dir, { recursive: true });
-  const original = fs.readFileSync('docs/records/work-items/issue-249/task-state.json.v1-backup', 'utf8'); const file = path.join(dir, 'task-state.json'); fs.writeFileSync(file, original);
+  const original = fs.readFileSync('docs/records/work-items/archive/issue-249/task-state.json.v1-backup', 'utf8'); const file = path.join(dir, 'task-state.json'); fs.writeFileSync(file, original);
   const first = backfillTaskStateV2(file); assert.equal(first.changed, true); assert.equal(JSON.parse(fs.readFileSync(file, 'utf8')).contract_version, 2); assert.equal(readGeneration(root, 'task', 'issue-249'), 1);
   assert.equal(backfillTaskStateV2(file).changed, false); backfillTaskStateV2(file, { rollback: true }); assert.equal(fs.readFileSync(file, 'utf8'), original);
 });
