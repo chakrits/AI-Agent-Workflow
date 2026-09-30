@@ -36,6 +36,16 @@
 | IMP-001 | Add a failing workflow contract assertion for Node/dependency setup before the trusted script | Developer Agent | `test/validate-project-state.test.mjs` | Focused test fails on baseline because setup/install steps are absent |
 | IMP-002 | Add Node 22 setup and `npm ci --ignore-scripts` to the trusted readiness workflow | Developer Agent | `.github/workflows/work-item-readiness-refresh.yml` | Focused test passes; script import now resolves locked `yaml` and `ajv` |
 | IMP-003 | Run focused and repository validators, full suite, and hosted PR checks; independently review the patch | QA Agent / Reviewer | Changed files and Issue #290 evidence | Local checks and all PR #291 checks except the required readiness context passed; independent review approved with comments and QA returned Conditional Pass. The required check still runs old `main` and reports the original dependency error; post-activation validation and PR #289 re-evaluation remain required. |
+| IMP-004 | Resolve minor final-review findings and re-review the fix | Developer / Independent Reviewer | Workflow contract test and human activation handoff | Complete in commit `1e0907bbeb8bb0400c8e3adec02e5a7ed768564e`; scoped re-review confirmed both findings fixed with no new breakage. Focused and full test suites pass. |
+
+## Task 4 — Address final branch review findings
+
+1. Update the workflow `run:` extraction regex in `test/validate-project-state.test.mjs` to also recognize valid YAML sequence shorthand (`- run:`), and add a focused assertion/fixture proving that shorthand is detected.
+2. Correct the human activation handoff question to refer to PR #291, not PR #290.
+
+Verify with the focused test file and `git diff --check`. Do not change checks, rulesets, PR state, or activation decisions.
+
+Outcome: **Complete**. The allowlist now recognizes both `run:` and `- run:` and the test asserts the shorthand case. The activation question names PR #291. Fix commit `1e0907bbeb8bb0400c8e3adec02e5a7ed768564e`; scoped re-review approved with no new findings.
 
 ## 5. Test Strategy
 

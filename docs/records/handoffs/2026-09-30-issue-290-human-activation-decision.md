@@ -112,7 +112,7 @@ Issue #290: https://github.com/chakrits/AI-Agent-Workflow/issues/290
 
 ## Reviewed Candidate SHA
 
-`13cc90e9ef6bf390e1312762fe26d61cb179df2f` (PR #291 head; implementation commit `622fc6f8cb7408011873e7679182e82e0fae5492`).
+`1e0907bbeb8bb0400c8e3adec02e5a7ed768564e` (reviewed PR #291 candidate after final-review findings were fixed; implementation commit `622fc6f8cb7408011873e7679182e82e0fae5492`).
 
 ## Handoff Record Commit SHA
 
@@ -134,7 +134,7 @@ https://github.com/chakrits/AI-Agent-Workflow/issues/290#issuecomment-5906794886
 
 - AC-03 cannot be fully verified until the fix is active on the default branch.
 - PR #291 remains Draft and merge-blocked by the required readiness check.
-- The test-quality review noted that the workflow contract assertions inspect YAML text rather than parse YAML semantically; no current defect was found.
+- The workflow contract assertion remains text-based rather than a full YAML semantic parse; final review's concrete `- run:` shorthand gap was fixed and covered by a focused assertion.
 
 ## Open Questions
 

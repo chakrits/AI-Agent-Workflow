@@ -46,3 +46,7 @@ git diff --check
 | Item | Owner | Tracking | Evidence |
 |---|---|---|---|
 | Run hosted readiness verification after default-branch activation and re-evaluate PR #289 | Human Maintainer / QA Agent | Issue #290 AC-03 | Record the exact GitHub check result and PR #289 readiness result |
+
+## Scoped Re-review — 2026-09-30
+
+The final branch review's two Minor findings were fixed in `1e0907bbeb8bb0400c8e3adec02e5a7ed768564e` and independently re-reviewed against base `3a80bb851c3b40db21f9df5bb491b125e0452151`. The reviewer confirmed the `- run:` shorthand is recognized and asserted, the handoff names PR #291, and no new breakage or out-of-scope change was introduced. Decision: **APPROVED** for the scoped fix. This does not change the original hosted AC-03 limitation or authorize a required-check bypass.
