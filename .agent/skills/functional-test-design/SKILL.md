@@ -1,6 +1,6 @@
 ---
 name: functional-test-design
-description: Use when requirements need functional test cases, boundary/negative coverage, or traceability before browser automation.
+description: Use when requirements need functional test-case design, boundary/negative coverage, or traceability, without implementing automation.
 ---
 
 # Functional Test Design Skill

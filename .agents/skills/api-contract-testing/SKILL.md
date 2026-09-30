@@ -1,6 +1,6 @@
 ---
 name: api-contract-testing
-description: Use when a published OpenAPI schema needs validation against an implemented REST endpoint before QA sign-off.
+description: Use when an implemented REST endpoint needs validation against a published OpenAPI schema before QA sign-off.
 ---
 
 # api-contract-testing
