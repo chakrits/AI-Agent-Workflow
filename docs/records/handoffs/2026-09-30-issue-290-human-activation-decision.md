@@ -138,7 +138,7 @@ https://github.com/chakrits/AI-Agent-Workflow/issues/290#issuecomment-5906794886
 
 ## Open Questions
 
-Will the Human Maintainer approve temporarily disabling only `work-item-readiness-freshness` until PR #290 is merged and verified, or prefer another permitted activation mechanism? All other checks remain green. This choice is a human approval gate; the agent has not changed any check.
+Will the Human Maintainer approve temporarily disabling only `work-item-readiness-freshness` until PR #291 is merged and verified, or prefer another permitted activation mechanism? All other checks remain green. This choice is a human approval gate; the agent has not changed any check.
 
 ## QA / Review Focus
 

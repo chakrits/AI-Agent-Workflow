@@ -138,7 +138,11 @@ test('GitHub re-evaluates readiness after linked Issue lifecycle-label changes',
   assert.doesNotMatch(workflow, /context\.payload\.pull_request\s*\?/);
   assert.doesNotMatch(workflow, /workflow_run/);
   assert.doesNotMatch(workflow, /pulls\.update/);
-  const runSteps = [...workflow.matchAll(/^\s+run:\s*(.+)$/gm)].map(([, command]) => command.trim());
+  const runStepPattern = /^\s*-?\s*run:\s*(.+)$/gm;
+  const shorthandRunSteps = [...'- run: npm ci --ignore-scripts\n'.matchAll(runStepPattern)]
+    .map(([, command]) => command.trim());
+  assert.deepEqual(shorthandRunSteps, ['npm ci --ignore-scripts']);
+  const runSteps = [...workflow.matchAll(runStepPattern)].map(([, command]) => command.trim());
   assert.deepEqual(runSteps, ['npm ci --ignore-scripts']);
   assert.doesNotMatch(workflow, /statuses:\s*write/);
   assert.doesNotMatch(workflow, /\$\{context\.payload\.label\.name\}/);
