@@ -74,7 +74,7 @@ None. GitHub check output confirms the required check still runs trusted default
 - Independent review: `docs/records/qa/2026-09-30-issue-290-code-review.md` (`APPROVED_WITH_COMMENTS`).
 - Independent QA: `docs/records/qa/2026-09-30-issue-290-qa.md` (`CONDITIONAL_PASS`).
 - Issue #290 and Draft PR #291.
-- Task state: `docs/records/work-items/issue-290/task-state.json`.
+- Task state: `docs/records/work-items/archive/issue-290/task-state.json` (completed and archived after post-activation QA).
 
 ## Files Changed
 

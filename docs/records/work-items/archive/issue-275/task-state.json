@@ -1,0 +1,85 @@
+{
+  "task_id": "issue-275",
+  "workflow_id": "bug-fix",
+  "contract_version": 2,
+  "change_type": "bug-fix",
+  "risk_level": "medium",
+  "state": "completed",
+  "rework_count": 0,
+  "max_rework_attempts": 2,
+  "history": [
+    {
+      "from": "intake",
+      "to": "investigating",
+      "at": "2026-09-11",
+      "actor": "Developer Agent",
+      "evidence_refs": [
+        "failure_description",
+        "repro"
+      ]
+    },
+    {
+      "from": "investigating",
+      "to": "implementing",
+      "at": "2026-09-11",
+      "actor": "Developer Agent",
+      "evidence_refs": [
+        "fail_path",
+        "hypothesis_matrix"
+      ]
+    },
+    {
+      "from": "implementing",
+      "to": "verifying",
+      "at": "2026-09-11",
+      "actor": "Developer Agent",
+      "evidence_refs": [
+        "changed_files",
+        "validation_plan"
+      ]
+    },
+    {
+      "from": "verifying",
+      "to": "handoff",
+      "at": "2026-09-30T15:23:29.663Z",
+      "actor": "qa-agent",
+      "evidence_refs": [
+        "original_repro_result",
+        "verification_result"
+      ]
+    },
+    {
+      "from": "handoff",
+      "to": "completed",
+      "at": "2026-09-30T16:00:08.892Z",
+      "actor": "orchestrator",
+      "evidence_refs": [
+        "closeout_evidence"
+      ]
+    }
+  ],
+  "evidence": {
+    "failure_description": "publish-current-readiness fails in GitHub Actions because node_modules does not exist on default-branch checkout",
+    "repro": "GitHub Actions run 34623255592: Cannot find package 'ajv' imported from scripts/work-item-readiness.mjs",
+    "fail_path": "work-item-readiness.mjs statically imported ajv and yaml at module evaluation time",
+    "hypothesis_matrix": "Using lazy loader for ajv and yaml allows work-item-readiness.mjs to be imported in environments without node_modules",
+    "changed_files": [
+      "scripts/work-item-readiness.mjs"
+    ],
+    "validation_plan": "docs/records/qa/2026-09-11-issue-275-readiness-refresh-dependencies-code-review.md",
+    "original_repro_result": {
+      "result": "PASS",
+      "evidence": "docs/records/qa/2026-09-30-issue-275-lifecycle-reconciliation-qa.md; exact origin/main 4f3210c4df444dd7f7edf8b485c4cbc450295cf4; isolated import without node_modules passed"
+    },
+    "verification_result": {
+      "result": "PASS",
+      "evidence": "docs/records/qa/2026-09-30-issue-275-lifecycle-reconciliation-qa.md; focused tests 58/58 passed; PR #292 hosted publish-current-readiness runs 36730921891 and 36731026911 succeeded; original PR #276 failure noted as superseded"
+    },
+    "closeout_evidence": "Issue #275 closed; PR #276 merged as 37749ce30afaad2e0e818bf6a; current-main readiness workflow and lazy import verified in docs/records/qa/2026-09-30-issue-275-lifecycle-reconciliation-qa.md (58/58 focused tests, isolated import PASS, PR #292 hosted readiness SUCCESS)."
+  },
+  "next_route": "completed",
+  "stop_reason": null,
+  "policy_contract_version": 1,
+  "sequence_number": 6,
+  "state_digest": "355be014e7587094a7e90b95aae84111d441871a953bcc97f76dfb1bcc8385a9"
+}
