@@ -20,7 +20,7 @@
 - Issue #283 is at local `phase:verification` with Draft PR #289. Independent review approved with non-blocking minors; QA is Conditional Pass; no Critical/Major findings. The required readiness workflow repair merged via PR #291 and readiness protection is active; PR #289's hosted checks must rerun on the updated base. Do not claim `status:verification-done` or `phase:human-review` until hosted CI/readiness pass. SEC-004 remains deferred and is not a security-complete claim.
 
 ## Change Classification
-- Bug Fix in GitHub Actions; low risk. No readiness policy, GitHub permission, secret, or untrusted-code execution change is in scope.
+- Issue #283 is a framework/meta change with medium risk. The separate Issue #290 GitHub Actions repair merged via PR #291.
 
 ## Completed
 - Issue #282 — **merged via PR #287** (merge commit `cd0a3267c03f24b86fa637cbf10da04b46720d75`). Added the safe-assumption boundary, four-field completion contract, proportional verification guidance, lifecycle-only state updates, and positive/negative policy contract coverage. Independent code review and QA passed AC-01–AC-05; full CI passed. QA evidence: https://github.com/chakrits/AI-Agent-Workflow/issues/282#issuecomment-5858035937. Post-merge documentation closeout is tracked separately.
