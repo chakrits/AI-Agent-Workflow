@@ -6,7 +6,7 @@
 | Feature / Module | Linked work-item readiness check |
 | Owner | Orchestrator with independent QA |
 | Started | 2026-09-30 |
-| Current Status | Root cause confirmed; evidence synchronization in progress |
+| Current Status | Resolved on Draft; final Ready-for-review check pending after status-only update |
 
 ## Symptom
 
@@ -37,7 +37,7 @@
 | Failing function / module | `scripts/work-item-readiness.mjs`, lifecycle validator. |
 | Relevant branch / condition | For non-Draft PRs, the validator requires both `status:verification-done` and a QA evidence URL; Draft PRs do not require the verification milestone. |
 | Relevant config / data | PR `draft` state changed from true to false; linked Issue #283 lacked the milestone. The previously committed QA report and Work Item still described the pre-rebase candidate and pending hosted checks. |
-| Last known good state | On the same pushed PR head while Draft, readiness-freshness passed and `publish-current-readiness` passed. |
+| Last known good state | On PR head `2da816e`, after evidence synchronization and Issue transition, readiness-freshness and `publish-current-readiness` both passed while Draft. |
 | First bad state | The `ready_for_review` event created failed check run `109910546459`; `publish-current-readiness` itself completed successfully. |
 
 ## Hypothesis Matrix
@@ -59,11 +59,11 @@
 
 - Confirmed root cause: The Ready-for-review event activated the validator's non-Draft rule, but Issue #283 had not yet received the QA-owned `status:verification-done` milestone. The evidence records also needed post-rebase synchronization before that label could be truthful.
 - Confidence: High.
-- Remaining uncertainty: The readiness check must be rerun after synchronized evidence and lifecycle labels are published.
+- Remaining uncertainty: The freshness check must be observed after the Ready-for-review event on the final status-record commit.
 
 ## Fix Direction
 
-- Proposed fix: No validator or workflow code change. Synchronize the exact-rebase QA/review evidence with the Work Item and PR, then QA may set `status:verification-done` and advance the Issue to `phase:human-review`; let the issue-label event re-evaluate all open PRs.
+- Proposed fix: No validator or workflow code change. Synchronize the exact-rebase QA/review evidence with the Work Item and PR, then apply `status:verification-done` and advance the Issue to `phase:human-review`; the issue-label event re-evaluated the PR successfully.
 - Why it addresses root cause: It satisfies the existing lifecycle contract and keeps the readiness check fail-closed.
-- Risks: Incorrectly applying the milestone before synchronized evidence would misstate QA completion. PR remains Draft until the artifact synchronization is visible.
-- Validation plan: Confirm evidence URLs and exact candidate are synchronized; verify Issue has exactly one phase plus `status:verification-done`; confirm `work-item-readiness-freshness` passes on current PR head after the label event.
+- Risks: Incorrectly applying the milestone before synchronized evidence would misstate QA completion. No such bypass occurred.
+- Validation plan: Confirm Issue has exactly one phase plus `status:verification-done`; readiness passed on Draft head `2da816e`; rerun after final status update and Ready-for-review event.

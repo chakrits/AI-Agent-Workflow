@@ -1,7 +1,7 @@
 # PROJECT_STATUS.md
 
 ## Current Work Item
-- Issue #283 — Astra skill metadata/catalog rationalization; rebased PR #289 is Draft on the main branch that includes PR #291. Independent QA now passes AC-01–AC-06; local suite and validators pass, and hosted CI/readiness publication passed on the pre-evidence-sync head. A Ready-for-review freshness run correctly required `status:verification-done`; QA/work-item evidence synchronization is being committed before the lifecycle milestone is applied. Keep the Issue at `phase:verification` until that evidence is visible. SEC-004 runtime evidence for Issue #277 remains explicitly `DEFERRED_BY_HUMAN` under ADR-0033.
+- Issue #283 — Astra skill metadata/catalog rationalization; independent QA passed AC-01–AC-06 and synchronized evidence is recorded in the Work Item, QA report, PR body, and Issue comment. Issue #283 is now at `phase:human-review` with `status:verification-done`; the required freshness check passed on PR #289 head `2da816e`. PR #289 remains Draft while project-state evidence is updated, then will be marked Ready for review and checked again. SEC-004 runtime evidence for Issue #277 remains explicitly `DEFERRED_BY_HUMAN` under ADR-0033.
 
 ## Active Work Items
 <!-- active-work-items-table-start -->
@@ -17,7 +17,7 @@
 - Issue #280 — GPT-6 Astra instruction, skill, and autonomy modernization — #281 is complete through PR #285; #282 is complete through PR #287; #283 is in Draft PR #289 and awaits fresh hosted evidence; #284 remains planned independently. Parent SDD and ADR-0034 are Human-approved. Issue #290 is a separate CI defect repair and does not change the modernization scope.
 
 ## Current Stage
-- Issue #283 remains at `phase:verification` with Draft PR #289 while post-rebase QA evidence is synchronized. Independent review approved with non-blocking minors; QA verified AC-01–AC-06 Pass. PR #291 merged and readiness protection is active. The initial ready transition showed that the linked Issue must first carry the QA-owned `status:verification-done`; see `docs/records/qa/2026-09-30-issue-283-readiness-transition-debug-ledger.md`. Do not advance the lifecycle until the QA report, Work Item, and PR evidence are synchronized and the check reruns. SEC-004 remains deferred and is not a security-complete claim.
+- Issue #283 is at `phase:human-review` with `status:verification-done`; Draft PR #289's hosted readiness and CI checks passed on head `2da816e` after evidence synchronization. Independent review is approved with non-blocking minors; QA verified AC-01–AC-06 Pass. PR #291 merged and readiness protection remains active. The Ready-for-review event is the last hosted check to rerun after the status-only project-state update. SEC-004 remains deferred and is not a security-complete claim.
 
 ## Change Classification
 - Issue #283 is a framework/meta change with medium risk. The separate Issue #290 GitHub Actions repair merged via PR #291.
