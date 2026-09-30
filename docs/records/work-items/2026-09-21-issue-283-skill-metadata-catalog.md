@@ -16,7 +16,7 @@
 - Original implementation candidate (historical, before rebase): `0a51086cda66ccab3311c25ba8cfde504a7af50d`. Rebased PR candidate was independently tested at `449d245d0c15e08e287ffc74bcc60d39f18e3cc5` on main `4762249d71f467b16a4fb4f77884352cb5a7a605`; hosted checks were run at PR head `88b0acf33adfcfe9008ef0e452c75c6e2a4d47b2` before this evidence synchronization commit.
 - Implementation evidence: `docs/records/qa/2026-09-30-issue-283-implementation-verification.md`
 - Independent QA: AC-01–AC-06 Pass; lifecycle milestone awaits synchronized evidence — `docs/records/qa/2026-09-30-issue-283-qa-verification.md`
-- PR: #289 (Draft pending final Ready-for-review recheck) — https://github.com/chakrits/AI-Agent-Workflow/pull/289
+- PR: Ready for review #289 — https://github.com/chakrits/AI-Agent-Workflow/pull/289
 - Independent code review: Approved with non-blocking comments — `docs/records/qa/2026-09-30-issue-283-code-review.md`
 - Readiness transition diagnosis: `docs/records/qa/2026-09-30-issue-283-readiness-transition-debug-ledger.md`
 
@@ -26,7 +26,7 @@
 - Preserve all portable mirrors and their parity checks.
 
 ## Status
-Implementation and independent QA are complete for AC-01–AC-06. Independent code review approved with non-blocking minor observations. The QA report, Work Item matrix, PR body, and Issue comment now point to synchronized post-rebase evidence. Issue #283 has `status:verification-done` and is at `phase:human-review`. Hosted CI and readiness freshness passed on Draft PR head `2da816e`. PR #289 remains Draft only while this final project-state record is committed; its Ready-for-review event and resulting freshness run remain to be rechecked. The PR review-gate check's structured review record is included here. Issue #284's model-behavior evaluation remains separate and out of scope.
+Implementation and independent QA are complete for AC-01–AC-06. Independent code review approved with non-blocking minor observations. The QA report, Work Item matrix, PR body, and Issue comment point to synchronized post-rebase evidence. Issue #283 has `status:verification-done` and is at `phase:human-review`. PR #289 is Ready for review, mergeable, and hosted CI/readiness passed after the Ready event on head `9a4b54b`. Human review and merge approval remain pending. The PR review-gate check's structured review record is included here. Issue #284's model-behavior evaluation remains separate and out of scope.
 
 ## Acceptance Traceability Matrix
 
@@ -51,5 +51,5 @@ Implementation and independent QA are complete for AC-01–AC-06. Independent co
 ## Residual Risks and Next Action
 
 - Non-blocking review observations are documented in the code-review record and remain follow-up candidates, not acceptance blockers.
-- The Ready-for-review event and freshness result after the current status-only update remain to be verified.
-- Next owner: Human Maintainer — review PR #289; merge approval remains explicit and separate from QA acceptance.
+- No implementation or readiness blocker remains for Issue #283. The Ready-for-review event and all checks passed; non-blocking review observations are recorded.
+- Next owner: Human Maintainer — review PR #289 and decide merge; merge approval remains explicit and separate from QA acceptance.
