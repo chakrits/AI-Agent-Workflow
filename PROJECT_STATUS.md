@@ -1,7 +1,7 @@
 # PROJECT_STATUS.md
 
 ## Current Work Item
-- Issue #283 — Astra skill metadata/catalog rationalization; independent QA passed AC-01–AC-06 and synchronized evidence is recorded in the Work Item, QA report, PR body, and Issue comment. Issue #283 is at `phase:human-review` with `status:verification-done`. PR #289 is Ready for review, mergeable, and all hosted checks including `work-item-readiness-freshness` passed after the Ready event on head `9a4b54b`. SEC-004 runtime evidence for Issue #277 remains explicitly `DEFERRED_BY_HUMAN` under ADR-0033.
+- No active work item. Issue #283 — Astra skill metadata/catalog rationalization — completed via PR #289 (`8cc2705`). Issue #284 remains planned independently. SEC-004 runtime evidence for Issue #277 remains explicitly `DEFERRED_BY_HUMAN` under ADR-0033.
 
 ## Active Work Items
 <!-- active-work-items-table-start -->
@@ -14,15 +14,16 @@
 <!-- active-work-items-table-end -->
 
 ## Planned Framework Work
-- Issue #280 — GPT-6 Astra instruction, skill, and autonomy modernization — #281 is complete through PR #285; #282 is complete through PR #287; #283 is in Draft PR #289 and awaits fresh hosted evidence; #284 remains planned independently. Parent SDD and ADR-0034 are Human-approved. Issue #290 is a separate CI defect repair and does not change the modernization scope.
+- Issue #280 — GPT-6 Astra instruction, skill, and autonomy modernization — #281 is complete through PR #285; #282 is complete through PR #287; #283 is complete through PR #289; #284 remains planned independently. Parent SDD and ADR-0034 are Human-approved. Issue #290 is a separate CI defect repair and does not change the modernization scope.
 
 ## Current Stage
-- Issue #283 is at `phase:human-review` with `status:verification-done`; PR #289 is Ready for review and its hosted readiness and CI checks passed after the Ready event on head `9a4b54b`. Independent review is approved with non-blocking minors; QA verified AC-01–AC-06 Pass. PR #291 merged and readiness protection remains active. Human review/merge is the next gate. SEC-004 remains deferred and is not a security-complete claim.
+- Issue #283 completed via PR #289 (`8cc2705`); independent review and QA passed AC-01–AC-06, and hosted readiness and CI checks passed. PR #291 also merged and readiness protection remains active. Issue #284 is the next planned modernization item. SEC-004 remains deferred and is not a security-complete claim.
 
 ## Change Classification
 - Issue #283 is a framework/meta change with medium risk. The separate Issue #290 GitHub Actions repair merged via PR #291.
 
 ## Completed
+- Issue #283 — **merged via PR #289** (merge commit `8cc2705b1a4bc53a50a8b4ce82f775c4fbd44307`). Rationalized the 39 skill descriptions and catalog domains, added derived inventory validation, enforced it in GitHub Actions and GitLab CI, and preserved mirror parity. Independent QA passed AC-01–AC-06; hosted default-branch audit passed. QA evidence: https://github.com/chakrits/AI-Agent-Workflow/issues/283#issuecomment-5912691239. Post-merge documentation closeout is tracked separately.
 - Issue #282 — **merged via PR #287** (merge commit `cd0a3267c03f24b86fa637cbf10da04b46720d75`). Added the safe-assumption boundary, four-field completion contract, proportional verification guidance, lifecycle-only state updates, and positive/negative policy contract coverage. Independent code review and QA passed AC-01–AC-05; full CI passed. QA evidence: https://github.com/chakrits/AI-Agent-Workflow/issues/282#issuecomment-5858035937. Post-merge documentation closeout is tracked separately.
 - Issue #281 — **merged via PR #285** (merge commit `a0d71ef`). Core Bootloader is the authoritative SHA-pinned Tier 1 source after `AGENTS.md`; the source matrix enforces the exact two-source boot contract, the Tier 1 budget is enforced at 2,500 approximate tokens (current 1,590), and bootloader edits require both repinning and budget validation. Independent re-review and QA acceptance passed; evidence: https://github.com/chakrits/AI-Agent-Workflow/issues/281#issuecomment-5758803434.
 - Issue #277 — Package 1 **merged via PR #278** (merge commit `5a676b1`). SEC-008 passed Developer, Independent Code Review, QA Full Mode, and Security re-review. SEC-004 runtime evidence was explicitly accepted as `DEFERRED_BY_HUMAN` under ADR-0033; separate-process TC-040/TC-047 crash/restart evidence and a complete mutation ledger remain future work. Evidence: PR #278 and closeout records through `d98a215`.
