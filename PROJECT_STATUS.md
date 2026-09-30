@@ -1,23 +1,23 @@
 # PROJECT_STATUS.md
 
 ## Current Work Item
-- Issue #290 — Bug Fix for the required work-item readiness check. Root cause confirmed: the trusted default-branch workflow imported the validator without installing locked `yaml`/`ajv` dependencies. Implementation adds pinned Node 22 setup and `npm ci --ignore-scripts`; focused test 9/9, full suite 794/794, and local workflow validators passed. Independent review approved candidate `622fc6f`; independent QA is Conditional Pass: AC-01/02 pass, AC-03 hosted integration remains pending default-branch activation. Preparing the Draft PR and hosted readiness check; the fix PR may remain blocked by the old required App check until a human-approved merge path is decided. SEC-004 runtime evidence for Issue #277 remains explicitly `DEFERRED_BY_HUMAN` under ADR-0033.
+- Issue #290 — Draft PR #291 is open from `codex/issue-290-readiness-dependencies`. Implementation adds pinned Node 22 and `npm ci --ignore-scripts` before the trusted validator import; focused test 9/9, full suite 794/794, and local validators pass. Independent review approved candidate `622fc6f`; QA is Conditional Pass (AC-01/02 pass). GitHub CI is green except required `work-item-readiness-freshness`, which still reports `YAML parser dependency unavailable` because `pull_request_target` executes the old workflow from `main`. AC-03 remains pending. Human Maintainer decision is required on the allowed activation/merge path; no check or ruleset has been changed. SEC-004 runtime evidence for Issue #277 remains explicitly `DEFERRED_BY_HUMAN` under ADR-0033.
 
 ## Active Work Items
 <!-- active-work-items-table-start -->
-<!-- projection-digest: 4f768af3ce7f06a1e1fe8896f77c838103c6639eada102ab7b39f7a8eb3c2b24 -->
+<!-- projection-digest: 24821fbf6259b1d3f8ab7351b331b738f007a557db3fa754af3c4065eab5eefb -->
 | Issue ID | Workflow | Current State | Next Route / Owner | Updated At |
 |---|---|---|---|---|
 | issue-249 | bug-fix | verifying | qa-agent | 2026-09-09 |
 | issue-275 | bug-fix | verifying | qa-agent | 2026-09-11 |
-| issue-290 | bug-fix | verifying | qa-agent | 2026-09-30T07:17:30.064Z |
+| issue-290 | bug-fix | handoff | human-maintainer | 2026-09-30T08:02:53.025Z |
 <!-- active-work-items-table-end -->
 
 ## Planned Framework Work
 - Issue #280 — GPT-6 Astra instruction, skill, and autonomy modernization — #281 is complete through PR #285; #282 is complete through PR #287; #283–#284 remain planned independently. Parent SDD and ADR-0034 are Human-approved. Issue #290 is a separate CI defect repair and does not change the modernization scope.
 
 ## Current Stage
-- Issue #290 is at `phase:verification` / bug-fix state `verifying`. Baseline reproduction, source trace, hypothesis matrix, and plan are recorded in the Issue #290 artifacts. Focused test (9/9), full suite (794/794), and local workflow validators pass; independent review approved candidate `622fc6f`. QA is Conditional Pass: AC-01/02 pass, while AC-03's hosted workflow and PR #289 re-evaluation await default-branch activation. Draft PR preparation and hosted readiness inspection are next. No required-check bypass is authorized. SEC-004 remains deferred and is not a security-complete claim.
+- Issue #290 remains at `phase:verification` because QA is conditional; bug-fix task state is `handoff` with next route `human-maintainer`. PR #291 is Draft. All observed GitHub checks passed except required `work-item-readiness-freshness`, whose summary repeats `YAML parser dependency unavailable` on trusted `main`. AC-03 and PR #289 re-evaluation require approved default-branch activation. No check or ruleset change is authorized yet. SEC-004 remains deferred and is not a security-complete claim.
 
 ## Change Classification
 - Bug Fix in GitHub Actions; low risk. No readiness policy, GitHub permission, secret, or untrusted-code execution change is in scope.

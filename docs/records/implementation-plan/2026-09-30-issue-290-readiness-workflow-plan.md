@@ -35,7 +35,7 @@
 |---|---|---|---|---|
 | IMP-001 | Add a failing workflow contract assertion for Node/dependency setup before the trusted script | Developer Agent | `test/validate-project-state.test.mjs` | Focused test fails on baseline because setup/install steps are absent |
 | IMP-002 | Add Node 22 setup and `npm ci --ignore-scripts` to the trusted readiness workflow | Developer Agent | `.github/workflows/work-item-readiness-refresh.yml` | Focused test passes; script import now resolves locked `yaml` and `ajv` |
-| IMP-003 | Run focused and repository validators, full suite, and hosted PR checks; independently review the patch | QA Agent / Reviewer | Changed files and Issue #290 evidence | Explicit command and hosted check results; post-merge readiness re-evaluation on PR #289 remains required |
+| IMP-003 | Run focused and repository validators, full suite, and hosted PR checks; independently review the patch | QA Agent / Reviewer | Changed files and Issue #290 evidence | Local checks and all PR #291 checks except the required readiness context passed; independent review approved with comments and QA returned Conditional Pass. The required check still runs old `main` and reports the original dependency error; post-activation validation and PR #289 re-evaluation remain required. |
 
 ## 5. Test Strategy
 
@@ -68,7 +68,7 @@ Revert the isolated workflow/test commit if dependency setup causes a hosted run
 
 | Risk / Blocker | Impact | Mitigation / Next Action |
 |---|---|---|
-| `pull_request_target` workflow has a required App-owned check which evaluates only trusted `main` code | This fix's own PR cannot make that check pass before merge | Keep it Draft/blocked; request Human Maintainer decision on the repository's permitted merge/bypass path; do not bypass autonomously |
+| `pull_request_target` workflow has a required App-owned check which evaluates only trusted `main` code | PR #291's `work-item-readiness-freshness` check fails with `YAML parser dependency unavailable` because `main` has not received this repair | Keep PR #291 Draft; ask Human Maintainer to choose an allowed activation/merge path; do not bypass autonomously |
 | Dependency install executes lifecycle scripts | Untrusted-package execution risk | Use lockfile-backed `npm ci --ignore-scripts`; install only from the trusted default-branch checkout |
 
 ## 9. Handoff
@@ -86,7 +86,7 @@ Revert the isolated workflow/test commit if dependency setup causes a hosted run
 - Assumptions: GitHub App workflow continues to run trusted default-branch code and the package lock is authoritative.
 - Open Questions: Whether a human-approved bypass path is available for merging the required-check repair.
 - Next Recommended Agent: Independent Reviewer, then QA Agent
-- Quality Gate Status: Implementation complete; local verification passed; independent review and QA pending; hosted integration remains pending default-branch activation.
+- Quality Gate Status: Implementation complete; independent review approved with comments; QA Conditional Pass; hosted integration pending default-branch activation.
 - Task State: verifying
 - Contract Version: bug-fix workflow v1; task-state envelope v2
 - Rework Count: 0

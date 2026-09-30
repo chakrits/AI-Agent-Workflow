@@ -6,7 +6,7 @@
 | Feature / Module | `.github/workflows/work-item-readiness-refresh.yml` → `scripts/work-item-readiness-check.mjs` → `scripts/work-item-readiness.mjs` |
 | Owner | Orchestrator / Developer Agent |
 | Started | 2026-09-30 |
-| Current Status | Root cause confirmed; implementation and local verification complete; independent QA pending |
+| Current Status | Root cause confirmed; implementation complete; independent review approved; QA Conditional Pass; required hosted check still fails on old `main`; Human Maintainer activation decision pending |
 
 ## Symptom
 
@@ -55,6 +55,7 @@
 | RUN-001 | 2026-09-30 | `gh pr checks 289`; retrieve failed check summary via GitHub API | Required check failed identically after PR commits and body edit | Deterministic failure is on trusted default-branch workflow | Sandbox `gh` auth as cause; PR-specific body edits as cause | Trace source dependency loading |
 | RUN-002 | 2026-09-30 | Read `work-item-readiness-refresh.yml`, `work-item-readiness.mjs`, `package.json`, and `validate-contracts.yml` | Readiness workflow has no Node/dependency setup; parser is imported with `require`; package deps are only installed by other CI | Missing dependency installation | Invalid body as source of this exact error | Add contract test first, then minimal trusted install step |
 | RUN-003 | 2026-09-30 | Added the workflow contract test, ran it red on baseline; added trusted Node 22/npm setup, then ran `node --test test/validate-project-state.test.mjs` and `npm test` | Regression test failed before implementation for missing Node setup; then all focused tests passed 9/9 and full suite passed 794/794 | Missing dependency setup is the fix seam | Assertion syntax issue was corrected after a separate false failure (`run:` is a distinct YAML field under named steps) | Independent QA and review |
+| RUN-004 | 2026-09-30 | Opened Draft PR #291 and inspected `gh pr checks`; fetched required check-run output | Node/Python tests, both validate runs, documentation-impact, and `publish-current-readiness` passed; required `work-item-readiness-freshness` failed with `Linked Issue is missing: YAML parser dependency unavailable.` on trusted `main` | Bootstrap limitation is confirmed on the fix PR itself | No additional PR metadata or unrelated hosted-check failure was observed | Human activation/merge-path decision, then rerun hosted readiness and PR #289 |
 
 ## Current Conclusion
 

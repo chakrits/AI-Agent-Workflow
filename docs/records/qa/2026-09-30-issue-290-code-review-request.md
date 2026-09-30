@@ -6,7 +6,7 @@
 |---|---|
 | Work Item | Issue #290 — install dependencies for work-item readiness checks |
 | Change Type | Bug Fix — GitHub Actions workflow |
-| PR / Branch | `codex/issue-290-readiness-dependencies` (PR not opened yet) |
+| PR / Branch | Draft PR #291 / `codex/issue-290-readiness-dependencies` |
 | Owner | Developer Agent |
 
 ## 2. Intent
