@@ -242,7 +242,7 @@
         },
         {
           "path": "docs/operating-model/SKILL_CATALOG.md",
-          "sha256": "50caa8b95ffeb1cb463f7fb499c2c775a3c262be976def5afc23c9514498b36b"
+          "sha256": "2138d1f6a3d923845a523114989f546b9d4c25a06a75c7558aa6004be0d4b866"
         },
         {
           "path": "docs/workflow/dispatch-packet-contract.md",
@@ -250,7 +250,7 @@
         },
         {
           "path": ".agents/skills/dynamic-workflow/SKILL.md",
-          "sha256": "c363da3d9e314f6d03befda73fd69f03c103494f8ba54037f26cdc20be963562"
+          "sha256": "32813a42dec8495de398dee9dadc7136834af6c216803ecbe570c3dcd1215e7f"
         }
       ],
       "allowedTriggerReasons": [
@@ -291,7 +291,7 @@
         },
         {
           "path": "docs/operating-model/SKILL_CATALOG.md",
-          "sha256": "50caa8b95ffeb1cb463f7fb499c2c775a3c262be976def5afc23c9514498b36b"
+          "sha256": "2138d1f6a3d923845a523114989f546b9d4c25a06a75c7558aa6004be0d4b866"
         },
         {
           "path": "docs/contracts/new-feature-workflow.yaml",
@@ -299,7 +299,7 @@
         },
         {
           "path": ".agents/skills/requirement-brainstorming/SKILL.md",
-          "sha256": "33864ea567486999eaed95c8820c4a6c83c2572f740e87eb7362cb584c67227b"
+          "sha256": "2411a0c4dca819a5d3a747112d20434246c39c79b2b8a3890453d372e79a723e"
         }
       ],
       "allowedTriggerReasons": [
@@ -340,7 +340,7 @@
         },
         {
           "path": "docs/operating-model/SKILL_CATALOG.md",
-          "sha256": "50caa8b95ffeb1cb463f7fb499c2c775a3c262be976def5afc23c9514498b36b"
+          "sha256": "2138d1f6a3d923845a523114989f546b9d4c25a06a75c7558aa6004be0d4b866"
         },
         {
           "path": "docs/contracts/new-feature-workflow.yaml",
@@ -348,7 +348,7 @@
         },
         {
           "path": ".agents/skills/ba-requirement-analysis/SKILL.md",
-          "sha256": "9766e58f71b8d7ccabbda6a414921c26c461341032d2e277ae759fc3bf731624"
+          "sha256": "7bfceeae23835cb5b801d8654d6ccc23ee93e1b7f4ef1b5a89de6dca6d410e8f"
         }
       ],
       "allowedTriggerReasons": [
@@ -389,7 +389,7 @@
         },
         {
           "path": "docs/operating-model/SKILL_CATALOG.md",
-          "sha256": "50caa8b95ffeb1cb463f7fb499c2c775a3c262be976def5afc23c9514498b36b"
+          "sha256": "2138d1f6a3d923845a523114989f546b9d4c25a06a75c7558aa6004be0d4b866"
         },
         {
           "path": "docs/workflow/testing-conventions.md",
@@ -397,7 +397,7 @@
         },
         {
           "path": ".agents/skills/sa-architecture-design/SKILL.md",
-          "sha256": "4a28a4b255591bee78eaf7139a74bf05a3f76fd97441d39099fcfc73a9ecf2d4"
+          "sha256": "f4326c41fed6e553a5b55c4b5e1d4e0e7978995f2ec37827234d943dc23e21ad"
         }
       ],
       "allowedTriggerReasons": [
@@ -438,7 +438,7 @@
         },
         {
           "path": "docs/operating-model/SKILL_CATALOG.md",
-          "sha256": "50caa8b95ffeb1cb463f7fb499c2c775a3c262be976def5afc23c9514498b36b"
+          "sha256": "2138d1f6a3d923845a523114989f546b9d4c25a06a75c7558aa6004be0d4b866"
         },
         {
           "path": "docs/workflow/task-execution-mode.md",
@@ -446,7 +446,7 @@
         },
         {
           "path": ".agents/skills/tdd-implementation/SKILL.md",
-          "sha256": "81fee7f13d913bbff16ac61df71991b13ca5cbb0db84593c3992f5b36f3b07bd"
+          "sha256": "7c4d8a59cc6c8884cb0b90cfafda41cbbbd1d6389555b52767d762f9bdeabb5d"
         }
       ],
       "allowedTriggerReasons": [
@@ -487,7 +487,7 @@
         },
         {
           "path": "docs/operating-model/SKILL_CATALOG.md",
-          "sha256": "50caa8b95ffeb1cb463f7fb499c2c775a3c262be976def5afc23c9514498b36b"
+          "sha256": "2138d1f6a3d923845a523114989f546b9d4c25a06a75c7558aa6004be0d4b866"
         },
         {
           "path": "docs/workflow/testing-conventions.md",
@@ -495,7 +495,7 @@
         },
         {
           "path": ".agents/skills/qa-playwright-testing/SKILL.md",
-          "sha256": "ee12cceb017b7562187d0b690e41d9dd1903631836a89b15b67878af9f361971"
+          "sha256": "7294e8e3c4275c09b5f6bf6f011d5756dfb0fa1b97688803fc266cfaaf85edac"
         }
       ],
       "allowedTriggerReasons": [
@@ -536,7 +536,7 @@
         },
         {
           "path": "docs/operating-model/SKILL_CATALOG.md",
-          "sha256": "50caa8b95ffeb1cb463f7fb499c2c775a3c262be976def5afc23c9514498b36b"
+          "sha256": "2138d1f6a3d923845a523114989f546b9d4c25a06a75c7558aa6004be0d4b866"
         },
         {
           "path": "docs/contracts/new-feature-workflow.yaml",
@@ -544,7 +544,7 @@
         },
         {
           "path": ".agents/skills/security-review/SKILL.md",
-          "sha256": "077ccaed7bc7955ac298f9221282465329363645871363df93a422f961b30853"
+          "sha256": "4ce97d353479027ba3dfc82e1df42984c8bad8b89c415d923cfeea9e01ba0849"
         }
       ],
       "allowedTriggerReasons": [
@@ -585,7 +585,7 @@
         },
         {
           "path": "docs/operating-model/SKILL_CATALOG.md",
-          "sha256": "50caa8b95ffeb1cb463f7fb499c2c775a3c262be976def5afc23c9514498b36b"
+          "sha256": "2138d1f6a3d923845a523114989f546b9d4c25a06a75c7558aa6004be0d4b866"
         },
         {
           "path": "docs/contracts/config-change-workflow.yaml",
@@ -593,7 +593,7 @@
         },
         {
           "path": ".agents/skills/data-config-change/SKILL.md",
-          "sha256": "fab52f35ac347094440c6f0a36a7213623998bd5728f0f84b17b48b1f5676d37"
+          "sha256": "738faae08199f4f10dc3a105f115d1adecbdf952ab3e04bb318339843c722e8c"
         }
       ],
       "allowedTriggerReasons": [
@@ -634,7 +634,7 @@
         },
         {
           "path": "docs/operating-model/SKILL_CATALOG.md",
-          "sha256": "50caa8b95ffeb1cb463f7fb499c2c775a3c262be976def5afc23c9514498b36b"
+          "sha256": "2138d1f6a3d923845a523114989f546b9d4c25a06a75c7558aa6004be0d4b866"
         },
         {
           "path": "docs/contracts/data-change-workflow.yaml",
@@ -642,7 +642,7 @@
         },
         {
           "path": ".agents/skills/data-config-change/SKILL.md",
-          "sha256": "fab52f35ac347094440c6f0a36a7213623998bd5728f0f84b17b48b1f5676d37"
+          "sha256": "738faae08199f4f10dc3a105f115d1adecbdf952ab3e04bb318339843c722e8c"
         }
       ],
       "allowedTriggerReasons": [
@@ -683,7 +683,7 @@
         },
         {
           "path": "docs/operating-model/SKILL_CATALOG.md",
-          "sha256": "50caa8b95ffeb1cb463f7fb499c2c775a3c262be976def5afc23c9514498b36b"
+          "sha256": "2138d1f6a3d923845a523114989f546b9d4c25a06a75c7558aa6004be0d4b866"
         },
         {
           "path": "docs/workflow/platform-readiness.md",
@@ -691,7 +691,7 @@
         },
         {
           "path": ".agents/skills/release-readiness-checklist/SKILL.md",
-          "sha256": "315150bd312aaaa0a4763fb39cadd349ee83f3ed6ae03b03f94fccf7d7616958"
+          "sha256": "9af24ca65b9ee667a65c88dd52e535d3bc1be7dbd36e91c28d252fc34d611e23"
         }
       ],
       "allowedTriggerReasons": [
@@ -732,7 +732,7 @@
         },
         {
           "path": "docs/operating-model/SKILL_CATALOG.md",
-          "sha256": "50caa8b95ffeb1cb463f7fb499c2c775a3c262be976def5afc23c9514498b36b"
+          "sha256": "2138d1f6a3d923845a523114989f546b9d4c25a06a75c7558aa6004be0d4b866"
         },
         {
           "path": "docs/workflow/reset-to-template.md",
@@ -740,7 +740,7 @@
         },
         {
           "path": ".agents/skills/documentation-closeout/SKILL.md",
-          "sha256": "ace74566693ac71784426670630757ef8172ccd687930ab4ce919fff817a8693"
+          "sha256": "faf0c52dacdc2515c38705bd1315c38f0c16153b4233988e6fe549553f964e74"
         }
       ],
       "allowedTriggerReasons": [
