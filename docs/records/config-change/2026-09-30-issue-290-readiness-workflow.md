@@ -49,7 +49,7 @@ N/A — no feature flags.
 
 | Completion Check URL / Repository Path | Status |
 |---|---|
-| `docs/records/qa/2026-09-30-issue-290-completion-check.md` | Pending |
+| `docs/records/qa/2026-09-30-issue-290-qa.md` | Conditional Pass; AC-01/02 pass, hosted AC-03 pending default-branch activation |
 
 ## Related Artifacts / Links
 

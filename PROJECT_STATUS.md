@@ -1,7 +1,7 @@
 # PROJECT_STATUS.md
 
 ## Current Work Item
-- Issue #290 — Bug Fix for the required work-item readiness check. Root cause confirmed: the trusted default-branch workflow imported the validator without installing locked `yaml`/`ajv` dependencies. Implementation adds pinned Node 22 setup and `npm ci --ignore-scripts`; focused test 9/9, full suite 794/794, and local workflow validators passed. Independent review approved candidate `622fc6f` with one non-blocking hosted-integration follow-up; independent QA is next. The fix PR may remain blocked by the old required App check until a human-approved merge path is decided. SEC-004 runtime evidence for Issue #277 remains explicitly `DEFERRED_BY_HUMAN` under ADR-0033.
+- Issue #290 — Bug Fix for the required work-item readiness check. Root cause confirmed: the trusted default-branch workflow imported the validator without installing locked `yaml`/`ajv` dependencies. Implementation adds pinned Node 22 setup and `npm ci --ignore-scripts`; focused test 9/9, full suite 794/794, and local workflow validators passed. Independent review approved candidate `622fc6f`; independent QA is Conditional Pass: AC-01/02 pass, AC-03 hosted integration remains pending default-branch activation. Preparing the Draft PR and hosted readiness check; the fix PR may remain blocked by the old required App check until a human-approved merge path is decided. SEC-004 runtime evidence for Issue #277 remains explicitly `DEFERRED_BY_HUMAN` under ADR-0033.
 
 ## Active Work Items
 <!-- active-work-items-table-start -->
@@ -17,7 +17,7 @@
 - Issue #280 — GPT-6 Astra instruction, skill, and autonomy modernization — #281 is complete through PR #285; #282 is complete through PR #287; #283–#284 remain planned independently. Parent SDD and ADR-0034 are Human-approved. Issue #290 is a separate CI defect repair and does not change the modernization scope.
 
 ## Current Stage
-- Issue #290 is at `phase:verification` / bug-fix state `verifying`. Baseline reproduction, source trace, hypothesis matrix, and plan are recorded in the Issue #290 artifacts. Focused test (9/9), full suite (794/794), and local workflow validators pass; independent review approved candidate `622fc6f` with a non-blocking hosted-integration follow-up. Independent QA and post-default-branch hosted verification remain outstanding. No required-check bypass is authorized. SEC-004 remains deferred and is not a security-complete claim.
+- Issue #290 is at `phase:verification` / bug-fix state `verifying`. Baseline reproduction, source trace, hypothesis matrix, and plan are recorded in the Issue #290 artifacts. Focused test (9/9), full suite (794/794), and local workflow validators pass; independent review approved candidate `622fc6f`. QA is Conditional Pass: AC-01/02 pass, while AC-03's hosted workflow and PR #289 re-evaluation await default-branch activation. Draft PR preparation and hosted readiness inspection are next. No required-check bypass is authorized. SEC-004 remains deferred and is not a security-complete claim.
 
 ## Change Classification
 - Bug Fix in GitHub Actions; low risk. No readiness policy, GitHub permission, secret, or untrusted-code execution change is in scope.
