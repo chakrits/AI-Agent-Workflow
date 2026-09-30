@@ -97,7 +97,15 @@ The final reviewer and QA assessed these as non-blocking minors:
 
 ## Release Recommendation
 
-**Conditional Go for the Issue #283 acceptance gate.** Keep the work item in local verification until a Draft PR/change-request URL and remote lifecycle state are synchronized. Then route the reviewed candidate to the Human Maintainer. No push, PR, merge, release, or remote label mutation is claimed or performed. Issue #284 remains the separate behavior-evaluation gate.
+**Initial disposition at the pre-rebase candidate:** Conditional Go for the Issue #283 acceptance gate. Hosted CI and remote lifecycle evidence were then unverified. The post-rebase addendum below supersedes that disposition for AC verification; human merge approval is still required. Issue #284 remains the separate behavior-evaluation gate.
+
+## Post-Rebase Verification Addendum — 2026-09-30
+
+- Rebased PR candidate: `449d245d0c15e08e287ffc74bcc60d39f18e3cc5` on main `4762249d71f467b16a4fb4f77884352cb5a7a605`.
+- Independent QA reran `npm test` (808/808) and all 10 validators listed in the synchronization task brief; `git diff --check origin/main...HEAD` passed. The only subsequent change through PR head `88b0acf33adfcfe9008ef0e452c75c6e2a4d47b2` was a one-line `PROJECT_STATUS.md` wording correction; no implementation, test, catalog, or validator code changed.
+- Hosted checks on PR head `88b0acf` passed: Node 22 status tests, Python 3.12 JCS reference, both workflow `validate` jobs, documentation-impact, and readiness publication. The required freshness check initially passed while the PR was Draft. A separate run after marking the PR Ready reported `Linked Issue is missing: status:verification-done.` Source trace confirms the validator requires that evidence milestone for a non-Draft PR; Issue #283 did not yet carry it. This is a lifecycle/evidence synchronization prerequisite, not a code or CI defect.
+- QA disposition for AC-01–AC-06: **Pass**. All Issue criteria and cross-cutting invariants are supported by this report, the implementation evidence, the independent rebase QA run, and hosted checks. The formal lifecycle transition remains pending synchronization of the Work Item and Change Request evidence locations; the PR was returned to Draft while that is completed. Once synchronized, QA supports adding `status:verification-done` and moving Issue #283 to `phase:human-review`.
+- Human merge approval remains required. Issue #284 model-selection behavior evaluation remains separate and out of scope.
 
 ## Notes
 
