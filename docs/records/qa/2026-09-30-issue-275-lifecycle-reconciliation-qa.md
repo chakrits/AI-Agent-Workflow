@@ -14,6 +14,8 @@ Reconcile the verification state for the merged Bug Fix. Verify the issue's thre
 
 Issue #275 was closed by merged [PR #276](https://github.com/chakrits/AI-Agent-Workflow/pull/276), merge commit `37749ce30afaad4c652e93893e9232e0e818bf6a`. Its initial `publish-current-readiness` check failed because dependencies were unavailable. The current workflow explicitly runs `actions/setup-node` for Node 22 and `npm ci --ignore-scripts` before importing the readiness module; the original failure is therefore superseded by the current implementation and was not hidden or weakened.
 
+**Provenance correction:** GitHub confirms the full PR #276 merge SHA is `37749ce30afaad4c652e93893e9232e0e818bf6a` ([PR #276](https://github.com/chakrits/AI-Agent-Workflow/pull/276)). The archived task-state's `closeout_evidence` contains an abbreviated/mistyped SHA. It is retained unchanged because editing an archived envelope would invalidate its verified state digest; this report and the PR URL are the authoritative full-SHA references.
+
 ## Test Summary
 
 | Type | Total | Passed | Failed | Blocked | Notes |
