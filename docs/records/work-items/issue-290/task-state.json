@@ -1,0 +1,65 @@
+{
+  "task_id": "issue-290",
+  "workflow_id": "bug-fix",
+  "contract_version": 2,
+  "policy_contract_version": 1,
+  "change_type": "bug-fix",
+  "risk_level": "low",
+  "state": "verifying",
+  "rework_count": 0,
+  "max_rework_attempts": 2,
+  "sequence_number": 4,
+  "state_digest": "408c58f269fe166c26045decd3706d862fa433d43ccba071a0c8c2e45f86814b",
+  "history": [
+    {
+      "from": "intake",
+      "to": "investigating",
+      "at": "2026-09-30T06:10:39.865Z",
+      "actor": "orchestrator",
+      "evidence_refs": [
+        "failure_description",
+        "repro"
+      ]
+    },
+    {
+      "from": "investigating",
+      "to": "implementing",
+      "at": "2026-09-30T06:12:53.969Z",
+      "actor": "developer-agent",
+      "evidence_refs": [
+        "fail_path",
+        "hypothesis_matrix",
+        "implementation_plan_ref"
+      ]
+    },
+    {
+      "from": "implementing",
+      "to": "verifying",
+      "at": "2026-09-30T07:17:30.064Z",
+      "actor": "developer-agent",
+      "evidence_refs": [
+        "changed_files",
+        "validation_plan"
+      ]
+    }
+  ],
+  "evidence": {
+    "failure_description": "Required work-item-readiness-freshness check fails with YAML parser dependency unavailable on valid PR metadata.",
+    "repro": "PR #289 hosted check returns the same failure from trusted main workflow on each relevant run.",
+    "fail_path": "Trusted readiness script import calls extractFrontmatter; getYaml() catches missing require(yaml) because workflow has no dependency installation.",
+    "hypothesis_matrix": "docs/records/qa/2026-09-30-issue-290-debug-ledger.md#hypothesis-matrix",
+    "implementation_plan_ref": "docs/records/implementation-plan/2026-09-30-issue-290-readiness-workflow-plan.md",
+    "changed_files": [
+      ".github/workflows/work-item-readiness-refresh.yml",
+      "test/validate-project-state.test.mjs",
+      "PROJECT_STATUS.md",
+      "TASK_LOG.md",
+      "docs/records/implementation-plan/2026-09-30-issue-290-readiness-workflow-plan.md",
+      "docs/records/config-change/2026-09-30-issue-290-readiness-workflow.md",
+      "docs/records/qa/2026-09-30-issue-290-debug-ledger.md"
+    ],
+    "validation_plan": "npm test (794/794); node --test test/validate-project-state.test.mjs (9/9); validate:project-state, validate:contracts, validate:ci-parity, validate:skill-usage, validate:status-projection, git diff --check; hosted PR and post-merge readiness still required."
+  },
+  "next_route": "qa-agent",
+  "stop_reason": null
+}

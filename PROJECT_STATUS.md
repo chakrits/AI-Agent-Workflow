@@ -1,25 +1,26 @@
 # PROJECT_STATUS.md
 
 ## Current Work Item
-- No active work item. Issue #282 completed via PR #287; Issues #283–#284 remain planned independently. SEC-004 runtime evidence for Issue #277 remains explicitly `DEFERRED_BY_HUMAN` under ADR-0033.
+- Issue #290 — Bug Fix for the required work-item readiness check. Root cause confirmed: the trusted default-branch workflow imported the validator without installing locked `yaml`/`ajv` dependencies. Implementation adds pinned Node 22 setup and `npm ci --ignore-scripts`; focused test 9/9, full suite 794/794, and local workflow validators passed. Independent QA/review and hosted integration verification are next. The fix PR may remain blocked by the old required App check until a human-approved merge path is decided. SEC-004 runtime evidence for Issue #277 remains explicitly `DEFERRED_BY_HUMAN` under ADR-0033.
 
 ## Active Work Items
 <!-- active-work-items-table-start -->
-<!-- projection-digest: 35697422c8aced7944eec5e7a540bb8273cc374f65db4ab6b3b789428a82a780 -->
+<!-- projection-digest: 4f768af3ce7f06a1e1fe8896f77c838103c6639eada102ab7b39f7a8eb3c2b24 -->
 | Issue ID | Workflow | Current State | Next Route / Owner | Updated At |
 |---|---|---|---|---|
 | issue-249 | bug-fix | verifying | qa-agent | 2026-09-09 |
 | issue-275 | bug-fix | verifying | qa-agent | 2026-09-11 |
+| issue-290 | bug-fix | verifying | qa-agent | 2026-09-30T07:17:30.064Z |
 <!-- active-work-items-table-end -->
 
 ## Planned Framework Work
-- Issue #280 — GPT-6 Astra instruction, skill, and autonomy modernization — #281 is complete through PR #285; #282 is complete through PR #287; #283–#284 remain planned independently. Parent SDD and ADR-0034 are Human-approved.
+- Issue #280 — GPT-6 Astra instruction, skill, and autonomy modernization — #281 is complete through PR #285; #282 is complete through PR #287; #283–#284 remain planned independently. Parent SDD and ADR-0034 are Human-approved. Issue #290 is a separate CI defect repair and does not change the modernization scope.
 
 ## Current Stage
-- No active Issue #282 stage. Next modernization work is #283, subject to its own specification and approval gates. SEC-004 remains deferred and is not a security-complete claim.
+- Issue #290 is at `phase:verification` / bug-fix state `verifying`. Baseline reproduction, source trace, hypothesis matrix, and plan are recorded in the Issue #290 artifacts. Focused test (9/9), full suite (794/794), and local workflow validators pass. Independent QA/review and hosted integration verification remain outstanding. No required-check bypass is authorized. SEC-004 remains deferred and is not a security-complete claim.
 
 ## Change Classification
-- Framework/meta change; medium risk. No security-sensitive enforcement change is in scope.
+- Bug Fix in GitHub Actions; low risk. No readiness policy, GitHub permission, secret, or untrusted-code execution change is in scope.
 
 ## Completed
 - Issue #282 — **merged via PR #287** (merge commit `cd0a3267c03f24b86fa637cbf10da04b46720d75`). Added the safe-assumption boundary, four-field completion contract, proportional verification guidance, lifecycle-only state updates, and positive/negative policy contract coverage. Independent code review and QA passed AC-01–AC-05; full CI passed. QA evidence: https://github.com/chakrits/AI-Agent-Workflow/issues/282#issuecomment-5858035937. Post-merge documentation closeout is tracked separately.
