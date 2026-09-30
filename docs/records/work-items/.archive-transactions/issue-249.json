@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "journal_revision": 3,
+  "journal_digest": "e644c431ccf0010102b69c9b692fdea60538140e9807c0d701afa53e400cfa2c",
+  "transactions": [
+    {
+      "intent": {
+        "txid": "7e922f9a-08c9-452b-8e1c-8845eb7a69f3",
+        "task_id": "issue-249",
+        "intended_outcome": "archived",
+        "source_digest": "4b8de57a90d47946097c1e9f9335ea5461966b1e6f79f28b72eb9bf6c03bb6c1",
+        "source_generation": 1,
+        "created_at": 1790784013532
+      },
+      "attempts": [
+        {
+          "attempt_id": "5e545a69-2e23-4c69-8345-acc045424f44",
+          "generation": 1,
+          "adopts_attempt_id": null,
+          "started_at": 1790784013532
+        }
+      ],
+      "current_attempt_id": "5e545a69-2e23-4c69-8345-acc045424f44",
+      "phase": "terminal_archived",
+      "terminal_outcome": "archived"
+    }
+  ],
+  "current_txid": "7e922f9a-08c9-452b-8e1c-8845eb7a69f3"
+}

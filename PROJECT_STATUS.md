@@ -5,12 +5,10 @@
 
 ## Active Work Items
 <!-- active-work-items-table-start -->
-<!-- projection-digest: 24821fbf6259b1d3f8ab7351b331b738f007a557db3fa754af3c4065eab5eefb -->
+<!-- projection-digest: 4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945 -->
 | Issue ID | Workflow | Current State | Next Route / Owner | Updated At |
 |---|---|---|---|---|
-| issue-249 | bug-fix | verifying | qa-agent | 2026-09-09 |
-| issue-275 | bug-fix | verifying | qa-agent | 2026-09-11 |
-| issue-290 | bug-fix | handoff | human-maintainer | 2026-09-30T08:02:53.025Z |
+| _None_ | - | - | - | - |
 <!-- active-work-items-table-end -->
 
 ## Planned Framework Work
