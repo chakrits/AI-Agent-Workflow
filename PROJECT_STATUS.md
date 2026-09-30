@@ -1,25 +1,26 @@
 # PROJECT_STATUS.md
 
 ## Current Work Item
-- No active work item. Issue #282 completed via PR #287; Issues #283–#284 remain planned independently. SEC-004 runtime evidence for Issue #277 remains explicitly `DEFERRED_BY_HUMAN` under ADR-0033.
+- Issue #290 — Draft PR #291 is open from `codex/issue-290-readiness-dependencies`. Implementation adds pinned Node 22 and `npm ci --ignore-scripts` before the trusted validator import; focused test 9/9, full suite 794/794, and local validators pass. Independent review approved candidate `622fc6f`; QA is Conditional Pass (AC-01/02 pass). GitHub CI is green except required `work-item-readiness-freshness`, which still reports `YAML parser dependency unavailable` because `pull_request_target` executes the old workflow from `main`. AC-03 remains pending. Human Maintainer decision is required on the allowed activation/merge path; no check or ruleset has been changed. SEC-004 runtime evidence for Issue #277 remains explicitly `DEFERRED_BY_HUMAN` under ADR-0033.
 
 ## Active Work Items
 <!-- active-work-items-table-start -->
-<!-- projection-digest: 35697422c8aced7944eec5e7a540bb8273cc374f65db4ab6b3b789428a82a780 -->
+<!-- projection-digest: 24821fbf6259b1d3f8ab7351b331b738f007a557db3fa754af3c4065eab5eefb -->
 | Issue ID | Workflow | Current State | Next Route / Owner | Updated At |
 |---|---|---|---|---|
 | issue-249 | bug-fix | verifying | qa-agent | 2026-09-09 |
 | issue-275 | bug-fix | verifying | qa-agent | 2026-09-11 |
+| issue-290 | bug-fix | handoff | human-maintainer | 2026-09-30T08:02:53.025Z |
 <!-- active-work-items-table-end -->
 
 ## Planned Framework Work
-- Issue #280 — GPT-6 Astra instruction, skill, and autonomy modernization — #281 is complete through PR #285; #282 is complete through PR #287; #283–#284 remain planned independently. Parent SDD and ADR-0034 are Human-approved.
+- Issue #280 — GPT-6 Astra instruction, skill, and autonomy modernization — #281 is complete through PR #285; #282 is complete through PR #287; #283–#284 remain planned independently. Parent SDD and ADR-0034 are Human-approved. Issue #290 is a separate CI defect repair and does not change the modernization scope.
 
 ## Current Stage
-- No active Issue #282 stage. Next modernization work is #283, subject to its own specification and approval gates. SEC-004 remains deferred and is not a security-complete claim.
+- Issue #290 remains at `phase:verification` because QA is conditional; bug-fix task state is `handoff` with next route `human-maintainer`. PR #291 is Draft. All observed GitHub checks passed except required `work-item-readiness-freshness`, whose summary repeats `YAML parser dependency unavailable` on trusted `main`. AC-03 and PR #289 re-evaluation require approved default-branch activation. No check or ruleset change is authorized yet. SEC-004 remains deferred and is not a security-complete claim.
 
 ## Change Classification
-- Framework/meta change; medium risk. No security-sensitive enforcement change is in scope.
+- Bug Fix in GitHub Actions; low risk. No readiness policy, GitHub permission, secret, or untrusted-code execution change is in scope.
 
 ## Completed
 - Issue #282 — **merged via PR #287** (merge commit `cd0a3267c03f24b86fa637cbf10da04b46720d75`). Added the safe-assumption boundary, four-field completion contract, proportional verification guidance, lifecycle-only state updates, and positive/negative policy contract coverage. Independent code review and QA passed AC-01–AC-05; full CI passed. QA evidence: https://github.com/chakrits/AI-Agent-Workflow/issues/282#issuecomment-5858035937. Post-merge documentation closeout is tracked separately.

@@ -93,6 +93,7 @@ test('GitHub re-evaluates readiness after linked Issue lifecycle-label changes',
 
   const privilegedActionPins = {
     'actions/checkout': '34e114876b0b11c390a56381ad16ebd13914f8d5',
+    'actions/setup-node': '49933ea5288caeca8642d1e84afbd3f7d6820020',
     'actions/create-github-app-token': 'bcd2ba49218906704ab6c1aa796996da409d3eb1',
     'actions/github-script': 'f28e40c7f34bde8b3046d885e986cb6290c5673b'
   };
@@ -137,7 +138,12 @@ test('GitHub re-evaluates readiness after linked Issue lifecycle-label changes',
   assert.doesNotMatch(workflow, /context\.payload\.pull_request\s*\?/);
   assert.doesNotMatch(workflow, /workflow_run/);
   assert.doesNotMatch(workflow, /pulls\.update/);
-  assert.doesNotMatch(workflow, /^\s*-?\s*run:/m);
+  const runStepPattern = /^\s*-?\s*run:\s*(.+)$/gm;
+  const shorthandRunSteps = [...'- run: npm ci --ignore-scripts\n'.matchAll(runStepPattern)]
+    .map(([, command]) => command.trim());
+  assert.deepEqual(shorthandRunSteps, ['npm ci --ignore-scripts']);
+  const runSteps = [...workflow.matchAll(runStepPattern)].map(([, command]) => command.trim());
+  assert.deepEqual(runSteps, ['npm ci --ignore-scripts']);
   assert.doesNotMatch(workflow, /statuses:\s*write/);
   assert.doesNotMatch(workflow, /\$\{context\.payload\.label\.name\}/);
 });
@@ -150,4 +156,21 @@ test('GitHub readiness refresh workflow script compiles without executing pull r
 
   assert.equal(scripts.length, 1);
   for (const script of scripts) assert.doesNotThrow(() => new AsyncFunction(script));
+});
+
+test('readiness refresh installs trusted validator dependencies before running GitHub Script', async () => {
+  const workflow = await readFile('.github/workflows/work-item-readiness-refresh.yml', 'utf8');
+  const checkoutIndex = workflow.indexOf('name: Check out the trusted default-branch decision module');
+  const nodeSetupIndex = workflow.indexOf('uses: actions/setup-node@');
+  const npmInstallIndex = workflow.indexOf('run: npm ci --ignore-scripts');
+  const githubScriptIndex = workflow.indexOf('uses: actions/github-script@');
+
+  assert.notEqual(checkoutIndex, -1, 'trusted default-branch checkout must remain present');
+  assert.notEqual(nodeSetupIndex, -1, 'Node runtime setup must be present');
+  assert.notEqual(npmInstallIndex, -1, 'lockfile dependency install must disable lifecycle scripts');
+  assert.notEqual(githubScriptIndex, -1, 'trusted GitHub Script step must remain present');
+  assert.match(workflow, /node-version:\s*22/);
+  assert.ok(checkoutIndex < nodeSetupIndex, 'trusted checkout must precede runtime setup');
+  assert.ok(nodeSetupIndex < npmInstallIndex, 'Node setup must precede dependency installation');
+  assert.ok(npmInstallIndex < githubScriptIndex, 'dependencies must be installed before validator import');
 });

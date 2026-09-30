@@ -1,0 +1,77 @@
+{
+  "task_id": "issue-290",
+  "workflow_id": "bug-fix",
+  "contract_version": 2,
+  "policy_contract_version": 1,
+  "change_type": "bug-fix",
+  "risk_level": "low",
+  "state": "handoff",
+  "rework_count": 0,
+  "max_rework_attempts": 2,
+  "sequence_number": 5,
+  "state_digest": "7b13692ee884c09a1aa0e446ad625b4d3866e92e83b1d0893e71aeef91ce0fd8",
+  "history": [
+    {
+      "from": "intake",
+      "to": "investigating",
+      "at": "2026-09-30T06:10:39.865Z",
+      "actor": "orchestrator",
+      "evidence_refs": [
+        "failure_description",
+        "repro"
+      ]
+    },
+    {
+      "from": "investigating",
+      "to": "implementing",
+      "at": "2026-09-30T06:12:53.969Z",
+      "actor": "developer-agent",
+      "evidence_refs": [
+        "fail_path",
+        "hypothesis_matrix",
+        "implementation_plan_ref"
+      ]
+    },
+    {
+      "from": "implementing",
+      "to": "verifying",
+      "at": "2026-09-30T07:17:30.064Z",
+      "actor": "developer-agent",
+      "evidence_refs": [
+        "changed_files",
+        "validation_plan"
+      ]
+    },
+    {
+      "from": "verifying",
+      "to": "handoff",
+      "at": "2026-09-30T08:02:53.025Z",
+      "actor": "qa-agent",
+      "evidence_refs": [
+        "original_repro_result",
+        "verification_result"
+      ]
+    }
+  ],
+  "evidence": {
+    "failure_description": "Required work-item-readiness-freshness check fails with YAML parser dependency unavailable on valid PR metadata.",
+    "repro": "PR #289 hosted check returns the same failure from trusted main workflow on each relevant run.",
+    "fail_path": "Trusted readiness script import calls extractFrontmatter; getYaml() catches missing require(yaml) because workflow has no dependency installation.",
+    "hypothesis_matrix": "docs/records/qa/2026-09-30-issue-290-debug-ledger.md#hypothesis-matrix",
+    "implementation_plan_ref": "docs/records/implementation-plan/2026-09-30-issue-290-readiness-workflow-plan.md",
+    "changed_files": [
+      ".github/workflows/work-item-readiness-refresh.yml",
+      "test/validate-project-state.test.mjs",
+      "PROJECT_STATUS.md",
+      "TASK_LOG.md",
+      "docs/records/implementation-plan/2026-09-30-issue-290-readiness-workflow-plan.md",
+      "docs/records/config-change/2026-09-30-issue-290-readiness-workflow.md",
+      "docs/records/qa/2026-09-30-issue-290-debug-ledger.md"
+    ],
+    "validation_plan": "npm test (794/794); node --test test/validate-project-state.test.mjs (9/9); validate:project-state, validate:contracts, validate:ci-parity, validate:skill-usage, validate:status-projection, git diff --check; hosted PR and post-merge readiness still required.",
+    "original_repro_result": "Original readiness failure was documented: YAML parser dependency unavailable in trusted default-branch workflow; hosted recheck remains pending default-branch activation (docs/records/qa/2026-09-30-issue-290-debug-ledger.md).",
+    "verification_result": "Conditional Pass: focused contract test 9/9, full npm test 794/794, all specified local validators passed; AC-03 remains pending hosted activation/re-evaluation (docs/records/qa/2026-09-30-issue-290-qa.md)."
+  },
+  "next_route": "human-maintainer",
+  "stop_reason": null
+}
