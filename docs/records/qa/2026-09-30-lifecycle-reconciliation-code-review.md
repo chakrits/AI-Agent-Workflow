@@ -31,4 +31,3 @@ The reviewer approved the candidate with comments. Findings and dispositions fol
 - Main agent ran `npm test`: 808 passed, 0 failed.
 - No dead code or new dependencies identified.
 - Residual risk: the archived #275 state retains its original mistyped SHA as immutable historical evidence; the verified GitHub PR URL and corrected full SHA are recorded in the QA report.
-
