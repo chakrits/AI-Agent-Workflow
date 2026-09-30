@@ -1,7 +1,7 @@
 # PROJECT_STATUS.md
 
 ## Current Work Item
-- Issue #283 — Astra skill metadata/catalog rationalization; child SDD accepted and implementation plan drafted, awaiting Human Maintainer review. No implementation started. Issue #290's readiness workflow repair merged through PR #291. SEC-004 runtime evidence for Issue #277 remains explicitly `DEFERRED_BY_HUMAN` under ADR-0033.
+- Issue #283 — Astra skill metadata/catalog rationalization; approved plan implemented at local candidate `0a51086cda66ccab3311c25ba8cfde504a7af50d`; independent review PASS with non-blocking minors and QA Conditional Pass. Local `phase:verification`; hosted CI and Issue/PR evidence sync remained pending at this checkpoint. Issue #290's readiness workflow repair merged through PR #291. SEC-004 runtime evidence for Issue #277 remains explicitly `DEFERRED_BY_HUMAN` under ADR-0033.
 
 ## Active Work Items
 <!-- active-work-items-table-start -->
@@ -14,10 +14,10 @@
 <!-- active-work-items-table-end -->
 
 ## Planned Framework Work
-- Issue #280 — GPT-6 Astra instruction, skill, and autonomy modernization — #281 is complete through PR #285; #282 is complete through PR #287; #283 is in local planning with its child SDD accepted; #284 remains planned independently. Parent SDD and ADR-0034 are Human-approved. Issue #290 is a separate CI defect repair and does not change the modernization scope.
+- Issue #280 — GPT-6 Astra instruction, skill, and autonomy modernization — #281 is complete through PR #285; #282 is complete through PR #287; #283 implementation and local independent QA are complete, pending hosted evidence; #284 remains planned independently. Parent SDD and ADR-0034 are Human-approved. Issue #290 is a separate CI defect repair and does not change the modernization scope.
 
 ## Current Stage
-- Issue #283 is at local `phase:planning`: accepted child SDD, implementation plan awaiting Human review; the remote Issue label is not verified, and `status:spec-ready` is not yet claimed. Issue #290's PR #291 merged; required readiness protection is active and PR #289 must be rerun on the updated base. SEC-004 remains deferred and is not a security-complete claim.
+- Issue #283 is at local `phase:verification` on candidate `0a51086cda66ccab3311c25ba8cfde504a7af50d`: final review PASS with non-blocking minors, independent QA Conditional Pass, no Critical/Major findings. Draft PR #289 exists and must rerun hosted CI after rebasing onto merged PR #291; do not claim `status:verification-done` or `phase:human-review` before hosted CI and evidence synchronization. Required readiness protection is active. SEC-004 remains deferred and is not a security-complete claim.
 
 ## Change Classification
 - Bug Fix in GitHub Actions; low risk. No readiness policy, GitHub permission, secret, or untrusted-code execution change is in scope.
