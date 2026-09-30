@@ -1,7 +1,7 @@
 # PROJECT_STATUS.md
 
 ## Current Work Item
-- Issue #283 — Astra skill metadata/catalog rationalization; implementation candidate `0a51086cda66ccab3311c25ba8cfde504a7af50d`; Draft PR #289 is open. Independent review approved with non-blocking minors and QA is Conditional Pass. Local `phase:verification`; Issue #290's readiness workflow repair merged through PR #291, so hosted checks must rerun on the updated base. Review-gate evidence is recorded. SEC-004 runtime evidence for Issue #277 remains explicitly `DEFERRED_BY_HUMAN` under ADR-0033.
+- Issue #283 — Astra skill metadata/catalog rationalization; implementation is rebased onto the main branch that includes PR #291. Draft PR #289 remains open pending branch sync and a fresh hosted readiness run. Independent review approved with non-blocking minors and QA is Conditional Pass. Local `phase:verification`. Review-gate evidence is recorded. SEC-004 runtime evidence for Issue #277 remains explicitly `DEFERRED_BY_HUMAN` under ADR-0033.
 
 ## Active Work Items
 <!-- active-work-items-table-start -->
