@@ -1,7 +1,7 @@
 # PROJECT_STATUS.md
 
 ## Current Work Item
-- Issue #294 — skill-library CI decoupling — IMP-002 in progress on `codex/skill-library-decoupling-design`; first test-retirement slice IMP-002A verified locally, production validators/CI unchanged. Issue #283 remains completed via PR #289 (`8cc2705`); #284 remains separate. SEC-004 remains `DEFERRED_BY_HUMAN` under ADR-0033.
+- Issue #294 — skill-library CI decoupling — IMP-002 in progress on `codex/skill-library-decoupling-design`; IMP-002A/B test-retirement slices verified locally, production validators/CI unchanged. Issue #283 remains completed via PR #289 (`8cc2705`); #284 remains separate. SEC-004 remains `DEFERRED_BY_HUMAN` under ADR-0033.
 
 ## Active Work Items
 <!-- active-work-items-table-start -->
@@ -16,7 +16,7 @@
 - Issue #280 — GPT-6 Astra instruction, skill, and autonomy modernization — #281 is complete through PR #285; #282 is complete through PR #287; #283 is complete through PR #289; #284 remains planned independently. Parent SDD and ADR-0034 are Human-approved. Issue #290 is a separate CI defect repair and does not change the modernization scope.
 
 ## Current Stage
-- Issue #294 development: IMP-002A retires 13 fixed catalog/vault-skill inventory assertions; remaining 99 contract test bodies unchanged, synthetic audits retained. Full regression 795/795 passes outside the restrictive filesystem sandbox. IMP-002 remains in progress; CI/matrix/skill-content coupling is not yet removed. Issue #284 remains separate; readiness protection stays active. SEC-004 remains deferred, not security-complete.
+- Issue #294 development: IMP-002A retired13 catalog/vault-skill tests; IMP-002B retires9 pure mirror tests. Retained90 contract bodies unchanged; synthetic audits retained. Drift probe goes from98/99 to90/90 contract passes; parity diagnostic still rejects drift. Full regression786/786 passes. IMP-002 remains in progress; CI/matrix/skill-content coupling remains. Issue #284 is separate; readiness stays active. SEC-004 remains deferred, not security-complete.
 
 ## Change Classification
 - Issue #294 is a Medium-risk framework/meta change; current implementation changes tests/records only. Final implementation requires independent QA and targeted Security Reviewer review of retained validation boundaries. Generic Issue/PR readiness remains outside scope.
@@ -94,7 +94,7 @@
 - Issue #294 follows approved IMP-001–IMP-006 with scoped red/green evidence, independent QA and targeted Security Reviewer validation; Human merge approval remains required. Design approval/OQ decisions are resolved. SEC-004 stays separately deferred under ADR-0033.
 
 ## Recommended Next Agent
-- Developer role continues IMP-002; checkpoint: `docs/records/qa/2026-10-11-issue-294-imp002a-catalog-assertions.md`. Independent QA/Security follows final implementation; no child dispatch or acceptance claim.
+- Developer role continues IMP-002; checkpoint: `docs/records/qa/2026-10-11-issue-294-imp002b-mirror-assertions.md`. Independent QA/Security follows final implementation; no child dispatch or acceptance claim.
 
 ## Notes
 - Reset to template baseline by `npm run reset:template`.

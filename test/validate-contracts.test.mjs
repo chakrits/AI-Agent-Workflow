@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { readFile, readdir, mkdtemp, mkdir, writeFile, rm, cp } from 'node:fs/promises';
+import { readFile, mkdtemp, mkdir, writeFile, rm, cp } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
@@ -1169,47 +1169,6 @@ test('qa-playwright-testing carries a technical reference, a debugging workflow,
   assert.match(skill, /npx bddgen && npx playwright test/);
 });
 
-test('.agent/skills/ and .agents/skills/ carry identical skill directory names, with byte-identical content for the skills this work touches', async () => {
-  const [portableEntries, antigravityEntries] = await Promise.all([
-    readdir('.agents/skills', { withFileTypes: true }),
-    readdir('.agent/skills', { withFileTypes: true })
-  ]);
-  const portableNames = portableEntries.filter((entry) => entry.isDirectory()).map((entry) => entry.name).sort();
-  const antigravityNames = antigravityEntries.filter((entry) => entry.isDirectory()).map((entry) => entry.name).sort();
-
-  assert.ok(portableNames.length > 0);
-  assert.deepEqual(
-    antigravityNames,
-    portableNames,
-    '.agent/skills/ and .agents/skills/ must contain the same skill directories'
-  );
-
-  // Scoped to the 9 skills this work touches. dynamic-workflow, frontend-ui-engineering,
-  // and functional-test-design predate this work and intentionally use a thin
-  // pointer-adapter pattern in .agent/skills/ rather than a full copy — not a gap to close here.
-  const contentParitySkills = [
-    'api-contract-testing',
-    'performance-testing',
-    'mutation-testing',
-    'test-quality-discipline',
-    'qa-playwright-testing',
-    'ba-requirement-analysis',
-    'data-config-change',
-    'sa-architecture-design',
-    'security-review'
-  ];
-  for (const name of contentParitySkills) {
-    const [portable, antigravity] = await Promise.all([
-      readFile(`.agents/skills/${name}/SKILL.md`, 'utf8'),
-      readFile(`.agent/skills/${name}/SKILL.md`, 'utf8')
-    ]);
-    assert.equal(
-      antigravity,
-      portable,
-      `.agent/skills/${name}/SKILL.md does not match .agents/skills/${name}/SKILL.md`
-    );
-  }
-});
 
 test('the three new test-tooling skills carry their required content', async () => {
   const [apiTesting, jsUnit, pythonUnit, mutation] = await Promise.all([
@@ -1251,42 +1210,7 @@ test('QA Agent Skill Routing includes the three new test-tooling skills in role-
   assert.match(adapter, /`python-unit-testing`/);
 });
 
-const newTestingSkillTemplatePaths = [
-  ['qa-playwright-testing', 'playwright.config.template.ts'],
-  ['mutation-testing', 'stryker.conf.template.json'],
-  ['api-testing-tooling', 'supertest.example.spec.ts'],
-  ['api-testing-tooling', 'bruno-collection/bruno.json'],
-  ['api-testing-tooling', 'bruno-collection/health-check.bru'],
-  ['api-testing-tooling', 'bruno-collection/environments/local.bru'],
-  ['js-unit-testing', 'jest.config.template.js'],
-  ['js-unit-testing', 'vitest.config.template.ts'],
-  ['python-unit-testing', 'pytest.ini.template']
-];
 
-test('test-tooling skill template files are byte-identical across all three platforms', async () => {
-  for (const [skill, templateFile] of newTestingSkillTemplatePaths) {
-    const [portable, claude, antigravity] = await Promise.all([
-      readFile(`.agents/skills/${skill}/templates/${templateFile}`, 'utf8'),
-      readFile(`.claude/skills/${skill}/templates/${templateFile}`, 'utf8'),
-      readFile(`.agent/skills/${skill}/templates/${templateFile}`, 'utf8')
-    ]);
-    assert.equal(claude, portable, `.claude/skills/${skill}/templates/${templateFile} does not match .agents/`);
-    assert.equal(antigravity, portable, `.agent/skills/${skill}/templates/${templateFile} does not match .agents/`);
-  }
-});
-
-test('the three new test-tooling skills are byte-identical SKILL.md across all three platforms', async () => {
-  const newSkillNames = ['api-testing-tooling', 'js-unit-testing', 'python-unit-testing'];
-  for (const name of newSkillNames) {
-    const [portable, claude, antigravity] = await Promise.all([
-      readFile(`.agents/skills/${name}/SKILL.md`, 'utf8'),
-      readFile(`.claude/skills/${name}/SKILL.md`, 'utf8'),
-      readFile(`.agent/skills/${name}/SKILL.md`, 'utf8')
-    ]);
-    assert.equal(claude, portable, `.claude/skills/${name}/SKILL.md does not match .agents/`);
-    assert.equal(antigravity, portable, `.agent/skills/${name}/SKILL.md does not match .agents/`);
-  }
-});
 
 test('the seven new API skills carry their required content', async () => {
   const [
@@ -1359,36 +1283,7 @@ test('api-testing-tooling carries the Postman + Newman section and template', as
   assert.match(apiTesting, /templates\/postman-collection\.example\.json/);
 });
 
-test('the 7 new API skills are byte-identical SKILL.md across all three platforms', async () => {
-  const newSkillNames = [
-    'api-test-design',
-    'api-compliance-patterns',
-    'api-security-patterns',
-    'api-versioning-deprecation',
-    'api-observability-monitoring',
-    'api-integration-patterns',
-    'api-mocking-sandbox'
-  ];
-  for (const name of newSkillNames) {
-    const [portable, claude, antigravity] = await Promise.all([
-      readFile(`.agents/skills/${name}/SKILL.md`, 'utf8'),
-      readFile(`.claude/skills/${name}/SKILL.md`, 'utf8'),
-      readFile(`.agent/skills/${name}/SKILL.md`, 'utf8')
-    ]);
-    assert.equal(claude, portable, `.claude/skills/${name}/SKILL.md does not match .agents/`);
-    assert.equal(antigravity, portable, `.agent/skills/${name}/SKILL.md does not match .agents/`);
-  }
-});
 
-test('the new Postman collection template is byte-identical across all three platforms', async () => {
-  const [portable, claude, antigravity] = await Promise.all([
-    readFile('.agents/skills/api-testing-tooling/templates/postman-collection.example.json', 'utf8'),
-    readFile('.claude/skills/api-testing-tooling/templates/postman-collection.example.json', 'utf8'),
-    readFile('.agent/skills/api-testing-tooling/templates/postman-collection.example.json', 'utf8')
-  ]);
-  assert.equal(claude, portable);
-  assert.equal(antigravity, portable);
-});
 
 test('SA Agent Skill Routing table references the 5 new design-adjacent skills in role-definitions and the Claude adapter', async () => {
   const [roleDefinition, adapter] = await Promise.all([
@@ -1470,18 +1365,6 @@ test('security-review carries the exposed-secret incident-response procedure', a
   assert.match(securityReview, /Sweep the rest of the codebase/);
 });
 
-test('the 4 new Developer Agent skills are byte-identical SKILL.md across all three platforms', async () => {
-  const newSkillNames = ['coding-standards', 'backend-patterns', 'frontend-react-patterns', 'frontend-visual-design'];
-  for (const name of newSkillNames) {
-    const [portable, claude, antigravity] = await Promise.all([
-      readFile(`.agents/skills/${name}/SKILL.md`, 'utf8'),
-      readFile(`.claude/skills/${name}/SKILL.md`, 'utf8'),
-      readFile(`.agent/skills/${name}/SKILL.md`, 'utf8')
-    ]);
-    assert.equal(claude, portable, `.claude/skills/${name}/SKILL.md does not match .agents/`);
-    assert.equal(antigravity, portable, `.agent/skills/${name}/SKILL.md does not match .agents/`);
-  }
-});
 
 test('Developer Agent Skill Routing includes the 4 new skills in role-definitions and the Claude adapter', async () => {
   const [roleDefinition, adapter] = await Promise.all([
@@ -1890,25 +1773,7 @@ test('test-quality-discipline SKILL.md carries a checklist item for TC-ID to aut
   assert.match(skill, /defect routed to Developer Agent/);
 });
 
-test('test-quality-discipline SKILL.md is byte-identical across all three platforms after the Issue #149 TC-ID checklist addition', async () => {
-  const [portable, claude, antigravity] = await Promise.all([
-    readFile('.agents/skills/test-quality-discipline/SKILL.md', 'utf8'),
-    readFile('.claude/skills/test-quality-discipline/SKILL.md', 'utf8'),
-    readFile('.agent/skills/test-quality-discipline/SKILL.md', 'utf8')
-  ]);
-  assert.equal(claude, portable, '.claude/skills/test-quality-discipline/SKILL.md does not match .agents/');
-  assert.equal(antigravity, portable, '.agent/skills/test-quality-discipline/SKILL.md does not match .agents/');
-});
 
-test('functional-test-design SKILL.md is byte-identical across all three platforms after the Issue #143 technique expansion', async () => {
-  const [portable, claude, antigravity] = await Promise.all([
-    readFile('.agents/skills/functional-test-design/SKILL.md', 'utf8'),
-    readFile('.claude/skills/functional-test-design/SKILL.md', 'utf8'),
-    readFile('.agent/skills/functional-test-design/SKILL.md', 'utf8')
-  ]);
-  assert.equal(claude, portable, '.claude/skills/functional-test-design/SKILL.md does not match .agents/');
-  assert.equal(antigravity, portable, '.agent/skills/functional-test-design/SKILL.md does not match .agents/');
-});
 
 
 test('defect-analysis SKILL.md carries Summary field, severity-to-impact worked mapping, and PII-placeholder note (Issue #152)', async () => {
@@ -1927,15 +1792,6 @@ test('defect-analysis SKILL.md carries Summary field, severity-to-impact worked 
   assert.doesNotMatch(skill, /\/issues\//);
 });
 
-test('defect-analysis SKILL.md is byte-identical across all three platforms (Issue #152)', async () => {
-  const [portable, claude, antigravity] = await Promise.all([
-    readFile('.agents/skills/defect-analysis/SKILL.md', 'utf8'),
-    readFile('.claude/skills/defect-analysis/SKILL.md', 'utf8'),
-    readFile('.agent/skills/defect-analysis/SKILL.md', 'utf8')
-  ]);
-  assert.equal(claude, portable, '.claude/skills/defect-analysis/SKILL.md does not match .agents/');
-  assert.equal(antigravity, portable, '.agent/skills/defect-analysis/SKILL.md does not match .agents/');
-});
 
 test('docs/templates/DEFECT_REPORT.md carries Summary, Environment, severity mapping, and a worked JSON payload example (Issue #152)', async () => {
   const template = await readFile('docs/templates/DEFECT_REPORT.md', 'utf8');

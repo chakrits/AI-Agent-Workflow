@@ -24,14 +24,14 @@
 - PRs / Closeout / Postmortem: N/A — no PR created and no implementation delivered.
 
 ## Sub-tasks
-- IMP-001: classification/RED preflight recorded. IMP-002 in progress: [IMP-002A checkpoint](../qa/2026-10-11-issue-294-imp002a-catalog-assertions.md) retires 13 live catalog/vault-skill tests; other library/mixed assertions remain. IMP-003–IMP-006 pending; no child issues created.
+- IMP-001: classification/RED preflight recorded. IMP-002 in progress: IMP-002A retired13 catalog/vault-skill tests; [IMP-002B checkpoint](../qa/2026-10-11-issue-294-imp002b-mirror-assertions.md) retires9 pure mirror tests. Skill-content/mixed/AC-14/playbook assertions remain. IMP-003–IMP-006 pending; no child issues created.
 
 ## Lessons Learned
 - A CI invocation can also be enforced by `npm test`; removing only the workflow line is incomplete (EV-05).
 - Historical compatibility evidence must not become a registry for every future instruction (EV-04).
 
 ## Metrics
-- Focused baseline: 170/170 survey checks; IMP-002A focused129/129, full795/795. Developer verification, not independent implementation acceptance.
+- Focused baseline: 170/170 survey checks; latest IMP-002B focused120/120, full786/786. Developer verification, not independent implementation acceptance.
 - Subagent timeouts: 0; Rework cycles: 0.
 - Packet version / Packet tokens: N/A — this specification package has no delegated implementation.
 
