@@ -47,8 +47,8 @@ function isUnder(relative, prefix) {
 
 /**
  * Return every advisory validator applicable to an Edit/Write payload.
- * Multiple guards are intentionally retained: a canonical adapter or skill
- * source may need both the budget/parity and source-matrix feedback.
+ * Core sources retain budget/source-matrix feedback; role adapters retain
+ * adapter parity. Optional instruction libraries schedule no validators.
  */
 export function planEditGuardsDetailed(payload, rootDir = process.cwd()) {
   const toolName = payload?.tool_name;
@@ -67,9 +67,8 @@ export function planEditGuardsDetailed(payload, rootDir = process.cwd()) {
   if (CONTEXT_BUDGET_FILES.includes(relative)) {
     guards.push({ script: 'validate:context-budget', reason: 'the edited path is a context-budget source' });
   }
-  if (isUnder(relative, '.claude/agents') || isUnder(relative, '.claude/skills')) {
-    guards.push({ script: 'validate:adapter-parity', reason: 'the edited path is under a Claude adapter or skill tree' });
-    guards.push({ script: 'validate:skill-parity', reason: 'the edited path is under a Claude adapter or skill tree' });
+  if (isUnder(relative, '.claude/agents')) {
+    guards.push({ script: 'validate:adapter-parity', reason: 'the edited path is under the Claude role-adapter tree' });
   }
   return { guards, diagnostics: diagnostic ? [diagnostic] : [] };
 }

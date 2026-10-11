@@ -19,7 +19,25 @@ The current follow-up measurement is 6,360 characters / 1,590 approximate tokens
 
 The approximation is deliberately coarse. The goal is not to track exact token counts for a specific model, but to detect budget drift early — before a change pushes the canonical reading set past a size where agents start dropping or ignoring context.
 
-## Current observed baseline
+## Current Core-Only Measurement (Issue #294)
+
+Measured 2026-10-11 with `npm run validate:context-budget` after IMP-003. Tier 3 contains seven core policy files; catalog, skills and optional work instructions are excluded. This file-set change is not a model-token measurement. Limits remain 30,000 core / 2,500 boot / 1,500 per role.
+
+| Core file | Characters | Approximate tokens |
+|---|---:|---:|
+| `AGENTS.md` | 14706 | 3676 |
+| `docs/workflow/role-definitions.md` | 33194 | 8298 |
+| `docs/workflow/handoff-contract.md` | 5504 | 1376 |
+| `docs/workflow/quality-gates.md` | 15551 | 3887 |
+| `docs/workflow/dynamic-routing.md` | 10258 | 2564 |
+| `docs/operating-model/AGENT_OPERATING_MODEL.md` | 8037 | 2009 |
+| `docs/operating-model/AGENT_EVALUATION_CHECKLIST.md` | 10685 | 2671 |
+| **Total** | **97935** | **24481** |
+
+Headroom: 5519 approximate tokens. Historical observations below remain unchanged; they are not the current enforcement set.
+
+
+## Historical observed baseline (before decoupling)
 
 | Metric | Value |
 |---|---|
@@ -54,14 +72,16 @@ The previous `2026-07-25` observation was `103,641` characters / `25,910` approx
 npm run validate:context-budget
 ```
 
-The script reads each canonical file, prints the per-file breakdown, and exits 0 when the total is within target (or exits 1 when it is over). Update the table above with the new numbers whenever the baseline changes.
+The script reads each core canonical file, prints the per-file breakdown, and exits 0 when the total is within target (or exits 1 when it is over). Update the current core measurement when it changes; preserve historical observations.
 
-## After Editing a Canonical or Skill File
+## After Editing a Core Source
 
 Every path listed in `test/fixtures/context-pack-v1/required-source-matrix.json` — including the Tier 1 Core
 Bootloader — is pinned by exact sha256. Editing a pinned source makes its hash stale and fails the context-pack
 tests with no obvious pointer back to the matrix. The matrix is authoritative; do not maintain a second manual
 list here.
+
+The current v3 matrix pins core sources only. Optional catalog/skill/work-instruction edits require no repin, core budget check or skill parity. Core Claude role adapters retain their separate adapter-parity guard.
 
 After a legitimate edit to one of these files, re-pin the matrix rather than hand-editing the hash:
 

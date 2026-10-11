@@ -20,7 +20,6 @@ export const ROLES_DIR = 'docs/workflow/roles';
 export const CANONICAL_FILES = [
   'AGENTS.md',
   'docs/workflow/role-definitions.md',
-  'docs/operating-model/SKILL_CATALOG.md',
   'docs/workflow/handoff-contract.md',
   'docs/workflow/quality-gates.md',
   'docs/workflow/dynamic-routing.md',

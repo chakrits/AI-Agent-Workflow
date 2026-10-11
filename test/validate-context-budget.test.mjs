@@ -31,6 +31,26 @@ function makeTempRepo(files) {
 
 // --- countTokens unit tests -------------------------------------------------
 
+test('optional catalog size and absence never change the core budget or CLI result', () => {
+  const coreFiles = [
+    'AGENTS.md', 'docs/workflow/role-definitions.md', 'docs/workflow/handoff-contract.md',
+    'docs/workflow/quality-gates.md', 'docs/workflow/dynamic-routing.md',
+    'docs/operating-model/AGENT_OPERATING_MODEL.md', 'docs/operating-model/AGENT_EVALUATION_CHECKLIST.md',
+  ];
+  const root = makeTempRepo(Object.fromEntries(coreFiles.map((file) => [file, 'abcd'])));
+  try {
+    const absent = collectBudget(CANONICAL_FILES, root);
+    assert.equal(absent.totalTokens, 7);
+    assert.ok(absent.rows.every((row) => row.exists));
+    assert.equal(runCli(root, ['--canonical']), 0);
+    writeFileSync(path.join(root, 'docs/operating-model/SKILL_CATALOG.md'), 'X'.repeat((TARGET + 1) * 4));
+    assert.deepEqual(collectBudget(CANONICAL_FILES, root), absent);
+    assert.equal(runCli(root, ['--canonical']), 0);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
 test('countTokens returns correct approximation for a known string (chars / 4)', () => {
   const root = mkdtempSync(path.join(tmpdir(), 'counttokens-'));
   const file = path.join(root, 'sample.txt');

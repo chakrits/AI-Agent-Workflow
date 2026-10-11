@@ -54,17 +54,30 @@ test('core bootloader is protected by both source-matrix and context-budget guar
   assert.deepEqual(guards.map((guard) => guard.script), ['repin:source-matrix', 'validate:context-budget']);
 });
 
-test('AC-08: runs both parity guards for either Claude adapter or skill paths', () => {
+test('core Claude role adapters keep only their adapter parity guard', () => {
   const root = fixtureRoot();
-  for (const filePath of ['.claude/agents/developer-agent.md', '.claude/skills/example/SKILL.md']) {
+  for (const filePath of ['.claude/agents/developer-agent.md']) {
     const guards = planEditGuards({
       tool_name: 'Edit',
       tool_input: { file_path: path.join(root, filePath) }
     }, root);
     assert.deepEqual(
       guards.map((guard) => guard.script),
-      ['validate:adapter-parity', 'validate:skill-parity']
+      ['validate:adapter-parity']
     );
+  }
+});
+
+test('optional instructions and catalog edits schedule no validators', () => {
+  for (const filePath of [
+    '.agents/skills/dynamic-workflow/SKILL.md', '.claude/skills/example/SKILL.md',
+    '.agent/skills/example/templates/example.md', '.agents/skills/example/references/example.md',
+    '.agents/workflows/dynamic-workflow.md', 'docs/operating-model/SKILL_CATALOG.md',
+  ]) {
+    const result = runEditGuards({ tool_name: 'Edit', tool_input: { file_path: filePath } },
+      repoRoot, () => { assert.fail('an optional library edit must not invoke a validator'); });
+    assert.deepEqual(result.guards, [], filePath);
+    assert.deepEqual(result.failed, [], filePath);
   }
 });
 
@@ -84,7 +97,7 @@ test('AC-06..08: runs every applicable validator and remains advisory when one f
     calls.push(script);
     return script === 'validate:adapter-parity' ? 1 : 0;
   });
-  assert.deepEqual(calls, ['validate:adapter-parity', 'validate:skill-parity']);
+  assert.deepEqual(calls, ['validate:adapter-parity']);
   assert.equal(result.advisory, true);
   assert.equal(result.failed.length, 1);
   assert.equal(result.failed[0].script, 'validate:adapter-parity');
@@ -119,7 +132,7 @@ test('F1: malformed matrix is surfaced without changing valid guard behavior', (
     tool_name: 'Edit',
     tool_input: { file_path: path.join(root, '.claude/agents/developer-agent.md') }
   }, root, () => 0);
-  assert.deepEqual(result.guards.map((guard) => guard.script), ['validate:adapter-parity', 'validate:skill-parity']);
+  assert.deepEqual(result.guards.map((guard) => guard.script), ['validate:adapter-parity']);
   assert.equal(result.advisory, true);
   assert.deepEqual(result.diagnostics, [
     'Edit guards advisory: test/fixtures/context-pack-v1/required-source-matrix.json is malformed JSON; AC-06 path discovery was skipped.'
