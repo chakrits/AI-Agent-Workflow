@@ -4,7 +4,7 @@
 - Work Item: https://github.com/chakrits/AI-Agent-Workflow/issues/297 (body revision 2, 2026-10-11)
 - Owner: SA Agent; Status: Proposed — awaiting Human approval (design gate). No implementation is authorized by this document.
 - Baseline: `2dca980` on `feat/issue-297-effective-agent-execution`. Change type / risk: Framework / Meta · Medium (Human-confirmed).
-- Decision record: ADR-0037 (Proposed) records the Defer of AC-003 and the Drop of AC-005; this SDD covers AC-001, 002, 004, 006, 007, 008, 009.
+- Decision record: ADR-0037 (Accepted 2026-10-11) records the Defer of AC-003 and the Drop of AC-005; this SDD covers AC-001, 002, 004, 006, 007, 008, 009.
 - Test-case naming: Issue test cases are written `I297-TC-nnn`. Test cases that already exist in the repository are written `<file>::TC-nnn` so the two numbering schemes cannot be confused (the Issue's TC-007 and `test/task-state-machine.test.mjs` TC-007 are different tests).
 
 ## Context
@@ -134,7 +134,7 @@ Projected Bootloader: about 1,767 + 160 = 1,930 of 2,500 (hard cap for this slic
 Add one compact section (cap 1,600 characters, about 400 tokens) whose rows only point at existing mechanisms: Prompt Chaining -> lifecycle phases/handoffs; Routing -> Routing Algorithm and Change Types; Parallelization -> sequential by default, Task-Execution Mode write-set rule (parallel contracts deferred, ADR-0037); Orchestrator-Workers -> Orchestrator dispatch and Packet v1; Evaluator-Optimizer -> QA/Review with `max_rework_attempts: 2`. Budget: Tier 3 24,877 + up to ~400 = about 25,300 of 30,000 (headroom about 4,700). `dynamic-routing.md` is not in the pinned set (F12), so no repin; `CONTEXT_BUDGET.md` Tier 3 row and total are updated. Role adapters: `npm run validate:adapter-parity` is run; no adapter text is expected to change.
 
 ### 6. AC-009: governance
-ADR-0037 (Proposed) records Defer AC-003, Drop AC-005 and the decision to leave the Bootloader ceiling at 2,500. PR carries the Documentation Impact section. Human approval gate applies because the Bug Fix policy contract and the Bootloader change.
+ADR-0037 (Accepted 2026-10-11) records Defer AC-003, Drop AC-005 and the decision to leave the Bootloader ceiling at 2,500. PR carries the Documentation Impact section. Human approval gate applies because the Bug Fix policy contract and the Bootloader change.
 
 ## API Contract
 N/A — no HTTP endpoints, OpenAPI, pagination or authentication. Internal contract changes: `bug-fix-workflow.yaml` gains additive keys `actors` (per row) and `reference_evidence` (top level) with `contract_version` unchanged at 1; new error code `EVIDENCE_NOT_REFERENCE` (status `REJECTED`); new npm scripts `validate:execution-discipline` and `validate:lessons-learned`.
