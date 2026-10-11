@@ -4,7 +4,7 @@
 
 ### Changed
 
-- Issue #294 (pending integration): skill libraries, editorial catalogs and skill-usage notation no longer gate mandatory CI, hooks, context budgets or core source pins. Explicit manual audits remain available; core authority, integrity, security and Issue/PR readiness checks stay enforced.
+- Issue #294 (merged via PR #295): skill libraries, editorial catalogs and skill-usage notation no longer gate mandatory CI, hooks, context budgets or core source pins. Explicit manual audits remain available; core authority, integrity, security and Issue/PR readiness checks stay enforced. Exact-main tests783/783 and state audit passed at `24cb8f5`.
 
 ### Added
 - Issue #283 rationalized all 39 skill trigger descriptions, organized the skill catalog into six domains, and added derived inventory validation enforced by GitHub Actions and GitLab CI while preserving mirror parity. Independent QA passed AC-01–AC-06; merged via PR #289 as `8cc2705`.
