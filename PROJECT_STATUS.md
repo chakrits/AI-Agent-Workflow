@@ -1,7 +1,7 @@
 # PROJECT_STATUS.md
 
 ## Current Work Item
-- Issue #294 — skill-library CI decoupling — IMP-002 implemented and independently code-reviewed on `codex/skill-library-decoupling-design`; next IMP-003, core-only matrix/budget. CI/readiness unchanged; global acceptance pending. Issue #283 remains completed via PR #289 (`8cc2705`); #284 remains separate. SEC-004 remains `DEFERRED_BY_HUMAN` under ADR-0033.
+- Issue #294 — skill-library CI decoupling — IMP-003 implemented and independently code-reviewed on `codex/skill-library-decoupling-design`; next planned IMP-004, mandatory-call graph. CI/readiness unchanged; global acceptance pending. Local housekeeping reports six old prunable worktrees; no cleanup performed. Issue #283 remains completed via PR #289 (`8cc2705`); #284 remains separate. SEC-004 remains `DEFERRED_BY_HUMAN` under ADR-0033.
 
 ## Active Work Items
 <!-- active-work-items-table-start -->
@@ -16,7 +16,7 @@
 - Issue #280 — GPT-6 Astra instruction, skill, and autonomy modernization — #281 is complete through PR #285; #282 is complete through PR #287; #283 is complete through PR #289; #284 remains planned independently. Parent SDD and ADR-0034 are Human-approved. Issue #290 is a separate CI defect repair and does not change the modernization scope.
 
 ## Current Stage
-- Issue #294 development: IMP-002 completes content/mixed/consumer/playbook splits. Core safety/release requirements preserved in quality-gates with owning SHA repin. No-library contract/playbook probe80/80; focused110/110; full768/768. Independent scoped review PASS at `fc72f69`. Next IMP-003; optional sources are still pinned and mandatory audits remain until their owning slices. Issue #284 is separate; readiness stays active. SEC-004 remains deferred, not security-complete.
+- Issue #294 development: IMP-003 core-only matrix v3/budget/edit guards implemented; retained99 core source occurrences unchanged. Full773/773; independent scoped review49/49 PASS at `940be1a`; core budget24481/30000. Seventeen validators pass, local housekeeping exits1 for six unrelated old worktrees, so no all-checks-green claim. Next planned IMP-004; mandatory skill audits/CI/hooks/reset remain until that slice. Issue #284 is separate; readiness stays active. SEC-004 remains deferred, not security-complete.
 
 ## Change Classification
 - Issue #294 is a Medium-risk framework/meta change; implementation changes tests/discovery/core policy and its current SHA pins. Final implementation requires independent QA and targeted Security Reviewer review of retained validation boundaries. Generic Issue/PR readiness remains outside scope.
