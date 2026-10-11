@@ -15,11 +15,11 @@ export function isSafeRefName(name) {
     && !name.endsWith('.lock');
 }
 
-/** git(args) -> trimmed-able stdout string, or undefined on any failure. */
-export function makeGit(root = process.cwd()) {
+/** git(args) -> stdout string, or undefined on any failure or timeout (timeoutMs, default 30 s). */
+export function makeGit(root = process.cwd(), { timeoutMs = 30000 } = {}) {
   return (args) => {
     try {
-      return execFileSync('git', args, { cwd: root, stdio: ['ignore', 'pipe', 'ignore'], maxBuffer: 64 * 1024 * 1024 }).toString();
+      return execFileSync('git', args, { cwd: root, stdio: ['ignore', 'pipe', 'ignore'], timeout: timeoutMs, killSignal: 'SIGKILL', maxBuffer: 64 * 1024 * 1024 }).toString();
     } catch {
       return undefined;
     }

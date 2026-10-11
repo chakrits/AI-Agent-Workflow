@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, readdirSync, realpathSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync, realpathSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { changedFiles, makeGit, resolveBase } from './lib/diff-scope.mjs';
@@ -6,6 +6,13 @@ import { changedFiles, makeGit, resolveBase } from './lib/diff-scope.mjs';
 // AC-006 (Issue #297): advisory check that closeout records Lessons Learned.
 // Always exits 0; findings print `WARN [AC-006] ...`. Not a skill, and
 // archive-work-item.mjs is untouched. Offline and read-only.
+
+// Input caps applied BEFORE any regex runs (security finding 1: quadratic
+// backtracking). Largest real line in repo records is ~715 chars, so 4096
+// leaves headroom; 256 KiB bounds total work to ~64 max-length lines.
+export const MAX_LINE_CHARS = 4096;
+export const MAX_FILE_BYTES = 256 * 1024;
+const OVERSIZE = Symbol('oversize');
 
 const WORK_ITEM_DIR = 'docs/records/work-items';
 const LESSONS_DIR = 'docs/records/lessons-learned';
@@ -53,6 +60,9 @@ export function linkResolves(root, name) {
 export function checkLessons(root, text) {
   const body = lessonsSection(text);
   if (body === undefined) return { ok: false, reason: 'no `## Lessons Learned` section' };
+  if (body.some((l) => l.length > MAX_LINE_CHARS)) {
+    return { ok: false, reason: `NOT EVALUATED: a Lessons Learned line exceeds ${MAX_LINE_CHARS} characters` };
+  }
   const lines = body
     .map((l) => l.replace(/<!--.*?-->/g, '').trim())
     .filter(Boolean)
@@ -74,7 +84,11 @@ export function checkLessons(root, text) {
 }
 
 function read(root, rel) {
-  try { return readFileSync(path.join(root, rel), 'utf8'); } catch { return undefined; }
+  try {
+    const file = path.join(root, rel);
+    if (statSync(file).size > MAX_FILE_BYTES) return OVERSIZE;
+    return readFileSync(file, 'utf8');
+  } catch { return undefined; }
 }
 
 function workItemsForIssue(root, n) {
@@ -113,6 +127,7 @@ export function evaluate({ root = process.cwd(), env = process.env, all = false,
 
   for (const rel of items) {
     const text = read(root, rel);
+    if (text === OVERSIZE) { add('info', `${rel}: NOT EVALUATED (file exceeds ${MAX_FILE_BYTES} bytes)`); continue; }
     if (text === undefined || !isClosed(text)) continue;
     seen.add(rel);
     evalItem(rel, text);
@@ -120,8 +135,14 @@ export function evaluate({ root = process.cwd(), env = process.env, all = false,
 
   for (const rel of handoffs) {
     const text = read(root, rel);
+    if (text === OVERSIZE) { add('info', `${rel}: NOT EVALUATED (file exceeds ${MAX_FILE_BYTES} bytes)`); continue; }
     if (text === undefined) continue;
-    const m = text.match(/Work Item:.*?\/issues\/(\d+)/);
+    let m = null;
+    for (const l of text.split('\n')) {
+      if (l.length > MAX_LINE_CHARS) continue;
+      m = l.match(/Work Item:.*?\/issues\/(\d+)/);
+      if (m) break;
+    }
     if (!m) { add('info', `${rel}: no Work Item URL; not evaluated`); continue; }
     const n = m[1];
     const records = workItemsForIssue(root, n);
@@ -135,7 +156,8 @@ export function evaluate({ root = process.cwd(), env = process.env, all = false,
       if (seen.has(rec)) continue;
       seen.add(rec);
       const itemText = read(root, rec);
-      if (itemText !== undefined) evalItem(rec, itemText);
+      if (itemText === OVERSIZE) add('info', `${rec}: NOT EVALUATED (file exceeds ${MAX_FILE_BYTES} bytes)`);
+      else if (itemText !== undefined) evalItem(rec, itemText);
     }
   }
 

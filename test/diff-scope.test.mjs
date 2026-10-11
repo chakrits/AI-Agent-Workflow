@@ -70,3 +70,19 @@ test('I297-TC-006e: changedFiles and numstat against a real repo', () => {
   assert.deepEqual(changedFiles(git, r.mergeBase), ['d/b.txt']);
   assert.deepEqual(numstat(git, r.mergeBase), [{ file: 'd/b.txt', added: 3, deleted: 0 }]);
 });
+
+test('I297-TC-006f-sec1: a hung git call times out and resolves to NOT EVALUATED', () => {
+  const bin = mkdtempSync(path.join(os.tmpdir(), 'fakegit-'));
+  const fake = path.join(bin, 'git');
+  writeFileSync(fake, '#!/bin/sh\nsleep 6\n', { mode: 0o755 });
+  const oldPath = process.env.PATH;
+  process.env.PATH = `${bin}${path.delimiter}${oldPath}`;
+  try {
+    const t0 = Date.now();
+    const r = resolveBase({}, makeGit(process.cwd(), { timeoutMs: 300 }));
+    assert.deepEqual(r, { notEvaluated: 'no PR range' });
+    assert.ok(Date.now() - t0 < 3000, `took ${Date.now() - t0} ms`);
+  } finally {
+    process.env.PATH = oldPath;
+  }
+});

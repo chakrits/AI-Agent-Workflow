@@ -171,3 +171,85 @@ test('I297-TC-006: hostile base branch env still exits 0 without running a shell
   const out = runIt(r, [], { GITHUB_BASE_REF: '$(touch pwned);x' });
   assert.equal(out.status, 0);
 });
+
+// Security finding 1 (S3): bounded matching. Wall-clock bound is generous (3 s)
+// against measured pre-fix times of 2-10 s for a single pathological line.
+const BOUND_MS = 3000;
+const PATHOLOGICAL = [
+  ['<!-- x50k', '<!--'.repeat(50000)],
+  ['wikilink x30k', '[[../lessons-learned/'.repeat(30000)],
+  ['mdlink x30k', '](lessons-learned/'.repeat(30000)],
+];
+
+test('I297-TC-005-sec1: pathological single lessons line is bounded, exit 0, WARN', () => {
+  for (const [label, line] of PATHOLOGICAL) {
+    const r = withItem(`- ${line}`);
+    const t0 = Date.now();
+    const out = runIt(r, ['--all']);
+    const ms = Date.now() - t0;
+    assert.equal(out.status, 0, label);
+    assert.ok(ms < BOUND_MS, `${label} took ${ms} ms`);
+    assert.match(out.stdout, /NOT EVALUATED|WARN \[AC-006\].*exceeds/, label);
+  }
+});
+
+test('I297-TC-005-sec1: line cap (file under file cap) yields a WARN naming the cap', () => {
+  for (const line of ['<!--'.repeat(50000), '[[../lessons-learned/'.repeat(10000), '](lessons-learned/'.repeat(10000)]) {
+    const out = runIt(withItem(`- ${line}`), ['--all']);
+    assert.equal(out.status, 0);
+    assert.match(out.stdout, /WARN \[AC-006\].*exceeds 4096 characters/);
+  }
+});
+
+test('I297-TC-005-sec1: many near-cap pathological lines stay bounded', () => {
+  const line = '- ' + '[[../lessons-learned/'.repeat(190); // ~3.9k chars, under the line cap
+  const r = withItem(Array(60).fill(line).join('\n'));
+  const t0 = Date.now();
+  const out = runIt(r, ['--all']);
+  const ms = Date.now() - t0;
+  assert.equal(out.status, 0);
+  assert.ok(ms < BOUND_MS, `took ${ms} ms`);
+});
+
+test('I297-TC-005-sec1: pathological Work Item line in a handoff is bounded, exit 0', () => {
+  const r = repo();
+  r.write(`docs/records/work-items/${NAME}`, item('- N/A'));
+  r.write('docs/records/HANDOFF-POST-MERGE-CLOSEOUT-x.md', `${'Work Item: '.repeat(20000)}\n`);
+  r.write('docs/records/HANDOFF-POST-MERGE-CLOSEOUT-y.md', `${'Work Item: '.repeat(50000)}\n`);
+  r.commit();
+  const t0 = Date.now();
+  const out = runIt(r);
+  const ms = Date.now() - t0;
+  assert.equal(out.status, 0);
+  assert.ok(ms < BOUND_MS, `took ${ms} ms`);
+  assert.match(out.stdout, /INFO: .*CLOSEOUT-x\.md: no Work Item URL/);
+  assert.match(out.stdout, /INFO: .*CLOSEOUT-y\.md: NOT EVALUATED/);
+});
+
+test('I297-TC-005-sec1: oversize file is NOT EVALUATED, exit 0, no hang', () => {
+  const r = repo();
+  r.write(`docs/records/work-items/${NAME}`, item('- real lesson') + 'a\n'.repeat(400000));
+  r.commit();
+  const t0 = Date.now();
+  const out = runIt(r, ['--all']);
+  assert.equal(out.status, 0);
+  assert.ok(Date.now() - t0 < BOUND_MS);
+  assert.match(out.stdout, /NOT EVALUATED/);
+  assert.doesNotMatch(out.stdout, /OK \[AC-006\]/);
+});
+
+test('I297-TC-005-sec1: normal-sized long line (under caps) still evaluates', () => {
+  const out = runIt(withItem(`- ${'word '.repeat(300)}`), ['--all']);
+  assert.match(out.stdout, /OK \[AC-006\]/);
+});
+
+test('I297-TC-005-sec1: handoff Work Item line over the line cap is ignored; under the cap still matches', () => {
+  const r = repo();
+  r.write(`docs/records/work-items/${NAME}`, item('- N/A'));
+  r.write('docs/records/HANDOFF-POST-MERGE-CLOSEOUT-long.md', `Work Item: ${'x'.repeat(5000)}/issues/900\n`);
+  r.write('docs/records/HANDOFF-POST-MERGE-CLOSEOUT-short.md', 'Work Item: https://example.test/o/r/issues/900\n');
+  r.commit();
+  const out = runIt(r).stdout;
+  assert.match(out, /CLOSEOUT-long\.md: no Work Item URL/);
+  assert.doesNotMatch(out, /CLOSEOUT-short\.md: no Work Item URL/);
+});
