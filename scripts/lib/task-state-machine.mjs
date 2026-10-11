@@ -24,7 +24,7 @@ export function deriveTransitionTable(policy) {
   const table = Object.fromEntries(STATES.map((state) => [state, { destinations: [], actors: [] }]));
   for (const row of [...policy.transitions, ...policy.resume]) {
     const destinations = row?.to ? [row.to] : row?.destinations;
-    if (!table[row?.from] || !Array.isArray(destinations) || !Array.isArray(row.actors) || row.actors.length === 0) throw policyError(`Invalid Bug Fix policy row from '${row?.from}': destinations and actors are required.`);
+    if (!table[row?.from] || !Array.isArray(destinations) || !Array.isArray(row.actors) || row.actors.length === 0 || !Array.isArray(row.requires)) throw policyError(`Invalid Bug Fix policy row from '${row?.from}': destinations, actors and requires are required.`);
     for (const destination of destinations) if (!STATES.includes(destination)) throw policyError(`Unknown policy destination '${destination}'.`);
     for (const destination of destinations) if (!table[row.from].destinations.includes(destination)) table[row.from].destinations.push(destination);
     for (const actor of row.actors) if (!table[row.from].actors.includes(actor)) table[row.from].actors.push(actor);

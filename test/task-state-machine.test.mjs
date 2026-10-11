@@ -422,6 +422,43 @@ test('I297-TC-003: invalid policy fails closed with POLICY_UNAVAILABLE', () => {
   }
 });
 
+test('I297-S1-F1: every policy row must declare a requires array', () => {
+  const policy = YAML.parse(fs.readFileSync('docs/contracts/bug-fix-workflow.yaml', 'utf8'));
+  for (const bad of [undefined, null, 'repro', {}]) {
+    const transitions = policy.transitions.map((row, index) => (index === 0 ? { ...row, requires: bad } : row));
+    assert.throws(() => deriveTransitionTable({ ...policy, transitions }), (error) => error.code === 'POLICY_UNAVAILABLE');
+  }
+  const noRequires = policy.transitions.map((row, index) => { if (index !== 0) return row; const { requires, ...rest } = row; return rest; });
+  assert.throws(() => deriveTransitionTable({ ...policy, transitions: noRequires }), (error) => error.code === 'POLICY_UNAVAILABLE');
+  const resume = policy.resume.map((row) => { const { requires, ...rest } = row; return rest; });
+  assert.throws(() => deriveTransitionTable({ ...policy, resume }), (error) => error.code === 'POLICY_UNAVAILABLE');
+});
+
+test('I297-S1-F2: a policy row with empty actors fails closed with POLICY_UNAVAILABLE', () => {
+  const policy = YAML.parse(fs.readFileSync('docs/contracts/bug-fix-workflow.yaml', 'utf8'));
+  const transitions = policy.transitions.map((row, index) => (index === 0 ? { ...row, actors: [] } : row));
+  assert.throws(() => deriveTransitionTable({ ...policy, transitions }), (error) => error.code === 'POLICY_UNAVAILABLE');
+});
+
+test('I297-S1-F4: exact YAML edge set is pinned and removed matrix-only edges are rejected', () => {
+  const expected = {
+    intake: ['investigating'], investigating: ['implementing', 'blocked'], implementing: ['verifying'],
+    verifying: ['handoff', 'rework', 'blocked'], rework: ['implementing'], handoff: ['completed'],
+    blocked: ['investigating', 'verifying'], completed: [], cancelled: [], designing: [], planning: []
+  };
+  for (const state of STATES) assert.deepEqual([...TRANSITION_MATRIX[state].destinations].sort(), [...expected[state]].sort(), `destinations for ${state}`);
+  const removed = [['implementing', 'blocked'], ['rework', 'blocked'], ['handoff', 'blocked'], ['blocked', 'implementing'], ['blocked', 'rework'], ['blocked', 'handoff'], ['blocked', 'completed'], ['blocked', 'cancelled']];
+  for (const [from, to] of removed) {
+    const task = { ...createTaskState({ task_id: `removed-${from}-${to}` }), state: from, stop_reason: null };
+    task.state_digest = computeStateDigest(task);
+    assert.throws(
+      () => rawTransitionTaskState(task, { to, actor: 'orchestrator', expected_digest: task.state_digest, evidence: { stop_reason: 'x', resume_evidence: 'r', approver_id: 'a' } }),
+      (error) => error.code === 'ILLEGAL_TRANSITION_REJECTED',
+      `${from} -> ${to}`
+    );
+  }
+});
+
 function createDurableTaskRoot(taskId = 'durable-evidence') {
   const root = createTempDir();
   const taskDir = path.join(root, 'docs', 'records', 'work-items', taskId);
