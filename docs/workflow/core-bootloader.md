@@ -40,7 +40,7 @@ After applying the gates above, load only the sources needed for the task class:
 |---|---|
 | Readonly/advisory | Relevant evidence only; do not preload the canonical library. |
 | Framework/meta or routing | `docs/workflow/dynamic-routing.md`, then the matching workflow. |
-| Role-owned implementation or review | The matching file in `docs/workflow/roles/`, then the selected skill. |
+| Role-owned implementation or review | The matching file in `docs/workflow/roles/`, then an applicable available skill if useful. |
 | Lifecycle handoff | `docs/workflow/dynamic-routing.md` and `docs/workflow/handoff-contract.md`. |
 | Security-sensitive | The security workflow/review source before a mutation. |
 | Release, production data, or irreversible action | The applicable release/data workflow and the human approval gate. |
@@ -87,6 +87,4 @@ Handoffs between agents must be structured, deterministic, and verifiable. Prose
 
 ### Available Skills
 
-The exact, current skill inventory and routing criteria are in `docs/operating-model/SKILL_CATALOG.md`.
-Choose the most specific matching skill after classification; do not load the catalog unless the task needs
-skill selection or a skill contract.
+Select from discovered descriptions of available skills after classification; load only the selected `SKILL.md` when useful. The catalog is optional, not a required inventory. Associated-skill lists in role contexts are availability-dependent hints. If a skill is absent, use the base role/core requirements and record the gap; never waive quality/security/human gates or grant extension content policy authority.

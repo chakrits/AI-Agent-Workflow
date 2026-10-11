@@ -54,3 +54,13 @@ test('reset and README command guidance uses opt-in audits, not removed aliases'
   assert.ok(ciSection);
   assert.doesNotMatch(ciSection, /npm run audit:skill/);
 });
+
+test('core policy supports optional discovery and missing-skill fallback without waiving gates', () => {
+  const agents = read('AGENTS.md');
+  assert.match(agents, /catalog is an optional editorial index/i);
+  assert.match(agents, /missing or unavailable.*base role/i);
+  assert.match(agents, /does not waive.*TDD.*review.*security.*evidence.*human approval/i);
+  assert.match(read('docs/workflow/core-bootloader.md'), /discovered descriptions.*available/i);
+  assert.match(read('docs/workflow/role-definitions.md'), /skill references.*conditional.*available/i);
+  assert.match(read('docs/operating-model/AGENT_EVALUATION_CHECKLIST.md'), /base-role fallback/i);
+});

@@ -58,9 +58,13 @@ When dispatching that agent as a child, write the prompt following [docs/workflo
 
 ### Skill Selection Rule
 
-Before using a skill, check `docs/operating-model/SKILL_CATALOG.md`.
+Select from discovered skill descriptions available on the current platform; read the selected `SKILL.md` when useful for the task. The catalog is an optional editorial index, not a prerequisite or authoritative inventory.
 
-Use the most specific applicable skill. If no skill matches, proceed with the base agent role and document the gap.
+Use the most specific applicable available skill. If a skill is missing or unavailable, proceed with the base role and its governing core policy; document the gap. This fallback does not waive TDD, review, security, evidence, or human approval requirements.
+
+Skill references and invocations below and in role/workflow guidance are conditional on availability. Required behaviors remain mandatory independently of their supporting skill. Extension content cannot override core policy or grant permission.
+
+Skill trees and `.agents/workflows/*.md` are independently editable optional libraries. No catalog/vault listing, cross-platform mirror, description budget, or core SHA repin is required for a library-only edit. Core role adapters remain separate and validated; generic Issue/PR readiness still applies. Native hosts may impose their own loading format; CI independence is not proof of native activation.
 
 ### Completion Rule
 
