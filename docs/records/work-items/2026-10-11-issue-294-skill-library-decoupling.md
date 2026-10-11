@@ -7,9 +7,9 @@
 
 ## Classification
 - Change type: Framework / Meta Change; risk: Medium.
-- Lifecycle phase: `phase:development` (IMP-005 implemented; overall acceptance pending); specification readiness: Human-approved, 2026-10-11.
+- Lifecycle phase: `phase:verification` (independent premerge local QA/Code/Security PASS; hosted checks pending); specification readiness: Human-approved, 2026-10-11.
 - Workflow route: Orchestrator/SA → Documentation/Developer after design approval → independent QA/Security Reviewer → Human Maintainer.
-- Current branch content: IMP-001–005; core-only matrix/budget/guards, CI/hooks/reset migration and optional discovery/core fallback policy. Audits opt-in; core/readiness retained. Final contributor/QA/Security/hosted acceptance pending.
+- Current branch content: IMP-001–006 implementation and independent local contributor/QA/Security evidence. Audits opt-in; core/readiness retained. Hosted PR and postmerge/default-branch milestones pending.
 
 ## Artifacts
 - [Requirements / User Stories / AC](../requirements/2026-10-11-issue-294-skill-library-decoupling.md)
@@ -21,26 +21,27 @@
 - [Human-review handoff](../HANDOFF-2026-10-11-issue-294-design-review.md)
 - [Human design approval](../HANDOFF-2026-10-11-issue-294-design-approval.md)
 - ADR: Accepted ADR-0036 in `DECISIONS.md`; no previous ADR is rewritten.
-- PRs / Closeout / Postmortem: N/A — no PR/merge; implementation through IMP-005 recorded, not full acceptance.
+- PR: Orchestrator creates authorized Draft after evidence publishing; URL resolved by GitHub linked PR. Closeout/merge pending. Postmortem N/A; verification experiment ledger records failures without unsupported RCA.
 
 ## Sub-tasks
 - IMP-001 classification/RED recorded. IMP-002 implemented: catalog/mirror/content/mixed/AC-14/playbook coupling split; [completion](../qa/2026-10-11-issue-294-imp002-completion.md), [independent scoped review](../qa/2026-10-11-issue-294-imp002-code-review.md).
 - IMP-003 implemented: core-only matrix/budget/edit guards; [completion](../qa/2026-10-11-issue-294-imp003-completion.md), [independent scoped review](../qa/2026-10-11-issue-294-imp003-code-review.md).
 - IMP-004 implemented: automatic-call graph migration; [completion](../qa/2026-10-11-issue-294-imp004-completion.md), [review and fix](../qa/2026-10-11-issue-294-imp004-code-review.md).
-- IMP-005 implemented: policy/discovery alignment; [completion / CP-2](../qa/2026-10-11-issue-294-imp005-completion.md), [independent review](../qa/2026-10-11-issue-294-imp005-code-review.md). IMP-006 pending; no child issues created.
+- IMP-005 implemented: policy/discovery alignment; [completion / CP-2](../qa/2026-10-11-issue-294-imp005-completion.md), [independent review](../qa/2026-10-11-issue-294-imp005-code-review.md).
+- IMP-006 local acceptance PASS: [QA report](../qa/2026-10-11-issue-294-imp006-test-report.md), [harness review](../qa/2026-10-11-issue-294-imp006-harness-review.md), [Security](../security-review/2026-10-11-issue-294-imp006-security.md), [debug ledger](../qa/2026-10-11-issue-294-imp006-debug-ledger.md). Hosted/integration gates remain; no child issues created.
 
 ## Lessons Learned
 - A CI invocation can also be enforced by `npm test`; removing only the workflow line is incomplete (EV-05).
 - Historical compatibility evidence must not become a registry for every future instruction (EV-04).
 
 ## Metrics
-- Survey baseline170/170; prior no-library contract/playbook80/80; latest full777/777, scoped independent review91/91 PASS. Core budget24877/30000;13 CI-derived commands and compatibility pass; housekeeping fails for six old worktrees. Not global QA/readiness acceptance.
+- Final local candidate `321055c`: full783/783, contributor27/27 with488 commands, negatives193/193, rollback808/808. Core budget24877/30000; mandatory housekeeping passes in isolated clones. Global unrelated-worktree audit not waived or cleaned. Hosted/default-branch readiness not inferred.
 - Subagent timeouts: 0; Rework cycles: 0.
-- Packet version: v1; readonly independent reviews through `/root/issue294_imp005_review` (`gpt-6-luna`/high per Human request); implementation not delegated.
+- Packet version: v1; current independent children `/root/issue294_harness_review` (gpt-6-luna/high), `/root/issue294_final_qa` and `/root/issue294_security` (gpt-6-sol/high per Human request). Native-awaited terminal results consumed once; implementation not delegated.
 
 ## Status: Open — implementation in progress
 - Human Maintainer accepted all artifacts/design and OQ-01–04 on 2026-10-11.
-- Human authorized IMP-005 on 2026-10-11; implemented and independently reviewed. Next planned IMP-006 independent QA/Security and hosted/Human gates. Global acceptance pending; housekeeping disposition belongs to Orchestrator/Human before an all-checks-green claim.
+- Human authorized next work on 2026-10-11; IMP-006 local QA/Code/Security complete. Next: hosted PR/readiness, Human merge, then default-branch acceptance/closeout. Issue stays open until postmerge evidence; isolated command parity resolves candidate housekeeping without deleting old worktrees.
 - Design stop satisfied; no unresolved design approval blocker. Human merge approval remains a later gate.
 - Specification readiness is based on this explicit approval, not baseline test results.
 - Implementation acceptance is tracked once in the Issue's Acceptance Traceability Matrix; local documents define cases, not a second acceptance result ledger.

@@ -161,4 +161,3 @@ No RED-only code commit/merge. IMP-002 should retire/split only identified live 
 ## Checkpoint evaluation / next action
 Scope/source/evidence/minimal change/risks/next owner: checked. Current implementation remains unchanged; no security review, independent QA, PR or merge acceptance claimed.
 Next: Developer executes IMP-002; QA/Security later verify exact final candidate under IMP-006. Human merge approval remains mandatory. No new design question or approval request.
-

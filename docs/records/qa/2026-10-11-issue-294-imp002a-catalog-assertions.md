@@ -54,4 +54,3 @@ Scope/source grounding, assumptions, evidence, minimal change, safety boundary a
 ## Next work / owner
 Developer: continue IMP-002 with live skill-content/mirror assertions and mixed splits, AC-14 consumers and playbook reachability. Safety-content cases need core-policy coverage before retirement; no blanket deletion.
 Independent QA/Security review exact final candidate at IMP-006. Human merge approval remains mandatory.
-

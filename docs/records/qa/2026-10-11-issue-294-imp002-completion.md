@@ -95,4 +95,3 @@ Scope, source grounding, artifact/evidence, minimal change, safety, assumptions 
 CHANGES MADE: core policy preservation/current hash, classified test retirement/splits, core playbook discovery, records.
 NOTICED BUT NOT TOUCHING: matrix stillv2 and pinned to optional sources, mandatory skill audits/CI enforcement/hooks/reset, policy discovery wording. These are IMP-003–005, not defects disguised as completion.
 Next: Developer → IMP-003 core-only source matrix/budget. Final independent QA/Security, hosted PR/readiness, human merge and default-branch closeout remain later gates. All12 Issue AC outcomes stay Pending until the required independent evidence exists.
-

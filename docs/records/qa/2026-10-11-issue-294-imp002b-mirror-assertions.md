@@ -53,4 +53,3 @@ CONCERNS: current CI still rejects drift; this is deliberate intermediate state,
 ## Next owner / action
 Developer continues IMP-002: pure content assertions, mixed splits, AC-14 consumers, playbook reachability. Preserve/migrate core safety coverage before retiring safety-content tests.
 Independent Reviewer/QA/Security verifies final candidate at IMP-006. All Issue acceptance outcomes stay Pending; human merge remains mandatory.
-

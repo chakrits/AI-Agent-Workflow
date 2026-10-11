@@ -1,7 +1,7 @@
 # PROJECT_STATUS.md
 
 ## Current Work Item
-- Issue #294 — skill-library CI decoupling — IMP-005 policy/discovery aligned on `codex/skill-library-decoupling-design`; scoped independent review PASS, next planned IMP-006 acceptance. Optional audits/discovery independent; core/readiness retained. Global acceptance pending. Local housekeeping reports six old prunable worktrees; no cleanup performed. Issue #283 remains completed via PR #289 (`8cc2705`); #284 remains separate. SEC-004 remains `DEFERRED_BY_HUMAN` under ADR-0033.
+- Issue #294 — IMP-006 independent premerge local QA/Code/Security PASS at `321055c` on `codex/skill-library-decoupling-design`. Contributor27/27, candidate783/783, negatives193/193; rollback808/808. Hosted PR/readiness pending; Human merge and default-branch closeout remain required. Isolated mandatory housekeeping passes; unrelated old worktrees untouched. #284 remains separate; SEC-004 remains `DEFERRED_BY_HUMAN` under ADR-0033.
 
 ## Active Work Items
 <!-- active-work-items-table-start -->
@@ -16,7 +16,7 @@
 - Issue #280 — GPT-6 Astra instruction, skill, and autonomy modernization — #281 is complete through PR #285; #282 is complete through PR #287; #283 is complete through PR #289; #284 remains planned independently. Parent SDD and ADR-0034 are Human-approved. Issue #290 is a separate CI defect repair and does not change the modernization scope.
 
 ## Current Stage
-- Issue #294 development: IMP-005 optional discovery/base-role fallback and core pins aligned at `6d3af2d`; independent gpt-6-luna review91/91 PASS, full777/777. Core budget24877/30000, boot1767/2500. CI-derived13 commands pass; housekeeping exits1 for six unrelated old worktrees. CP-2 not all-checks-green; no final QA/merge claim. Next planned IMP-006 independent harness/QA/Security/hosted readiness/Human integration. Issue #284 is separate; SEC-004 remains deferred.
+- Issue #294 verification: independent27-case harness executes488 commands with no companion drift, including mandatory housekeeping in isolated clones. Code/Security PASS; QA PASS_PREMERGE_LOCAL. Core budget24877/30000, boot1767/2500. Next: Orchestrator publishes evidence and Draft PR, verifies hosted checks, then Human merge review. AC11 postmerge/default-branch milestone stays pending; no release/native activation claim.
 
 ## Change Classification
 - Issue #294 is a Medium-risk framework/meta change; implementation changes tests/discovery/core policy and its current SHA pins. Final implementation requires independent QA and targeted Security Reviewer review of retained validation boundaries. Generic Issue/PR readiness remains outside scope.
