@@ -51,4 +51,6 @@ No fabricated log links or candidate passes. A failed/unsupported case remains F
 Requirements, SDD, TDD, implementation/test plans, work item, Accepted ADR-0036, PROJECT_STATUS/TASK_LOG, Human-review handoff and approval record exist. CHANGELOG is N/A for this documentation-only branch. Test report is N/A until implementation QA. Risks and accepted scope decisions are in requirements and SDD.
 
 ## 7. Recommendation
+Implementation continuation authorized 2026-10-11. [IMP-001 checkpoint](2026-10-11-issue-294-imp001-assertion-classification.md) records fresh baseline/RED probes and assertion split obligations; no implementation acceptance claim. Next: approved IMP-002.
+
 Design and ASM/OQ decisions are approved; record spec-ready based on explicit Human approval and follow the implementation plan. Do not add development-done/verification-done based on baseline evidence. Issue #284 should adopt the new approved discovery expectations before its scenario corpus is frozen; do not silently amend its ACs or mark it implemented.

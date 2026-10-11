@@ -7,7 +7,7 @@
 
 ## Classification
 - Change type: Framework / Meta Change; risk: Medium.
-- Lifecycle phase: `phase:planning`; specification readiness: Human-approved, 2026-10-11.
+- Lifecycle phase: `phase:development` (IMP-001 preflight); specification readiness: Human-approved, 2026-10-11.
 - Workflow route: Orchestrator/SA → Documentation/Developer after design approval → independent QA/Security Reviewer → Human Maintainer.
 - Current branch content: documentation only. Design gate is satisfied; scoped implementation may follow the approved plan.
 
@@ -24,7 +24,7 @@
 - PRs / Closeout / Postmortem: N/A — no PR created and no implementation delivered.
 
 ## Sub-tasks
-- IMP-001–IMP-006: see Implementation Plan; sequential dependency checkpoints, no child issues created.
+- IMP-001: classification/RED preflight recorded in [checkpoint](../qa/2026-10-11-issue-294-imp001-assertion-classification.md); production behavior unchanged. IMP-002–IMP-006 pending; sequential dependency checkpoints, no child issues created.
 
 ## Lessons Learned
 - A CI invocation can also be enforced by `npm test`; removing only the workflow line is incomplete (EV-05).
@@ -35,9 +35,9 @@
 - Subagent timeouts: 0; Rework cycles: 0.
 - Packet version / Packet tokens: N/A — this specification package has no delegated implementation.
 
-## Status: Open — approved planning
+## Status: Open — implementation preflight
 - Human Maintainer accepted all artifacts/design and OQ-01–04 on 2026-10-11.
-- Next planned step: IMP-001; planned owner: Developer/QA roles. Runtime dispatch not yet invoked.
+- Human authorized continuation on 2026-10-11. IMP-001 checkpoint recorded; next: IMP-002, Developer role. No runtime child dispatch or independent QA acceptance claimed.
 - Design stop satisfied; no unresolved design approval blocker. Human merge approval remains a later gate.
 - Specification readiness is based on this explicit approval, not baseline test results.
 - Implementation acceptance is tracked once in the Issue's Acceptance Traceability Matrix; local documents define cases, not a second acceptance result ledger.

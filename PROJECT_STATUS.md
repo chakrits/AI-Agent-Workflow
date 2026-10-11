@@ -1,7 +1,7 @@
 # PROJECT_STATUS.md
 
 ## Current Work Item
-- Issue #294 — skill-library CI decoupling — Human-approved requirements/design/plan on `codex/skill-library-decoupling-design`; OQ-01–04 resolved, approved planning/spec-ready. Issue #283 remains completed via PR #289 (`8cc2705`); #284 remains separate. SEC-004 remains `DEFERRED_BY_HUMAN` under ADR-0033.
+- Issue #294 — skill-library CI decoupling — approved implementation started on `codex/skill-library-decoupling-design`; IMP-001 classification/RED checkpoint recorded, enforcement unchanged. Issue #283 remains completed via PR #289 (`8cc2705`); #284 remains separate. SEC-004 remains `DEFERRED_BY_HUMAN` under ADR-0033.
 
 ## Active Work Items
 <!-- active-work-items-table-start -->
@@ -16,7 +16,7 @@
 - Issue #280 — GPT-6 Astra instruction, skill, and autonomy modernization — #281 is complete through PR #285; #282 is complete through PR #287; #283 is complete through PR #289; #284 remains planned independently. Parent SDD and ADR-0034 are Human-approved. Issue #290 is a separate CI defect repair and does not change the modernization scope.
 
 ## Current Stage
-- Issue #294 approved planning: design stop satisfied; IMP-001 is the next planned implementation task. Issue #284 remains separate and should reflect approved #294 discovery expectations before freezing its corpus. PR #291 remains merged and readiness protection active. SEC-004 remains deferred, not security-complete.
+- Issue #294 development preflight: IMP-001 records live-library versus mixed/core assertions and two fresh isolated RED probes at `d36a48c`; unchanged focused baseline passes 146/146. Next: IMP-002, preserving mixed core assertions. Issue #284 remains separate; readiness protection stays active. SEC-004 remains deferred, not security-complete.
 
 ## Change Classification
 - Issue #294 is a Medium-risk framework/meta change; current branch is documentation only. Later implementation requires independent QA and targeted Security Reviewer review of retained validation boundaries. Generic Issue/PR readiness is outside the proposed change.
@@ -94,7 +94,7 @@
 - Issue #294 follows approved IMP-001–IMP-006 with scoped red/green evidence, independent QA and targeted Security Reviewer validation; Human merge approval remains required. Design approval/OQ decisions are resolved. SEC-004 stays separately deferred under ADR-0033.
 
 ## Recommended Next Agent
-- Developer/QA roles for approved IMP-001; planned stage, not a runtime dispatch claim.
+- Developer role for approved IMP-002; IMP-001 record: `docs/records/qa/2026-10-11-issue-294-imp001-assertion-classification.md`. Independent QA/Security follows final implementation; no child dispatch or acceptance claim.
 
 ## Notes
 - Reset to template baseline by `npm run reset:template`.
