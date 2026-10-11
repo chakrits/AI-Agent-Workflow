@@ -5,11 +5,11 @@
 |---|---|
 | Work Item / Branch | https://github.com/chakrits/AI-Agent-Workflow/issues/294 / `codex/skill-library-decoupling-design` |
 | Change Type / Risk | Framework / Meta; Medium |
-| Owner / Status | Orchestrator/SA; Draft awaiting design approval |
-| Authorization | Issue, branch, documents authorized; implementation/merge not yet approved |
+| Owner / Status | Orchestrator/SA; Approved by Human Maintainer on 2026-10-11 |
+| Authorization | All artifacts/design and Open Question answers accepted; scoped implementation may proceed; merge remains a separate human gate |
 
 ## 2. Inputs Reviewed
-Requirements, SDD, TDD, Test Plan: available Draft in this bundle. Survey baseline EV-01–EV-06: observed, not candidate acceptance. API contract: N/A — no endpoints. Proposed ADR-0036: awaiting approval.
+Requirements, SDD, TDD, Test Plan: available and Human-approved on 2026-10-11. Survey baseline EV-01–EV-06: observed, not candidate acceptance. API contract: N/A — no endpoints. ADR-0036: Accepted.
 
 ## 3. Affected Areas
 Core context validator/fixtures, optional skill diagnostics, live content tests, GitHub/GitLab CI, Claude hooks/edit guards/reset, AGENTS/bootloader/role/discovery instructions. Exact targets are in TDD. Frontend/backend product/database: N/A.
@@ -58,7 +58,7 @@ Post-implementation: run `npm test` and every remaining command actually configu
 | Post-merge regression | Human Maintainer approves revert of owning slice(s), reverse dependency order; QA verifies restored default branch |
 
 ## 8. Risks / Blockers
-Human design approval and proposed OQ-01/02 scope assumptions are pending. Native availability is not guaranteed. Mixed tests and v2→v3 fixtures require careful review. Generic readiness remains required for skill-only PRs; simplifying it requires separate authorization/design.
+Human design approval and OQ-01–04 are resolved on 2026-10-11. Native availability is not guaranteed. Mixed tests and v2→v3 fixtures require careful review. Generic readiness remains required for skill-only PRs; simplifying it is outside this approved scope.
 
 ## 9. Handoff
-Current Next Action: Human review; Next Owner: Human Maintainer. After approved SDD/TDD/plan and accepted ADR, Orchestrator may record spec-ready and dispatch Developer with a structured packet. After implementation, independent QA/Security review exact candidate SHA; only a truthful complete result may advance human merge review. Post-merge evidence completes AC-11/12 closeout, not pre-merge approval.
+Design gate completed on 2026-10-11. Next planned stage: IMP-001, owned by Developer/QA roles; no child invocation is claimed by this approval record. Orchestrator records spec-ready before implementation and uses a structured packet for any actual dispatch. After implementation, independent QA/Security review exact candidate SHA; only a truthful complete result may advance human merge review. Post-merge evidence completes AC-11/12 closeout, not pre-merge approval.

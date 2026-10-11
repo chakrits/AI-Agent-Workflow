@@ -7,9 +7,9 @@
 
 ## Classification
 - Change type: Framework / Meta Change; risk: Medium.
-- Lifecycle phase: `phase:design`; specification readiness: Draft, not approved.
+- Lifecycle phase: `phase:planning`; specification readiness: Human-approved, 2026-10-11.
 - Workflow route: Orchestrator/SA → Documentation/Developer after design approval → independent QA/Security Reviewer → Human Maintainer.
-- Scope of this branch: documentation only. Implementation and validator retirement await design approval.
+- Current branch content: documentation only. Design gate is satisfied; scoped implementation may follow the approved plan.
 
 ## Artifacts
 - [Requirements / User Stories / AC](../requirements/2026-10-11-issue-294-skill-library-decoupling.md)
@@ -19,7 +19,8 @@
 - [Test Plan](../qa/2026-10-11-issue-294-skill-library-decoupling-test-plan.md)
 - [Evidence / readiness](../qa/2026-10-11-issue-294-skill-library-decoupling-evidence.md)
 - [Human-review handoff](../HANDOFF-2026-10-11-issue-294-design-review.md)
-- ADR: proposed ADR-0036 in `DECISIONS.md`; no previous ADR is rewritten.
+- [Human design approval](../HANDOFF-2026-10-11-issue-294-design-approval.md)
+- ADR: Accepted ADR-0036 in `DECISIONS.md`; no previous ADR is rewritten.
 - PRs / Closeout / Postmortem: N/A — no PR created and no implementation delivered.
 
 ## Sub-tasks
@@ -34,9 +35,9 @@
 - Subagent timeouts: 0; Rework cycles: 0.
 - Packet version / Packet tokens: N/A — this specification package has no delegated implementation.
 
-## Status: Open — design review
-- Next Action: Human review.
-- Next Owner: Human Maintainer.
-- Dispatch State: blocked; Stop Reason: human_review_required (design approval, not a technical failure).
-- Design gate: review the 12 ACs, proposed ADR, core-only matrix migration, and retained readiness boundary.
+## Status: Open — approved planning
+- Human Maintainer accepted all artifacts/design and OQ-01–04 on 2026-10-11.
+- Next planned step: IMP-001; planned owner: Developer/QA roles. Runtime dispatch not yet invoked.
+- Design stop satisfied; no unresolved design approval blocker. Human merge approval remains a later gate.
+- Specification readiness is based on this explicit approval, not baseline test results.
 - Implementation acceptance is tracked once in the Issue's Acceptance Traceability Matrix; local documents define cases, not a second acceptance result ledger.

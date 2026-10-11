@@ -2,8 +2,8 @@
 
 ## Metadata
 - Work Item: https://github.com/chakrits/AI-Agent-Workflow/issues/294
-- Owner: QA role; Date: 2026-10-11; Status: Draft.
-- Sources: approved-after-review requirements AC-01–12, SDD/TDD, EV-01–06 baseline. Design source is currently Draft; no candidate pass is claimed.
+- Owner: QA role; Date: 2026-10-11; Status: Approved by Human Maintainer.
+- Sources: Human-approved requirements AC-01–12 and SDD/TDD, EV-01–06 baseline. No candidate pass is claimed.
 - Mode: functional design for framework changes; no browser/application automation.
 
 ## Scope / Objectives
@@ -28,7 +28,7 @@ Steps for every passing contributor case: (1) capture exact candidate SHA and ha
 The future `scripts/verify-skill-decoupling.mjs` harness is a QA command, outside default `npm test`; it must not recursively spawn itself through test discovery. Fast default tests use controlled fixtures and core/config contracts. Hosted default-branch results are collected after human-approved merge, not synthesized locally.
 
 ## Detailed Test Cases / Requirement Mapping
-All expected outcomes below are proposed design outcomes. Current implementation results remain Pending in the Issue matrix.
+All expected outcomes below are Human-approved design outcomes. Current implementation results remain Pending in the Issue matrix.
 
 | Case | AC | Priority | Exact edit / action | Expected result |
 |---|---|---|---|---|
@@ -75,4 +75,4 @@ R-01 (likelihood 4 × impact 4 = 16): hidden automatic audit; prioritize call-gr
 Entry: Human-approved design/ADR/plan, spec-ready, developer evidence and exact implementation SHA. Exit before merge: all in-scope local/core cases verified, independent QA/Security evidence, PR hosted checks, no unexplained regressions. Exit after merge: default-branch evidence and closeout captured. NFRs: zero companion edits; no mandatory skill-count/description caps; retained core budgets and core-negative rejection. No performance SLA was stated.
 
 ## Assumptions / Open Questions / QA Handoff / Self-review
-Use ASM/OQ from requirements. QA owns final results and signs the Issue matrix; author self-check is not independent QA. Native access gaps do not establish activation. Handoff includes exact SHA, logs, failed-case route and rollback owner; Human approval remains required. Self-review: all ACs mapped, explicit data/results, safe disposable edits, no recursive harness, baseline/candidate separation, and N/A scopes explained.
+ASM/OQ decisions in requirements were accepted on 2026-10-11. QA owns final results and signs the Issue matrix; author self-check is not independent QA. Native access gaps do not establish activation. Handoff includes exact SHA, logs, failed-case route and rollback owner; Human merge approval remains required. Self-review: all ACs mapped, explicit data/results, safe disposable edits, no recursive harness, baseline/candidate separation, and N/A scopes explained.

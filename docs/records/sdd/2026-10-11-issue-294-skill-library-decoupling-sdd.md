@@ -2,9 +2,9 @@
 
 ## Metadata
 - Work Item: https://github.com/chakrits/AI-Agent-Workflow/issues/294
-- Owner: SA/Orchestrator; Status: Draft — Human approval pending.
+- Owner: SA/Orchestrator; Status: Approved — Human Maintainer, 2026-10-11.
 - Baseline: `87a0917f1c56859926097468c99023918dd314a7`.
-- Decision: proposed ADR-0036. Authoritative ACs: [requirements](../requirements/2026-10-11-issue-294-skill-library-decoupling.md).
+- Decision: accepted ADR-0036. Authoritative ACs: [requirements](../requirements/2026-10-11-issue-294-skill-library-decoupling.md).
 
 ## Context
 The current skill library is a closed inventory enforced through three mirrors, catalog/vault entries, live text tests, description/context budgets, and compatibility SHA fixtures. It increases contributor effort and can fail CI for otherwise valid instruction edits. EV-01–EV-06 establish the actual coupling; this design changes the requirement rather than suppressing failures.
@@ -78,10 +78,10 @@ Targeted Security Reviewer verifies that only library bookkeeping was retired. C
 | Raise description limits / auto-generate all mirrors | Rejected: maintenance changes but registry dependency remains |
 | Mark validators continue-on-error | Rejected: obscures boundary instead of separating optional audits |
 | Disable all CI/readiness | Rejected: exceeds skill scope and removes core assurance |
-| Optional library, core-only mandatory contracts | Proposed: achieves contributor goal and preserves core checks |
+| Optional library, core-only mandatory contracts | Accepted: achieves contributor goal and preserves core checks |
 
 ## Decision
-Propose the final option through ADR-0036. This is not an accepted architecture decision until Human approval is recorded. Issue #283 remains historically complete; #294 supersedes its mandatory enforcement requirement only after approval/implementation.
+Human Maintainer accepted the final option and all artifacts on 2026-10-11; ADR-0036 is Accepted. Issue #283 remains historically complete; mandatory enforcement is retired through the approved implementation, not by this approval-only documentation commit.
 
 ## Testability Notes
 Use isolated clones with exact branch SHA, perturb one library condition at a time, and record unchanged companion-file hashes. Execute the entire mandatory command set, not only the catalog script. Independently mutate retained core hashes/authority/readiness metadata and require rejection. Native platform smoke results are separately Observed/Unavailable; CI is not activation proof.

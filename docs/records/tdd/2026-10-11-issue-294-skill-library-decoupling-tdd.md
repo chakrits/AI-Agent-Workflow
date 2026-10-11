@@ -2,7 +2,7 @@
 
 ## Metadata
 - Work Item: https://github.com/chakrits/AI-Agent-Workflow/issues/294
-- Owner: SA/Developer; Status: Draft, not implementation authorization.
+- Owner: SA/Developer; Status: Approved — Human Maintainer, 2026-10-11; implementation may follow the approved plan.
 - TDD here means Technical Design Document. Test-driven red/green steps below describe future implementation, not completed tests.
 - Baseline: `87a0917f1c56859926097468c99023918dd314a7`; [SDD](../sdd/2026-10-11-issue-294-skill-library-decoupling-sdd.md).
 

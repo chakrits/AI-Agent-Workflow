@@ -1,7 +1,7 @@
 # PROJECT_STATUS.md
 
 ## Current Work Item
-- Issue #294 — skill-library CI decoupling — Draft requirements/design package on `codex/skill-library-decoupling-design`, awaiting Human design approval. Issue #283 remains completed via PR #289 (`8cc2705`); #284 remains separate. SEC-004 remains `DEFERRED_BY_HUMAN` under ADR-0033.
+- Issue #294 — skill-library CI decoupling — Human-approved requirements/design/plan on `codex/skill-library-decoupling-design`; OQ-01–04 resolved, approved planning/spec-ready. Issue #283 remains completed via PR #289 (`8cc2705`); #284 remains separate. SEC-004 remains `DEFERRED_BY_HUMAN` under ADR-0033.
 
 ## Active Work Items
 <!-- active-work-items-table-start -->
@@ -12,11 +12,11 @@
 <!-- active-work-items-table-end -->
 
 ## Planned Framework Work
-- Issue #294 — independent instruction-library contribution without catalog/mirror/hash dependencies. Requirements, SDD, TDD, implementation/test plans and baseline evidence are Draft; ADR-0036 is Proposed. No implementation or spec-ready milestone is claimed. Work item: `docs/records/work-items/2026-10-11-issue-294-skill-library-decoupling.md`.
+- Issue #294 — independent instruction-library contribution without catalog/mirror/hash dependencies. All artifacts/design and Open Question answers approved 2026-10-11; ADR-0036 Accepted. No implementation acceptance claimed. Work item: `docs/records/work-items/2026-10-11-issue-294-skill-library-decoupling.md`.
 - Issue #280 — GPT-6 Astra instruction, skill, and autonomy modernization — #281 is complete through PR #285; #282 is complete through PR #287; #283 is complete through PR #289; #284 remains planned independently. Parent SDD and ADR-0034 are Human-approved. Issue #290 is a separate CI defect repair and does not change the modernization scope.
 
 ## Current Stage
-- Issue #294 design review: concrete documents prepared for Human approval before changing validators/core context. Issue #284 remains a separate planned behavior-evaluation item; its expected-context corpus should reflect the eventual approved #294 policy. PR #291 remains merged and readiness protection active. SEC-004 remains deferred, not security-complete.
+- Issue #294 approved planning: design stop satisfied; IMP-001 is the next planned implementation task. Issue #284 remains separate and should reflect approved #294 discovery expectations before freezing its corpus. PR #291 remains merged and readiness protection active. SEC-004 remains deferred, not security-complete.
 
 ## Change Classification
 - Issue #294 is a Medium-risk framework/meta change; current branch is documentation only. Later implementation requires independent QA and targeted Security Reviewer review of retained validation boundaries. Generic Issue/PR readiness is outside the proposed change.
@@ -91,10 +91,10 @@
 - Framework assessment: `docs/records/misc/2026-09-05-framework-sdlc-assessment.md`
 
 ## Next Quality Gate
-- Human Maintainer reviews Issue #294 Draft requirements/SDD/TDD/implementation/test plans and proposed ADR-0036. Implementation remains unapproved and `status:spec-ready` absent. SEC-004 stays separately deferred under ADR-0033; this issue does not close that residual.
+- Issue #294 follows approved IMP-001–IMP-006 with scoped red/green evidence, independent QA and targeted Security Reviewer validation; Human merge approval remains required. Design approval/OQ decisions are resolved. SEC-004 stays separately deferred under ADR-0033.
 
 ## Recommended Next Agent
-- Human Maintainer.
+- Developer/QA roles for approved IMP-001; planned stage, not a runtime dispatch claim.
 
 ## Notes
 - Reset to template baseline by `npm run reset:template`.

@@ -1,5 +1,7 @@
 # Agent Handoff — Issue #294 design review
 
+Historical handoff: the design approval stop below was satisfied on 2026-10-11. See the [Human approval record](HANDOFF-2026-10-11-issue-294-design-approval.md); this preserves the prior review state rather than rewriting its history.
+
 ## Identity and lifecycle
 | Field | Value |
 |---|---|

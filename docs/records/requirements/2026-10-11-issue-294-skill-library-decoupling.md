@@ -11,7 +11,7 @@
 | Business Criticality | Medium; development friction and review reliability |
 | Code Change Required | Yes in a later implementation; this branch is documents only |
 | Security/Data Sensitivity | No production data/auth change; review retained validation boundaries |
-| Status / Owner | Draft / Orchestrator and BA/SA roles; Human approval pending |
+| Status / Owner | Approved by Human Maintainer on 2026-10-11 / Orchestrator and BA/SA roles |
 
 ## 2. Confirmed Facts
 
@@ -28,18 +28,18 @@
 
 | ID | Assumption | Impact if Wrong | Validation Needed |
 |---|---|---|---|
-| ASM-01 | "No dependency" refers to library bookkeeping, not removing all PR controls | Readiness scope would expand | Human reviews BR-03 before approval |
-| ASM-02 | Existing `.agents/workflows/*.md` are the work-instruction extension surface | Additional paths need enumeration | Human reviews paths; no new loader inferred |
-| ASM-03 | Optional manual audits are useful but never mandatory | Tools could be retired completely | Human accepts manual-audit retention |
+| ASM-01 | "No dependency" refers to library bookkeeping, not removing all PR controls | Readiness scope would expand | Accepted by Human, 2026-10-11 |
+| ASM-02 | Existing `.agents/workflows/*.md` are the work-instruction extension surface | Additional paths need enumeration | Accepted by Human; no new loader inferred |
+| ASM-03 | Optional manual audits are useful but never mandatory | Tools could be retired completely | Accepted by Human; manual-audit retention approved |
 
 ## 4. Open Questions
 
 | ID | Question / proposed answer | Owner | Blocks Progress? |
 |---|---|---|---|
-| OQ-01 | Keep generic linked-Issue/readiness rules? Proposed yes | Human Maintainer | Blocks implementation scope approval, not drafting |
-| OQ-02 | Keep manual audits? Proposed yes, truthful exit codes; explicit opt-in | Human Maintainer | Blocks design approval |
-| OQ-03 | Expand beyond the three skill trees and existing workflow markdown? Proposed no | Human Maintainer | Only blocks scope expansion |
-| OQ-04 | How will native activation be checked on each platform? Record observed/unavailable, never infer from CI | QA/platform owner | Blocks native-activation claims, not CI-decoupling implementation |
+| OQ-01 | Resolved: keep generic linked-Issue/readiness rules | Human Maintainer | No; approved 2026-10-11 |
+| OQ-02 | Resolved: keep manual audits, truthful exit codes, explicit opt-in | Human Maintainer | No; approved 2026-10-11 |
+| OQ-03 | Resolved: no expansion beyond three skill trees and existing workflow markdown | Human Maintainer | No; approved 2026-10-11 |
+| OQ-04 | Resolved: record native activation as observed/unavailable; never infer it from CI | Human Maintainer; QA/platform owner executes checks | No implementation blocker; native claims still require actual evidence |
 
 ## 5. Scope
 
@@ -80,7 +80,7 @@ The Issue owns the single acceptance result matrix. These rows define behavior; 
 |---|---|---|
 | BR-01 | A library addition needs no change outside the file(s) the contributor chose | User directive; US-01 |
 | BR-02 | Optional files may be absent or disagree without blocking mandatory CI | User goal; AC-04 |
-| BR-03 | Generic Issue/PR readiness remains applicable; a skill-only bypass is not introduced | ASM-01; proposed scope boundary |
+| BR-03 | Generic Issue/PR readiness remains applicable; a skill-only bypass is not introduced | ASM-01; Human-approved scope boundary |
 | BR-04 | Core requirements remain mandatory even if their named supporting skill is absent | Core policy and AC-08 |
 | BR-05 | Existing historical ADRs/evidence remain historical, not rewritten as though the old gate never existed | Traceability requirement |
 | BR-06 | Skill compatibility/activation is distinct from CI acceptance and instruction authority | Native-loader uncertainty; AC-11 |
@@ -95,4 +95,4 @@ The Issue owns the single acceptance result matrix. These rows define behavior; 
 
 ## 10. Recommended Next Step
 
-Human Maintainer reviews this requirement, SDD/TDD, plan, and proposed ADR-0036. Approval then enables `phase:planning`/`status:spec-ready` according to the lifecycle contract, not before. No user-facing UI; UX sketch is N/A.
+Human Maintainer accepted all artifacts, design, and proposed Open Question answers on 2026-10-11. [Approval record](../HANDOFF-2026-10-11-issue-294-design-approval.md) records the exact approved head. The work item may enter `phase:planning` with `status:spec-ready`; implementation follows the approved plan. No user-facing UI; UX sketch is N/A.

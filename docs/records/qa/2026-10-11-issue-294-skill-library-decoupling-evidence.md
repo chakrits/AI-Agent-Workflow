@@ -1,7 +1,7 @@
 # Evidence and Specification Completion Check — Issue #294
 
 ## 1. Completion Claim
-Specification bundle prepared for Human review. No skill validator, workflow, core instruction, matrix, hook, or branch-protection implementation has changed on this branch. All implementation acceptance remains Pending in https://github.com/chakrits/AI-Agent-Workflow/issues/294.
+Specification bundle accepted by Human Maintainer on 2026-10-11 at `def7008ce9e4676605cee4ab94c4af1accb28369`; OQ-01–04 and all artifacts are approved. No skill validator, workflow, core instruction, matrix, hook, or branch-protection implementation has changed on this branch. All implementation acceptance remains Pending in https://github.com/chakrits/AI-Agent-Workflow/issues/294.
 
 Baseline reviewed: `87a0917f1c56859926097468c99023918dd314a7` on 2026-10-11. Baseline survey experiments were executed in disposable archive copies under `/private/tmp`; those copies were not candidate commits and are not independent QA. Evidence below distinguishes commands/output observed in this conversation from future evidence requirements.
 
@@ -38,15 +38,17 @@ Probe recipe: reproduce EV-02–05 only in a temporary baseline checkout, add na
 - Native platform activation: Not Run; no native activation claim.
 - Independent implementation QA/Security review: Not Run; no implementation exists.
 - Hosted PR/default-branch candidate checks: Not Run; no PR/merge exists for this issue.
+- Historical specification branch-push evidence at `def7008ce9e4676605cee4ab94c4af1accb28369`: [run 38113491394](https://github.com/chakrits/AI-Agent-Workflow/actions/runs/38113491394) succeeded, 808 tests/pass, 0 fail/skipped. This is not decoupling implementation acceptance.
+- Human approval authority and decisions: [approval record](../HANDOFF-2026-10-11-issue-294-design-approval.md).
 
 ## 5. Required Candidate Evidence Shape
-Specification verification commit is resolved externally by the published branch head; design-content SHA and record commit resolution are in the Human-review handoff. No independent reviewer has accepted this package yet.
+Specification verification commit is resolved externally by the published branch head; design-content SHA and record commit resolution are in the Human-review handoff. Human design acceptance is recorded separately; independent implementation QA has not run.
 For each TC/AC: candidate full SHA, baseline full SHA when comparing, OS/Node/dependency versions, configured mandatory-command inventory, fixture/edit description, companion-file hashes, stdout/stderr, exit status, test totals, raw-log URL/hash, reviewer identity, and Pass/Fail/Not Run with reason. Required hosted evidence includes PR head SHA/run URLs, readiness check name/source, merge SHA, and default-branch run. Independent reviewers re-derive outcomes; author reports are inputs, not proof.
 
 No fabricated log links or candidate passes. A failed/unsupported case remains Fail/Pending and blocks the corresponding acceptance milestone. Native checks may be Unavailable only with a reason; they never become a CI/native-activation equivalence claim.
 
 ## 6. Artifacts / Residual Risks
-Requirements, SDD, TDD, implementation/test plans, work item, proposed ADR-0036, PROJECT_STATUS/TASK_LOG, and Human-review handoff are required. CHANGELOG is N/A for this design-only branch. Test report is N/A until implementation QA. Risks and scope decisions are in requirements and SDD; Human Maintainer owns pending design approval.
+Requirements, SDD, TDD, implementation/test plans, work item, Accepted ADR-0036, PROJECT_STATUS/TASK_LOG, Human-review handoff and approval record exist. CHANGELOG is N/A for this documentation-only branch. Test report is N/A until implementation QA. Risks and accepted scope decisions are in requirements and SDD.
 
 ## 7. Recommendation
-Review the concrete specification package and ASM-01/02/03, then explicitly approve or revise it. Do not add spec-ready/development-done/verification-done based on baseline evidence. Issue #284 should adopt the new approved discovery expectations before its scenario corpus is frozen; do not silently amend its ACs or mark it implemented.
+Design and ASM/OQ decisions are approved; record spec-ready based on explicit Human approval and follow the implementation plan. Do not add development-done/verification-done based on baseline evidence. Issue #284 should adopt the new approved discovery expectations before its scenario corpus is frozen; do not silently amend its ACs or mark it implemented.
