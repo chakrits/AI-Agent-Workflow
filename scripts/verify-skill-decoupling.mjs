@@ -1,6 +1,6 @@
 import { execFileSync, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { readFileSync, writeFileSync, mkdtempSync, mkdirSync, existsSync, symlinkSync, rmSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdtempSync, mkdirSync, existsSync, rmSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -18,7 +18,7 @@ export function mandatoryCommands(github, gitlab) {
       throw new Error(`unsupported CI command: ${text}`);
     }
     const [program, ...args] = text.trim().split(/\s+/);
-    if (program === 'npm' && args[0] === 'ci') continue; // locked modules reused, explicitly recorded
+    if (program === 'npm' && args[0] === 'ci') continue; // isolated locked install is recorded once per case
     result.set(JSON.stringify([program, args]), [program, args]);
   }
   if (!result.size) throw new Error('empty mandatory command graph');
@@ -26,6 +26,18 @@ export function mandatoryCommands(github, gitlab) {
 }
 
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
+export function requireNode22(version = process.versions.node) {
+  if (version.split('.')[0] !== '22') throw new Error('Verification requires Node 22');
+}
+export function captureCase(result, operation, cleanup) {
+  try { operation(); result.passed = true; }
+  catch (error) { result.passed = false; result.error = error.message; }
+  finally {
+    try { cleanup(); }
+    catch (error) { result.passed = false; result.error = `${result.error ?? ''}; cleanup: ${error.message}`; }
+  }
+  return result;
+}
 const git = (root, args) => execFileSync('git', args, { cwd: root, encoding: 'utf8' }).trim();
 function snapshot(root) {
   const files = git(root, ['ls-files', '-z']).split('\0').filter(Boolean);
@@ -33,6 +45,7 @@ function snapshot(root) {
 }
 
 export function verifySkillDecoupling(source = process.cwd()) {
+  requireNode22();
   const root = git(source, ['rev-parse', '--show-toplevel']);
   if (git(root, ['status', '--porcelain'])) throw new Error('Source must be clean; commit candidate first');
   const candidate = git(root, ['rev-parse', 'HEAD']);
@@ -40,7 +53,7 @@ export function verifySkillDecoupling(source = process.cwd()) {
   if (origin !== 'https://github.com/chakrits/AI-Agent-Workflow.git') throw new Error('Expected same-repository GitHub origin');
   const before = snapshot(root);
   const output = mkdtempSync(path.join(os.tmpdir(), 'skill-decoupling-evidence-'));
-  const report = { candidate, origin, node: process.version, npm: execFileSync('npm', ['--version'], { encoding: 'utf8' }).trim(), os: `${os.platform()} ${os.release()} ${os.arch()}`, dependencyMode: 'reused locked node_modules', lockHash: hash(readFileSync(path.join(root, 'package-lock.json'))), cases: [] };
+  const report = { candidate, origin, node: process.version, npm: execFileSync('npm', ['--version'], { encoding: 'utf8' }).trim(), os: `${os.platform()} ${os.release()} ${os.arch()}`, dependencyMode: 'isolated npm ci from locked offline cache per case', lockHash: hash(readFileSync(path.join(root, 'package-lock.json'))), cases: [] };
   const commands = mandatoryCommands(parse(readFileSync(path.join(root, '.github/workflows/validate-contracts.yml'), 'utf8')), parse(readFileSync(path.join(root, '.gitlab-ci.yml'), 'utf8')));
   report.commands = commands;
   writeFileSync(path.join(output, 'baseline-hashes.json'), JSON.stringify(before, null, 2));
@@ -48,25 +61,29 @@ export function verifySkillDecoupling(source = process.cwd()) {
     const clone = path.join(output, input.id);
     const logs = path.join(output, `${input.id}-logs`);
     mkdirSync(logs);
-    git(root, ['clone', '--quiet', '--shared', '--no-checkout', root, clone]);
-    git(clone, ['checkout', '--quiet', '--detach', candidate]);
-    git(clone, ['remote', 'set-url', 'origin', origin]);
-    if (git(clone, ['rev-parse', 'HEAD']) !== candidate) throw new Error('Clone SHA mismatch');
-    symlinkSync(path.join(root, 'node_modules'), path.join(clone, 'node_modules'), 'dir');
-    const item = applyContributorCase(clone, input);
-    const result = { id: item.id, paths: item.paths, commands: [] };
+    const temp = path.join(logs, 'tmp');
+    let item = input;
+    const result = { id: item.id, acIds: item.acIds, paths: item.paths, commands: [] };
     const allowed = file => item.paths.some(p => p.endsWith('/') ? file.startsWith(p) : file === p);
     const companion = values => hash(JSON.stringify(Object.entries(values).filter(([file]) => !allowed(file))));
-    result.companionBefore = companion(before);
     const run = (program, args, expected = 0) => {
-      const execution = spawnSync(program, args, { cwd: clone, encoding: 'utf8', maxBuffer: 20 * 1024 * 1024, timeout: 180000 });
+      const execution = spawnSync(program, args, { cwd: clone, env: { ...process.env, TMPDIR: temp }, encoding: 'utf8', maxBuffer: 20 * 1024 * 1024, timeout: 180000 });
       const raw = `${execution.stdout ?? ''}\n${execution.stderr ?? ''}`;
       const log = `${result.commands.length}.log`;
       writeFileSync(path.join(logs, log), raw);
       result.commands.push({ program, args, status: execution.status, expected, log: path.join(logs, log), sha256: hash(raw), error: execution.error?.message });
       if (execution.status !== expected) throw new Error(`${item.id}: ${program} ${args.join(' ')} exit ${execution.status}, expected ${expected}; ${logs}/${log}`);
     };
-    try {
+    captureCase(result, () => {
+      mkdirSync(temp);
+      git(root, ['clone', '--quiet', '--no-local', '--no-checkout', root, clone]);
+      git(clone, ['checkout', '--quiet', '--detach', candidate]);
+      git(clone, ['remote', 'set-url', 'origin', origin]);
+      if (git(clone, ['rev-parse', 'HEAD']) !== candidate) throw new Error('Clone SHA mismatch');
+      run('npm', ['ci', '--offline', '--no-audit', '--no-fund']);
+      item = applyContributorCase(clone, input);
+      result.paths = item.paths;
+      result.companionBefore = companion(before);
       for (const [program, args] of commands) run(program, args);
       run('npm', ['run', 'validate:context-compatibility']);
       run('git', ['diff', '--check']);
@@ -76,11 +93,9 @@ export function verifySkillDecoupling(source = process.cwd()) {
       result.changedTracked = Object.keys(before).filter(file => before[file] !== after[file]);
       result.added = git(clone, ['ls-files', '--others', '--exclude-standard', '-z']).split('\0').filter(Boolean);
       if (result.companionBefore !== result.companionAfter || [...result.changedTracked, ...result.added].some(file => !allowed(file))) throw new Error(`${item.id}: companion files changed`);
-      result.passed = true;
-    } catch (error) { result.passed = false; result.error = error.message; }
+    }, () => { if (existsSync(clone)) rmSync(clone, { recursive: true }); });
     report.cases.push(result);
     writeFileSync(path.join(output, 'report.json'), JSON.stringify(report, null, 2));
-    rmSync(clone, { recursive: true }); // exact clone created by this run; logs remain
     console.log(`${item.id}: ${result.passed ? 'PASS' : 'FAIL'} (${result.commands.length} commands)`);
     if (!result.passed) break;
   }
