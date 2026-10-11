@@ -228,20 +228,27 @@ Browse the full catalog at [SKILL_CATALOG.md](./docs/operating-model/SKILL_CATAL
 
 ## CI Validation Checks
 
-Every push and pull/merge request runs 10 validation checks:
+Portable validation checks include the following; the CI configurations define the complete command list and event conditions:
 
 | Check | Command | What it validates |
 |---|---|---|
 | Contracts | `npm run validate:contracts` | Bug Fix + New Feature contract YAML, schemas, fixtures |
 | Project state | `npm run validate:project-state` | PROJECT_STATUS.md required fields |
-| Skill parity | `npm run validate:skill-parity` | 25 skills byte-identical across 3 platforms |
-| Skill usage | `npm run validate:skill-usage` | New TASK_LOG entries (post-2026-07-25) have skill notation |
 | Review gate | `npm run validate:review-gate` | PRs with `.mjs`/`.js` changes have a code review record |
 | ADR audit | `npm run adr:audit` | ADR-to-decision ratio ≤ 10:1 |
 | Risk register | `npm run validate:risk-register` | RISKS.md is current |
 | Worktree audit | `npm run housekeeping:worktrees` | No ghost worktrees |
 | Context budget | `npm run validate:context-budget` | Canonical reading files ≤ 30,000 tokens |
 | Framework metrics | `npm run validate:metrics` | Dashboard: rework rate, timeout rate, test trend |
+
+## Optional Skill Audits
+
+These diagnostics run only when explicitly requested, not in CI, hooks, default tests, or reset verification:
+
+- `npm run audit:skills` — inspect catalog registration and cross-platform skill parity; stops on the first failing audit.
+- `npm run audit:skill-usage` — inspect skill notation in new TASK_LOG entries.
+
+Library changes do not require these audits to pass for contribution. A diagnostic failure remains visible with a nonzero exit status.
 
 ## Work Item Traceability
 

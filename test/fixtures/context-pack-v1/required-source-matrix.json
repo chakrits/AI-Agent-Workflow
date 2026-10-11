@@ -632,7 +632,7 @@
         },
         {
           "path": "docs/workflow/reset-to-template.md",
-          "sha256": "c7831fc5f348dee3890bc503cf594c9eeee60adb9f34982a0abe50b95ab8ed36"
+          "sha256": "9f0b2200c5e8b2fbfd17ea6eadb33817f446b7fef1be277a3ce51ce0da04d1c3"
         }
       ],
       "allowedTriggerReasons": [

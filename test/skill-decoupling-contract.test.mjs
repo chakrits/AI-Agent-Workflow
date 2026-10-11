@@ -42,3 +42,15 @@ test('core CI, PR hook and reset safety validators remain configured', () => {
   assert.match(read('scripts/verify-reset-template.mjs'), /validate:risk-register/);
   assert.match(read('scripts/verify-reset-template.mjs'), /validate:review-gate/);
 });
+
+test('reset and README command guidance uses opt-in audits, not removed aliases', () => {
+  for (const file of ['README.md', 'docs/workflow/reset-to-template.md']) {
+    const text = read(file);
+    assert.doesNotMatch(text, /validate:skill-(?:catalog|parity|usage)/, file);
+    assert.match(text, /npm run audit:skills/, file);
+    assert.match(text, /npm run audit:skill-usage/, file);
+  }
+  const ciSection = read('README.md').split('## CI Validation Checks')[1]?.split('\n## ')[0];
+  assert.ok(ciSection);
+  assert.doesNotMatch(ciSection, /npm run audit:skill/);
+});
