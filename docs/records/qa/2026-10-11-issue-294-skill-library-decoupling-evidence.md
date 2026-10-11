@@ -1,7 +1,7 @@
 # Evidence and Specification Completion Check — Issue #294
 
 ## 1. Completion Claim
-Specification bundle accepted by Human Maintainer on 2026-10-11 at `def7008ce9e4676605cee4ab94c4af1accb28369`; OQ-01–04 and all artifacts are approved. No skill validator, workflow, core instruction, matrix, hook, or branch-protection implementation has changed on this branch. All implementation acceptance remains Pending in https://github.com/chakrits/AI-Agent-Workflow/issues/294.
+Specification bundle accepted by Human Maintainer on 2026-10-11 at `def7008ce9e4676605cee4ab94c4af1accb28369`; OQ-01–04 and all artifacts are approved. Current implementation reaches IMP-002: classified assertions split/retired, core safety policy preserved with its owning SHA repin, core playbook discovery independent of skills. Validator algorithms/CI/hooks/readiness remain unchanged. All implementation acceptance remains Pending in https://github.com/chakrits/AI-Agent-Workflow/issues/294.
 
 Baseline reviewed: `87a0917f1c56859926097468c99023918dd314a7` on 2026-10-11. Baseline survey experiments were executed in disposable archive copies under `/private/tmp`; those copies were not candidate commits and are not independent QA. Evidence below distinguishes commands/output observed in this conversation from future evidence requirements.
 
@@ -36,7 +36,7 @@ Probe recipe: reproduce EV-02–05 only in a temporary baseline checkout, add na
 - Existing validators exited 0: contracts, project-state, CI parity, skill catalog/parity/usage, context budget/compatibility, status projection, clearable refs, and ADR audit. Catalog still reports 39 skills / 4,352 code points; projection digest remains `4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945`; ADR ratio 2.15:1. `git diff --check` also passed.
 - Locked dependency installation used `npm ci --ignore-scripts --offline --no-audit --no-fund`. The first sandboxed install could not create this managed worktree's node_modules; the authorized escalated retry succeeded. No dependency versions changed.
 - Native platform activation: Not Run; no native activation claim.
-- Independent implementation QA/Security review: Not Run; no implementation exists.
+- Final independent implementation QA/Security review: Not Run; scoped IMP-002 code review recorded separately, not full acceptance.
 - Hosted PR/default-branch candidate checks: Not Run; no PR/merge exists for this issue.
 - Historical specification branch-push evidence at `def7008ce9e4676605cee4ab94c4af1accb28369`: [run 38113491394](https://github.com/chakrits/AI-Agent-Workflow/actions/runs/38113491394) succeeded, 808 tests/pass, 0 fail/skipped. This is not decoupling implementation acceptance.
 - Human approval authority and decisions: [approval record](../HANDOFF-2026-10-11-issue-294-design-approval.md).
@@ -48,7 +48,7 @@ For each TC/AC: candidate full SHA, baseline full SHA when comparing, OS/Node/de
 No fabricated log links or candidate passes. A failed/unsupported case remains Fail/Pending and blocks the corresponding acceptance milestone. Native checks may be Unavailable only with a reason; they never become a CI/native-activation equivalence claim.
 
 ## 6. Artifacts / Residual Risks
-Requirements, SDD, TDD, implementation/test plans, work item, Accepted ADR-0036, PROJECT_STATUS/TASK_LOG, Human-review handoff and approval record exist. CHANGELOG is N/A for this documentation-only branch. Test report is N/A until implementation QA. Risks and accepted scope decisions are in requirements and SDD.
+Requirements, SDD, TDD, implementation/test plans, work item, Accepted ADR-0036, PROJECT_STATUS/TASK_LOG, Human-review handoff and approval record exist. CHANGELOG/release handoff is N/A at this in-flight framework checkpoint; final Test Report follows implementation QA. Risks and accepted scope decisions are in requirements and SDD.
 
 ## 7. Recommendation
 Implementation continuation authorized 2026-10-11. [IMP-001 checkpoint](2026-10-11-issue-294-imp001-assertion-classification.md) records fresh baseline/RED probes and assertion split obligations; no implementation acceptance claim. Next: approved IMP-002.
@@ -56,5 +56,7 @@ Implementation continuation authorized 2026-10-11. [IMP-001 checkpoint](2026-10-
 [IMP-002A checkpoint](2026-10-11-issue-294-imp002a-catalog-assertions.md): first 13 obsolete library tests retired, retained99 contract bodies unchanged, focused129/129 and full795/795 pass. Remaining IMP-002 and mandatory-call graph migration are pending; all implementation acceptance remains Pending.
 
 [IMP-002B checkpoint](2026-10-11-issue-294-imp002b-mirror-assertions.md): nine pure mirror tests retired, retained90 contract bodies unchanged; platform-only prose drift now passes contract tests90/90 while parity diagnostic truthfully exits1. Focused120/120 and full786/786 pass. Remaining IMP-002 and CI/matrix migration pending; no independent acceptance claimed.
+
+[IMP-002 completion](2026-10-11-issue-294-imp002-completion.md): remaining content/mixed/consumer/playbook splits implemented. Focused110/110, no-library probe80/80, full768/768; [independent scoped review](2026-10-11-issue-294-imp002-code-review.md) PASS at `fc72f6949c9b28d18d9d2e0596960d6062846294`. Next IMP-003; no overall QA/merge acceptance.
 
 Design and ASM/OQ decisions are approved; record spec-ready based on explicit Human approval and follow the implementation plan. Do not add development-done/verification-done based on baseline evidence. Issue #284 should adopt the new approved discovery expectations before its scenario corpus is frozen; do not silently amend its ACs or mark it implemented.

@@ -9,7 +9,7 @@
 - Change type: Framework / Meta Change; risk: Medium.
 - Lifecycle phase: `phase:development` (IMP-002 in progress); specification readiness: Human-approved, 2026-10-11.
 - Workflow route: Orchestrator/SA → Documentation/Developer after design approval → independent QA/Security Reviewer → Human Maintainer.
-- Current branch content: tests/records; IMP-002A retires approved library assertions. Production validators/CI remain unchanged; design gate is satisfied.
+- Current branch content: tests/discovery/core policy and its owning current SHA repin; IMP-002 implemented. Production validator algorithms/CI/readiness remain unchanged; design gate is satisfied.
 
 ## Artifacts
 - [Requirements / User Stories / AC](../requirements/2026-10-11-issue-294-skill-library-decoupling.md)
@@ -21,23 +21,29 @@
 - [Human-review handoff](../HANDOFF-2026-10-11-issue-294-design-review.md)
 - [Human design approval](../HANDOFF-2026-10-11-issue-294-design-approval.md)
 - ADR: Accepted ADR-0036 in `DECISIONS.md`; no previous ADR is rewritten.
-- PRs / Closeout / Postmortem: N/A — no PR created and no implementation delivered.
+- PRs / Closeout / Postmortem: N/A — no PR/merge; partial implementation through IMP-002 recorded, not full acceptance.
 
 ## Sub-tasks
-- IMP-001: classification/RED preflight recorded. IMP-002 in progress: IMP-002A retired13 catalog/vault-skill tests; [IMP-002B checkpoint](../qa/2026-10-11-issue-294-imp002b-mirror-assertions.md) retires9 pure mirror tests. Skill-content/mixed/AC-14/playbook assertions remain. IMP-003–IMP-006 pending; no child issues created.
+- IMP-001 classification/RED recorded. IMP-002 implemented: catalog/mirror/content/mixed/AC-14/playbook coupling split; [completion](../qa/2026-10-11-issue-294-imp002-completion.md), [independent scoped review](../qa/2026-10-11-issue-294-imp002-code-review.md). IMP-003–IMP-006 pending; no child issues created.
 
 ## Lessons Learned
 - A CI invocation can also be enforced by `npm test`; removing only the workflow line is incomplete (EV-05).
 - Historical compatibility evidence must not become a registry for every future instruction (EV-04).
 
 ## Metrics
-- Focused baseline: 170/170 survey checks; latest IMP-002B focused120/120, full786/786. Developer verification, not independent implementation acceptance.
+- Survey baseline170/170; latest focused110/110, no-library probe80/80, full768/768. Independent scoped review80/80 and core hash negatives pass; not global independent QA acceptance.
 - Subagent timeouts: 0; Rework cycles: 0.
-- Packet version / Packet tokens: N/A — this specification package has no delegated implementation.
+- Packet version: v1; readonly independent code review delegated to `/root/issue294_imp002_review`; implementation not delegated.
 
 ## Status: Open — implementation in progress
 - Human Maintainer accepted all artifacts/design and OQ-01–04 on 2026-10-11.
-- Human authorized continuation on 2026-10-11. IMP-002A checkpoint recorded; next: remaining IMP-002, Developer role. No runtime child dispatch or independent QA acceptance claimed.
+- Human authorized continuation on 2026-10-11. IMP-002 completion/scoped independent review recorded; next IMP-003, Developer role. Global independent QA acceptance remains pending.
 - Design stop satisfied; no unresolved design approval blocker. Human merge approval remains a later gate.
 - Specification readiness is based on this explicit approval, not baseline test results.
 - Implementation acceptance is tracked once in the Issue's Acceptance Traceability Matrix; local documents define cases, not a second acceptance result ledger.
+
+## Completion Contract
+- Done when: approved decoupling is implemented, all required independent/hosted evidence and closeout exists; an IMP-002 checkpoint alone does not complete the Issue.
+- May proceed through: approved IMP-001–IMP-006 implementation, verification, review and branch publishing.
+- Must stop for: new scope/policy decisions, release/irreversible operations, and human merge approval.
+- Assumptions: approved ASM/OQ answers stand; no new assumption added by this checkpoint.
