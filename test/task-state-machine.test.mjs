@@ -17,6 +17,7 @@ import {
   verifyCasAndComputeDigest,
   createTaskState,
   transitionTaskState as rawTransitionTaskState,
+  resumeTaskState,
   loadTaskState,
   inspectTaskState,
   mutateTaskStateOnDisk
@@ -357,6 +358,19 @@ test('TC-024b: derived transition table equals YAML destinations and actors', ()
   for (const state of STATES.filter((name) => !expected[name])) {
     assert.deepEqual(derived[state], { destinations: [], actors: [] }, `${state} has no policy row`);
   }
+});
+
+test('I297-F3: pure resumeTaskState rejects missing resume_evidence or approver_id for a non-human-review block', () => {
+  let task = createTaskState({ task_id: 'issue-f3-resume', workflow_id: 'bug-fix', change_type: 'bug-fix', risk_level: 'low' });
+  task = transitionTaskState(task, { to: 'investigating', actor: 'orchestrator', evidence: { failure_description: 'fd', repro: 'rp' } });
+  task = transitionTaskState(task, { to: 'blocked', actor: 'sa-agent', stop_reason: 'awaiting_input', evidence: { stop_reason: 'awaiting_input' } });
+  assert.equal(task.state, 'blocked');
+  assert.notEqual(task.stop_reason, 'human_review_required');
+  const resume = (evidence) => resumeTaskState(task, { to: 'investigating', actor: 'orchestrator', expected_digest: computeStateDigest(task), evidence });
+  for (const evidence of [{ approver_id: 'human-1' }, { resume_evidence: 'ok' }, {}]) {
+    assert.throws(() => resume(evidence), (error) => error.code === 'MISSING_REQUIRED_EVIDENCE');
+  }
+  assert.equal(resume({ resume_evidence: 'ok', approver_id: 'human-1' }).state, 'investigating');
 });
 
 test('I297-TC-003: pure and disk-bound transitions share YAML evidence', () => {
