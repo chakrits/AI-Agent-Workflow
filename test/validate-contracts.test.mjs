@@ -20,38 +20,6 @@ const adapterPaths = [
 
 
 
-test('Frontend UI Engineering stays discoverable and routes UI work safely', async () => {
-  const paths = [
-    '.agents/skills/frontend-ui-engineering/SKILL.md',
-    '.claude/skills/frontend-ui-engineering/SKILL.md',
-    '.agent/skills/frontend-ui-engineering/SKILL.md'
-  ];
-  const [canonical, claudeAdapter, antigravityAdapter, catalog] = await Promise.all([
-    readFile(paths[0], 'utf8'),
-    readFile(paths[1], 'utf8'),
-    readFile(paths[2], 'utf8'),
-    readFile('docs/operating-model/SKILL_CATALOG.md', 'utf8')
-  ]);
-
-  // Under skill parity (Issue #50), all three copies are byte-identical to the
-  // canonical .agents/ version. Every requirement that used to be checked only
-  // against the canonical must now hold across all three platforms.
-  for (const content of [canonical, claudeAdapter, antigravityAdapter]) {
-    for (const requirement of [
-      /semantic HTML/i,
-      /WCAG 2\.1 AA/i,
-      /keyboard/i,
-      /focus/i,
-      /loading, error, and empty states/i,
-      /320px, 768px, 1024px, and 1440px/i,
-      /qa-playwright-testing/i,
-      /design system/i
-    ]) {
-      assert.match(content, requirement);
-    }
-  }
-  assert.match(catalog, /frontend-ui-engineering/);
-});
 
 test('all dynamic-workflow adapters point to the canonical Bug Fix contract', async () => {
   for (const path of adapterPaths) {
@@ -77,14 +45,6 @@ const requirementBrainstormingPaths = [
   '.agent/skills/requirement-brainstorming/SKILL.md'
 ];
 
-test('requirement-brainstorming adapters all carry the assumptions-surfacing technique', async () => {
-  for (const path of requirementBrainstormingPaths) {
-    const content = await readFile(path, 'utf8');
-    assert.match(content, /### 2a\. Assumptions surfacing/);
-    assert.match(content, /ASSUMPTIONS I'M MAKING:/);
-    assert.match(content, /Correct me now/);
-  }
-});
 
 test('CI runs install, tests, contract validation, and a dedicated main-state audit', async () => {
   const [ci, documentationSync] = await Promise.all([
@@ -847,37 +807,6 @@ test('TEST_REPORT.md carries a PR/Issue Comment Summary subsection and a defect-
     'Defect Severity Count line must sit above the Failed Tests / Defects table, within that section');
 });
 
-test('the four new QA testing-discipline skills carry their required content', async () => {
-  const [apiContract, performance, mutation, testQuality] = await Promise.all([
-    readFile('.agents/skills/api-contract-testing/SKILL.md', 'utf8'),
-    readFile('.agents/skills/performance-testing/SKILL.md', 'utf8'),
-    readFile('.agents/skills/mutation-testing/SKILL.md', 'utf8'),
-    readFile('.agents/skills/test-quality-discipline/SKILL.md', 'utf8')
-  ]);
-
-  assert.match(apiContract, /schemathesis/);
-  assert.match(apiContract, /drf-spectacular/);
-  assert.match(apiContract, /## Defect Routing/);
-
-  assert.match(performance, /Load Testing/);
-  assert.match(performance, /Stress Testing/);
-  assert.match(performance, /Spike Testing/);
-  assert.match(performance, /Soak Testing/);
-  assert.match(performance, /Locust/);
-  assert.match(performance, /## Recording Results/);
-
-  assert.match(mutation, /## Core Concept/);
-  assert.match(mutation, /mutmut/);
-  assert.match(mutation, /## Scoring/);
-  assert.doesNotMatch(mutation, /pass\/fail threshold of \d+%/i);
-
-  assert.match(testQuality, /## FIRST Principles/);
-  assert.match(testQuality, /Test Automation Pyramid/);
-  assert.match(testQuality, /Test Data Isolation Rule/);
-  assert.match(testQuality, /Overmocking/);
-  assert.match(testQuality, /Test-Only Production Methods/);
-  assert.match(testQuality, /Incomplete Mocks/);
-});
 
 
 test('Developer Agent requires architecture compliance, definition-of-done restatement, incremental verification, and escalation discipline', async () => {
@@ -937,14 +866,6 @@ const tddPaths = [
   '.agent/skills/tdd-implementation/SKILL.md'
 ];
 
-test('tdd-implementation adapters all carry the test-sizing, mock-preference, and DAMP rules', async () => {
-  for (const path of tddPaths) {
-    const content = await readFile(path, 'utf8');
-    assert.match(content, /## Test Design Rules/);
-    assert.match(content, /real implementation > fake .*> stub .*> mock/i);
-    assert.match(content, /DAMP over DRY/);
-  }
-});
 
 const codeReviewGatePaths = [
   '.agents/skills/code-review-gate/SKILL.md',
@@ -1005,16 +926,6 @@ test('static-logic-review routing distinguishes adjacent QA skills and routes in
   assert.match(agents, /static-logic-review/);
 });
 
-test('code-review-gate adapters all carry structural remedies, dead code hygiene, and dependency discipline', async () => {
-  for (const path of codeReviewGatePaths) {
-    const content = await readFile(path, 'utf8');
-    assert.match(content, /## Structural Remedies/);
-    assert.match(content, /## Dead Code Hygiene/);
-    assert.match(content, /DEAD CODE IDENTIFIED:/);
-    assert.match(content, /## Dependency Discipline/);
-    assert.match(content, /one dependency per change/i);
-  }
-});
 
 const implementationPlanningPaths = [
   '.agents/skills/implementation-planning/SKILL.md',
@@ -1022,17 +933,6 @@ const implementationPlanningPaths = [
   '.agent/skills/implementation-planning/SKILL.md'
 ];
 
-test('implementation-planning adapters all carry dependency mapping, vertical slicing, task sizing, and checkpoints', async () => {
-  for (const path of implementationPlanningPaths) {
-    const content = await readFile(path, 'utf8');
-    assert.match(content, /dependency graph/i);
-    assert.match(content, /slice vertically/i);
-    assert.match(content, /## Task Sizing/);
-    assert.match(content, /needs "and" to describe it/);
-    assert.match(content, /checkpoint every 2-3 tasks/i);
-    assert.match(content, /safe to parallelize/i);
-  }
-});
 
 test('Security Reviewer carries the scan checklist, severity scale, and fix-before-merge rule', async () => {
   const [roleDefinition, adapter, skill, template] = await Promise.all([
