@@ -28,3 +28,4 @@ jobs:
       - run: npm run validate:context-budget
       - run: npm run validate:status-projection
       - run: npm run validate:ci-parity
+      - run: npm run validate:lessons-learned

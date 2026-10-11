@@ -258,7 +258,7 @@ Every GitHub Issue gets a Work Item Record at `docs/records/work-items/YYYY-MM-D
 
 ## Lessons Learned
 
-Session retrospectives are recorded at `docs/records/lessons-learned/YYYY-MM-DD-session.md` using the [LESSONS_LEARNED.md](./docs/templates/LESSONS_LEARNED.md) template. Each entry links back to its Work Item Record and captures: lessons, metrics snapshot, and whether Hermes memory / skills were updated.
+Session retrospectives are recorded at `docs/records/lessons-learned/YYYY-MM-DD-session.md` using the [LESSONS_LEARNED.md](./docs/templates/LESSONS_LEARNED.md) template. Each entry links back to its Work Item Record and captures: lessons, metrics snapshot, and whether Hermes memory / skills were updated. `npm run validate:lessons-learned` is an advisory check (always exit 0) that warns when a closed work item or closeout handoff records no Lessons Learned.
 
 ## Quality, Handoffs, and Documentation
 

@@ -17,5 +17,5 @@ YYYY-MM-DD
 - Rework cycles: N
 
 ## Memory Updated
-- [ ] Hermes memory updated with durable lessons
+- [ ] Durable lessons saved to the project's agent memory or notes (if any)
 - [ ] Skill patched if procedural lesson
