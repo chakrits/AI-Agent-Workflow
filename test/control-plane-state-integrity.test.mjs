@@ -48,7 +48,7 @@ test('CR-004: actor declarations canonicalize through ROLE_REGISTRY before matri
   const task = createTaskState({ task_id: 'actor-case' });
   assert.equal(canonicalizeActor(' QA_AGENT '), 'qa-agent');
   assert.throws(() => canonicalizeActor('not-a-role'), (error) => error.code === 'UNAUTHORIZED_ACTOR');
-  const next = transitionTaskState(task, { to: 'investigating', actor: 'ORCHESTRATOR', evidence: { requirement_discovery: 'req' }, expected_digest: task.state_digest });
+  const next = transitionTaskState(task, { to: 'investigating', actor: 'ORCHESTRATOR', evidence: { failure_description: 'fd', repro: 'issuecomment-1' }, expected_digest: task.state_digest });
   assert.equal(next.history.at(-1).actor, 'orchestrator');
 });
 

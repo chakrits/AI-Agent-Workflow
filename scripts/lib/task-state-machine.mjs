@@ -13,19 +13,25 @@ import {
 
 export const STATES = ['intake', 'investigating', 'designing', 'planning', 'implementing', 'verifying', 'rework', 'handoff', 'blocked', 'completed', 'cancelled'];
 export const ROLE_REGISTRY = ['orchestrator', 'ba-agent', 'sa-agent', 'developer-agent', 'qa-agent', 'pm-agent', 'config-agent', 'documentation-agent', 'release-agent', 'security-agent', 'data-agent', 'human'];
-export const TRANSITION_MATRIX = {
-  intake: { destinations: ['investigating', 'designing', 'cancelled'], requires: [['requirement_discovery', 'issue_ref']], actors: ['orchestrator', 'ba-agent'] },
-  investigating: { destinations: ['implementing', 'designing', 'planning', 'blocked', 'cancelled'], requires: ['root_cause_analysis'], actors: ['developer-agent', 'sa-agent'] },
-  designing: { destinations: ['planning', 'blocked', 'cancelled'], requires: ['sdd_ref', 'adr_ref'], actors: ['sa-agent'] },
-  planning: { destinations: ['implementing', 'blocked', 'cancelled'], requires: ['implementation_plan_ref'], actors: ['developer-agent'] },
-  implementing: { destinations: ['verifying', 'blocked', 'cancelled'], requires: ['changed_files', 'validation_plan'], actors: ['developer-agent'] },
-  verifying: { destinations: ['handoff', 'rework', 'blocked', 'cancelled'], requires: ['test_evidence', 'qa_report_ref'], actors: ['qa-agent'] },
-  rework: { destinations: ['implementing', 'blocked', 'cancelled'], requires: ['rework_plan', 'qa_findings'], actors: ['developer-agent'] },
-  handoff: { destinations: ['completed', 'blocked', 'cancelled'], requires: ['terminal_handoff_receipt'], actors: ['orchestrator', 'release-agent'] },
-  blocked: { destinations: STATES.filter((state) => state !== 'blocked'), requires: ['resume_evidence', 'approver_id'], actors: ['human', 'orchestrator'] },
-  completed: { destinations: [], requires: [], actors: [] },
-  cancelled: { destinations: [], requires: [], actors: [] }
-};
+function policyError(message, extra = {}) { return Object.assign(new Error(message), { code: 'POLICY_UNAVAILABLE', status: 'REJECTED', ...extra }); }
+const POLICY_URL = new URL('../../docs/contracts/bug-fix-workflow.yaml', import.meta.url);
+function readPolicy(readFile = fs.readFileSync) {
+  try { return YAML.parse(readFile(fileURLToPath(POLICY_URL), 'utf8')); } catch (cause) { throw policyError(`Bug Fix workflow policy is unavailable: ${cause.message}`, { cause }); }
+}
+export function deriveTransitionTable(policy) {
+  if (!policy || typeof policy !== 'object' || !Array.isArray(policy.transitions) || !Array.isArray(policy.resume)) throw policyError('Bug Fix workflow policy must define transitions and resume rows.');
+  const table = Object.fromEntries(STATES.map((state) => [state, { destinations: [], actors: [] }]));
+  for (const row of [...policy.transitions, ...policy.resume]) {
+    const destinations = row?.to ? [row.to] : row?.destinations;
+    if (!table[row?.from] || !Array.isArray(destinations) || !Array.isArray(row.actors) || row.actors.length === 0) throw policyError(`Invalid Bug Fix policy row from '${row?.from}': destinations and actors are required.`);
+    for (const destination of destinations) if (!STATES.includes(destination)) throw policyError(`Unknown policy destination '${destination}'.`);
+    for (const destination of destinations) if (!table[row.from].destinations.includes(destination)) table[row.from].destinations.push(destination);
+    for (const actor of row.actors) if (!table[row.from].actors.includes(actor)) table[row.from].actors.push(actor);
+  }
+  return table;
+}
+const BUG_FIX_POLICY = readPolicy();
+export const TRANSITION_MATRIX = deriveTransitionTable(BUG_FIX_POLICY);
 
 export function canonicalizeJcs(obj) {
   if (obj === null || typeof obj !== 'object') return JSON.stringify(obj);
@@ -78,14 +84,14 @@ function validateEvidence(requirements, evidence) {
     else if (!meaningful(evidence[requirement])) throw error('MISSING_REQUIRED_EVIDENCE', `Missing mandatory evidence: '${requirement}'`);
   }
 }
-function makeTransition(currentState, { to, actor, evidence = {}, expected_digest, stop_reason = null, next_route = null, resume = false, validateMatrixEvidence = true, clock = Date }) {
+function makeTransition(currentState, { to, actor, evidence = {}, expected_digest, stop_reason = null, next_route = null, resume = false, policy = BUG_FIX_POLICY, clock = Date }) {
   if (!currentState || typeof currentState !== 'object') throw error('INVALID_STATE', 'Invalid currentState provided.');
   if (!expected_digest || typeof expected_digest !== 'string') throw error('MISSING_EXPECTED_DIGEST', 'A non-empty expected_digest is required for every state mutation.');
   verifyCasAndComputeDigest(currentState, expected_digest);
   const canonicalActor = canonicalizeActor(actor);
   const fromState = currentState.state;
   if (!STATES.includes(to)) throw error('ILLEGAL_TRANSITION_REJECTED', `Unknown destination state: '${to}'.`);
-  const matrixEntry = TRANSITION_MATRIX[fromState];
+  const matrixEntry = (policy === BUG_FIX_POLICY ? TRANSITION_MATRIX : deriveTransitionTable(policy))[fromState];
   if (!matrixEntry) throw error('UNKNOWN_SOURCE_STATE', `No transition rule defined for source state '${fromState}'.`);
   if (!matrixEntry.destinations.includes(to)) throw error('ILLEGAL_TRANSITION_REJECTED', `Illegal transition from '${fromState}' to '${to}'.`);
   if (fromState === 'blocked' && currentState.stop_reason === 'human_review_required' &&
@@ -97,7 +103,7 @@ function makeTransition(currentState, { to, actor, evidence = {}, expected_diges
     if (fromState !== 'blocked') throw error('RESUME_OPERATION_REQUIRED', 'Resume operation requires blocked state.');
     const lastBlocked = [...(currentState.history || [])].reverse().find((event) => event.to === 'blocked');
     if (!lastBlocked || lastBlocked.from !== to) throw error('INVALID_RESUME_TARGET', `Resume target must be '${lastBlocked?.from ?? 'unknown'}'.`);
-    validateEvidence(['resume_evidence', 'approver_id'], evidence);
+    validateEvidenceForRow(policyTransition(policy, fromState, to, true), evidence);
   } else {
     if (fromState === 'blocked') {
       if (currentState.stop_reason === 'human_review_required' && (!matrixEntry.actors.includes(canonicalActor) || !meaningful(evidence.resume_evidence) || !meaningful(evidence.approver_id))) {
@@ -108,9 +114,7 @@ function makeTransition(currentState, { to, actor, evidence = {}, expected_diges
       // policy operation explicitly before entering this pure helper.
       if (!meaningful(evidence.resume_evidence) || !meaningful(evidence.approver_id)) throw error('RESUME_OPERATION_REQUIRED', 'Blocked recovery must use the resume operation.');
     }
-    // The pure helper preserves the historical blocked-state construction
-    // seam; disk-bound mutations apply the policy row before calling it.
-    if (validateMatrixEvidence && to !== 'blocked' && to !== 'cancelled') validateEvidence(matrixEntry.requires, evidence);
+    validateEvidenceForRow(policyTransition(policy, fromState, to, fromState === 'blocked'), evidence);
   }
   let reworkCount = currentState.rework_count ?? 0;
   if (to === 'rework') {
@@ -122,28 +126,28 @@ function makeTransition(currentState, { to, actor, evidence = {}, expected_diges
   return next;
 }
 export function transitionTaskState(currentState, options) {
-  return makeTransition(currentState, { ...options, validateMatrixEvidence: true });
+  return makeTransition(currentState, { ...options, policy: undefined });
 }
 export function resumeTaskState(currentState, options) {
-  return makeTransition(currentState, { ...options, resume: true, validateMatrixEvidence: true });
-}
-function transitionTaskStateWithPolicyEvidence(currentState, options) {
-  return makeTransition(currentState, { ...options, validateMatrixEvidence: false });
+  return makeTransition(currentState, { ...options, resume: true, policy: undefined });
 }
 function policyFor(workflowId, io = defaultStateIo) {
   if (workflowId !== 'bug-fix') throw error('UNKNOWN_WORKFLOW', `Unsupported durable workflow: ${workflowId}`);
-  return YAML.parse(io.fsOps.readFileSync(fileURLToPath(new URL('../../docs/contracts/bug-fix-workflow.yaml', import.meta.url)), 'utf8'));
+  return readPolicy((file, encoding) => io.fsOps.readFileSync(file, encoding));
 }
 function policyTransition(policy, from, to, resume = false) { return (resume ? (policy.resume || []) : (policy.transitions || [])).find((row) => row.from === from && (row.to === to || row.destinations?.includes(to))); }
+function validateEvidenceForRow(row, evidence) { validateEvidence(row?.requires, evidence); }
 function parseLockForRecovery(raw, filePath) {
   let record; try { record = JSON.parse(raw); } catch (cause) { throw error('LOCK_MALFORMED', `Malformed lock ${filePath}; use --malformed --quiesced`, { cause }); }
   if (!record || Object.keys(record).some((key) => !['pid', 'nonce', 'created_at'].includes(key)) || !Number.isInteger(record.pid) || record.pid <= 0 || !UUID_V4.test(record.nonce) || !Number.isSafeInteger(record.created_at) || record.created_at < 0) throw error('LOCK_MALFORMED', `Malformed lock ${filePath}; use --malformed --quiesced`);
   return record;
 }
 function validatePolicyTransition(current, to, evidence, resume, io = defaultStateIo) {
-  const row = policyTransition(policyFor(current.workflow_id, io), current.state, to, resume);
+  const policy = policyFor(current.workflow_id, io);
+  const row = policyTransition(policy, current.state, to, resume);
   if (!row) throw error(resume ? 'INVALID_RESUME_TARGET' : 'ILLEGAL_TRANSITION_REJECTED', `Policy does not permit ${current.state} -> ${to}`);
-  validateEvidence(row.requires, evidence);
+  validateEvidenceForRow(row, evidence);
+  return policy;
 }
 function activeShardPath(rootDir, taskId) { if (!taskId || !/^[a-z0-9_-]+$/.test(taskId) || taskId === 'archive') throw error(taskId === 'archive' ? 'RESERVED_TASK_ID' : 'INVALID_TASK_ID', `Invalid expectedTaskId: ${taskId}`); return path.join(rootDir, 'docs/records/work-items', taskId, 'task-state.json'); }
 export function mutateTaskStateOnDisk(rootDir, expectedTaskId, { to, actor = 'orchestrator', expected_digest, evidence = {}, mode = 'transition', io = defaultStateIo, stop_reason = null, next_route = null } = {}) {
@@ -157,10 +161,10 @@ export function mutateTaskStateOnDisk(rootDir, expectedTaskId, { to, actor = 'or
     validateEnvelopeSchema(current);
     if (current.workflow_id !== 'bug-fix' || current.change_type !== 'bug-fix') throw error('UNKNOWN_WORKFLOW', 'Durable mutation supports bug-fix only.');
     verifyCasAndComputeDigest(current, expected_digest);
-    validatePolicyTransition(current, to, evidence, mode === 'resume', io);
+    const policy = validatePolicyTransition(current, to, evidence, mode === 'resume', io);
     const candidate = mode === 'resume'
-      ? resumeTaskState(current, { to, actor, evidence, expected_digest, stop_reason, next_route, clock: io.clock })
-      : transitionTaskStateWithPolicyEvidence(current, { to, actor, expected_digest, evidence, stop_reason, next_route, clock: io.clock });
+      ? makeTransition(current, { to, actor, evidence, expected_digest, stop_reason, next_route, resume: true, policy, clock: io.clock })
+      : makeTransition(current, { to, actor, expected_digest, evidence, stop_reason, next_route, policy, clock: io.clock });
     const generation = readGeneration(rootDir, 'task', expectedTaskId, io);
     guard = acquireCommitGuard(rootDir, 'task', expectedTaskId, io);
     const fresh = JSON.parse(io.fsOps.readFileSync(shardPath, 'utf8'));

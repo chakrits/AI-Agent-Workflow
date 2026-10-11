@@ -10,6 +10,7 @@ import {
   STATES,
   ROLE_REGISTRY,
   TRANSITION_MATRIX,
+  deriveTransitionTable,
   atomicWriteJsonSync,
   canonicalizeJcs,
   computeStateDigest,
@@ -130,7 +131,7 @@ test('TC-021: 11-State transition matrix validation', () => {
   task = transitionTaskState(task, {
     to: 'investigating',
     actor: 'orchestrator',
-    evidence: { requirement_discovery: 'doc-ref-1' }
+    evidence: { failure_description: 'fd-1', repro: 'issuecomment-1' }
   });
   assert.equal(task.state, 'investigating');
   assert.equal(task.sequence_number, 2);
@@ -138,32 +139,16 @@ test('TC-021: 11-State transition matrix validation', () => {
   assert.equal(task.history[0].from, 'intake');
   assert.equal(task.history[0].to, 'investigating');
 
-  // 3. Legal transition: investigating -> designing
-  task = transitionTaskState(task, {
-    to: 'designing',
-    actor: 'sa-agent',
-    evidence: { root_cause_analysis: 'analysis-ref' }
-  });
-  assert.equal(task.state, 'designing');
-  assert.equal(task.sequence_number, 3);
-
-  // 4. Legal transition: designing -> planning
-  task = transitionTaskState(task, {
-    to: 'planning',
-    actor: 'sa-agent',
-    evidence: { sdd_ref: 'sdd-1', adr_ref: 'adr-1' }
-  });
-  assert.equal(task.state, 'planning');
-
-  // 5. Legal transition: planning -> implementing
+  // 3. Legal transition: investigating -> implementing
   task = transitionTaskState(task, {
     to: 'implementing',
-    actor: 'developer-agent',
-    evidence: { implementation_plan_ref: 'plan-1' }
+    actor: 'sa-agent',
+    evidence: { fail_path: 'issuecomment-2', hypothesis_matrix: 'issuecomment-3' }
   });
   assert.equal(task.state, 'implementing');
+  assert.equal(task.sequence_number, 3);
 
-  // 6. Legal transition: implementing -> verifying
+  // 4. Legal transition: implementing -> verifying
   task = transitionTaskState(task, {
     to: 'verifying',
     actor: 'developer-agent',
@@ -171,19 +156,19 @@ test('TC-021: 11-State transition matrix validation', () => {
   });
   assert.equal(task.state, 'verifying');
 
-  // 7. Legal transition: verifying -> handoff
+  // 5. Legal transition: verifying -> handoff
   task = transitionTaskState(task, {
     to: 'handoff',
     actor: 'qa-agent',
-    evidence: { test_evidence: 'pass', qa_report_ref: 'qa-1' }
+    evidence: { original_repro_result: 'pass', verification_result: 'qa-1' }
   });
   assert.equal(task.state, 'handoff');
 
-  // 8. Legal transition: handoff -> completed
+  // 6. Legal transition: handoff -> completed
   task = transitionTaskState(task, {
     to: 'completed',
     actor: 'orchestrator',
-    evidence: { terminal_handoff_receipt: 'receipt-1' }
+    evidence: { closeout_evidence: 'receipt-1' }
   });
   assert.equal(task.state, 'completed');
 
@@ -198,7 +183,7 @@ test('TC-022: Mandatory evidence keys enforcement', () => {
     risk_level: 'low'
   });
 
-  // intake -> investigating requires requirement_discovery or issue_ref
+  // intake -> investigating requires failure_description and repro
   assert.throws(
     () => {
       transitionTaskState(task, {
@@ -213,19 +198,19 @@ test('TC-022: Mandatory evidence keys enforcement', () => {
     }
   );
 
-  // With issue_ref (alternative), it succeeds
+  // With both policy keys, it succeeds
   task = transitionTaskState(task, {
     to: 'investigating',
     actor: 'orchestrator',
-    evidence: { issue_ref: 'https://github.com/org/repo/issues/1' }
+    evidence: { failure_description: 'fd', repro: 'https://example.invalid/r' }
   });
   assert.equal(task.state, 'investigating');
 
-  // investigating -> designing requires root_cause_analysis
+  // investigating -> implementing requires fail_path and hypothesis_matrix
   assert.throws(
     () => {
       transitionTaskState(task, {
-        to: 'designing',
+        to: 'implementing',
         actor: 'sa-agent',
         evidence: {}
       });
@@ -245,16 +230,11 @@ test('TC-023: Human approval gate invariant (state: blocked, stop_reason: human_
     risk_level: 'high'
   });
 
-  // Advance to designing
+  // Advance to investigating
   task = transitionTaskState(task, {
     to: 'investigating',
     actor: 'orchestrator',
-    evidence: { requirement_discovery: 'req-1' }
-  });
-  task = transitionTaskState(task, {
-    to: 'designing',
-    actor: 'sa-agent',
-    evidence: { root_cause_analysis: 'rca-1' }
+    evidence: { failure_description: 'fd', repro: 'issuecomment-1' }
   });
 
   // Transition to blocked with human review required
@@ -262,7 +242,7 @@ test('TC-023: Human approval gate invariant (state: blocked, stop_reason: human_
     to: 'blocked',
     actor: 'sa-agent',
     stop_reason: 'human_review_required',
-    evidence: { sdd_ref: 'sdd-1' }
+    evidence: { stop_reason: 'human_review_required' }
   });
   assert.equal(task.state, 'blocked');
   assert.equal(task.stop_reason, 'human_review_required');
@@ -271,7 +251,7 @@ test('TC-023: Human approval gate invariant (state: blocked, stop_reason: human_
   assert.throws(
     () => {
       transitionTaskState(task, {
-        to: 'planning',
+        to: 'investigating',
         actor: 'developer-agent',
         evidence: { resume_evidence: 'auto-resume' } // missing approver_id and actor not human
       });
@@ -284,11 +264,11 @@ test('TC-023: Human approval gate invariant (state: blocked, stop_reason: human_
 
   // Resume with human actor and approver_id and resume_evidence succeeds back to prior_state (or target state)
   task = transitionTaskState(task, {
-    to: 'designing',
+    to: 'investigating',
     actor: 'human',
     evidence: { resume_evidence: 'approved-by-maintainer', approver_id: 'lead-maintainer' }
   });
-  assert.equal(task.state, 'designing');
+  assert.equal(task.state, 'investigating');
   assert.equal(task.stop_reason, null);
 });
 
@@ -301,9 +281,8 @@ test('TC-024: Rework retry budget enforcement (fails closed at >2 cycles)', () =
   });
 
   // Advance to verifying
-  task = transitionTaskState(task, { to: 'investigating', actor: 'orchestrator', evidence: { issue_ref: '1' } });
-  task = transitionTaskState(task, { to: 'planning', actor: 'developer-agent', evidence: { root_cause_analysis: 'rca' } });
-  task = transitionTaskState(task, { to: 'implementing', actor: 'developer-agent', evidence: { implementation_plan_ref: 'plan' } });
+  task = transitionTaskState(task, { to: 'investigating', actor: 'orchestrator', evidence: { failure_description: 'fd', repro: 'issuecomment-1' } });
+  task = transitionTaskState(task, { to: 'implementing', actor: 'developer-agent', evidence: { fail_path: 'issuecomment-2', hypothesis_matrix: 'issuecomment-3' } });
   task = transitionTaskState(task, { to: 'verifying', actor: 'developer-agent', evidence: { changed_files: ['a.js'], validation_plan: 'val' } });
 
   assert.equal(task.rework_count, 0);
@@ -312,26 +291,26 @@ test('TC-024: Rework retry budget enforcement (fails closed at >2 cycles)', () =
   task = transitionTaskState(task, {
     to: 'rework',
     actor: 'qa-agent',
-    evidence: { test_evidence: 'fail-1', qa_report_ref: 'report-1' }
+    evidence: { verification_failed: 'fail-1', rework_route: 'developer-agent' }
   });
   assert.equal(task.state, 'rework');
   assert.equal(task.rework_count, 1);
 
   // rework -> implementing -> verifying
-  task = transitionTaskState(task, { to: 'implementing', actor: 'developer-agent', evidence: { rework_plan: 'fix-1', qa_findings: 'finding-1' } });
+  task = transitionTaskState(task, { to: 'implementing', actor: 'developer-agent', evidence: { rework_route: 'developer-agent' } });
   task = transitionTaskState(task, { to: 'verifying', actor: 'developer-agent', evidence: { changed_files: ['a.js'], validation_plan: 'val-2' } });
 
   // Cycle 2: verifying -> rework
   task = transitionTaskState(task, {
     to: 'rework',
     actor: 'qa-agent',
-    evidence: { test_evidence: 'fail-2', qa_report_ref: 'report-2' }
+    evidence: { verification_failed: 'fail-2', rework_route: 'developer-agent' }
   });
   assert.equal(task.state, 'rework');
   assert.equal(task.rework_count, 2);
 
   // rework -> implementing -> verifying
-  task = transitionTaskState(task, { to: 'implementing', actor: 'developer-agent', evidence: { rework_plan: 'fix-2', qa_findings: 'finding-2' } });
+  task = transitionTaskState(task, { to: 'implementing', actor: 'developer-agent', evidence: { rework_route: 'developer-agent' } });
   task = transitionTaskState(task, { to: 'verifying', actor: 'developer-agent', evidence: { changed_files: ['a.js'], validation_plan: 'val-3' } });
 
   // Attempt 3rd rework: rework_count is already 2 (max_rework_attempts = 2)
@@ -341,7 +320,7 @@ test('TC-024: Rework retry budget enforcement (fails closed at >2 cycles)', () =
       transitionTaskState(task, {
         to: 'rework',
         actor: 'qa-agent',
-        evidence: { test_evidence: 'fail-3', qa_report_ref: 'report-3' }
+        evidence: { verification_failed: 'fail-3', rework_route: 'developer-agent' }
       });
     },
     (err) => {
@@ -355,32 +334,77 @@ test('TC-024: Rework retry budget enforcement (fails closed at >2 cycles)', () =
     to: 'blocked',
     actor: 'qa-agent',
     stop_reason: 'human_review_required',
-    evidence: { test_evidence: 'fail-3', qa_report_ref: 'report-3' }
+    evidence: { verification_failed: 'fail-3', human_review_required: true }
   });
   assert.equal(task.state, 'blocked');
   assert.equal(task.stop_reason, 'human_review_required');
 });
 
-test('TC-024b: policy and matrix destinations must remain a strict intersection', () => {
+test('TC-024b: derived transition table equals YAML destinations and actors', () => {
   const policy = YAML.parse(fs.readFileSync('docs/contracts/bug-fix-workflow.yaml', 'utf8'));
-  for (const row of policy.transitions || []) {
-    const destinations = row.to ? [row.to] : row.destinations || [];
-    assert.ok(TRANSITION_MATRIX[row.from], `Missing matrix source for policy source '${row.from}'`);
-    for (const destination of destinations) {
-      assert.ok(
-        TRANSITION_MATRIX[row.from].destinations.includes(destination),
-        `Policy destination '${row.from} -> ${destination}' must exist in the transition matrix`
-      );
-    }
+  const derived = deriveTransitionTable(policy);
+  assert.deepEqual(derived, TRANSITION_MATRIX);
+  const expected = {};
+  for (const row of [...policy.transitions, ...policy.resume]) {
+    expected[row.from] ??= { destinations: new Set(), actors: new Set() };
+    for (const destination of row.to ? [row.to] : row.destinations) expected[row.from].destinations.add(destination);
+    for (const actor of row.actors) expected[row.from].actors.add(actor);
   }
-  for (const row of policy.resume || []) {
-    assert.ok(TRANSITION_MATRIX[row.from], `Missing matrix source for resume source '${row.from}'`);
-    for (const destination of row.destinations || []) {
-      assert.ok(
-        TRANSITION_MATRIX[row.from].destinations.includes(destination),
-        `Policy resume destination '${row.from} -> ${destination}' must exist in the transition matrix`
-      );
-    }
+  for (const [from, entry] of Object.entries(expected)) {
+    assert.deepEqual([...derived[from].destinations].sort(), [...entry.destinations].sort(), `destinations for ${from}`);
+    assert.deepEqual([...derived[from].actors].sort(), [...entry.actors].sort(), `actors for ${from}`);
+  }
+  for (const state of STATES.filter((name) => !expected[name])) {
+    assert.deepEqual(derived[state], { destinations: [], actors: [] }, `${state} has no policy row`);
+  }
+});
+
+test('I297-TC-003: pure and disk-bound transitions share YAML evidence', () => {
+  const { root, task } = createDurableTaskRoot('shared-evidence');
+  try {
+    const accepted = { failure_description: 'fd', repro: 'rp' };
+    const pure = rawTransitionTaskState(task, { to: 'investigating', actor: 'ba-agent', expected_digest: task.state_digest, evidence: accepted });
+    assert.equal(pure.state, 'investigating');
+    assert.throws(
+      () => rawTransitionTaskState(task, { to: 'investigating', actor: 'ba-agent', expected_digest: task.state_digest, evidence: { requirement_discovery: 'req' } }),
+      (error) => error.code === 'MISSING_REQUIRED_EVIDENCE'
+    );
+    assert.throws(
+      () => mutateTaskStateOnDisk(root, task.task_id, { to: 'investigating', actor: 'ba-agent', expected_digest: task.state_digest, evidence: { requirement_discovery: 'req' } }),
+      (error) => error.code === 'MISSING_REQUIRED_EVIDENCE'
+    );
+    const disk = mutateTaskStateOnDisk(root, task.task_id, { to: 'investigating', actor: 'ba-agent', expected_digest: task.state_digest, evidence: accepted });
+    assert.equal(disk.state, pure.state);
+    assert.deepEqual(disk.history.at(-1).evidence_refs, pure.history.at(-1).evidence_refs);
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('I297-TC-003: matrix-only edges are removed from the pure API', () => {
+  const task = createTaskState({ task_id: 'issue-no-matrix-edges' });
+  assert.throws(
+    () => transitionTaskState(task, { to: 'designing', actor: 'orchestrator', evidence: { requirement_discovery: 'req' } }),
+    (error) => error.code === 'ILLEGAL_TRANSITION_REJECTED'
+  );
+  assert.throws(
+    () => transitionTaskState(task, { to: 'cancelled', actor: 'orchestrator', evidence: {} }),
+    (error) => error.code === 'ILLEGAL_TRANSITION_REJECTED'
+  );
+});
+
+test('I297-TC-003: workflow policy pins contract_version 1 and declares actors on every row', () => {
+  const policy = YAML.parse(fs.readFileSync('docs/contracts/bug-fix-workflow.yaml', 'utf8'));
+  assert.equal(policy.contract_version, 1);
+  assert.equal(createTaskState({ task_id: 'pin-version' }).policy_contract_version, 1);
+  for (const row of [...policy.transitions, ...policy.resume]) {
+    assert.ok(Array.isArray(row.actors) && row.actors.length > 0, `row ${row.from} needs actors`);
+  }
+});
+
+test('I297-TC-003: invalid policy fails closed with POLICY_UNAVAILABLE', () => {
+  for (const bad of [undefined, null, 'x', {}, { transitions: [] }, { transitions: [{ from: 'intake', to: 'investigating', requires: [] }], resume: [] }]) {
+    assert.throws(() => deriveTransitionTable(bad), (error) => error.code === 'POLICY_UNAVAILABLE');
   }
 });
 
@@ -398,17 +422,13 @@ function createDurableTaskRoot(taskId = 'durable-evidence') {
 test('TC-007: durable transition uses policy evidence without matrix-only keys', () => {
   const { root, task, taskFile } = createDurableTaskRoot();
   try {
-    assert.throws(
-      () => rawTransitionTaskState(task, {
-        to: 'investigating',
-        actor: 'ba-agent',
-        expected_digest: task.state_digest,
-        evidence: { failure_description: 'fd', repro: 'rp' },
-        validateMatrixEvidence: false
-      }),
-      (error) => error.code === 'MISSING_REQUIRED_EVIDENCE',
-      'pure transitionTaskState must retain matrix evidence compatibility'
-    );
+    const pure = rawTransitionTaskState(task, {
+      to: 'investigating',
+      actor: 'ba-agent',
+      expected_digest: task.state_digest,
+      evidence: { failure_description: 'fd', repro: 'rp' }
+    });
+    assert.equal(pure.state, 'investigating', 'pure transitionTaskState must share YAML policy evidence');
     const next = mutateTaskStateOnDisk(root, task.task_id, {
       to: 'investigating',
       actor: 'ba-agent',
@@ -457,15 +477,15 @@ test('TC-025: Asynchronous pause and checkpoint resumption', () => {
   const tmpDir = createTempDir();
   const targetFile = path.join(tmpDir, 'task-state.json');
 
-  // Step 1: Session 1 creates and transitions task to planning
+  // Step 1: Session 1 creates and transitions task to implementing
   let task = createTaskState({
     task_id: 'issue-resume',
     workflow_id: 'bug-fix',
     change_type: 'bug-fix',
     risk_level: 'low'
   });
-  task = transitionTaskState(task, { to: 'investigating', actor: 'orchestrator', evidence: { requirement_discovery: 'req' } });
-  task = transitionTaskState(task, { to: 'planning', actor: 'developer-agent', evidence: { root_cause_analysis: 'rca' } });
+  task = transitionTaskState(task, { to: 'investigating', actor: 'orchestrator', evidence: { failure_description: 'fd', repro: 'issuecomment-1' } });
+  task = transitionTaskState(task, { to: 'implementing', actor: 'developer-agent', evidence: { fail_path: 'issuecomment-2', hypothesis_matrix: 'issuecomment-3' } });
   atomicWriteJsonSync(targetFile, task);
 
   // Session 1 ends cleanly. Disk holds the checkpoint.
@@ -473,21 +493,21 @@ test('TC-025: Asynchronous pause and checkpoint resumption', () => {
 
   // Step 2: Session 2 boots later, loads file, verifies CAS digest, and resumes
   const loadedTask = loadTaskState(targetFile);
-  assert.equal(loadedTask.state, 'planning');
+  assert.equal(loadedTask.state, 'implementing');
   assert.equal(loadedTask.sequence_number, 3);
   assert.equal(loadedTask.state_digest, session1Digest);
 
-  // Session 2 proceeds with transition to implementing
+  // Session 2 proceeds with transition to verifying
   const updatedTask = transitionTaskState(loadedTask, {
-    to: 'implementing',
+    to: 'verifying',
     actor: 'developer-agent',
     expected_digest: session1Digest,
-    evidence: { implementation_plan_ref: 'plan-xyz' }
+    evidence: { changed_files: ['a.js'], validation_plan: 'plan-xyz' }
   });
   atomicWriteJsonSync(targetFile, updatedTask);
 
   const finalCheck = loadTaskState(targetFile);
-  assert.equal(finalCheck.state, 'implementing');
+  assert.equal(finalCheck.state, 'verifying');
   assert.equal(finalCheck.sequence_number, 4);
   assert.notEqual(finalCheck.state_digest, session1Digest);
 
@@ -573,7 +593,7 @@ test('CLI: task-machine-cli commands (init, transition, resume, inspect)', () =>
     '--file', targetFile,
     '--to', 'investigating',
     '--actor', 'orchestrator',
-    '--evidence', JSON.stringify({ failure_description: 'failure-cli', repro: 'repro-cli', requirement_discovery: 'req-cli' }),
+    '--evidence', JSON.stringify({ failure_description: 'failure-cli', repro: 'issuecomment-1' }),
     '--expected-digest', digest1
   ]);
 
@@ -589,7 +609,7 @@ test('CLI: task-machine-cli commands (init, transition, resume, inspect)', () =>
     '--to', 'blocked',
     '--actor', 'sa-agent',
     '--stop-reason', 'human_review_required',
-    '--evidence', JSON.stringify({ root_cause_analysis: 'rca-cli', stop_reason: 'human_review_required' }),
+    '--evidence', JSON.stringify({ stop_reason: 'human_review_required' }),
     '--expected-digest', inspect2.state_digest
   ]);
 

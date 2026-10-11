@@ -3,16 +3,17 @@ contract_version: 1
 max_rework_attempts: 2
 states: [intake, investigating, implementing, verifying, rework, handoff, blocked, completed, cancelled]
 transitions:
-  - { from: intake, to: investigating, requires: [failure_description, repro] }
-  - { from: investigating, to: implementing, requires: [fail_path, hypothesis_matrix] }
-  - { from: investigating, to: blocked, requires: [stop_reason] }
-  - { from: implementing, to: verifying, requires: [changed_files, validation_plan] }
-  - { from: verifying, to: handoff, requires: [original_repro_result, verification_result] }
-  - { from: handoff, to: completed, requires: [closeout_evidence] }
-  - { from: verifying, to: rework, requires: [verification_failed, rework_route] }
+  - { from: intake, to: investigating, requires: [failure_description, repro], actors: [orchestrator, ba-agent] }
+  - { from: investigating, to: implementing, requires: [fail_path, hypothesis_matrix], actors: [developer-agent, sa-agent] }
+  - { from: investigating, to: blocked, requires: [stop_reason], actors: [developer-agent, sa-agent] }
+  - { from: implementing, to: verifying, requires: [changed_files, validation_plan], actors: [developer-agent] }
+  - { from: verifying, to: handoff, requires: [original_repro_result, verification_result], actors: [qa-agent] }
+  - { from: handoff, to: completed, requires: [closeout_evidence], actors: [orchestrator, release-agent] }
+  - { from: verifying, to: rework, requires: [verification_failed, rework_route], actors: [qa-agent] }
   - from: verifying
     to: blocked
     requires: [verification_failed, human_review_required]
+    actors: [qa-agent]
     terminal_requirements:
       rework_count: 2
       state: blocked
@@ -20,6 +21,6 @@ transitions:
       next_route: human-reviewer
       evidence:
         human_review_required: true
-  - { from: rework, to: implementing, requires: [rework_route] }
+  - { from: rework, to: implementing, requires: [rework_route], actors: [developer-agent] }
 resume:
-  - { from: blocked, destinations: [investigating, verifying], requires: [resume_evidence, approver_id] }
+  - { from: blocked, destinations: [investigating, verifying], requires: [resume_evidence, approver_id], actors: [human, orchestrator] }
