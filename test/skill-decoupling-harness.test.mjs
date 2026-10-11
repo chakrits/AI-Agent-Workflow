@@ -61,8 +61,9 @@ test('isolated clone retains historical commit objects not reachable from candid
   const candidate = git(['rev-parse', 'HEAD']);
   git(['-c', 'user.name=QA', '-c', 'user.email=qa@example.invalid', 'commit', '--allow-empty', '-qm', 'history']);
   const history = git(['rev-parse', 'HEAD']);
+  const branch = git(['symbolic-ref', '--short', 'HEAD']);
   git(['checkout', '--quiet', '--detach', candidate]);
-  git(['branch', '-D', git(['branch', '--format=%(refname:short)'])]);
+  git(['branch', '-D', branch]);
   const clone = path.join(temp, 'clone');
   cloneCandidate(temp, clone);
   assert.equal(execFileSync('git', ['cat-file', '-t', history], { cwd: clone, encoding: 'utf8' }).trim(), 'commit');
