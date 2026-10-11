@@ -1,178 +1,21 @@
 import assert from 'node:assert/strict';
-import { readFile, readdir, mkdtemp, mkdir, writeFile, rm, cp } from 'node:fs/promises';
+import { readFile, mkdtemp, mkdir, writeFile, rm, cp } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import { validateContracts } from '../scripts/validate-contracts.mjs';
 
 const adapterPaths = [
-  '.agents/skills/dynamic-workflow/SKILL.md',
-  '.agents/workflows/dynamic-workflow.md',
-  '.claude/agents/orchestrator-agent.md',
-  '.claude/skills/dynamic-workflow/SKILL.md',
-  '.agent/skills/dynamic-workflow/SKILL.md'
+  '.claude/agents/orchestrator-agent.md'
 ];
 
-const catalogDomains = {
-  Workflow: ['ba-requirement-analysis', 'documentation-closeout', 'dynamic-workflow', 'engineering-postmortem', 'git-workflow-and-versioning', 'implementation-planning', 'management-status-update', 'release-readiness-checklist', 'requirement-brainstorming', 'verification-before-completion'],
-  Engineering: ['backend-patterns', 'code-review-gate', 'coding-standards', 'debugging-discipline', 'sa-architecture-design', 'tdd-implementation'],
-  QA: ['defect-analysis', 'functional-test-design', 'js-unit-testing', 'mutation-testing', 'performance-testing', 'python-unit-testing', 'qa-playwright-testing', 'static-logic-review', 'test-quality-discipline'],
-  API: ['api-compliance-patterns', 'api-contract-testing', 'api-integration-patterns', 'api-mocking-sandbox', 'api-observability-monitoring', 'api-security-patterns', 'api-test-design', 'api-testing-tooling', 'api-versioning-deprecation'],
-  Frontend: ['frontend-react-patterns', 'frontend-ui-engineering', 'frontend-visual-design'],
-  'Security / Data': ['data-config-change', 'security-review']
-};
-
-function availableCatalogRows(catalog) {
-  return catalog.slice(catalog.indexOf('## Available Skills'), catalog.indexOf('## Skill Activation Examples'));
-}
-
-test('groups_catalog_rows_under_the_six_domains_without_changing_row_schema', async () => {
-  const available = availableCatalogRows(await readFile('docs/operating-model/SKILL_CATALOG.md', 'utf8'));
-  const headings = [...available.matchAll(/^### (.+)$/gm)];
-  assert.deepEqual(headings.map((match) => match[1]), Object.keys(catalogDomains));
-
-  const seen = [];
-  for (const [index, heading] of headings.entries()) {
-    const section = available.slice(heading.index + heading[0].length, headings[index + 1]?.index ?? available.length);
-    assert.match(section, /^\n\n\| Skill \| Trigger \| Primary Agent \| Do Not Use When \| Next Skill \/ Agent \|\n\|---\|---\|---\|---\|---\|/);
-    const rows = section.split('\n').filter((line) => /^\| [a-z][a-z0-9-]+ \|/.test(line));
-    const ids = rows.map((row) => row.split('|')[1].trim());
-    assert.deepEqual(ids, catalogDomains[heading[1]], `${heading[1]} has missing, extra, or misordered rows`);
-    for (const row of rows) {
-      assert.equal(row.split('|').length, 7, `${row} must have five cells`);
-      assert.ok(row.split('|').slice(1, -1).every((cell) => cell.trim()), `${row} has an empty cell`);
-    }
-    seen.push(...ids);
-  }
-  assert.equal(new Set(seen).size, seen.length, 'a skill must appear in exactly one domain');
-});
-
-test('vault_index_has_no_manual_skill_count', async () => {
-  const vault = await readFile('docs/vault/00-Index.md', 'utf8');
-  assert.doesNotMatch(vault, /All 37 skills|All \d+ skills/i);
-});
-
-test('vault_index_links_every_canonical_skill_exactly_once', async () => {
-  const [entries, vault] = await Promise.all([
-    readdir('.agents/skills', { withFileTypes: true }),
-    readFile('docs/vault/00-Index.md', 'utf8')
-  ]);
-  const canonical = entries.filter((entry) => entry.isDirectory()).map((entry) => entry.name).sort();
-  const skillSection = vault.slice(vault.indexOf('## Skills —'), vault.indexOf('## Codex Host Adapters'));
-  const lines = skillSection.split('\n').filter((line) => /^- [a-z][a-z0-9-]+ —/.test(line));
-  const linked = lines.map((line) => line.match(/^- ([a-z][a-z0-9-]+) —/)[1]).sort();
-  assert.deepEqual(linked, canonical);
-  for (const id of canonical) {
-    const line = lines.find((entry) => entry.startsWith(`- ${id} — `));
-    for (const tree of ['.agents', '.claude', '.agent']) {
-      assert.ok(line.includes(`[[../../${tree}/skills/${id}/SKILL.md|`), `${id} is missing its ${tree} link`);
-    }
-    assert.equal((line.match(/SKILL\.md\|/g) ?? []).length, 3, `${id} must link exactly three adapters`);
-  }
-});
-
-test('catalog_overlap_boundaries_keep_distinct_triggers_and_next_routes', async () => {
-  const available = availableCatalogRows(await readFile('docs/operating-model/SKILL_CATALOG.md', 'utf8'));
-  const row = (id) => available.split('\n').find((line) => line.startsWith(`| ${id} |`));
-  const functional = row('functional-test-design');
-  const playwright = row('qa-playwright-testing');
-  assert.match(functional, /test cases|test design/i);
-  assert.match(functional, /automation/i);
-  assert.match(functional, /qa-playwright-testing/);
-  assert.match(playwright, /browser E2E|automation/i);
-  assert.match(playwright, /test design/i);
-  assert.match(playwright, /QA Agent|defect-analysis/);
-
-  const design = row('api-test-design');
-  const contract = row('api-contract-testing');
-  const tooling = row('api-testing-tooling');
-  assert.match(design, /test case list/);
-  assert.match(design, /api-testing-tooling/);
-  assert.match(design, /api-contract-testing/);
-  assert.match(contract, /published.*schema/);
-  assert.match(contract, /api-test-design/);
-  assert.match(contract, /Developer Agent.*SA Agent/);
-  assert.match(tooling, /hand-written|hand-scripted/);
-  assert.match(tooling, /api-contract-testing/);
-  assert.match(tooling, /Developer Agent/);
-});
-
-test('every .agents/skills/ directory is named somewhere in SKILL_CATALOG.md', async () => {
-  const [entries, catalog] = await Promise.all([
-    readdir('.agents/skills', { withFileTypes: true }),
-    readFile('docs/operating-model/SKILL_CATALOG.md', 'utf8')
-  ]);
-  const skillNames = entries.filter((entry) => entry.isDirectory()).map((entry) => entry.name);
-  assert.ok(skillNames.length > 0);
-  for (const name of skillNames) {
-    assert.match(catalog, new RegExp(name), `SKILL_CATALOG.md does not mention the "${name}" skill`);
-  }
-});
 
 
-test('SKILL_CATALOG.md uses the approved five-column rows without stale skill headings', async () => {
-  const catalog = await readFile('docs/operating-model/SKILL_CATALOG.md', 'utf8');
-  const available = catalog.slice(catalog.indexOf('## Available Skills'), catalog.indexOf('## Skill Activation Examples'));
-  const expected = [
-    'ba-requirement-analysis', 'sa-architecture-design', 'data-config-change',
-    'requirement-brainstorming', 'implementation-planning', 'tdd-implementation',
-    'verification-before-completion', 'code-review-gate', 'git-workflow-and-versioning',
-    'api-contract-testing', 'performance-testing', 'mutation-testing', 'test-quality-discipline',
-    'static-logic-review', 'defect-analysis', 'api-testing-tooling', 'api-test-design',
-    'api-compliance-patterns', 'api-security-patterns', 'api-versioning-deprecation',
-    'api-observability-monitoring', 'api-integration-patterns', 'api-mocking-sandbox',
-    'js-unit-testing', 'python-unit-testing', 'coding-standards', 'backend-patterns',
-    'frontend-react-patterns', 'frontend-visual-design', 'documentation-closeout',
-    'release-readiness-checklist'
-  ];
-  for (const section of [
-    catalog.slice(catalog.indexOf('## Current Skills'), catalog.indexOf('## Engineering Discipline')),
-    catalog.slice(catalog.indexOf('## Engineering Discipline'), catalog.indexOf('## Planned Skills')),
-    available
-  ]) {
-    assert.match(section, /^\| Skill \| Trigger \| Primary Agent \| Do Not Use When \| Next Skill \/ Agent \|$/m);
-  }
-  for (const skill of expected) {
-    const row = available.match(new RegExp('^\\| ' + skill + ' \\|[^\\n]*$', 'm'))?.[0];
-    assert.ok(row, `missing catalog row for ${skill}`);
-    assert.equal(row.split('|').length, 7, `catalog row for ${skill} must have five cells`);
-    assert.match(row, /\| [^|]+ \| [^|]+ \| [^|]+ \| [^|]+ \|$/);
-  }
-  assert.doesNotMatch(available, /^## [a-z0-9-]+$/m);
-});
 
-test('Frontend UI Engineering stays discoverable and routes UI work safely', async () => {
-  const paths = [
-    '.agents/skills/frontend-ui-engineering/SKILL.md',
-    '.claude/skills/frontend-ui-engineering/SKILL.md',
-    '.agent/skills/frontend-ui-engineering/SKILL.md'
-  ];
-  const [canonical, claudeAdapter, antigravityAdapter, catalog] = await Promise.all([
-    readFile(paths[0], 'utf8'),
-    readFile(paths[1], 'utf8'),
-    readFile(paths[2], 'utf8'),
-    readFile('docs/operating-model/SKILL_CATALOG.md', 'utf8')
-  ]);
 
-  // Under skill parity (Issue #50), all three copies are byte-identical to the
-  // canonical .agents/ version. Every requirement that used to be checked only
-  // against the canonical must now hold across all three platforms.
-  for (const content of [canonical, claudeAdapter, antigravityAdapter]) {
-    for (const requirement of [
-      /semantic HTML/i,
-      /WCAG 2\.1 AA/i,
-      /keyboard/i,
-      /focus/i,
-      /loading, error, and empty states/i,
-      /320px, 768px, 1024px, and 1440px/i,
-      /qa-playwright-testing/i,
-      /design system/i
-    ]) {
-      assert.match(content, requirement);
-    }
-  }
-  assert.match(catalog, /frontend-ui-engineering/);
-});
+
+
+
 
 test('all dynamic-workflow adapters point to the canonical Bug Fix contract', async () => {
   for (const path of adapterPaths) {
@@ -192,20 +35,7 @@ test('AGENTS.md defines the Always/Ask First/Never boundary without introducing 
   assert.match(agents, /does not add new policy/i);
 });
 
-const requirementBrainstormingPaths = [
-  '.agents/skills/requirement-brainstorming/SKILL.md',
-  '.claude/skills/requirement-brainstorming/SKILL.md',
-  '.agent/skills/requirement-brainstorming/SKILL.md'
-];
 
-test('requirement-brainstorming adapters all carry the assumptions-surfacing technique', async () => {
-  for (const path of requirementBrainstormingPaths) {
-    const content = await readFile(path, 'utf8');
-    assert.match(content, /### 2a\. Assumptions surfacing/);
-    assert.match(content, /ASSUMPTIONS I'M MAKING:/);
-    assert.match(content, /Correct me now/);
-  }
-});
 
 test('CI runs install, tests, contract validation, and a dedicated main-state audit', async () => {
   const [ci, documentationSync] = await Promise.all([
@@ -445,14 +275,13 @@ test('in-turn dispatch completion requires parent ownership, native evidence, an
 });
 
 test('lifecycle stages make specification readiness a portable pre-development gate', async () => {
-  const [agents, routing, roles, qualityGates, handoff, template, portableWorkflow, claudeAdapter] = await Promise.all([
+  const [agents, routing, roles, qualityGates, handoff, template, claudeAdapter] = await Promise.all([
     readFile('AGENTS.md', 'utf8'),
     readFile('docs/workflow/dynamic-routing.md', 'utf8'),
     readFile('docs/workflow/role-definitions.md', 'utf8'),
     readFile('docs/workflow/quality-gates.md', 'utf8'),
     readFile('docs/workflow/handoff-contract.md', 'utf8'),
     readFile('docs/templates/HANDOFF.md', 'utf8'),
-    readFile('.agents/workflows/dynamic-workflow.md', 'utf8'),
     readFile('.claude/agents/orchestrator-agent.md', 'utf8')
   ]);
 
@@ -480,19 +309,17 @@ test('lifecycle stages make specification readiness a portable pre-development g
     assert.match(content, /Lifecycle Phase/);
     assert.match(content, /Specification Readiness/);
   }
-  for (const content of [portableWorkflow, claudeAdapter]) {
+  for (const content of [claudeAdapter]) {
     assert.match(content, /specification readiness|spec-ready/i);
   }
 });
 
 test('work-item and change-request templates preserve lifecycle readiness ownership across platforms', async () => {
-  const [githubIssue, gitlabIssue, githubPr, gitlabMr, claudeSkill, antigravitySkill] = await Promise.all([
+  const [githubIssue, gitlabIssue, githubPr, gitlabMr] = await Promise.all([
     readFile('.github/ISSUE_TEMPLATE/work-item.md', 'utf8'),
     readFile('.gitlab/issue_templates/Work Item.md', 'utf8'),
     readFile('.github/pull_request_template.md', 'utf8'),
     readFile('.gitlab/merge_request_templates/Default.md', 'utf8'),
-    readFile('.claude/skills/dynamic-workflow/SKILL.md', 'utf8'),
-    readFile('.agent/skills/dynamic-workflow/SKILL.md', 'utf8')
   ]);
 
   for (const template of [githubIssue, gitlabIssue]) {
@@ -509,10 +336,7 @@ test('work-item and change-request templates preserve lifecycle readiness owners
     assert.match(template, /Ownership: Developer/i);
     assert.match(template, /QA:.*evidence/i);
   }
-  for (const adapter of [claudeSkill, antigravitySkill]) {
-    assert.match(adapter, /status:spec-ready/);
-    assert.match(adapter, /docs\/workflow\/dynamic-routing\.md/);
-  }
+
 });
 
 test('platform readiness and AC traceability remain portable and evidence-owned', async () => {
@@ -762,13 +586,8 @@ test('canonical agent personas cover every role without becoming operating polic
   }
 });
 
-test('Claude, portable, and Antigravity adapters discover canonical agent personas', async () => {
-  const portablePaths = [
-    '.agents/skills/dynamic-workflow/SKILL.md',
-    '.agent/skills/dynamic-workflow/SKILL.md'
-  ];
-
-  for (const path of [...personaAdapterPaths, ...portablePaths]) {
+test('Core Claude role adapters discover canonical agent personas', async () => {
+  for (const path of personaAdapterPaths) {
     const content = await readFile(path, 'utf8');
     assert.match(content, /docs\/operating-model\/AGENT_PERSONAS\.md/);
     assert.match(content, /does not replace or override|do not override/i);
@@ -847,8 +666,7 @@ test('documentation templates preserve evidence discipline and canonical BA arti
     releasePlan,
     projectBrief,
     roleDefinition,
-    baAdapter,
-    debuggingSkill
+    baAdapter
   ] = await Promise.all([
     readFile('docs/templates/SECURITY_REVIEW.md', 'utf8'),
     readFile('docs/templates/CODE_REVIEW_FINDINGS.md', 'utf8'),
@@ -864,7 +682,6 @@ test('documentation templates preserve evidence discipline and canonical BA arti
     readFile('docs/templates/PROJECT_BRIEF.md', 'utf8'),
     readFile('docs/workflow/role-definitions.md', 'utf8'),
     readFile('.claude/agents/ba-agent.md', 'utf8'),
-    readFile('.agents/skills/debugging-discipline/SKILL.md', 'utf8')
   ]);
 
   for (const content of [securityReview, codeReviewFindings]) {
@@ -888,17 +705,14 @@ test('documentation templates preserve evidence discipline and canonical BA arti
     assert.match(content, /REQUIREMENT_DISCOVERY\.md/);
     assert.match(content, /deprecated compatibility redirect/i);
   }
-  assert.match(debuggingSkill, /embedded \*\*Hypothesis Matrix\*\*/);
-  assert.match(debuggingSkill, /standalone `HYPOTHESIS_MATRIX\.md` only/);
 });
 
 test('QA Agent canonical rule carries its policy and the new evidence, contract, and NFR rules', async () => {
-  const [roleDefinition, adapter, testPlan, testReport, playwrightSkill] = await Promise.all([
+  const [roleDefinition, adapter, testPlan, testReport] = await Promise.all([
     readFile('docs/workflow/role-definitions.md', 'utf8'),
     readFile('.claude/agents/qa-agent.md', 'utf8'),
     readFile('docs/templates/TEST_PLAN.md', 'utf8'),
     readFile('docs/templates/TEST_REPORT.md', 'utf8'),
-    readFile('.agents/skills/qa-playwright-testing/SKILL.md', 'utf8')
   ]);
 
   assert.match(roleDefinition, /### Skill Routing/);
@@ -927,13 +741,6 @@ test('QA Agent canonical rule carries its policy and the new evidence, contract,
   assert.match(testReport, /Root Cause Analysis/);
   assert.match(testReport, /Why did it fail\?/);
 
-  assert.match(playwrightSkill, /Automation Discipline/);
-  assert.match(playwrightSkill, /No hard waits/);
-  assert.match(playwrightSkill, /role-based selectors/i);
-  assert.match(playwrightSkill, /24 hours/);
-  assert.match(playwrightSkill, /Accessibility Testing/);
-  assert.match(playwrightSkill, /WCAG 2\.1 AA/);
-  assert.match(playwrightSkill, /axe-core\/playwright/);
 });
 
 test('TEST_PLAN.md carries a Scope section with In-Scope/Out-of-Scope, placed before Test Types In Scope', async () => {
@@ -968,51 +775,7 @@ test('TEST_REPORT.md carries a PR/Issue Comment Summary subsection and a defect-
     'Defect Severity Count line must sit above the Failed Tests / Defects table, within that section');
 });
 
-test('the four new QA testing-discipline skills carry their required content', async () => {
-  const [apiContract, performance, mutation, testQuality] = await Promise.all([
-    readFile('.agents/skills/api-contract-testing/SKILL.md', 'utf8'),
-    readFile('.agents/skills/performance-testing/SKILL.md', 'utf8'),
-    readFile('.agents/skills/mutation-testing/SKILL.md', 'utf8'),
-    readFile('.agents/skills/test-quality-discipline/SKILL.md', 'utf8')
-  ]);
 
-  assert.match(apiContract, /schemathesis/);
-  assert.match(apiContract, /drf-spectacular/);
-  assert.match(apiContract, /## Defect Routing/);
-
-  assert.match(performance, /Load Testing/);
-  assert.match(performance, /Stress Testing/);
-  assert.match(performance, /Spike Testing/);
-  assert.match(performance, /Soak Testing/);
-  assert.match(performance, /Locust/);
-  assert.match(performance, /## Recording Results/);
-
-  assert.match(mutation, /## Core Concept/);
-  assert.match(mutation, /mutmut/);
-  assert.match(mutation, /## Scoring/);
-  assert.doesNotMatch(mutation, /pass\/fail threshold of \d+%/i);
-
-  assert.match(testQuality, /## FIRST Principles/);
-  assert.match(testQuality, /Test Automation Pyramid/);
-  assert.match(testQuality, /Test Data Isolation Rule/);
-  assert.match(testQuality, /Overmocking/);
-  assert.match(testQuality, /Test-Only Production Methods/);
-  assert.match(testQuality, /Incomplete Mocks/);
-});
-
-test('SKILL_CATALOG.md carries all four new QA skill entries and the Planned Skills clarifying note', async () => {
-  const catalog = await readFile('docs/operating-model/SKILL_CATALOG.md', 'utf8');
-
-  assert.match(catalog, /\| api-contract-testing \|/);
-  assert.match(catalog, /\| performance-testing \|/);
-  assert.match(catalog, /\| mutation-testing \|/);
-  assert.match(catalog, /\| test-quality-discipline \|/);
-
-  assert.match(catalog, /WCAG 2\.1 AA accessibility checks/);
-
-  assert.match(catalog, /api-test-design.*related but distinct, not superseded/s);
-  assert.match(catalog, /Defect Analysis.*broader test-failure/);
-});
 
 test('Developer Agent requires architecture compliance, definition-of-done restatement, incremental verification, and escalation discipline', async () => {
   const [roleDefinition, adapter] = await Promise.all([
@@ -1044,61 +807,19 @@ test('AGENTS.md Change Sizing gives concrete size thresholds and splitting strat
   assert.match(agents, /Refactoring and feature work are two different changes/);
 });
 
-const gitWorkflowPaths = [
-  '.agents/skills/git-workflow-and-versioning/SKILL.md',
-  '.claude/skills/git-workflow-and-versioning/SKILL.md',
-  '.agent/skills/git-workflow-and-versioning/SKILL.md'
-];
 
-test('git-workflow-and-versioning skill exists in all three adapter copies with the commit and change-summary rules', async () => {
-  for (const path of gitWorkflowPaths) {
-    const content = await readFile(path, 'utf8');
-    assert.match(content, /## Atomic Commits/);
-    assert.match(content, /<type>: <short, imperative description>/);
-    assert.match(content, /Scan the diff for secrets/);
-    assert.match(content, /NOTICED BUT NOT TOUCHING:/);
-  }
+test('AGENTS retains core git workflow discipline', async () => {
   const agents = await readFile('AGENTS.md', 'utf8');
   assert.match(agents, /### Git Workflow Rule/);
   assert.match(agents, /`git-workflow-and-versioning`/);
-  const catalog = await readFile('docs/operating-model/SKILL_CATALOG.md', 'utf8');
-  assert.match(catalog, /\| git-workflow-and-versioning \|/);
 });
 
-const tddPaths = [
-  '.agents/skills/tdd-implementation/SKILL.md',
-  '.claude/skills/tdd-implementation/SKILL.md',
-  '.agent/skills/tdd-implementation/SKILL.md'
-];
 
-test('tdd-implementation adapters all carry the test-sizing, mock-preference, and DAMP rules', async () => {
-  for (const path of tddPaths) {
-    const content = await readFile(path, 'utf8');
-    assert.match(content, /## Test Design Rules/);
-    assert.match(content, /real implementation > fake .*> stub .*> mock/i);
-    assert.match(content, /DAMP over DRY/);
-  }
-});
 
-const codeReviewGatePaths = [
-  '.agents/skills/code-review-gate/SKILL.md',
-  '.claude/skills/code-review-gate/SKILL.md',
-  '.agent/skills/code-review-gate/SKILL.md'
-];
 
-const staticLogicReviewPaths = [
-  '.agents/skills/static-logic-review/SKILL.md',
-  '.claude/skills/static-logic-review/SKILL.md',
-  '.agent/skills/static-logic-review/SKILL.md'
-];
 
-test('static-logic-review is byte-identical across skill trees and keeps dry-run evidence boundaries', async () => {
-  const skills = await Promise.all(staticLogicReviewPaths.map((path) => readFile(path, 'utf8')));
-
-  assert.equal(skills[1], skills[0]);
-  assert.equal(skills[2], skills[0]);
-
-  const skill = skills[0];
+test('core static review policy keeps dry-run evidence boundaries independently of skills', async () => {
+  const skill = await readFile('docs/workflow/quality-gates.md', 'utf8');
   assert.match(skill, /decision branch|validation rule|calculation\/threshold|mapping\/transformation|state transition|side effect|authorization decision|error mapping/i);
   assert.match(skill, /requirement\/AC\/contract|approved AC\/specification\/contract/i);
   assert.match(skill, /file and lines|file \+ lines|exact file and lines/i);
@@ -1118,22 +839,16 @@ test('static-logic-review is byte-identical across skill trees and keeps dry-run
 });
 
 test('static-logic-review routing distinguishes adjacent QA skills and routes inferred gaps to the right owner', async () => {
-  const [catalog, roleDefinition, adapter, routing, agents] = await Promise.all([
-    readFile('docs/operating-model/SKILL_CATALOG.md', 'utf8'),
+  const [roleDefinition, adapter, routing, agents] = await Promise.all([
     readFile('docs/workflow/role-definitions.md', 'utf8'),
     readFile('.claude/agents/qa-agent.md', 'utf8'),
     readFile('docs/workflow/dynamic-routing.md', 'utf8'),
     readFile('AGENTS.md', 'utf8')
   ]);
 
-  for (const content of [catalog, roleDefinition, adapter]) {
+  for (const content of [roleDefinition, adapter]) {
     assert.match(content, /static-logic-review/);
   }
-  assert.match(catalog, /code-review-gate/);
-  assert.match(catalog, /functional-test-design/);
-  assert.match(catalog, /test-quality-discipline/);
-  assert.match(catalog, /mutation-testing/);
-  assert.match(catalog, /runtime QA execution|runtime execution/i);
   assert.match(roleDefinition, /observed or statically inferred behavior/i);
   assert.match(roleDefinition, /Potential Requirement Gap/);
   assert.match(roleDefinition, /BA Agent/);
@@ -1144,44 +859,17 @@ test('static-logic-review routing distinguishes adjacent QA skills and routes in
   assert.match(agents, /static-logic-review/);
 });
 
-test('code-review-gate adapters all carry structural remedies, dead code hygiene, and dependency discipline', async () => {
-  for (const path of codeReviewGatePaths) {
-    const content = await readFile(path, 'utf8');
-    assert.match(content, /## Structural Remedies/);
-    assert.match(content, /## Dead Code Hygiene/);
-    assert.match(content, /DEAD CODE IDENTIFIED:/);
-    assert.match(content, /## Dependency Discipline/);
-    assert.match(content, /one dependency per change/i);
-  }
-});
 
-const implementationPlanningPaths = [
-  '.agents/skills/implementation-planning/SKILL.md',
-  '.claude/skills/implementation-planning/SKILL.md',
-  '.agent/skills/implementation-planning/SKILL.md'
-];
 
-test('implementation-planning adapters all carry dependency mapping, vertical slicing, task sizing, and checkpoints', async () => {
-  for (const path of implementationPlanningPaths) {
-    const content = await readFile(path, 'utf8');
-    assert.match(content, /dependency graph/i);
-    assert.match(content, /slice vertically/i);
-    assert.match(content, /## Task Sizing/);
-    assert.match(content, /needs "and" to describe it/);
-    assert.match(content, /checkpoint every 2-3 tasks/i);
-    assert.match(content, /safe to parallelize/i);
-  }
-});
 
 test('Security Reviewer carries the scan checklist, severity scale, and fix-before-merge rule', async () => {
-  const [roleDefinition, adapter, skill, template] = await Promise.all([
+  const [roleDefinition, adapter, template] = await Promise.all([
     readFile('docs/workflow/role-definitions.md', 'utf8'),
     readFile('.claude/agents/security-reviewer.md', 'utf8'),
-    readFile('.agents/skills/security-review/SKILL.md', 'utf8'),
     readFile('docs/templates/SECURITY_REVIEW.md', 'utf8')
   ]);
 
-  for (const content of [roleDefinition, adapter, skill]) {
+  for (const content of [roleDefinition, adapter]) {
     assert.match(content, /DEBUG = True/);
     assert.match(content, /CORS_ALLOW_ALL_ORIGINS/);
     assert.match(content, /permission_classes/);
@@ -1195,18 +883,12 @@ test('Security Reviewer carries the scan checklist, severity scale, and fix-befo
   assert.match(template, /Fix-Before-Merge\?/);
 });
 
-test('Release Agent routes release policy to its canonical skill', async () => {
-  const [roleDefinition, skill, template] = await Promise.all([
-    readFile('docs/workflow/role-definitions.md', 'utf8'),
-    readFile('.agents/skills/release-readiness-checklist/SKILL.md', 'utf8'),
+test('core release policy preserves evidence and rollback independently of skills', async () => {
+  const [skill, template] = await Promise.all([
+    readFile('docs/workflow/quality-gates.md', 'utf8'),
     readFile('docs/templates/RELEASE_PLAN.md', 'utf8')
   ]);
 
-  assert.match(roleDefinition, /release-readiness-checklist\/SKILL\.md/);
-  assert.doesNotMatch(roleDefinition, /### Versioning and Changelog Contract/);
-  assert.doesNotMatch(roleDefinition, /### Release Evidence Checklist/);
-  assert.doesNotMatch(roleDefinition, /### Triple Rollback Confirmation/);
-  assert.doesNotMatch(roleDefinition, /### Deployment Strategy Statement/);
 
   for (const content of [skill]) {
     assert.match(content, /MAJOR\.MINOR\.PATCH/);
@@ -1227,10 +909,9 @@ test('Release Agent routes release policy to its canonical skill', async () => {
 });
 
 test('Config Agent carries the config/data boundary, reload behavior, flag lifecycle, and escalation guard', async () => {
-  const [roleDefinition, adapter, skill, template] = await Promise.all([
+  const [roleDefinition, adapter, template] = await Promise.all([
     readFile('docs/workflow/role-definitions.md', 'utf8'),
     readFile('.claude/agents/config-agent.md', 'utf8'),
-    readFile('.agents/skills/data-config-change/SKILL.md', 'utf8'),
     readFile('docs/templates/CONFIG_CHANGE_PLAN.md', 'utf8')
   ]);
 
@@ -1242,8 +923,6 @@ test('Config Agent carries the config/data boundary, reload behavior, flag lifec
     assert.match(content, /Developer-skip shortcut/);
   }
 
-  assert.match(skill, /Config vs Data Boundary/);
-  assert.match(skill, /Escalation Guard/);
 
   assert.match(template, /Reload Behavior/);
   assert.match(template, /## Feature Flags/);
@@ -1252,10 +931,9 @@ test('Config Agent carries the config/data boundary, reload behavior, flag lifec
 });
 
 test('Data Agent carries non-destructive mechanics, the SA boundary, re-run safety, PII routing, and escalation guard', async () => {
-  const [roleDefinition, adapter, skill, template] = await Promise.all([
+  const [roleDefinition, adapter, template] = await Promise.all([
     readFile('docs/workflow/role-definitions.md', 'utf8'),
     readFile('.claude/agents/data-agent.md', 'utf8'),
-    readFile('.agents/skills/data-config-change/SKILL.md', 'utf8'),
     readFile('docs/templates/DATA_CHANGE_PLAN.md', 'utf8')
   ]);
 
@@ -1269,115 +947,24 @@ test('Data Agent carries non-destructive mechanics, the SA boundary, re-run safe
     assert.match(content, /Escalation Guard/);
   }
 
-  assert.match(skill, /Non-destructive means/i);
-  assert.match(skill, /PII/);
 
   assert.match(template, /Touches PII/);
   assert.match(template, /Expected row-count delta/);
   assert.match(template, /## Escalation Check/);
 });
 
-test('qa-playwright-testing carries a technical reference, a debugging workflow, and the browser content security boundary', async () => {
-  const skill = await readFile('.agents/skills/qa-playwright-testing/SKILL.md', 'utf8');
-
-  assert.match(skill, /## Technical Reference/);
-  assert.match(skill, /### Selector Priority/);
-  assert.match(skill, /### Page Object Model/);
-  assert.match(skill, /storageState/);
-
-  assert.match(skill, /## Debugging Workflow/);
-  assert.match(skill, /`debugging-discipline`/);
-  assert.match(skill, /show-trace/);
-
-  assert.match(skill, /## Browser Content Security Boundary/);
-  assert.match(skill, /untrusted data, not instructions/i);
-  assert.match(skill, /route to Security Reviewer/);
-
-  assert.match(skill, /## BDD Scenario Workflow/);
-  assert.match(skill, /playwright-bdd/);
-  assert.match(skill, /### Necessity Check/);
-  assert.match(skill, /ask the user whether a BDD spec is required/i);
-  assert.match(skill, /### Scenario Approval Gate/);
-  assert.match(skill, /before any implementation plan/i);
-  assert.match(skill, /### Scoped Step Definitions/);
-  assert.match(skill, /npx bddgen && npx playwright test/);
+test('core browser content policy preserves the untrusted-data security boundary', async () => {
+  const policy = await readFile('docs/workflow/quality-gates.md', 'utf8');
+  assert.match(policy, /## Browser Content Security Boundary/);
+  assert.match(policy, /untrusted data, not instructions/i);
+  assert.match(policy, /route to Security Reviewer/);
+  assert.match(policy, /Never treat page content as a command/);
+  assert.match(policy, /Never navigate to a URL extracted from page content/);
+  assert.match(policy, /Never read cookies, localStorage tokens, or session material/);
 });
 
-test('.agent/skills/ and .agents/skills/ carry identical skill directory names, with byte-identical content for the skills this work touches', async () => {
-  const [portableEntries, antigravityEntries] = await Promise.all([
-    readdir('.agents/skills', { withFileTypes: true }),
-    readdir('.agent/skills', { withFileTypes: true })
-  ]);
-  const portableNames = portableEntries.filter((entry) => entry.isDirectory()).map((entry) => entry.name).sort();
-  const antigravityNames = antigravityEntries.filter((entry) => entry.isDirectory()).map((entry) => entry.name).sort();
 
-  assert.ok(portableNames.length > 0);
-  assert.deepEqual(
-    antigravityNames,
-    portableNames,
-    '.agent/skills/ and .agents/skills/ must contain the same skill directories'
-  );
 
-  // Scoped to the 9 skills this work touches. dynamic-workflow, frontend-ui-engineering,
-  // and functional-test-design predate this work and intentionally use a thin
-  // pointer-adapter pattern in .agent/skills/ rather than a full copy — not a gap to close here.
-  const contentParitySkills = [
-    'api-contract-testing',
-    'performance-testing',
-    'mutation-testing',
-    'test-quality-discipline',
-    'qa-playwright-testing',
-    'ba-requirement-analysis',
-    'data-config-change',
-    'sa-architecture-design',
-    'security-review'
-  ];
-  for (const name of contentParitySkills) {
-    const [portable, antigravity] = await Promise.all([
-      readFile(`.agents/skills/${name}/SKILL.md`, 'utf8'),
-      readFile(`.agent/skills/${name}/SKILL.md`, 'utf8')
-    ]);
-    assert.equal(
-      antigravity,
-      portable,
-      `.agent/skills/${name}/SKILL.md does not match .agents/skills/${name}/SKILL.md`
-    );
-  }
-});
-
-test('the three new test-tooling skills carry their required content', async () => {
-  const [apiTesting, jsUnit, pythonUnit, mutation] = await Promise.all([
-    readFile('.agents/skills/api-testing-tooling/SKILL.md', 'utf8'),
-    readFile('.agents/skills/js-unit-testing/SKILL.md', 'utf8'),
-    readFile('.agents/skills/python-unit-testing/SKILL.md', 'utf8'),
-    readFile('.agents/skills/mutation-testing/SKILL.md', 'utf8')
-  ]);
-
-  assert.match(apiTesting, /Supertest/);
-  assert.match(apiTesting, /Bruno/);
-  assert.match(apiTesting, /distinct from `api-contract-testing`/);
-
-  assert.match(jsUnit, /## Choosing Between Jest and Vitest/);
-  assert.match(jsUnit, /npx jest/);
-  assert.match(jsUnit, /npx vitest/);
-
-  assert.match(pythonUnit, /uv run pytest/);
-  assert.match(pythonUnit, /tdd-implementation/);
-
-  assert.match(mutation, /## JS\/TS \(Stryker\)/);
-  assert.match(mutation, /npx stryker run/);
-  assert.match(mutation, /## Python \(mutmut\)/);
-});
-
-test('SKILL_CATALOG.md carries the three new test-tooling skill entries', async () => {
-  const catalog = await readFile('docs/operating-model/SKILL_CATALOG.md', 'utf8');
-
-  assert.match(catalog, /\| api-testing-tooling \|/);
-  assert.match(catalog, /\| js-unit-testing \|/);
-  assert.match(catalog, /\| python-unit-testing \|/);
-  assert.match(catalog, /api-testing-tooling.*provides Supertest\/Bruno\/Postman\+Newman tooling/s);
-  assert.match(catalog, /mutation-testing[\s\S]*?Stryker/);
-});
 
 test('QA Agent Skill Routing includes the three new test-tooling skills in role-definitions and the Claude adapter', async () => {
   const [roleDefinition, adapter] = await Promise.all([
@@ -1394,144 +981,11 @@ test('QA Agent Skill Routing includes the three new test-tooling skills in role-
   assert.match(adapter, /`python-unit-testing`/);
 });
 
-const newTestingSkillTemplatePaths = [
-  ['qa-playwright-testing', 'playwright.config.template.ts'],
-  ['mutation-testing', 'stryker.conf.template.json'],
-  ['api-testing-tooling', 'supertest.example.spec.ts'],
-  ['api-testing-tooling', 'bruno-collection/bruno.json'],
-  ['api-testing-tooling', 'bruno-collection/health-check.bru'],
-  ['api-testing-tooling', 'bruno-collection/environments/local.bru'],
-  ['js-unit-testing', 'jest.config.template.js'],
-  ['js-unit-testing', 'vitest.config.template.ts'],
-  ['python-unit-testing', 'pytest.ini.template']
-];
 
-test('test-tooling skill template files are byte-identical across all three platforms', async () => {
-  for (const [skill, templateFile] of newTestingSkillTemplatePaths) {
-    const [portable, claude, antigravity] = await Promise.all([
-      readFile(`.agents/skills/${skill}/templates/${templateFile}`, 'utf8'),
-      readFile(`.claude/skills/${skill}/templates/${templateFile}`, 'utf8'),
-      readFile(`.agent/skills/${skill}/templates/${templateFile}`, 'utf8')
-    ]);
-    assert.equal(claude, portable, `.claude/skills/${skill}/templates/${templateFile} does not match .agents/`);
-    assert.equal(antigravity, portable, `.agent/skills/${skill}/templates/${templateFile} does not match .agents/`);
-  }
-});
 
-test('the three new test-tooling skills are byte-identical SKILL.md across all three platforms', async () => {
-  const newSkillNames = ['api-testing-tooling', 'js-unit-testing', 'python-unit-testing'];
-  for (const name of newSkillNames) {
-    const [portable, claude, antigravity] = await Promise.all([
-      readFile(`.agents/skills/${name}/SKILL.md`, 'utf8'),
-      readFile(`.claude/skills/${name}/SKILL.md`, 'utf8'),
-      readFile(`.agent/skills/${name}/SKILL.md`, 'utf8')
-    ]);
-    assert.equal(claude, portable, `.claude/skills/${name}/SKILL.md does not match .agents/`);
-    assert.equal(antigravity, portable, `.agent/skills/${name}/SKILL.md does not match .agents/`);
-  }
-});
 
-test('the seven new API skills carry their required content', async () => {
-  const [
-    apiTestDesign,
-    apiCompliance,
-    apiSecurity,
-    apiVersioning,
-    apiObservability,
-    apiIntegration,
-    apiMocking
-  ] = await Promise.all([
-    readFile('.agents/skills/api-test-design/SKILL.md', 'utf8'),
-    readFile('.agents/skills/api-compliance-patterns/SKILL.md', 'utf8'),
-    readFile('.agents/skills/api-security-patterns/SKILL.md', 'utf8'),
-    readFile('.agents/skills/api-versioning-deprecation/SKILL.md', 'utf8'),
-    readFile('.agents/skills/api-observability-monitoring/SKILL.md', 'utf8'),
-    readFile('.agents/skills/api-integration-patterns/SKILL.md', 'utf8'),
-    readFile('.agents/skills/api-mocking-sandbox/SKILL.md', 'utf8')
-  ]);
 
-  assert.match(apiTestDesign, /## Coverage Checklist/);
-  assert.match(apiTestDesign, /BVA\/EP/);
-  assert.match(apiTestDesign, /Distinct from api-contract-testing/);
 
-  assert.match(apiCompliance, /GDPR/);
-  assert.match(apiCompliance, /HIPAA/);
-  assert.match(apiCompliance, /PCI-DSS/);
-  assert.match(apiCompliance, /## Compliance Pattern Checklist/);
-  assert.match(apiCompliance, /### Worked Example: Audit Log Entry Shape/);
-  assert.match(apiCompliance, /"data_class": "PHI"/);
-
-  assert.match(apiSecurity, /BOLA\/IDOR/);
-  assert.match(apiSecurity, /Mass assignment/);
-  assert.match(apiSecurity, /OWASP/);
-  assert.match(apiSecurity, /## OWASP API Security Top 10 \(2023\) Reference/);
-  assert.match(apiSecurity, /Broken Object Level Authorization/);
-  assert.match(apiSecurity, /### Worked Example: JWT Claims Shape/);
-  assert.match(apiSecurity, /alg: none/);
-
-  assert.match(apiVersioning, /## Breaking vs Non-Breaking Classification/);
-  assert.match(apiVersioning, /Sunset/);
-  assert.match(apiVersioning, /RFC 8594/);
-  assert.match(apiVersioning, /### Worked Example \(wire format, language-agnostic\)/);
-  assert.match(apiVersioning, /HTTP\/1\.1 410 Gone/);
-
-  assert.match(apiObservability, /Liveness/);
-  assert.match(apiObservability, /Readiness/);
-  assert.match(apiObservability, /## Structured Request Logging/);
-
-  assert.match(apiIntegration, /## Inbound Webhooks/);
-  assert.match(apiIntegration, /idempotency key/i);
-  assert.match(apiIntegration, /dead-letter/i);
-
-  assert.match(apiMocking, /Schema-driven mock/);
-  assert.match(apiMocking, /Record-and-replay/);
-  assert.doesNotMatch(apiMocking, /TestMu/i);
-
-  // None of the 7 skills may carry the source repo's embedded product-promotion text.
-  for (const skill of [apiTestDesign, apiCompliance, apiSecurity, apiVersioning, apiObservability, apiIntegration, apiMocking]) {
-    assert.doesNotMatch(skill, /TestMu/i);
-    assert.doesNotMatch(skill, /HyperExecute/i);
-  }
-});
-
-test('api-testing-tooling carries the Postman + Newman section and template', async () => {
-  const apiTesting = await readFile('.agents/skills/api-testing-tooling/SKILL.md', 'utf8');
-
-  assert.match(apiTesting, /## Postman \+ Newman/);
-  assert.match(apiTesting, /npm install -g newman/);
-  assert.match(apiTesting, /templates\/postman-collection\.example\.json/);
-});
-
-test('the 7 new API skills are byte-identical SKILL.md across all three platforms', async () => {
-  const newSkillNames = [
-    'api-test-design',
-    'api-compliance-patterns',
-    'api-security-patterns',
-    'api-versioning-deprecation',
-    'api-observability-monitoring',
-    'api-integration-patterns',
-    'api-mocking-sandbox'
-  ];
-  for (const name of newSkillNames) {
-    const [portable, claude, antigravity] = await Promise.all([
-      readFile(`.agents/skills/${name}/SKILL.md`, 'utf8'),
-      readFile(`.claude/skills/${name}/SKILL.md`, 'utf8'),
-      readFile(`.agent/skills/${name}/SKILL.md`, 'utf8')
-    ]);
-    assert.equal(claude, portable, `.claude/skills/${name}/SKILL.md does not match .agents/`);
-    assert.equal(antigravity, portable, `.agent/skills/${name}/SKILL.md does not match .agents/`);
-  }
-});
-
-test('the new Postman collection template is byte-identical across all three platforms', async () => {
-  const [portable, claude, antigravity] = await Promise.all([
-    readFile('.agents/skills/api-testing-tooling/templates/postman-collection.example.json', 'utf8'),
-    readFile('.claude/skills/api-testing-tooling/templates/postman-collection.example.json', 'utf8'),
-    readFile('.agent/skills/api-testing-tooling/templates/postman-collection.example.json', 'utf8')
-  ]);
-  assert.equal(claude, portable);
-  assert.equal(antigravity, portable);
-});
 
 test('SA Agent Skill Routing table references the 5 new design-adjacent skills in role-definitions and the Claude adapter', async () => {
   const [roleDefinition, adapter] = await Promise.all([
@@ -1572,94 +1026,17 @@ test('QA Agent Skill Routing includes api-test-design and api-mocking-sandbox in
   assert.match(adapter, /`api-mocking-sandbox`/);
 });
 
-test('SKILL_CATALOG.md carries all 7 new API skill entries', async () => {
-  const catalog = await readFile('docs/operating-model/SKILL_CATALOG.md', 'utf8');
 
-  for (const skill of [
-    'api-test-design',
-    'api-compliance-patterns',
-    'api-security-patterns',
-    'api-versioning-deprecation',
-    'api-observability-monitoring',
-    'api-integration-patterns',
-    'api-mocking-sandbox'
-  ]) {
-    assert.match(catalog, new RegExp('\\| ' + skill + ' \\|'));
-  }
 
-  // The former Planned Skills row for API Test Design must be gone now that it's built.
-  assert.doesNotMatch(catalog, /\| API Test Design \|/);
-});
 
-test('docs/vault/00-Index.md links all 7 new API skills without a manual count', async () => {
-  const vaultIndex = await readFile('docs/vault/00-Index.md', 'utf8');
-
-  assert.match(vaultIndex, /skills below are mirrored across all three platforms/i);
-  assert.doesNotMatch(vaultIndex, /All \d+ skills are mirrored/i);
-  for (const skill of [
-    'api-test-design',
-    'api-compliance-patterns',
-    'api-security-patterns',
-    'api-versioning-deprecation',
-    'api-observability-monitoring',
-    'api-integration-patterns',
-    'api-mocking-sandbox'
-  ]) {
-    assert.match(vaultIndex, new RegExp('^- ' + skill + ' —', 'm'));
-  }
-});
-
-test('the 4 new Developer Agent skills carry their required content', async () => {
-  const [codingStandards, backendPatterns, frontendReactPatterns, frontendVisualDesign] = await Promise.all([
-    readFile('.agents/skills/coding-standards/SKILL.md', 'utf8'),
-    readFile('.agents/skills/backend-patterns/SKILL.md', 'utf8'),
-    readFile('.agents/skills/frontend-react-patterns/SKILL.md', 'utf8'),
-    readFile('.agents/skills/frontend-visual-design/SKILL.md', 'utf8')
-  ]);
-
-  assert.match(codingStandards, /## Immutability/);
-  assert.match(codingStandards, /## Naming/);
-  assert.match(codingStandards, /## Code Smells to Watch For/);
-
-  assert.match(backendPatterns, /## Repository Pattern/);
-  assert.match(backendPatterns, /## N\+1 Query Prevention/);
-  assert.match(backendPatterns, /never a per-process in-memory counter/);
-
-  assert.match(frontendReactPatterns, /## Component Composition/);
-  assert.match(frontendReactPatterns, /## Custom Hooks/);
-  assert.match(frontendReactPatterns, /## State-Scope Selection/);
-
-  assert.match(frontendVisualDesign, /## Ground the Design in the Subject/);
-  assert.match(frontendVisualDesign, /## Avoiding the Generic-AI-Default Look/);
-  assert.match(frontendVisualDesign, /## Copywriting Voice/);
-
-  // None of the 4 skills may carry the source repos' product-promotion or license artifacts.
-  for (const skill of [codingStandards, backendPatterns, frontendReactPatterns, frontendVisualDesign]) {
-    assert.doesNotMatch(skill, /TestMu/i);
-    assert.doesNotMatch(skill, /HyperExecute/i);
-  }
-});
-
-test('security-review carries the exposed-secret incident-response procedure', async () => {
-  const securityReview = await readFile('.agents/skills/security-review/SKILL.md', 'utf8');
+test('core policy carries the exposed-secret incident-response procedure', async () => {
+  const securityReview = await readFile('docs/workflow/quality-gates.md', 'utf8');
 
   assert.match(securityReview, /## Exposed-Secret Incident Response/);
   assert.match(securityReview, /Rotate the exposed credential/);
   assert.match(securityReview, /Sweep the rest of the codebase/);
 });
 
-test('the 4 new Developer Agent skills are byte-identical SKILL.md across all three platforms', async () => {
-  const newSkillNames = ['coding-standards', 'backend-patterns', 'frontend-react-patterns', 'frontend-visual-design'];
-  for (const name of newSkillNames) {
-    const [portable, claude, antigravity] = await Promise.all([
-      readFile(`.agents/skills/${name}/SKILL.md`, 'utf8'),
-      readFile(`.claude/skills/${name}/SKILL.md`, 'utf8'),
-      readFile(`.agent/skills/${name}/SKILL.md`, 'utf8')
-    ]);
-    assert.equal(claude, portable, `.claude/skills/${name}/SKILL.md does not match .agents/`);
-    assert.equal(antigravity, portable, `.agent/skills/${name}/SKILL.md does not match .agents/`);
-  }
-});
 
 test('Developer Agent Skill Routing includes the 4 new skills in role-definitions and the Claude adapter', async () => {
   const [roleDefinition, adapter] = await Promise.all([
@@ -1674,13 +1051,6 @@ test('Developer Agent Skill Routing includes the 4 new skills in role-definition
   }
 });
 
-test('SKILL_CATALOG.md carries all 4 new Developer Agent skill entries', async () => {
-  const catalog = await readFile('docs/operating-model/SKILL_CATALOG.md', 'utf8');
-
-  for (const skill of ['coding-standards', 'backend-patterns', 'frontend-react-patterns', 'frontend-visual-design']) {
-    assert.match(catalog, new RegExp('\\| ' + skill + ' \\|'));
-  }
-});
 
 test('THIRD_PARTY_NOTICES.md attributes LambdaTest, ECC, and Anthropic sources', async () => {
   const notices = await readFile('THIRD_PARTY_NOTICES.md', 'utf8');
@@ -1928,51 +1298,8 @@ test('rejects New Feature max_rework_attempts that differs from policy', async (
   assert.match(errors.join('\n'), /must be equal to constant/);
 });
 
-test('Management Status Update remains Thai-first, evidence-bound, and portable', async () => {
-  const paths = [
-    '.agents/skills/management-status-update/SKILL.md',
-    '.claude/skills/management-status-update/SKILL.md',
-    '.agent/skills/management-status-update/SKILL.md'
-  ];
-  const [canonical, claude, antigravity, catalog, vaultIndex, roles] = await Promise.all([
-    ...paths.map((path) => readFile(path, 'utf8')),
-    readFile('docs/operating-model/SKILL_CATALOG.md', 'utf8'),
-    readFile('docs/vault/00-Index.md', 'utf8'),
-    readFile('docs/workflow/role-definitions.md', 'utf8')
-  ]);
-
-  assert.equal(claude, canonical);
-  assert.equal(antigravity, canonical);
-
-  for (const requirement of [
-    /Thai.*default|default.*Thai/i,
-    /Boss Update/i,
-    /Leadership Update/i,
-    /Defect Update/i,
-    /status summary|team update|bug or defect report/i,
-    /GitHub Issue\/PR|Slack|standup|email|meeting/i,
-    /explicit Boss instruction/i,
-    /approved requirement\/design\/ADR/i,
-    /QA evidence.*verification/i,
-    /state the conflict/i,
-    /never invent or infer/i,
-    /owner, root cause, impact, mitigation, risk, ETA/i,
-    /root cause/i,
-    /print-only/i,
-    /explicit.*approval/i,
-    /never post.*Slack|never post.*email/i,
-    /structured handoff/i,
-    /QA evidence/i,
-    /RCA|postmortem/i,
-    /lifecycle/i,
-    /independent adaptation/i,
-    /No substantial\s+unverified-license source text is copied/i
-  ]) {
-    assert.match(canonical, requirement);
-  }
-
-  assert.match(catalog, /management-status-update/);
-  assert.match(vaultIndex, /management-status-update/);
+test('Core role policy preserves communication and formal-evidence boundaries', async () => {
+  const roles = await readFile('docs/workflow/role-definitions.md', 'utf8');
   assert.match(roles, /Management Status Update.*communication draft/i);
   for (const boundary of [
     /not a structured handoff/i,
@@ -1985,149 +1312,16 @@ test('Management Status Update remains Thai-first, evidence-bound, and portable'
   }
 });
 
-test('functional-test-design SKILL.md carries the Decision Table and State Transition techniques with naming convention rows and a determinism worked example (Issue #143)', async () => {
-  const skill = await readFile('.agents/skills/functional-test-design/SKILL.md', 'utf8');
 
-  assert.match(skill, /Decision Table Testing/);
-  assert.match(skill, /condition columns?/i);
-  assert.match(skill, /action columns?/i);
-  assert.match(skill, /rule ID/i);
 
-  assert.match(skill, /State Transition Testing/);
-  assert.match(skill, /Valid transitions?/i);
-  assert.match(skill, /Invalid transitions?/i);
-  assert.match(skill, /guard condition/i);
 
-  assert.match(skill, /`TC-DT-xxx`/);
-  assert.match(skill, /`TC-ST-xxx`/);
 
-  assert.match(skill, /System displays an error/);
-  assert.match(skill, /HTTP 400 with INVALID_AMOUNT error code/);
-  assert.match(skill, /amount = bad_value/);
-  assert.match(skill, /amount = -500\.00 THB/);
-});
 
-test('functional-test-design SKILL.md Full Mode outline item 10 is renamed to Test Design Techniques without renumbering items 11-18', async () => {
-  const skill = await readFile('.agents/skills/functional-test-design/SKILL.md', 'utf8');
 
-  assert.match(skill, /^10\. Test Design Techniques$/m);
-  assert.doesNotMatch(skill, /^10\. BVA \/ EP Analysis$/m);
-  assert.match(skill, /^11\. API Functional Test Cases, if applicable$/m);
-  assert.match(skill, /^18\. Self-review Checklist$/m);
-});
 
-test('functional-test-design template section 10 is renamed to Test Design Techniques with Decision Table and State Transition subsections, and sections 11-18 keep their numbers', async () => {
-  const template = await readFile('.agents/skills/functional-test-design/templates/function-test-report.md', 'utf8');
 
-  assert.match(template, /^## 10\. Test Design Techniques$/m);
-  assert.doesNotMatch(template, /^## 10\. BVA \/ EP Analysis$/m);
-  assert.match(template, /^### Decision Table Testing$/m);
-  assert.match(template, /^### State Transition Testing$/m);
-  assert.match(template, /TC-DT-001/);
-  assert.match(template, /TC-ST-001/);
 
-  for (const n of [11, 12, 13, 14, 15, 16, 17, 18]) {
-    assert.match(template, new RegExp(`^## ${n}\\. `, 'm'));
-  }
-});
 
-test('functional-test-design template Coverage Matrix (section 15) has Decision Table and State Transition columns', async () => {
-  const template = await readFile('.agents/skills/functional-test-design/templates/function-test-report.md', 'utf8');
-
-  const section15Match = template.match(/^## 15\. Coverage Matrix\n([\s\S]*?)(?=\n## 16\.)/m);
-  assert.ok(section15Match, 'Coverage Matrix section 15 not found');
-  const section15 = section15Match[1];
-
-  assert.match(section15, /\| Decision Table \| State Transition \|/);
-
-  const headerLine = section15.split('\n').find((line) => line.startsWith('| Requirement / Function'));
-  const separatorLine = section15.split('\n').find((line) => /^\|[-\s|]+\|$/.test(line));
-  const dataLine = section15.split('\n').find((line) => line.startsWith('| N/A'));
-  assert.ok(headerLine && separatorLine && dataLine, 'Coverage Matrix table rows not found');
-  const headerCols = headerLine.split('|').length;
-  assert.equal(separatorLine.split('|').length, headerCols);
-  assert.equal(dataLine.split('|').length, headerCols);
-});
-
-test('functional-test-design template Coverage Matrix (section 15) has Automated (Y/N) and Test Ref columns after Status (Issue #149)', async () => {
-  const template = await readFile('.agents/skills/functional-test-design/templates/function-test-report.md', 'utf8');
-
-  const section15Match = template.match(/^## 15\. Coverage Matrix\n([\s\S]*?)(?=\n## 16\.)/m);
-  assert.ok(section15Match, 'Coverage Matrix section 15 not found');
-  const section15 = section15Match[1];
-
-  assert.match(section15, /\| Status \| Automated \(Y\/N\) \| Test Ref \(path\) or N\/A — reason \|/);
-
-  const headerLine = section15.split('\n').find((line) => line.startsWith('| Requirement / Function'));
-  const dataLine = section15.split('\n').find((line) => line.startsWith('| N/A'));
-  assert.ok(headerLine && dataLine, 'Coverage Matrix table rows not found');
-  const headerCols = headerLine.split('|').length;
-  assert.equal(dataLine.split('|').length, headerCols, 'data row must have a cell for each new column');
-});
-
-test('test-quality-discipline SKILL.md carries a checklist item for TC-ID to automated-test traceability (Issue #149)', async () => {
-  const skill = await readFile('.agents/skills/test-quality-discipline/SKILL.md', 'utf8');
-
-  assert.match(skill, /Untraced Test Case/);
-  assert.match(skill, /TC-HC-xxx|TC-NEG-xxx|TC-ID/);
-  assert.match(skill, /Coverage Matrix/);
-  assert.match(skill, /automated test/);
-  assert.match(skill, /defect routed to Developer Agent/);
-});
-
-test('test-quality-discipline SKILL.md is byte-identical across all three platforms after the Issue #149 TC-ID checklist addition', async () => {
-  const [portable, claude, antigravity] = await Promise.all([
-    readFile('.agents/skills/test-quality-discipline/SKILL.md', 'utf8'),
-    readFile('.claude/skills/test-quality-discipline/SKILL.md', 'utf8'),
-    readFile('.agent/skills/test-quality-discipline/SKILL.md', 'utf8')
-  ]);
-  assert.equal(claude, portable, '.claude/skills/test-quality-discipline/SKILL.md does not match .agents/');
-  assert.equal(antigravity, portable, '.agent/skills/test-quality-discipline/SKILL.md does not match .agents/');
-});
-
-test('functional-test-design SKILL.md is byte-identical across all three platforms after the Issue #143 technique expansion', async () => {
-  const [portable, claude, antigravity] = await Promise.all([
-    readFile('.agents/skills/functional-test-design/SKILL.md', 'utf8'),
-    readFile('.claude/skills/functional-test-design/SKILL.md', 'utf8'),
-    readFile('.agent/skills/functional-test-design/SKILL.md', 'utf8')
-  ]);
-  assert.equal(claude, portable, '.claude/skills/functional-test-design/SKILL.md does not match .agents/');
-  assert.equal(antigravity, portable, '.agent/skills/functional-test-design/SKILL.md does not match .agents/');
-});
-
-test('SKILL_CATALOG.md functional-test-design entry mentions Decision Table and State Transition techniques', async () => {
-  const catalog = await readFile('docs/operating-model/SKILL_CATALOG.md', 'utf8');
-  const line = catalog.split('\n').find((l) => l.startsWith('| Functional Test Design '));
-  assert.ok(line, 'Functional Test Design row not found in SKILL_CATALOG.md');
-  assert.match(line, /Decision Table/);
-  assert.match(line, /State Transition/);
-});
-
-test('defect-analysis SKILL.md carries Summary field, severity-to-impact worked mapping, and PII-placeholder note (Issue #152)', async () => {
-  const skill = await readFile('.agents/skills/defect-analysis/SKILL.md', 'utf8');
-
-  assert.match(skill, /^---\nname: defect-analysis\n/);
-  assert.match(skill, /Critical \| Service down, data loss, or a security-relevant defect/);
-  assert.match(skill, /High \| Major feature broken, no workaround/);
-  assert.match(skill, /Medium \| Feature impaired, workaround exists/);
-  assert.match(skill, /Low \| Cosmetic, no functional impact/);
-  assert.match(skill, /\[USER_ID\]/);
-  assert.match(skill, /\[POLICY_NUMBER\]/);
-
-  // The plan's rejected elements must not be carried forward.
-  assert.doesNotMatch(skill, /infer missing context/i);
-  assert.doesNotMatch(skill, /\/issues\//);
-});
-
-test('defect-analysis SKILL.md is byte-identical across all three platforms (Issue #152)', async () => {
-  const [portable, claude, antigravity] = await Promise.all([
-    readFile('.agents/skills/defect-analysis/SKILL.md', 'utf8'),
-    readFile('.claude/skills/defect-analysis/SKILL.md', 'utf8'),
-    readFile('.agent/skills/defect-analysis/SKILL.md', 'utf8')
-  ]);
-  assert.equal(claude, portable, '.claude/skills/defect-analysis/SKILL.md does not match .agents/');
-  assert.equal(antigravity, portable, '.agent/skills/defect-analysis/SKILL.md does not match .agents/');
-});
 
 test('docs/templates/DEFECT_REPORT.md carries Summary, Environment, severity mapping, and a worked JSON payload example (Issue #152)', async () => {
   const template = await readFile('docs/templates/DEFECT_REPORT.md', 'utf8');
@@ -2142,14 +1336,6 @@ test('docs/templates/DEFECT_REPORT.md carries Summary, Environment, severity map
   assert.match(template, /\[CLAIM_ID\]/);
 });
 
-test('SKILL_CATALOG.md carries the real defect-analysis entry and no longer lists it as Planned (Issue #152)', async () => {
-  const catalog = await readFile('docs/operating-model/SKILL_CATALOG.md', 'utf8');
-
-  assert.match(catalog, /\| defect-analysis \|/);
-  assert.doesNotMatch(catalog, /\| Defect Analysis \| Analyze test failures, logs, screenshots, reproduce steps, severity \|/);
-  assert.match(catalog, /Playwright QA[^\n]*`defect-analysis`/);
-  assert.match(catalog, /\| defect-analysis \|/);
-});
 
 test('QA Agent Skill Routing includes defect-analysis in role-definitions and the Claude adapter (Issue #152)', async () => {
   const [roleDefinition, adapter] = await Promise.all([
@@ -2161,13 +1347,8 @@ test('QA Agent Skill Routing includes defect-analysis in role-definitions and th
   assert.match(adapter, /`defect-analysis`/);
 });
 
-test('docs/vault/00-Index.md links defect-analysis and TEST_REPORT.md points to DEFECT_REPORT.md (Issue #152)', async () => {
-  const [vaultIndex, testReportTemplate] = await Promise.all([
-    readFile('docs/vault/00-Index.md', 'utf8'),
-    readFile('docs/templates/TEST_REPORT.md', 'utf8')
-  ]);
-
-  assert.match(vaultIndex, /^- defect-analysis —/m);
+test('TEST_REPORT preserves its core DEFECT_REPORT template pointer', async () => {
+  const testReportTemplate = await readFile('docs/templates/TEST_REPORT.md', 'utf8');
   assert.match(testReportTemplate, /DEFECT_REPORT\.md/);
 });
 

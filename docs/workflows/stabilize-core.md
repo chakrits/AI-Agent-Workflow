@@ -15,6 +15,8 @@ Use when the request involves:
 - Clarifying role boundaries or routing behavior
 - Improving cross-platform agent structure
 
+Library-only skill/catalog/vault-skill-link or `.agents/workflows/*.md` edits are optional instruction contributions, not core-policy changes by themselves. No listing, mirror or audit-pass prerequisite applies. If a contribution changes core rules, routing, executable code or security controls, classify and review that core impact normally; generic Issue/PR readiness still applies.
+
 ## Recommended Flow
 
 ```text
@@ -36,7 +38,7 @@ Orchestrator → Documentation Agent → Security Reviewer → Human Approval
 ## Required Artifacts
 
 - `docs/operating-model/AGENT_OPERATING_MODEL.md` ([[../operating-model/AGENT_OPERATING_MODEL.md|AGENT_OPERATING_MODEL.md]])
-- `docs/operating-model/SKILL_CATALOG.md` ([[../operating-model/SKILL_CATALOG.md|SKILL_CATALOG.md]])
+- Optional discovery: `docs/operating-model/SKILL_CATALOG.md` ([[../operating-model/SKILL_CATALOG.md|SKILL_CATALOG.md]]) when relevant; not required to exist or be complete
 - `docs/operating-model/AGENT_EVALUATION_CHECKLIST.md` ([[../operating-model/AGENT_EVALUATION_CHECKLIST.md|AGENT_EVALUATION_CHECKLIST.md]])
 - `AGENTS.md` ([[../../AGENTS.md|AGENTS.md]]) update or amendment
 - `TASK_LOG.md` ([[../../TASK_LOG.md|TASK_LOG.md]]) update if applied in a project repo

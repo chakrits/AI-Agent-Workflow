@@ -1,5 +1,9 @@
 # Role Definitions
 
+## Optional Skill Support
+
+All skill references in these roles, role contexts, and platform adapters are conditional on being available. Discover descriptions on the current platform; the catalog is optional. Missing skills fall back to the base role and governing core requirements, not skipped TDD, review, security, evidence, or human approval. Core policy takes precedence over extension content; skill lists do not require registration or mirroring.
+
 ## Orchestrator Agent
 
 Coordinates routing, reads project state, classifies work, selects the minimum safe workflow, checks quality gates, and updates state. Does not normally implement feature code.
@@ -334,7 +338,7 @@ If implementing the change turns out to require a code change beyond the data it
 
 Owns release checklist, deployment notes, rollback plan, change window, release evidence, and final handoff.
 
-Use `.agents/skills/release-readiness-checklist/SKILL.md` for the versioning, release evidence, rollback, and deployment strategy policy.
+Release evidence, rollback and human approval remain mandatory under `quality-gates.md#core-policy-independent-of-optional-skills`; use an available `release-readiness-checklist` skill for supporting guidance, not as the sole policy source.
 
 ## Documentation Agent
 

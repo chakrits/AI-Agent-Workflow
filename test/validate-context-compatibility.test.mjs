@@ -78,8 +78,8 @@ test('context-pack/v1 accepts exact boot and cumulative on-demand rows', async (
   assert.deepEqual(await validateContextPack(rootDir, packFor('QA Agent', 'on-demand'), matrix), { valid: true, errors: [] });
 });
 
-test('context-source-matrix/v2 makes the core bootloader the sole policy entry after AGENTS.md', () => {
-  assert.equal(matrix.schemaVersion, 'context-source-matrix/v2');
+test('context-source-matrix/v3 keeps boot sources and core-only on-demand rows', () => {
+  assert.equal(matrix.schemaVersion, 'context-source-matrix/v3');
   const expectedBootSources = ['AGENTS.md', 'docs/workflow/core-bootloader.md'];
   for (const row of matrix.rows.filter((candidate) => candidate.loadMode === 'boot')) {
     assert.deepEqual(
@@ -87,6 +87,14 @@ test('context-source-matrix/v2 makes the core bootloader the sole policy entry a
       expectedBootSources,
       `${row.role} must use the task-triggered Tier 1 source set`
     );
+  }
+  for (const row of matrix.rows.filter((candidate) => candidate.loadMode === 'on-demand')) {
+    assert.equal(row.requiredSources.length, 7);
+    assert.deepEqual(row.requiredSources.slice(0, 6).map((source) => source.path), [
+      ...expectedBootSources, 'docs/workflow/role-definitions.md', 'docs/workflow/quality-gates.md',
+      'docs/workflow/handoff-contract.md', 'docs/operating-model/AGENT_EVALUATION_CHECKLIST.md',
+    ]);
+    assert.deepEqual(row.allowedSkillIds, []);
   }
 });
 
@@ -98,7 +106,7 @@ test('source matrix rejects duplicate rows and stale source hashes', async () =>
   assert.equal((await validateSourceMatrix(rootDir, stale)).valid, false);
 });
 
-test('source matrix rejects arbitrary paths, skill/path swaps, and row-set drift', async () => {
+test('source matrix rejects arbitrary paths, reserved skill IDs, and core row-set drift', async () => {
   const arbitraryPath = structuredClone(matrix);
   const orchestrator = arbitraryPath.rows.find((row) => row.role === 'Orchestrator Agent' && row.loadMode === 'on-demand');
   orchestrator.requiredSources.push({ path: 'CHANGELOG.md', sha256: '0'.repeat(64) });
@@ -111,11 +119,11 @@ test('source matrix rejects arbitrary paths, skill/path swaps, and row-set drift
   developer.allowedSkillIds = ['static-logic-review'];
   const skillSwapResult = await validateSourceMatrix(rootDir, skillSwap);
   assert.equal(skillSwapResult.valid, false);
-  assert.match(skillSwapResult.errors.join('\n'), /skill set mismatch|skill\/path mismatch/);
+  assert.match(skillSwapResult.errors.join('\n'), /reserved allowedSkillIds must be empty/);
 
   const rowDrift = structuredClone(matrix);
   const qa = rowDrift.rows.find((row) => row.role === 'QA Agent' && row.loadMode === 'on-demand');
-  qa.requiredSources = qa.requiredSources.filter(({ path: sourcePath }) => !sourcePath.endsWith('/SKILL.md'));
+  qa.requiredSources = qa.requiredSources.filter(({ path: sourcePath }) => sourcePath !== 'docs/workflow/quality-gates.md');
   const rowDriftResult = await validateSourceMatrix(rootDir, rowDrift);
   assert.equal(rowDriftResult.valid, false);
   assert.match(rowDriftResult.errors.join('\n'), /exact source set mismatch/);

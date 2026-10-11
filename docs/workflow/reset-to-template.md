@@ -40,17 +40,17 @@ After a successful reset, inspect the complete diff and run:
 npm test
 npm run validate:contracts
 npm run validate:project-state
-npm run validate:skill-parity
 npm run adr:audit
 npm run validate:risk-register
 npm run validate:review-gate
-npm run validate:skill-usage
 npm run validate:metrics
 npm run validate:context-budget
 git diff --check
 ```
 
 Commit the clean baseline only after all checks pass. Recovery of committed files remains possible from the old history, but untracked content deleted by an earlier or different tool may not be recoverable.
+
+Optional library diagnostics are separate from reset verification: `npm run audit:skills` and `npm run audit:skill-usage`. Run them explicitly when useful; their results do not gate the reset baseline.
 
 ## Optional new-root history
 

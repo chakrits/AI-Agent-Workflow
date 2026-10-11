@@ -99,14 +99,15 @@ appear in no file. Models fill unstated scope unpredictably; do not economise he
 
 ### Rule 5 — Repo gates belong to the packet
 
-CI requirements the authoritative source does not know about — `scripts/validate-skill-usage.mjs`'s
-literal `Skill Used:` string, `validate-review-gate.mjs`'s review record, `validate:skill-parity`
-on mirrored trees — must be stated explicitly.
+Current core CI requirements the authoritative source does not know about — for example,
+`validate-review-gate.mjs`'s review record and core role-adapter parity — must be stated explicitly.
+Skill/catalog/usage audits are opt-in diagnostics, not repository gates. Historical examples below
+describe their original policy at adoption; they are not current audit invocation instructions.
 
 ### The per-line test
 
 For each line, ask: *is this in a file the child will read?* If yes, delete it and leave a
-pointer. If no, keep it — even when it is long. A line such as *"`validate:skill-parity`
+pointer. If no, keep it — even when it is long. A line such as *"`audit:skills`
 proves the three copies match each other, not that the content is correct"* is verbose and
 must stay, because no document states it.
 

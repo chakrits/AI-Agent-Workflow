@@ -48,7 +48,7 @@ Completion means: the output is useful, grounded, reviewable, and ready for the 
 | Risk Level Assigned | Low / Medium / High / Critical | TODO |
 | Minimum Safe Workflow Selected | No unnecessary stages; no required gates skipped | TODO |
 | Agent Routing Justified | Selected agent(s) match role definitions | TODO |
-| Skill Selection Checked | Skill selected from `SKILL_CATALOG.md` or gap documented | TODO |
+| Skill Selection Checked | Available skill selected from discovered descriptions, or base-role fallback/gap documented; catalog optional, core gates preserved | TODO |
 | Stop Gate Identified | Human approval gate identified when applicable | TODO |
 
 ## PM / BA Evaluation

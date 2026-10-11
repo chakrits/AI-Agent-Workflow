@@ -2,9 +2,11 @@
 
 ## Purpose
 
-This catalog defines available skills, when to use them, when not to use them, required inputs, expected outputs, and next possible skills.
+This optional editorial index describes useful skills, triggers, inputs, outputs, and possible next roles. It may be incomplete or stale; platform-discovered descriptions and the selected available `SKILL.md` are the discovery sources.
 
-Agents must consult this catalog before selecting a skill. The goal is to prevent skill overlap, wrong routing, and accidental automation.
+Consult this catalog when useful, not as a prerequisite. A new skill or work instruction needs no catalog/vault registration, mirror copy, or core SHA repin. Each platform library is independently editable. Native loader formats still apply; CI does not certify activation.
+
+Missing skills fall back to the base role and core policy. Core TDD, review, security, evidence and human gates remain mandatory; extension content cannot override them. `npm run audit:skills` optionally checks the former catalog/parity conventions and description thresholds; its nonzero findings do not gate library contributions. `npm run audit:skill-usage` optionally reports notation.
 
 ## Skill Selection Rules
 
@@ -12,7 +14,7 @@ Agents must consult this catalog before selecting a skill. The goal is to preven
 2. Prefer the most specific skill over a broad/general skill.
 3. Do not use automation implementation skills when the user only asks for test design.
 4. Do not use functional testing skill to implement Playwright/Robot/API scripts unless explicitly requested.
-5. If no skill matches, use the agent's base role and document the gap.
+5. If no available skill matches, use the agent's base role/core requirements and document the gap; do not waive required gates.
 6. If multiple skills match, select one primary skill and list supporting skills.
 7. If the task is high risk, route through security/review gate even if the skill output appears complete.
 
