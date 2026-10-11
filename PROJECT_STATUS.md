@@ -1,7 +1,7 @@
 # PROJECT_STATUS.md
 
 ## Current Work Item
-- Issue #294 — skill-library CI decoupling — IMP-004 implemented on `codex/skill-library-decoupling-design`; optional audits removed from CI/hooks/reset, core/readiness retained. Scoped review's stale-command finding corrected with regression; next planned IMP-005 policy/discovery. Global acceptance pending. Local housekeeping reports six old prunable worktrees; no cleanup performed. Issue #283 remains completed via PR #289 (`8cc2705`); #284 remains separate. SEC-004 remains `DEFERRED_BY_HUMAN` under ADR-0033.
+- Issue #294 — skill-library CI decoupling — IMP-005 policy/discovery aligned on `codex/skill-library-decoupling-design`; scoped independent review PASS, next planned IMP-006 acceptance. Optional audits/discovery independent; core/readiness retained. Global acceptance pending. Local housekeeping reports six old prunable worktrees; no cleanup performed. Issue #283 remains completed via PR #289 (`8cc2705`); #284 remains separate. SEC-004 remains `DEFERRED_BY_HUMAN` under ADR-0033.
 
 ## Active Work Items
 <!-- active-work-items-table-start -->
@@ -16,7 +16,7 @@
 - Issue #280 — GPT-6 Astra instruction, skill, and autonomy modernization — #281 is complete through PR #285; #282 is complete through PR #287; #283 is complete through PR #289; #284 remains planned independently. Parent SDD and ADR-0034 are Human-approved. Issue #290 is a separate CI defect repair and does not change the modernization scope.
 
 ## Current Stage
-- Issue #294 development: IMP-004 caller migration implemented at `6d95f72`; scoped gpt-6-luna review78/78 found one Minor command-guidance issue, corrected at `5d7bc22` with RED/GREEN and full776/776. Audits opt-in; core/readiness retained. CI-derived13 commands pass, housekeeping exits1 for six unrelated old worktrees; additional context compatibility passes. No all-checks-green/final QA claim. Next planned IMP-005; final QA/Security/hosted evidence remains IMP-006. Issue #284 is separate; SEC-004 remains deferred.
+- Issue #294 development: IMP-005 optional discovery/base-role fallback and core pins aligned at `6d3af2d`; independent gpt-6-luna review91/91 PASS, full777/777. Core budget24877/30000, boot1767/2500. CI-derived13 commands pass; housekeeping exits1 for six unrelated old worktrees. CP-2 not all-checks-green; no final QA/merge claim. Next planned IMP-006 independent harness/QA/Security/hosted readiness/Human integration. Issue #284 is separate; SEC-004 remains deferred.
 
 ## Change Classification
 - Issue #294 is a Medium-risk framework/meta change; implementation changes tests/discovery/core policy and its current SHA pins. Final implementation requires independent QA and targeted Security Reviewer review of retained validation boundaries. Generic Issue/PR readiness remains outside scope.
