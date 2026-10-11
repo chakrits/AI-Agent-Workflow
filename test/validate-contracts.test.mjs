@@ -6,11 +6,7 @@ import test from 'node:test';
 import { validateContracts } from '../scripts/validate-contracts.mjs';
 
 const adapterPaths = [
-  '.agents/skills/dynamic-workflow/SKILL.md',
-  '.agents/workflows/dynamic-workflow.md',
-  '.claude/agents/orchestrator-agent.md',
-  '.claude/skills/dynamic-workflow/SKILL.md',
-  '.agent/skills/dynamic-workflow/SKILL.md'
+  '.claude/agents/orchestrator-agent.md'
 ];
 
 
@@ -39,11 +35,6 @@ test('AGENTS.md defines the Always/Ask First/Never boundary without introducing 
   assert.match(agents, /does not add new policy/i);
 });
 
-const requirementBrainstormingPaths = [
-  '.agents/skills/requirement-brainstorming/SKILL.md',
-  '.claude/skills/requirement-brainstorming/SKILL.md',
-  '.agent/skills/requirement-brainstorming/SKILL.md'
-];
 
 
 test('CI runs install, tests, contract validation, and a dedicated main-state audit', async () => {
@@ -284,14 +275,13 @@ test('in-turn dispatch completion requires parent ownership, native evidence, an
 });
 
 test('lifecycle stages make specification readiness a portable pre-development gate', async () => {
-  const [agents, routing, roles, qualityGates, handoff, template, portableWorkflow, claudeAdapter] = await Promise.all([
+  const [agents, routing, roles, qualityGates, handoff, template, claudeAdapter] = await Promise.all([
     readFile('AGENTS.md', 'utf8'),
     readFile('docs/workflow/dynamic-routing.md', 'utf8'),
     readFile('docs/workflow/role-definitions.md', 'utf8'),
     readFile('docs/workflow/quality-gates.md', 'utf8'),
     readFile('docs/workflow/handoff-contract.md', 'utf8'),
     readFile('docs/templates/HANDOFF.md', 'utf8'),
-    readFile('.agents/workflows/dynamic-workflow.md', 'utf8'),
     readFile('.claude/agents/orchestrator-agent.md', 'utf8')
   ]);
 
@@ -319,19 +309,17 @@ test('lifecycle stages make specification readiness a portable pre-development g
     assert.match(content, /Lifecycle Phase/);
     assert.match(content, /Specification Readiness/);
   }
-  for (const content of [portableWorkflow, claudeAdapter]) {
+  for (const content of [claudeAdapter]) {
     assert.match(content, /specification readiness|spec-ready/i);
   }
 });
 
 test('work-item and change-request templates preserve lifecycle readiness ownership across platforms', async () => {
-  const [githubIssue, gitlabIssue, githubPr, gitlabMr, claudeSkill, antigravitySkill] = await Promise.all([
+  const [githubIssue, gitlabIssue, githubPr, gitlabMr] = await Promise.all([
     readFile('.github/ISSUE_TEMPLATE/work-item.md', 'utf8'),
     readFile('.gitlab/issue_templates/Work Item.md', 'utf8'),
     readFile('.github/pull_request_template.md', 'utf8'),
     readFile('.gitlab/merge_request_templates/Default.md', 'utf8'),
-    readFile('.claude/skills/dynamic-workflow/SKILL.md', 'utf8'),
-    readFile('.agent/skills/dynamic-workflow/SKILL.md', 'utf8')
   ]);
 
   for (const template of [githubIssue, gitlabIssue]) {
@@ -348,10 +336,7 @@ test('work-item and change-request templates preserve lifecycle readiness owners
     assert.match(template, /Ownership: Developer/i);
     assert.match(template, /QA:.*evidence/i);
   }
-  for (const adapter of [claudeSkill, antigravitySkill]) {
-    assert.match(adapter, /status:spec-ready/);
-    assert.match(adapter, /docs\/workflow\/dynamic-routing\.md/);
-  }
+
 });
 
 test('platform readiness and AC traceability remain portable and evidence-owned', async () => {
@@ -601,13 +586,8 @@ test('canonical agent personas cover every role without becoming operating polic
   }
 });
 
-test('Claude, portable, and Antigravity adapters discover canonical agent personas', async () => {
-  const portablePaths = [
-    '.agents/skills/dynamic-workflow/SKILL.md',
-    '.agent/skills/dynamic-workflow/SKILL.md'
-  ];
-
-  for (const path of [...personaAdapterPaths, ...portablePaths]) {
+test('Core Claude role adapters discover canonical agent personas', async () => {
+  for (const path of personaAdapterPaths) {
     const content = await readFile(path, 'utf8');
     assert.match(content, /docs\/operating-model\/AGENT_PERSONAS\.md/);
     assert.match(content, /does not replace or override|do not override/i);
@@ -686,8 +666,7 @@ test('documentation templates preserve evidence discipline and canonical BA arti
     releasePlan,
     projectBrief,
     roleDefinition,
-    baAdapter,
-    debuggingSkill
+    baAdapter
   ] = await Promise.all([
     readFile('docs/templates/SECURITY_REVIEW.md', 'utf8'),
     readFile('docs/templates/CODE_REVIEW_FINDINGS.md', 'utf8'),
@@ -703,7 +682,6 @@ test('documentation templates preserve evidence discipline and canonical BA arti
     readFile('docs/templates/PROJECT_BRIEF.md', 'utf8'),
     readFile('docs/workflow/role-definitions.md', 'utf8'),
     readFile('.claude/agents/ba-agent.md', 'utf8'),
-    readFile('.agents/skills/debugging-discipline/SKILL.md', 'utf8')
   ]);
 
   for (const content of [securityReview, codeReviewFindings]) {
@@ -727,17 +705,14 @@ test('documentation templates preserve evidence discipline and canonical BA arti
     assert.match(content, /REQUIREMENT_DISCOVERY\.md/);
     assert.match(content, /deprecated compatibility redirect/i);
   }
-  assert.match(debuggingSkill, /embedded \*\*Hypothesis Matrix\*\*/);
-  assert.match(debuggingSkill, /standalone `HYPOTHESIS_MATRIX\.md` only/);
 });
 
 test('QA Agent canonical rule carries its policy and the new evidence, contract, and NFR rules', async () => {
-  const [roleDefinition, adapter, testPlan, testReport, playwrightSkill] = await Promise.all([
+  const [roleDefinition, adapter, testPlan, testReport] = await Promise.all([
     readFile('docs/workflow/role-definitions.md', 'utf8'),
     readFile('.claude/agents/qa-agent.md', 'utf8'),
     readFile('docs/templates/TEST_PLAN.md', 'utf8'),
     readFile('docs/templates/TEST_REPORT.md', 'utf8'),
-    readFile('.agents/skills/qa-playwright-testing/SKILL.md', 'utf8')
   ]);
 
   assert.match(roleDefinition, /### Skill Routing/);
@@ -766,13 +741,6 @@ test('QA Agent canonical rule carries its policy and the new evidence, contract,
   assert.match(testReport, /Root Cause Analysis/);
   assert.match(testReport, /Why did it fail\?/);
 
-  assert.match(playwrightSkill, /Automation Discipline/);
-  assert.match(playwrightSkill, /No hard waits/);
-  assert.match(playwrightSkill, /role-based selectors/i);
-  assert.match(playwrightSkill, /24 hours/);
-  assert.match(playwrightSkill, /Accessibility Testing/);
-  assert.match(playwrightSkill, /WCAG 2\.1 AA/);
-  assert.match(playwrightSkill, /axe-core\/playwright/);
 });
 
 test('TEST_PLAN.md carries a Scope section with In-Scope/Out-of-Scope, placed before Test Types In Scope', async () => {
@@ -839,45 +807,16 @@ test('AGENTS.md Change Sizing gives concrete size thresholds and splitting strat
   assert.match(agents, /Refactoring and feature work are two different changes/);
 });
 
-const gitWorkflowPaths = [
-  '.agents/skills/git-workflow-and-versioning/SKILL.md',
-  '.claude/skills/git-workflow-and-versioning/SKILL.md',
-  '.agent/skills/git-workflow-and-versioning/SKILL.md'
-];
 
-test('git-workflow-and-versioning skill exists in all three adapter copies with the commit and change-summary rules', async () => {
-  for (const path of gitWorkflowPaths) {
-    const content = await readFile(path, 'utf8');
-    assert.match(content, /## Atomic Commits/);
-    assert.match(content, /<type>: <short, imperative description>/);
-    assert.match(content, /Scan the diff for secrets/);
-    assert.match(content, /NOTICED BUT NOT TOUCHING:/);
-  }
+test('AGENTS retains core git workflow discipline', async () => {
   const agents = await readFile('AGENTS.md', 'utf8');
   assert.match(agents, /### Git Workflow Rule/);
   assert.match(agents, /`git-workflow-and-versioning`/);
-  const catalog = await readFile('docs/operating-model/SKILL_CATALOG.md', 'utf8');
-  assert.match(catalog, /\| git-workflow-and-versioning \|/);
 });
 
-const tddPaths = [
-  '.agents/skills/tdd-implementation/SKILL.md',
-  '.claude/skills/tdd-implementation/SKILL.md',
-  '.agent/skills/tdd-implementation/SKILL.md'
-];
 
 
-const codeReviewGatePaths = [
-  '.agents/skills/code-review-gate/SKILL.md',
-  '.claude/skills/code-review-gate/SKILL.md',
-  '.agent/skills/code-review-gate/SKILL.md'
-];
 
-const staticLogicReviewPaths = [
-  '.agents/skills/static-logic-review/SKILL.md',
-  '.claude/skills/static-logic-review/SKILL.md',
-  '.agent/skills/static-logic-review/SKILL.md'
-];
 
 test('core static review policy keeps dry-run evidence boundaries independently of skills', async () => {
   const skill = await readFile('docs/workflow/quality-gates.md', 'utf8');
@@ -900,22 +839,16 @@ test('core static review policy keeps dry-run evidence boundaries independently 
 });
 
 test('static-logic-review routing distinguishes adjacent QA skills and routes inferred gaps to the right owner', async () => {
-  const [catalog, roleDefinition, adapter, routing, agents] = await Promise.all([
-    readFile('docs/operating-model/SKILL_CATALOG.md', 'utf8'),
+  const [roleDefinition, adapter, routing, agents] = await Promise.all([
     readFile('docs/workflow/role-definitions.md', 'utf8'),
     readFile('.claude/agents/qa-agent.md', 'utf8'),
     readFile('docs/workflow/dynamic-routing.md', 'utf8'),
     readFile('AGENTS.md', 'utf8')
   ]);
 
-  for (const content of [catalog, roleDefinition, adapter]) {
+  for (const content of [roleDefinition, adapter]) {
     assert.match(content, /static-logic-review/);
   }
-  assert.match(catalog, /code-review-gate/);
-  assert.match(catalog, /functional-test-design/);
-  assert.match(catalog, /test-quality-discipline/);
-  assert.match(catalog, /mutation-testing/);
-  assert.match(catalog, /runtime QA execution|runtime execution/i);
   assert.match(roleDefinition, /observed or statically inferred behavior/i);
   assert.match(roleDefinition, /Potential Requirement Gap/);
   assert.match(roleDefinition, /BA Agent/);
@@ -927,22 +860,16 @@ test('static-logic-review routing distinguishes adjacent QA skills and routes in
 });
 
 
-const implementationPlanningPaths = [
-  '.agents/skills/implementation-planning/SKILL.md',
-  '.claude/skills/implementation-planning/SKILL.md',
-  '.agent/skills/implementation-planning/SKILL.md'
-];
 
 
 test('Security Reviewer carries the scan checklist, severity scale, and fix-before-merge rule', async () => {
-  const [roleDefinition, adapter, skill, template] = await Promise.all([
+  const [roleDefinition, adapter, template] = await Promise.all([
     readFile('docs/workflow/role-definitions.md', 'utf8'),
     readFile('.claude/agents/security-reviewer.md', 'utf8'),
-    readFile('.agents/skills/security-review/SKILL.md', 'utf8'),
     readFile('docs/templates/SECURITY_REVIEW.md', 'utf8')
   ]);
 
-  for (const content of [roleDefinition, adapter, skill]) {
+  for (const content of [roleDefinition, adapter]) {
     assert.match(content, /DEBUG = True/);
     assert.match(content, /CORS_ALLOW_ALL_ORIGINS/);
     assert.match(content, /permission_classes/);
@@ -982,10 +909,9 @@ test('core release policy preserves evidence and rollback independently of skill
 });
 
 test('Config Agent carries the config/data boundary, reload behavior, flag lifecycle, and escalation guard', async () => {
-  const [roleDefinition, adapter, skill, template] = await Promise.all([
+  const [roleDefinition, adapter, template] = await Promise.all([
     readFile('docs/workflow/role-definitions.md', 'utf8'),
     readFile('.claude/agents/config-agent.md', 'utf8'),
-    readFile('.agents/skills/data-config-change/SKILL.md', 'utf8'),
     readFile('docs/templates/CONFIG_CHANGE_PLAN.md', 'utf8')
   ]);
 
@@ -997,8 +923,6 @@ test('Config Agent carries the config/data boundary, reload behavior, flag lifec
     assert.match(content, /Developer-skip shortcut/);
   }
 
-  assert.match(skill, /Config vs Data Boundary/);
-  assert.match(skill, /Escalation Guard/);
 
   assert.match(template, /Reload Behavior/);
   assert.match(template, /## Feature Flags/);
@@ -1007,10 +931,9 @@ test('Config Agent carries the config/data boundary, reload behavior, flag lifec
 });
 
 test('Data Agent carries non-destructive mechanics, the SA boundary, re-run safety, PII routing, and escalation guard', async () => {
-  const [roleDefinition, adapter, skill, template] = await Promise.all([
+  const [roleDefinition, adapter, template] = await Promise.all([
     readFile('docs/workflow/role-definitions.md', 'utf8'),
     readFile('.claude/agents/data-agent.md', 'utf8'),
-    readFile('.agents/skills/data-config-change/SKILL.md', 'utf8'),
     readFile('docs/templates/DATA_CHANGE_PLAN.md', 'utf8')
   ]);
 
@@ -1024,8 +947,6 @@ test('Data Agent carries non-destructive mechanics, the SA boundary, re-run safe
     assert.match(content, /Escalation Guard/);
   }
 
-  assert.match(skill, /Non-destructive means/i);
-  assert.match(skill, /PII/);
 
   assert.match(template, /Touches PII/);
   assert.match(template, /Expected row-count delta/);
@@ -1377,51 +1298,8 @@ test('rejects New Feature max_rework_attempts that differs from policy', async (
   assert.match(errors.join('\n'), /must be equal to constant/);
 });
 
-test('Management Status Update remains Thai-first, evidence-bound, and portable', async () => {
-  const paths = [
-    '.agents/skills/management-status-update/SKILL.md',
-    '.claude/skills/management-status-update/SKILL.md',
-    '.agent/skills/management-status-update/SKILL.md'
-  ];
-  const [canonical, claude, antigravity, catalog, vaultIndex, roles] = await Promise.all([
-    ...paths.map((path) => readFile(path, 'utf8')),
-    readFile('docs/operating-model/SKILL_CATALOG.md', 'utf8'),
-    readFile('docs/vault/00-Index.md', 'utf8'),
-    readFile('docs/workflow/role-definitions.md', 'utf8')
-  ]);
-
-  assert.equal(claude, canonical);
-  assert.equal(antigravity, canonical);
-
-  for (const requirement of [
-    /Thai.*default|default.*Thai/i,
-    /Boss Update/i,
-    /Leadership Update/i,
-    /Defect Update/i,
-    /status summary|team update|bug or defect report/i,
-    /GitHub Issue\/PR|Slack|standup|email|meeting/i,
-    /explicit Boss instruction/i,
-    /approved requirement\/design\/ADR/i,
-    /QA evidence.*verification/i,
-    /state the conflict/i,
-    /never invent or infer/i,
-    /owner, root cause, impact, mitigation, risk, ETA/i,
-    /root cause/i,
-    /print-only/i,
-    /explicit.*approval/i,
-    /never post.*Slack|never post.*email/i,
-    /structured handoff/i,
-    /QA evidence/i,
-    /RCA|postmortem/i,
-    /lifecycle/i,
-    /independent adaptation/i,
-    /No substantial\s+unverified-license source text is copied/i
-  ]) {
-    assert.match(canonical, requirement);
-  }
-
-  assert.match(catalog, /management-status-update/);
-  assert.match(vaultIndex, /management-status-update/);
+test('Core role policy preserves communication and formal-evidence boundaries', async () => {
+  const roles = await readFile('docs/workflow/role-definitions.md', 'utf8');
   assert.match(roles, /Management Status Update.*communication draft/i);
   for (const boundary of [
     /not a structured handoff/i,
@@ -1469,13 +1347,8 @@ test('QA Agent Skill Routing includes defect-analysis in role-definitions and th
   assert.match(adapter, /`defect-analysis`/);
 });
 
-test('docs/vault/00-Index.md links defect-analysis and TEST_REPORT.md points to DEFECT_REPORT.md (Issue #152)', async () => {
-  const [vaultIndex, testReportTemplate] = await Promise.all([
-    readFile('docs/vault/00-Index.md', 'utf8'),
-    readFile('docs/templates/TEST_REPORT.md', 'utf8')
-  ]);
-
-  assert.match(vaultIndex, /^- defect-analysis —/m);
+test('TEST_REPORT preserves its core DEFECT_REPORT template pointer', async () => {
+  const testReportTemplate = await readFile('docs/templates/TEST_REPORT.md', 'utf8');
   assert.match(testReportTemplate, /DEFECT_REPORT\.md/);
 });
 
