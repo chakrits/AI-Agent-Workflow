@@ -1,7 +1,7 @@
 # PROJECT_STATUS.md
 
 ## Current Work Item
-- Issue #294 — IMP-006 independent premerge local QA/Code/Security PASS at `321055c` on `codex/skill-library-decoupling-design`. Contributor27/27, candidate783/783, negatives193/193; rollback808/808. Hosted PR/readiness pending; Human merge and default-branch closeout remain required. Isolated mandatory housekeeping passes; unrelated old worktrees untouched. #284 remains separate; SEC-004 remains `DEFERRED_BY_HUMAN` under ADR-0033.
+- Idle — Issue #294 implementation merged via PR #295; default-branch tests/audit passed. Documentation closeout pending integration. #284 remains separate; SEC-004 remains `DEFERRED_BY_HUMAN` under ADR-0033.
 
 ## Active Work Items
 <!-- active-work-items-table-start -->
@@ -12,16 +12,17 @@
 <!-- active-work-items-table-end -->
 
 ## Planned Framework Work
-- Issue #294 — independent instruction-library contribution without catalog/mirror/hash dependencies. All artifacts/design and Open Question answers approved 2026-10-11; ADR-0036 Accepted. No implementation acceptance claimed. Work item: `docs/records/work-items/2026-10-11-issue-294-skill-library-decoupling.md`.
+- Issue #294 — implementation complete via PR #295; final documentation closeout pending. Work item and historical handoff retain premerge snapshots; current merge/default-branch evidence is in the post-merge closeout record and Issue matrix.
 - Issue #280 — GPT-6 Astra instruction, skill, and autonomy modernization — #281 is complete through PR #285; #282 is complete through PR #287; #283 is complete through PR #289; #284 remains planned independently. Parent SDD and ADR-0034 are Human-approved. Issue #290 is a separate CI defect repair and does not change the modernization scope.
 
 ## Current Stage
-- Issue #294 human-review preparation: independent27-case harness executes488 commands with no companion drift; Code/Security PASS, QA PASS_PREMERGE_LOCAL. [PR #295](https://github.com/chakrits/AI-Agent-Workflow/pull/295) created; contracts/runtime/documentation hosted checks passed at `c549a4b`. Final record-only head/readiness evidence is resolved externally in Issue/PR before ready handoff. Core budget24877/30000, boot1767/2500. Next owner Human Maintainer; AC11 postmerge/default-branch and closeout pending, no merge/release/native claim.
+- Idle / documentation closeout — PR #295 merged as `24cb8f5744c18be114cdd692dfbb62b237ded0fa`. Exact-main contracts783/783 and project-state audit passed; AC11 default-branch evidence available. Closeout PR requires Human review/merge before Issue #294 closure and automatic source-label removal. No native activation claim; #284 unaffected.
 
 ## Change Classification
 - Issue #294 is a Medium-risk framework/meta change; implementation changes tests/discovery/core policy and its current SHA pins. Final implementation requires independent QA and targeted Security Reviewer review of retained validation boundaries. Generic Issue/PR readiness remains outside scope.
 
 ## Completed
+- Issue #294 — **implementation merged via PR #295** (`24cb8f5744c18be114cdd692dfbb62b237ded0fa`): optional skill/work-instruction libraries decoupled from mandatory CI, core source pins and budgets; manual audits retained, core/security/readiness enforced. Independent contributor27/27,488 commands, negatives193/193 and rollback808/808. Exact-main CI783/783 passed: https://github.com/chakrits/AI-Agent-Workflow/actions/runs/38134960733; state audit passed: https://github.com/chakrits/AI-Agent-Workflow/actions/runs/38134960726. Documentation closeout/Issue closure pending closeout merge; native activation unavailable, #284 remains independent.
 - Issue #283 — **merged via PR #289** (merge commit `8cc2705b1a4bc53a50a8b4ce82f775c4fbd44307`). Rationalized the 39 skill descriptions and catalog domains, added derived inventory validation, enforced it in GitHub Actions and GitLab CI, and preserved mirror parity. Independent QA passed AC-01–AC-06; hosted default-branch audit passed. QA evidence: https://github.com/chakrits/AI-Agent-Workflow/issues/283#issuecomment-5912691239. Post-merge documentation closeout is tracked separately.
 - Issue #282 — **merged via PR #287** (merge commit `cd0a3267c03f24b86fa637cbf10da04b46720d75`). Added the safe-assumption boundary, four-field completion contract, proportional verification guidance, lifecycle-only state updates, and positive/negative policy contract coverage. Independent code review and QA passed AC-01–AC-05; full CI passed. QA evidence: https://github.com/chakrits/AI-Agent-Workflow/issues/282#issuecomment-5858035937. Post-merge documentation closeout is tracked separately.
 - Issue #281 — **merged via PR #285** (merge commit `a0d71ef`). Core Bootloader is the authoritative SHA-pinned Tier 1 source after `AGENTS.md`; the source matrix enforces the exact two-source boot contract, the Tier 1 budget is enforced at 2,500 approximate tokens (current 1,590), and bootloader edits require both repinning and budget validation. Independent re-review and QA acceptance passed; evidence: https://github.com/chakrits/AI-Agent-Workflow/issues/281#issuecomment-5758803434.
