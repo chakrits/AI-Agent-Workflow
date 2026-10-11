@@ -7,6 +7,18 @@ Restored on 2026-09-05 under Issue #208. The blank-template resets of 2026-08-12
 that currently-open issues cite; ADR-0002 through ADR-0016 and ADR-0018 remain recoverable via
 `git show afe8091:DECISIONS.md` and were left out by Human Maintainer decision.
 
+### ADR-0037: Defer parallel write-set contract (AC-003), drop evidence-backed completion (AC-005), and keep the Bootloader ceiling for Issue #297
+
+- Date: 2026-10-11
+- Work Item: [Issue #297](https://github.com/chakrits/AI-Agent-Workflow/issues/297)
+- Status: Proposed — awaiting Human acceptance
+- Context: Issue #297 (revision 2) lists six execution rules; a survey at `2dca980` found most already stated in `AGENTS.md`, the Bootloader and `docs/workflow/`, so remaining work is enforcement and two defects. Two acceptance criteria do not justify implementation now. AC-003 (parallel write-set contract) has no parallel plan to serve: recent plans (#283, #294) are sequential, `docs/workflow/task-execution-mode.md` already requires recording the write set and stopping on overlap, and no consumer of a machine-readable field exists. AC-005 (evidence-backed completion) restates the Verification Rule in `AGENTS.md`, Golden Rule 3 in `docs/workflow/core-bootloader.md`, and ADR-0035's completion contract, and cannot be tested independently of them. Separately, AC-007 adds roughly 160 tokens to a Bootloader measured at 1,767 of 2,500.
+- Decision: (1) Defer AC-003. Reopen when a real parallel plan exists, or a second overlapping write-set incident occurs, or a reviewer cannot determine overlap from Task Briefs. On reopening: extend `task-execution-mode.md` rather than create a new document, add write set as a machine-readable field under a new Packet version following the contract's changelog rule, check pairwise-disjoint sets, separate Voting by worktree or branch rather than by path, and record a new ADR. (2) Drop AC-005; no new rule, test or validator is created, and the existing Verification Rule, Golden Rule 3 and ADR-0035 remain the authority. (3) Do not raise `BOOTLOADER_TARGET` (2,500); the AC-007 additions are pointers sized to land near 1,930 and are capped at 2,300 measured.
+- Alternatives: Implement AC-003 now — rejected: speculative, adds a Packet version and a pairwise checker with no consumer, and risks a second write-set source beside `task-execution-mode.md`. Keep AC-005 as a new rule or check — rejected: duplicates three existing sources and creates a fourth place that can drift. Drop AC-003 permanently — rejected: the parallel and Voting use cases are plausible, so a stated reopen trigger is cheaper than rediscovery. Raise the Bootloader ceiling — rejected: the additions fit with ~570 tokens spare, and the ceiling is the Issue #280 Tier 1 contract.
+- Consequences: Issue #297 ships AC-001, 002, 004, 006, 007, 008, 009 only. The Issue's AC table must show AC-003 as Deferred and AC-005 as Dropped with a link to this ADR. Parallel or Voting work stays on the existing manual write-set rule until reopened. Reopening AC-003 requires a Human decision and a new ADR; the Issue #297 Section 9 decisions are unchanged.
+- Rollback: Documentation-only decision. To reverse, mark this ADR Superseded by a new ADR that reopens the criterion, restore the AC in the Issue, and add the SDD and implementation slice for it. No code, contract or CI change depends on this ADR.
+- Owner: Human Maintainer (acceptance); SA Agent (author). Accepting this ADR authorises no implementation; the Issue #297 design gate still requires Human approval of the SDD.
+
 ### ADR-0036: Separate optional instruction libraries from mandatory core validation
 
 - Date: 2026-10-11
