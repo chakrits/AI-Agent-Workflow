@@ -29,6 +29,10 @@ test('case manifest covers independent platform edits and all approved descripti
   }
   for (const n of [5499, 5500, 5501]) assert.equal(cases.find(c => c.id === `total-${n}`).total, n);
   for (const item of cases.filter(c => c.id !== 'baseline')) assert.ok(item.acIds.length);
+  assert.deepEqual(cases.find(c => c.id === 'baseline').acIds, []);
+  assert.deepEqual(cases.find(c => c.id === 'reference-template').acIds, ['AC-03']);
+  assert.deepEqual(cases.find(c => c.id === 'workflow-prose').acIds, ['AC-03', 'AC-06']);
+  assert.deepEqual(cases.find(c => c.id === 'catalog-duplicate').acIds, ['AC-04']);
 });
 
 test('setup and cleanup failures remain explicit failed evidence, never silent success', () => {

@@ -29,11 +29,16 @@ export function contributorCases() {
     { id: 'task-log-no-notation', kind: 'log', paths: ['TASK_LOG.md'], audit: 'audit:skill-usage' },
     { id: 'all-optional-libraries-absent', kind: 'libraries', paths: [catalog, '.agents/skills/', '.claude/skills/', '.agent/skills/', '.agents/workflows/'] }
   ].map(item => ({ ...item, acIds:
-    item.id === 'baseline' ? ['AC-05', 'AC-06', 'AC-07', 'AC-08'] :
+    item.id === 'baseline' ? [] :
     item.id === 'add-agents' ? ['AC-01'] : item.id.startsWith('add-') ? ['AC-02'] :
     item.id === 'task-log-no-notation' ? ['AC-09'] :
-    ['formerly-pinned-skill', 'reference-template', 'workflow-prose'].includes(item.id) ? ['AC-03', 'AC-06', 'AC-07'] :
-    ['AC-04', 'AC-06', 'AC-07', 'AC-08'] }));
+    item.id === 'formerly-pinned-skill' ? ['AC-03', 'AC-07'] :
+    item.id === 'reference-template' ? ['AC-03'] :
+    item.id === 'workflow-prose' ? ['AC-03', 'AC-06'] :
+    item.id === 'catalog-over-budget' ? ['AC-04', 'AC-07'] :
+    ['catalog-absent', 'vault-skill-section-absent'].includes(item.id) ? ['AC-04', 'AC-08'] :
+    item.id === 'all-optional-libraries-absent' ? ['AC-04', 'AC-06', 'AC-07'] :
+    ['AC-04'] }));
 }
 
 export function applyContributorCase(root, input) {
