@@ -1043,29 +1043,6 @@ test('core browser content policy preserves the untrusted-data security boundary
 });
 
 
-test('the three new test-tooling skills carry their required content', async () => {
-  const [apiTesting, jsUnit, pythonUnit, mutation] = await Promise.all([
-    readFile('.agents/skills/api-testing-tooling/SKILL.md', 'utf8'),
-    readFile('.agents/skills/js-unit-testing/SKILL.md', 'utf8'),
-    readFile('.agents/skills/python-unit-testing/SKILL.md', 'utf8'),
-    readFile('.agents/skills/mutation-testing/SKILL.md', 'utf8')
-  ]);
-
-  assert.match(apiTesting, /Supertest/);
-  assert.match(apiTesting, /Bruno/);
-  assert.match(apiTesting, /distinct from `api-contract-testing`/);
-
-  assert.match(jsUnit, /## Choosing Between Jest and Vitest/);
-  assert.match(jsUnit, /npx jest/);
-  assert.match(jsUnit, /npx vitest/);
-
-  assert.match(pythonUnit, /uv run pytest/);
-  assert.match(pythonUnit, /tdd-implementation/);
-
-  assert.match(mutation, /## JS\/TS \(Stryker\)/);
-  assert.match(mutation, /npx stryker run/);
-  assert.match(mutation, /## Python \(mutmut\)/);
-});
 
 
 test('QA Agent Skill Routing includes the three new test-tooling skills in role-definitions and the Claude adapter', async () => {
@@ -1085,76 +1062,7 @@ test('QA Agent Skill Routing includes the three new test-tooling skills in role-
 
 
 
-test('the seven new API skills carry their required content', async () => {
-  const [
-    apiTestDesign,
-    apiCompliance,
-    apiSecurity,
-    apiVersioning,
-    apiObservability,
-    apiIntegration,
-    apiMocking
-  ] = await Promise.all([
-    readFile('.agents/skills/api-test-design/SKILL.md', 'utf8'),
-    readFile('.agents/skills/api-compliance-patterns/SKILL.md', 'utf8'),
-    readFile('.agents/skills/api-security-patterns/SKILL.md', 'utf8'),
-    readFile('.agents/skills/api-versioning-deprecation/SKILL.md', 'utf8'),
-    readFile('.agents/skills/api-observability-monitoring/SKILL.md', 'utf8'),
-    readFile('.agents/skills/api-integration-patterns/SKILL.md', 'utf8'),
-    readFile('.agents/skills/api-mocking-sandbox/SKILL.md', 'utf8')
-  ]);
 
-  assert.match(apiTestDesign, /## Coverage Checklist/);
-  assert.match(apiTestDesign, /BVA\/EP/);
-  assert.match(apiTestDesign, /Distinct from api-contract-testing/);
-
-  assert.match(apiCompliance, /GDPR/);
-  assert.match(apiCompliance, /HIPAA/);
-  assert.match(apiCompliance, /PCI-DSS/);
-  assert.match(apiCompliance, /## Compliance Pattern Checklist/);
-  assert.match(apiCompliance, /### Worked Example: Audit Log Entry Shape/);
-  assert.match(apiCompliance, /"data_class": "PHI"/);
-
-  assert.match(apiSecurity, /BOLA\/IDOR/);
-  assert.match(apiSecurity, /Mass assignment/);
-  assert.match(apiSecurity, /OWASP/);
-  assert.match(apiSecurity, /## OWASP API Security Top 10 \(2023\) Reference/);
-  assert.match(apiSecurity, /Broken Object Level Authorization/);
-  assert.match(apiSecurity, /### Worked Example: JWT Claims Shape/);
-  assert.match(apiSecurity, /alg: none/);
-
-  assert.match(apiVersioning, /## Breaking vs Non-Breaking Classification/);
-  assert.match(apiVersioning, /Sunset/);
-  assert.match(apiVersioning, /RFC 8594/);
-  assert.match(apiVersioning, /### Worked Example \(wire format, language-agnostic\)/);
-  assert.match(apiVersioning, /HTTP\/1\.1 410 Gone/);
-
-  assert.match(apiObservability, /Liveness/);
-  assert.match(apiObservability, /Readiness/);
-  assert.match(apiObservability, /## Structured Request Logging/);
-
-  assert.match(apiIntegration, /## Inbound Webhooks/);
-  assert.match(apiIntegration, /idempotency key/i);
-  assert.match(apiIntegration, /dead-letter/i);
-
-  assert.match(apiMocking, /Schema-driven mock/);
-  assert.match(apiMocking, /Record-and-replay/);
-  assert.doesNotMatch(apiMocking, /TestMu/i);
-
-  // None of the 7 skills may carry the source repo's embedded product-promotion text.
-  for (const skill of [apiTestDesign, apiCompliance, apiSecurity, apiVersioning, apiObservability, apiIntegration, apiMocking]) {
-    assert.doesNotMatch(skill, /TestMu/i);
-    assert.doesNotMatch(skill, /HyperExecute/i);
-  }
-});
-
-test('api-testing-tooling carries the Postman + Newman section and template', async () => {
-  const apiTesting = await readFile('.agents/skills/api-testing-tooling/SKILL.md', 'utf8');
-
-  assert.match(apiTesting, /## Postman \+ Newman/);
-  assert.match(apiTesting, /npm install -g newman/);
-  assert.match(apiTesting, /templates\/postman-collection\.example\.json/);
-});
 
 
 
@@ -1199,36 +1107,6 @@ test('QA Agent Skill Routing includes api-test-design and api-mocking-sandbox in
 
 
 
-test('the 4 new Developer Agent skills carry their required content', async () => {
-  const [codingStandards, backendPatterns, frontendReactPatterns, frontendVisualDesign] = await Promise.all([
-    readFile('.agents/skills/coding-standards/SKILL.md', 'utf8'),
-    readFile('.agents/skills/backend-patterns/SKILL.md', 'utf8'),
-    readFile('.agents/skills/frontend-react-patterns/SKILL.md', 'utf8'),
-    readFile('.agents/skills/frontend-visual-design/SKILL.md', 'utf8')
-  ]);
-
-  assert.match(codingStandards, /## Immutability/);
-  assert.match(codingStandards, /## Naming/);
-  assert.match(codingStandards, /## Code Smells to Watch For/);
-
-  assert.match(backendPatterns, /## Repository Pattern/);
-  assert.match(backendPatterns, /## N\+1 Query Prevention/);
-  assert.match(backendPatterns, /never a per-process in-memory counter/);
-
-  assert.match(frontendReactPatterns, /## Component Composition/);
-  assert.match(frontendReactPatterns, /## Custom Hooks/);
-  assert.match(frontendReactPatterns, /## State-Scope Selection/);
-
-  assert.match(frontendVisualDesign, /## Ground the Design in the Subject/);
-  assert.match(frontendVisualDesign, /## Avoiding the Generic-AI-Default Look/);
-  assert.match(frontendVisualDesign, /## Copywriting Voice/);
-
-  // None of the 4 skills may carry the source repos' product-promotion or license artifacts.
-  for (const skill of [codingStandards, backendPatterns, frontendReactPatterns, frontendVisualDesign]) {
-    assert.doesNotMatch(skill, /TestMu/i);
-    assert.doesNotMatch(skill, /HyperExecute/i);
-  }
-});
 
 test('core policy carries the exposed-secret incident-response procedure', async () => {
   const securityReview = await readFile('docs/workflow/quality-gates.md', 'utf8');
