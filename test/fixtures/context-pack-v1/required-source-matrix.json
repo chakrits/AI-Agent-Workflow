@@ -242,7 +242,7 @@
         },
         {
           "path": "docs/workflow/dispatch-packet-contract.md",
-          "sha256": "3c1ff20835b1cec9fd5b959837f1e8aa34db6f2ebf3d158fd88b569cc074aee1"
+          "sha256": "30b862c194654188055c78366b49628b2664eea8420c07e9f19121c1b8ce5577"
         }
       ],
       "allowedTriggerReasons": [

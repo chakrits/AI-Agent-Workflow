@@ -10,16 +10,16 @@ The shared process is not tied to one tool. Codex, Claude Code, Antigravity, and
 - All 11 roles — Orchestrator, PM, BA, SA, Developer, QA, Security Reviewer, Config, Data, Release, and Documentation — have concrete, regression-tested canonical rules, not just a one-line description.
 - Required quality gates, structured handoffs, and explicit human approval boundaries.
 - Two machine-checkable workflow contracts (Bug Fix + New Feature): legal states, evidence requirements, retry limits, and human escalation.
-- 25 portable skills mirrored across 3 platform adapters (`.agents/`, `.claude/`, `.agent/`), with CI-enforced byte-identical parity.
+- Optional instruction libraries for `.agents/`, `.claude/`, and `.agent/`, independently editable without catalog registration or mirror-parity CI gates.
 - 27 reusable templates for briefs, requirements, designs, test plans, handoffs, completion checks, security/release reviews, post-merge documentation reviews, work item records, and lessons learned.
-- Hosted CI on both GitHub Actions and GitLab CI, running 10 validation checks on every push and pull/merge request.
+- Hosted core validation on GitHub Actions and GitLab CI; configured workflows define commands and event conditions.
 - Lifecycle labels (`phase:*`, `status:*`) and an automated PR/Issue readiness gate that blocks merge until the Work Item lifecycle is consistent.
 - A [GitHub Project Kanban board](https://github.com/users/chakrits/projects/3) mapping `phase:*` labels to Todo / In Progress / Done columns for visual work tracking.
 - An in-repo, merge-gated dispatch-receipt ledger for cross-turn agent handoffs, with CI-enforced matching and a loop-safety circuit breaker.
 - Work Item records (`docs/records/work-items/`) that link each GitHub Issue to its SDD, PRs, postmortem, and lessons learned — bidirectional traceability in the Obsidian vault.
 - A Lessons Learned vault (`docs/records/lessons-learned/`) with a structured template for session retrospectives.
 - A Framework Metrics dashboard (`npm run validate:metrics`) that parses TASK_LOG and reports rework rate, subagent timeout rate, test growth trend, and more.
-- A Context Budget validator (`npm run validate:context-budget`) that measures the token cost of canonical reading files — currently ~25,900 tokens across 8 files.
+- A Context Budget validator (`npm run validate:context-budget`) for seven core policy files, excluding optional skill/catalog/work-instruction content.
 - 12 Architecture Decision Records (ADRs) with a CI-enforced 10:1 ratio check against TASK_LOG decisions.
 - 7 tracked risks with a CI-enforced validation gate.
 - Local housekeeping tooling: worktree cleanup and a one-command reset back to a blank template baseline for a new team's own clone.
@@ -66,7 +66,7 @@ AI-Agent-Workflow/
 │   │                         #   qa/, postmortem/, dispatch-receipts/, misc/
 │   ├── superpowers/          # Approved designs (specs/) and implementation plans (plans/)
 │   └── vault/                # Obsidian knowledge-base index
-├── .agents/                  # Portable skills (25) and workflow adapters
+├── .agents/                  # Optional portable skills and workflow adapters
 ├── .claude/                  # Claude Code agent and skill adapters
 ├── .agent/                   # Antigravity CLI skill adapters
 ├── .codex/                   # Codex host adapters (e.g. in-turn dispatch supervision)
@@ -220,11 +220,11 @@ npm run validate:contracts
 
 ## Skills
 
-25 portable skills are mirrored byte-identically across `.agents/skills/`, `.claude/skills/`, and `.agent/skills/`. CI enforces md5 parity on every push.
+`.agents/skills/`, `.claude/skills/`, and `.agent/skills/` are independent optional libraries. Add or edit a skill, reference, template, or `.agents/workflows/*.md` instruction without companion catalog/vault/mirror edits or core repinning. Select available skills from platform-discovered descriptions; a missing skill falls back to core role requirements, never skipped quality/security/human gates. Native loader formats are platform-specific; passing CI is not activation evidence.
 
 Key skills include: `dynamic-workflow`, `tdd-implementation`, `verification-before-completion`, `code-review-gate`, `debugging-discipline`, `documentation-closeout`, `requirement-brainstorming`, `implementation-planning`, `git-workflow-and-versioning`, and more.
 
-Browse the full catalog at [SKILL_CATALOG.md](./docs/operating-model/SKILL_CATALOG.md).
+Browse an optional curated index at [SKILL_CATALOG.md](./docs/operating-model/SKILL_CATALOG.md). It is not an exhaustive registry or merge prerequisite. Core role adapters and generic Issue/PR readiness remain validated.
 
 ## CI Validation Checks
 

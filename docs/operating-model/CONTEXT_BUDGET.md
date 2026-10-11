@@ -15,26 +15,26 @@ This document tracks the approximate token cost of the canonical reading files t
 
 The Tier 1 bootloader has its own enforced limit of **≤ 2,500 approximate tokens**, matching the approved
 Issue #280 SDD. It is measured separately so it is not double-counted in the Tier 3 canonical-library total.
-The current follow-up measurement is 6,360 characters / 1,590 approximate tokens.
+The earlier Issue #281 follow-up measured 6,360 characters / 1,590 approximate tokens; the current measurement is listed below.
 
 The approximation is deliberately coarse. The goal is not to track exact token counts for a specific model, but to detect budget drift early — before a change pushes the canonical reading set past a size where agents start dropping or ignoring context.
 
 ## Current Core-Only Measurement (Issue #294)
 
-Measured 2026-10-11 with `npm run validate:context-budget` after IMP-003. Tier 3 contains seven core policy files; catalog, skills and optional work instructions are excluded. This file-set change is not a model-token measurement. Limits remain 30,000 core / 2,500 boot / 1,500 per role.
+Measured 2026-10-11 with `npm run validate:context-budget` after IMP-005 core policy alignment. Tier 3 contains seven core policy files; catalog, skills and optional work instructions are excluded. This file-set change is not a model-token measurement. Limits remain 30,000 core / 2,500 boot / 1,500 per role.
 
 | Core file | Characters | Approximate tokens |
 |---|---:|---:|
-| `AGENTS.md` | 14706 | 3676 |
-| `docs/workflow/role-definitions.md` | 33194 | 8298 |
+| `AGENTS.md` | 15655 | 3913 |
+| `docs/workflow/role-definitions.md` | 33753 | 8438 |
 | `docs/workflow/handoff-contract.md` | 5504 | 1376 |
 | `docs/workflow/quality-gates.md` | 15551 | 3887 |
 | `docs/workflow/dynamic-routing.md` | 10258 | 2564 |
 | `docs/operating-model/AGENT_OPERATING_MODEL.md` | 8037 | 2009 |
-| `docs/operating-model/AGENT_EVALUATION_CHECKLIST.md` | 10685 | 2671 |
-| **Total** | **97935** | **24481** |
+| `docs/operating-model/AGENT_EVALUATION_CHECKLIST.md` | 10760 | 2690 |
+| **Total** | **99518** | **24877** |
 
-Headroom: 5519 approximate tokens. Historical observations below remain unchanged; they are not the current enforcement set.
+Headroom: 5123 approximate tokens. Bootloader7071 characters/1767 approximate tokens. IMP-003 checkpoint measured24481/30000 before this policy wording; historical observations below remain unchanged and are not the current enforcement set.
 
 
 ## Historical observed baseline (before decoupling)

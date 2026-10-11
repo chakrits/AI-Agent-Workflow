@@ -66,11 +66,11 @@ This is the entry point for browsing this repo as an Obsidian vault. The vault r
 | Release | [[../../.claude/agents/release-agent.md]] |
 | Documentation | [[../../.claude/agents/documentation-agent.md]] |
 
-## Skills — three portable copies (`.agents/`, `.claude/`, `.agent/`)
+## Skills — optional library links (`.agents/`, `.claude/`, `.agent/`)
 
-The skills below are mirrored across all three platforms (Claude Code, portable, Antigravity); none are role-specific-only anymore.
+These editorial links are optional and may be incomplete or stale. Libraries are independently editable; missing links or mirrors do not gate contributions. Discover available skills on the current platform; core policy governs fallback and approval.
 
-**Mirrored (all three platforms):**
+**Cross-platform references (availability may differ):**
 
 - api-contract-testing — [[../../.agents/skills/api-contract-testing/SKILL.md|portable]] · [[../../.claude/skills/api-contract-testing/SKILL.md|claude]] · [[../../.agent/skills/api-contract-testing/SKILL.md|antigravity]]
 - defect-analysis — [[../../.agents/skills/defect-analysis/SKILL.md|portable]] · [[../../.claude/skills/defect-analysis/SKILL.md|claude]] · [[../../.agent/skills/defect-analysis/SKILL.md|antigravity]]
@@ -145,4 +145,4 @@ See the full set in [[../templates/|docs/templates/]] — one reusable artifact 
 
 ---
 
-*This index is hand-maintained. When a new role adapter, skill, or canonical workflow file is added, add a link here too — Obsidian's graph view is only as complete as this index.*
+*This index is hand-maintained. Maintain core role/workflow links when relevant. Skill links are optional editorial convenience, not a registration requirement; Obsidian graph coverage is not a merge gate.*
