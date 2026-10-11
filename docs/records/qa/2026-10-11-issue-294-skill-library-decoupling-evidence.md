@@ -53,4 +53,6 @@ Requirements, SDD, TDD, implementation/test plans, work item, Accepted ADR-0036,
 ## 7. Recommendation
 Implementation continuation authorized 2026-10-11. [IMP-001 checkpoint](2026-10-11-issue-294-imp001-assertion-classification.md) records fresh baseline/RED probes and assertion split obligations; no implementation acceptance claim. Next: approved IMP-002.
 
+[IMP-002A checkpoint](2026-10-11-issue-294-imp002a-catalog-assertions.md): first 13 obsolete library tests retired, retained99 contract bodies unchanged, focused129/129 and full795/795 pass. Remaining IMP-002 and mandatory-call graph migration are pending; all implementation acceptance remains Pending.
+
 Design and ASM/OQ decisions are approved; record spec-ready based on explicit Human approval and follow the implementation plan. Do not add development-done/verification-done based on baseline evidence. Issue #284 should adopt the new approved discovery expectations before its scenario corpus is frozen; do not silently amend its ACs or mark it implemented.

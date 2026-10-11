@@ -7,9 +7,9 @@
 
 ## Classification
 - Change type: Framework / Meta Change; risk: Medium.
-- Lifecycle phase: `phase:development` (IMP-001 preflight); specification readiness: Human-approved, 2026-10-11.
+- Lifecycle phase: `phase:development` (IMP-002 in progress); specification readiness: Human-approved, 2026-10-11.
 - Workflow route: Orchestrator/SA → Documentation/Developer after design approval → independent QA/Security Reviewer → Human Maintainer.
-- Current branch content: documentation only. Design gate is satisfied; scoped implementation may follow the approved plan.
+- Current branch content: tests/records; IMP-002A retires approved library assertions. Production validators/CI remain unchanged; design gate is satisfied.
 
 ## Artifacts
 - [Requirements / User Stories / AC](../requirements/2026-10-11-issue-294-skill-library-decoupling.md)
@@ -24,20 +24,20 @@
 - PRs / Closeout / Postmortem: N/A — no PR created and no implementation delivered.
 
 ## Sub-tasks
-- IMP-001: classification/RED preflight recorded in [checkpoint](../qa/2026-10-11-issue-294-imp001-assertion-classification.md); production behavior unchanged. IMP-002–IMP-006 pending; sequential dependency checkpoints, no child issues created.
+- IMP-001: classification/RED preflight recorded. IMP-002 in progress: [IMP-002A checkpoint](../qa/2026-10-11-issue-294-imp002a-catalog-assertions.md) retires 13 live catalog/vault-skill tests; other library/mixed assertions remain. IMP-003–IMP-006 pending; no child issues created.
 
 ## Lessons Learned
 - A CI invocation can also be enforced by `npm test`; removing only the workflow line is incomplete (EV-05).
 - Historical compatibility evidence must not become a registry for every future instruction (EV-04).
 
 ## Metrics
-- Focused baseline: 170/170 survey checks; candidate implementation tests: not run, no implementation.
+- Focused baseline: 170/170 survey checks; IMP-002A focused129/129, full795/795. Developer verification, not independent implementation acceptance.
 - Subagent timeouts: 0; Rework cycles: 0.
 - Packet version / Packet tokens: N/A — this specification package has no delegated implementation.
 
-## Status: Open — implementation preflight
+## Status: Open — implementation in progress
 - Human Maintainer accepted all artifacts/design and OQ-01–04 on 2026-10-11.
-- Human authorized continuation on 2026-10-11. IMP-001 checkpoint recorded; next: IMP-002, Developer role. No runtime child dispatch or independent QA acceptance claimed.
+- Human authorized continuation on 2026-10-11. IMP-002A checkpoint recorded; next: remaining IMP-002, Developer role. No runtime child dispatch or independent QA acceptance claimed.
 - Design stop satisfied; no unresolved design approval blocker. Human merge approval remains a later gate.
 - Specification readiness is based on this explicit approval, not baseline test results.
 - Implementation acceptance is tracked once in the Issue's Acceptance Traceability Matrix; local documents define cases, not a second acceptance result ledger.

@@ -13,133 +13,12 @@ const adapterPaths = [
   '.agent/skills/dynamic-workflow/SKILL.md'
 ];
 
-const catalogDomains = {
-  Workflow: ['ba-requirement-analysis', 'documentation-closeout', 'dynamic-workflow', 'engineering-postmortem', 'git-workflow-and-versioning', 'implementation-planning', 'management-status-update', 'release-readiness-checklist', 'requirement-brainstorming', 'verification-before-completion'],
-  Engineering: ['backend-patterns', 'code-review-gate', 'coding-standards', 'debugging-discipline', 'sa-architecture-design', 'tdd-implementation'],
-  QA: ['defect-analysis', 'functional-test-design', 'js-unit-testing', 'mutation-testing', 'performance-testing', 'python-unit-testing', 'qa-playwright-testing', 'static-logic-review', 'test-quality-discipline'],
-  API: ['api-compliance-patterns', 'api-contract-testing', 'api-integration-patterns', 'api-mocking-sandbox', 'api-observability-monitoring', 'api-security-patterns', 'api-test-design', 'api-testing-tooling', 'api-versioning-deprecation'],
-  Frontend: ['frontend-react-patterns', 'frontend-ui-engineering', 'frontend-visual-design'],
-  'Security / Data': ['data-config-change', 'security-review']
-};
-
-function availableCatalogRows(catalog) {
-  return catalog.slice(catalog.indexOf('## Available Skills'), catalog.indexOf('## Skill Activation Examples'));
-}
-
-test('groups_catalog_rows_under_the_six_domains_without_changing_row_schema', async () => {
-  const available = availableCatalogRows(await readFile('docs/operating-model/SKILL_CATALOG.md', 'utf8'));
-  const headings = [...available.matchAll(/^### (.+)$/gm)];
-  assert.deepEqual(headings.map((match) => match[1]), Object.keys(catalogDomains));
-
-  const seen = [];
-  for (const [index, heading] of headings.entries()) {
-    const section = available.slice(heading.index + heading[0].length, headings[index + 1]?.index ?? available.length);
-    assert.match(section, /^\n\n\| Skill \| Trigger \| Primary Agent \| Do Not Use When \| Next Skill \/ Agent \|\n\|---\|---\|---\|---\|---\|/);
-    const rows = section.split('\n').filter((line) => /^\| [a-z][a-z0-9-]+ \|/.test(line));
-    const ids = rows.map((row) => row.split('|')[1].trim());
-    assert.deepEqual(ids, catalogDomains[heading[1]], `${heading[1]} has missing, extra, or misordered rows`);
-    for (const row of rows) {
-      assert.equal(row.split('|').length, 7, `${row} must have five cells`);
-      assert.ok(row.split('|').slice(1, -1).every((cell) => cell.trim()), `${row} has an empty cell`);
-    }
-    seen.push(...ids);
-  }
-  assert.equal(new Set(seen).size, seen.length, 'a skill must appear in exactly one domain');
-});
-
-test('vault_index_has_no_manual_skill_count', async () => {
-  const vault = await readFile('docs/vault/00-Index.md', 'utf8');
-  assert.doesNotMatch(vault, /All 37 skills|All \d+ skills/i);
-});
-
-test('vault_index_links_every_canonical_skill_exactly_once', async () => {
-  const [entries, vault] = await Promise.all([
-    readdir('.agents/skills', { withFileTypes: true }),
-    readFile('docs/vault/00-Index.md', 'utf8')
-  ]);
-  const canonical = entries.filter((entry) => entry.isDirectory()).map((entry) => entry.name).sort();
-  const skillSection = vault.slice(vault.indexOf('## Skills —'), vault.indexOf('## Codex Host Adapters'));
-  const lines = skillSection.split('\n').filter((line) => /^- [a-z][a-z0-9-]+ —/.test(line));
-  const linked = lines.map((line) => line.match(/^- ([a-z][a-z0-9-]+) —/)[1]).sort();
-  assert.deepEqual(linked, canonical);
-  for (const id of canonical) {
-    const line = lines.find((entry) => entry.startsWith(`- ${id} — `));
-    for (const tree of ['.agents', '.claude', '.agent']) {
-      assert.ok(line.includes(`[[../../${tree}/skills/${id}/SKILL.md|`), `${id} is missing its ${tree} link`);
-    }
-    assert.equal((line.match(/SKILL\.md\|/g) ?? []).length, 3, `${id} must link exactly three adapters`);
-  }
-});
-
-test('catalog_overlap_boundaries_keep_distinct_triggers_and_next_routes', async () => {
-  const available = availableCatalogRows(await readFile('docs/operating-model/SKILL_CATALOG.md', 'utf8'));
-  const row = (id) => available.split('\n').find((line) => line.startsWith(`| ${id} |`));
-  const functional = row('functional-test-design');
-  const playwright = row('qa-playwright-testing');
-  assert.match(functional, /test cases|test design/i);
-  assert.match(functional, /automation/i);
-  assert.match(functional, /qa-playwright-testing/);
-  assert.match(playwright, /browser E2E|automation/i);
-  assert.match(playwright, /test design/i);
-  assert.match(playwright, /QA Agent|defect-analysis/);
-
-  const design = row('api-test-design');
-  const contract = row('api-contract-testing');
-  const tooling = row('api-testing-tooling');
-  assert.match(design, /test case list/);
-  assert.match(design, /api-testing-tooling/);
-  assert.match(design, /api-contract-testing/);
-  assert.match(contract, /published.*schema/);
-  assert.match(contract, /api-test-design/);
-  assert.match(contract, /Developer Agent.*SA Agent/);
-  assert.match(tooling, /hand-written|hand-scripted/);
-  assert.match(tooling, /api-contract-testing/);
-  assert.match(tooling, /Developer Agent/);
-});
-
-test('every .agents/skills/ directory is named somewhere in SKILL_CATALOG.md', async () => {
-  const [entries, catalog] = await Promise.all([
-    readdir('.agents/skills', { withFileTypes: true }),
-    readFile('docs/operating-model/SKILL_CATALOG.md', 'utf8')
-  ]);
-  const skillNames = entries.filter((entry) => entry.isDirectory()).map((entry) => entry.name);
-  assert.ok(skillNames.length > 0);
-  for (const name of skillNames) {
-    assert.match(catalog, new RegExp(name), `SKILL_CATALOG.md does not mention the "${name}" skill`);
-  }
-});
 
 
-test('SKILL_CATALOG.md uses the approved five-column rows without stale skill headings', async () => {
-  const catalog = await readFile('docs/operating-model/SKILL_CATALOG.md', 'utf8');
-  const available = catalog.slice(catalog.indexOf('## Available Skills'), catalog.indexOf('## Skill Activation Examples'));
-  const expected = [
-    'ba-requirement-analysis', 'sa-architecture-design', 'data-config-change',
-    'requirement-brainstorming', 'implementation-planning', 'tdd-implementation',
-    'verification-before-completion', 'code-review-gate', 'git-workflow-and-versioning',
-    'api-contract-testing', 'performance-testing', 'mutation-testing', 'test-quality-discipline',
-    'static-logic-review', 'defect-analysis', 'api-testing-tooling', 'api-test-design',
-    'api-compliance-patterns', 'api-security-patterns', 'api-versioning-deprecation',
-    'api-observability-monitoring', 'api-integration-patterns', 'api-mocking-sandbox',
-    'js-unit-testing', 'python-unit-testing', 'coding-standards', 'backend-patterns',
-    'frontend-react-patterns', 'frontend-visual-design', 'documentation-closeout',
-    'release-readiness-checklist'
-  ];
-  for (const section of [
-    catalog.slice(catalog.indexOf('## Current Skills'), catalog.indexOf('## Engineering Discipline')),
-    catalog.slice(catalog.indexOf('## Engineering Discipline'), catalog.indexOf('## Planned Skills')),
-    available
-  ]) {
-    assert.match(section, /^\| Skill \| Trigger \| Primary Agent \| Do Not Use When \| Next Skill \/ Agent \|$/m);
-  }
-  for (const skill of expected) {
-    const row = available.match(new RegExp('^\\| ' + skill + ' \\|[^\\n]*$', 'm'))?.[0];
-    assert.ok(row, `missing catalog row for ${skill}`);
-    assert.equal(row.split('|').length, 7, `catalog row for ${skill} must have five cells`);
-    assert.match(row, /\| [^|]+ \| [^|]+ \| [^|]+ \| [^|]+ \|$/);
-  }
-  assert.doesNotMatch(available, /^## [a-z0-9-]+$/m);
-});
+
+
+
+
 
 test('Frontend UI Engineering stays discoverable and routes UI work safely', async () => {
   const paths = [
@@ -1000,19 +879,6 @@ test('the four new QA testing-discipline skills carry their required content', a
   assert.match(testQuality, /Incomplete Mocks/);
 });
 
-test('SKILL_CATALOG.md carries all four new QA skill entries and the Planned Skills clarifying note', async () => {
-  const catalog = await readFile('docs/operating-model/SKILL_CATALOG.md', 'utf8');
-
-  assert.match(catalog, /\| api-contract-testing \|/);
-  assert.match(catalog, /\| performance-testing \|/);
-  assert.match(catalog, /\| mutation-testing \|/);
-  assert.match(catalog, /\| test-quality-discipline \|/);
-
-  assert.match(catalog, /WCAG 2\.1 AA accessibility checks/);
-
-  assert.match(catalog, /api-test-design.*related but distinct, not superseded/s);
-  assert.match(catalog, /Defect Analysis.*broader test-failure/);
-});
 
 test('Developer Agent requires architecture compliance, definition-of-done restatement, incremental verification, and escalation discipline', async () => {
   const [roleDefinition, adapter] = await Promise.all([
@@ -1369,15 +1235,6 @@ test('the three new test-tooling skills carry their required content', async () 
   assert.match(mutation, /## Python \(mutmut\)/);
 });
 
-test('SKILL_CATALOG.md carries the three new test-tooling skill entries', async () => {
-  const catalog = await readFile('docs/operating-model/SKILL_CATALOG.md', 'utf8');
-
-  assert.match(catalog, /\| api-testing-tooling \|/);
-  assert.match(catalog, /\| js-unit-testing \|/);
-  assert.match(catalog, /\| python-unit-testing \|/);
-  assert.match(catalog, /api-testing-tooling.*provides Supertest\/Bruno\/Postman\+Newman tooling/s);
-  assert.match(catalog, /mutation-testing[\s\S]*?Stryker/);
-});
 
 test('QA Agent Skill Routing includes the three new test-tooling skills in role-definitions and the Claude adapter', async () => {
   const [roleDefinition, adapter] = await Promise.all([
@@ -1572,42 +1429,7 @@ test('QA Agent Skill Routing includes api-test-design and api-mocking-sandbox in
   assert.match(adapter, /`api-mocking-sandbox`/);
 });
 
-test('SKILL_CATALOG.md carries all 7 new API skill entries', async () => {
-  const catalog = await readFile('docs/operating-model/SKILL_CATALOG.md', 'utf8');
 
-  for (const skill of [
-    'api-test-design',
-    'api-compliance-patterns',
-    'api-security-patterns',
-    'api-versioning-deprecation',
-    'api-observability-monitoring',
-    'api-integration-patterns',
-    'api-mocking-sandbox'
-  ]) {
-    assert.match(catalog, new RegExp('\\| ' + skill + ' \\|'));
-  }
-
-  // The former Planned Skills row for API Test Design must be gone now that it's built.
-  assert.doesNotMatch(catalog, /\| API Test Design \|/);
-});
-
-test('docs/vault/00-Index.md links all 7 new API skills without a manual count', async () => {
-  const vaultIndex = await readFile('docs/vault/00-Index.md', 'utf8');
-
-  assert.match(vaultIndex, /skills below are mirrored across all three platforms/i);
-  assert.doesNotMatch(vaultIndex, /All \d+ skills are mirrored/i);
-  for (const skill of [
-    'api-test-design',
-    'api-compliance-patterns',
-    'api-security-patterns',
-    'api-versioning-deprecation',
-    'api-observability-monitoring',
-    'api-integration-patterns',
-    'api-mocking-sandbox'
-  ]) {
-    assert.match(vaultIndex, new RegExp('^- ' + skill + ' —', 'm'));
-  }
-});
 
 test('the 4 new Developer Agent skills carry their required content', async () => {
   const [codingStandards, backendPatterns, frontendReactPatterns, frontendVisualDesign] = await Promise.all([
@@ -1674,13 +1496,6 @@ test('Developer Agent Skill Routing includes the 4 new skills in role-definition
   }
 });
 
-test('SKILL_CATALOG.md carries all 4 new Developer Agent skill entries', async () => {
-  const catalog = await readFile('docs/operating-model/SKILL_CATALOG.md', 'utf8');
-
-  for (const skill of ['coding-standards', 'backend-patterns', 'frontend-react-patterns', 'frontend-visual-design']) {
-    assert.match(catalog, new RegExp('\\| ' + skill + ' \\|'));
-  }
-});
 
 test('THIRD_PARTY_NOTICES.md attributes LambdaTest, ECC, and Anthropic sources', async () => {
   const notices = await readFile('THIRD_PARTY_NOTICES.md', 'utf8');
@@ -2095,13 +1910,6 @@ test('functional-test-design SKILL.md is byte-identical across all three platfor
   assert.equal(antigravity, portable, '.agent/skills/functional-test-design/SKILL.md does not match .agents/');
 });
 
-test('SKILL_CATALOG.md functional-test-design entry mentions Decision Table and State Transition techniques', async () => {
-  const catalog = await readFile('docs/operating-model/SKILL_CATALOG.md', 'utf8');
-  const line = catalog.split('\n').find((l) => l.startsWith('| Functional Test Design '));
-  assert.ok(line, 'Functional Test Design row not found in SKILL_CATALOG.md');
-  assert.match(line, /Decision Table/);
-  assert.match(line, /State Transition/);
-});
 
 test('defect-analysis SKILL.md carries Summary field, severity-to-impact worked mapping, and PII-placeholder note (Issue #152)', async () => {
   const skill = await readFile('.agents/skills/defect-analysis/SKILL.md', 'utf8');
@@ -2142,14 +1950,6 @@ test('docs/templates/DEFECT_REPORT.md carries Summary, Environment, severity map
   assert.match(template, /\[CLAIM_ID\]/);
 });
 
-test('SKILL_CATALOG.md carries the real defect-analysis entry and no longer lists it as Planned (Issue #152)', async () => {
-  const catalog = await readFile('docs/operating-model/SKILL_CATALOG.md', 'utf8');
-
-  assert.match(catalog, /\| defect-analysis \|/);
-  assert.doesNotMatch(catalog, /\| Defect Analysis \| Analyze test failures, logs, screenshots, reproduce steps, severity \|/);
-  assert.match(catalog, /Playwright QA[^\n]*`defect-analysis`/);
-  assert.match(catalog, /\| defect-analysis \|/);
-});
 
 test('QA Agent Skill Routing includes defect-analysis in role-definitions and the Claude adapter (Issue #152)', async () => {
   const [roleDefinition, adapter] = await Promise.all([
