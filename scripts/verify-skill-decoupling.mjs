@@ -39,6 +39,10 @@ export function captureCase(result, operation, cleanup) {
   return result;
 }
 const git = (root, args) => execFileSync('git', args, { cwd: root, encoding: 'utf8' }).trim();
+export function cloneCandidate(root, clone) {
+  // Copy, never link, retained historical objects needed by corpus integrity tests.
+  git(root, ['clone', '--quiet', '--local', '--no-hardlinks', '--no-checkout', root, clone]);
+}
 function snapshot(root) {
   const files = git(root, ['ls-files', '-z']).split('\0').filter(Boolean);
   return Object.fromEntries(files.sort().map(file => [file, existsSync(path.join(root, file)) ? hash(readFileSync(path.join(root, file))) : null]));
@@ -76,7 +80,7 @@ export function verifySkillDecoupling(source = process.cwd()) {
     };
     captureCase(result, () => {
       mkdirSync(temp);
-      git(root, ['clone', '--quiet', '--no-local', '--no-checkout', root, clone]);
+      cloneCandidate(root, clone);
       git(clone, ['checkout', '--quiet', '--detach', candidate]);
       git(clone, ['remote', 'set-url', 'origin', origin]);
       if (git(clone, ['rev-parse', 'HEAD']) !== candidate) throw new Error('Clone SHA mismatch');

@@ -1,6 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { mandatoryCommands, captureCase, requireNode22 } from '../scripts/verify-skill-decoupling.mjs';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { execFileSync } from 'node:child_process';
+import path from 'node:path';
+import { mandatoryCommands, captureCase, requireNode22, cloneCandidate } from '../scripts/verify-skill-decoupling.mjs';
 import { contributorCases } from '../scripts/lib/skill-contributor-cases.mjs';
 
 test('command inventory preserves actual flags and direct node commands across both CI hosts', () => {
@@ -46,4 +50,22 @@ test('setup and cleanup failures remain explicit failed evidence, never silent s
 test('runtime provenance requires Node 22 before verification', () => {
   assert.doesNotThrow(() => requireNode22('22.22.3'));
   assert.throws(() => requireNode22('24.0.0'), /Node 22/);
+});
+
+test('isolated clone retains historical commit objects not reachable from candidate HEAD', t => {
+  const temp = mkdtempSync(path.join(tmpdir(), 'decoupling-history-'));
+  t.after(() => rmSync(temp, { recursive: true }));
+  const git = args => execFileSync('git', args, { cwd: temp, encoding: 'utf8' }).trim();
+  git(['init', '-q']);
+  git(['-c', 'user.name=QA', '-c', 'user.email=qa@example.invalid', 'commit', '--allow-empty', '-qm', 'base']);
+  const candidate = git(['rev-parse', 'HEAD']);
+  git(['-c', 'user.name=QA', '-c', 'user.email=qa@example.invalid', 'commit', '--allow-empty', '-qm', 'history']);
+  const history = git(['rev-parse', 'HEAD']);
+  git(['checkout', '--quiet', '--detach', candidate]);
+  git(['branch', '-D', git(['branch', '--format=%(refname:short)'])]);
+  const clone = path.join(temp, 'clone');
+  cloneCandidate(temp, clone);
+  assert.equal(execFileSync('git', ['cat-file', '-t', history], { cwd: clone, encoding: 'utf8' }).trim(), 'commit');
+  assert.equal(execFileSync('git', ['rev-parse', 'HEAD'], { cwd: clone, encoding: 'utf8' }).trim(), candidate);
+  git(['cat-file', '-e', history]);
 });
