@@ -376,7 +376,7 @@ test('I297-F3: pure resumeTaskState rejects missing resume_evidence or approver_
 test('I297-TC-003: pure and disk-bound transitions share YAML evidence', () => {
   const { root, task } = createDurableTaskRoot('shared-evidence');
   try {
-    const accepted = { failure_description: 'fd', repro: 'rp' };
+    const accepted = { failure_description: 'fd', repro: 'issuecomment-1' };
     const pure = rawTransitionTaskState(task, { to: 'investigating', actor: 'ba-agent', expected_digest: task.state_digest, evidence: accepted });
     assert.equal(pure.state, 'investigating');
     assert.throws(
@@ -447,7 +447,7 @@ test('TC-007: durable transition uses policy evidence without matrix-only keys',
       to: 'investigating',
       actor: 'ba-agent',
       expected_digest: task.state_digest,
-      evidence: { failure_description: 'fd', repro: 'rp' }
+      evidence: { failure_description: 'fd', repro: 'issuecomment-1' }
     });
     assert.equal(next.state, 'investigating');
     assert.equal(next.sequence_number, 2);
@@ -485,6 +485,55 @@ test('TC-007: durable policy evidence rejection preserves bytes and cleans guard
       fs.rmSync(root, { recursive: true, force: true });
     }
   }
+});
+
+test('I297-TC-001: durable mutation rejects prose fail_path/hypothesis_matrix/repro and preserves bytes', () => {
+  const cases = [
+    { from: [], to: 'investigating', actor: 'ba-agent', evidence: { failure_description: 'fd', repro: 'rp' } },
+    { from: ['investigating'], to: 'implementing', actor: 'developer-agent', evidence: { fail_path: 'fp', hypothesis_matrix: 'issuecomment-3' } },
+    { from: ['investigating'], to: 'implementing', actor: 'developer-agent', evidence: { fail_path: 'issuecomment-2', hypothesis_matrix: 'hm' } },
+    { from: [], to: 'investigating', actor: 'ba-agent', evidence: { failure_description: 'fd', repro: { url: 'https://example.com/a' } } },
+    { from: [], to: 'investigating', actor: 'ba-agent', evidence: { failure_description: 'fd', repro: ['issuecomment-1', 'rp'] } }
+  ];
+  let n = 0;
+  for (const c of cases) {
+    const { root, task, taskFile } = createDurableTaskRoot(`durable-ref-${n++}`);
+    try {
+      let current = task;
+      if (c.from.length) current = mutateTaskStateOnDisk(root, task.task_id, { to: 'investigating', actor: 'ba-agent', expected_digest: task.state_digest, evidence: { failure_description: 'fd', repro: 'issuecomment-1' } });
+      const before = fs.readFileSync(taskFile);
+      assert.throws(
+        () => mutateTaskStateOnDisk(root, task.task_id, { to: c.to, actor: c.actor, expected_digest: current.state_digest, evidence: c.evidence }),
+        (error) => error.code === 'EVIDENCE_NOT_REFERENCE' && error.status === 'REJECTED'
+      );
+      assert.deepEqual(fs.readFileSync(taskFile), before);
+      assert.equal(fs.existsSync(lockFilePath(root, 'task', task.task_id)), false);
+      assert.equal(fs.existsSync(commitGuardPath(root, 'task', task.task_id)), false);
+    } finally { fs.rmSync(root, { recursive: true, force: true }); }
+  }
+});
+
+test('I297-TC-001: key presence is checked before reference form', () => {
+  const { root, task, taskFile } = createDurableTaskRoot('durable-order');
+  try {
+    const before = fs.readFileSync(taskFile);
+    assert.throws(
+      () => mutateTaskStateOnDisk(root, task.task_id, { to: 'investigating', actor: 'ba-agent', expected_digest: task.state_digest, evidence: { repro: 'rp' } }),
+      (error) => error.code === 'MISSING_REQUIRED_EVIDENCE'
+    );
+    assert.deepEqual(fs.readFileSync(taskFile), before);
+  } finally { fs.rmSync(root, { recursive: true, force: true }); }
+});
+
+test('I297-TC-001: reference grammar is not enforced by the pure API (disk-only, OQ-P2)', () => {
+  const task = createTaskState({ task_id: 'pure-prose-ok' });
+  assert.equal(rawTransitionTaskState(task, { to: 'investigating', actor: 'ba-agent', expected_digest: task.state_digest, evidence: { failure_description: 'fd', repro: 'rp' } }).state, 'investigating');
+});
+
+test('I297-TC-003: policy declares reference_evidence additively and contract_version stays 1', () => {
+  const policy = YAML.parse(fs.readFileSync('docs/contracts/bug-fix-workflow.yaml', 'utf8'));
+  assert.deepEqual(policy.reference_evidence, ['repro', 'fail_path', 'hypothesis_matrix']);
+  assert.equal(policy.contract_version, 1);
 });
 
 test('TC-025: Asynchronous pause and checkpoint resumption', () => {

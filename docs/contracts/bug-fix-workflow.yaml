@@ -2,6 +2,7 @@ workflow_id: bug-fix
 contract_version: 1
 max_rework_attempts: 2
 states: [intake, investigating, implementing, verifying, rework, handoff, blocked, completed, cancelled]
+reference_evidence: [repro, fail_path, hypothesis_matrix]
 transitions:
   - { from: intake, to: investigating, requires: [failure_description, repro], actors: [orchestrator, ba-agent] }
   - { from: investigating, to: implementing, requires: [fail_path, hypothesis_matrix], actors: [developer-agent, sa-agent] }

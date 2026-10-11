@@ -4,6 +4,7 @@ import Ajv2020 from 'ajv/dist/2020.js';
 import YAML from 'yaml';
 import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
+import { parseEvidenceReference } from './evidence-reference.mjs';
 import { canonicalizeJcs as canonicalizeStatusJcs } from './status-jcs.mjs';
 import {
   atomicWriteFileSync, createStateIo, defaultStateIo, acquireLock, releaseLock,
@@ -142,11 +143,21 @@ function parseLockForRecovery(raw, filePath) {
   if (!record || Object.keys(record).some((key) => !['pid', 'nonce', 'created_at'].includes(key)) || !Number.isInteger(record.pid) || record.pid <= 0 || !UUID_V4.test(record.nonce) || !Number.isSafeInteger(record.created_at) || record.created_at < 0) throw error('LOCK_MALFORMED', `Malformed lock ${filePath}; use --malformed --quiesced`);
   return record;
 }
-function validatePolicyTransition(current, to, evidence, resume, io = defaultStateIo) {
+function validateReferenceEvidence(policy, row, evidence, rootDir, io) {
+  const referenceKeys = Array.isArray(policy.reference_evidence) ? policy.reference_evidence : [];
+  const required = (row.requires || []).flat();
+  for (const key of referenceKeys) {
+    if (!required.includes(key)) continue;
+    const result = parseEvidenceReference(evidence[key], { rootDir, fsOps: io.fsOps });
+    if (!result.valid) throw error('EVIDENCE_NOT_REFERENCE', `Evidence '${key}' must be a repo path, https URL, or issue-comment reference: ${result.reason}`);
+  }
+}
+function validatePolicyTransition(current, to, evidence, resume, io = defaultStateIo, rootDir) {
   const policy = policyFor(current.workflow_id, io);
   const row = policyTransition(policy, current.state, to, resume);
   if (!row) throw error(resume ? 'INVALID_RESUME_TARGET' : 'ILLEGAL_TRANSITION_REJECTED', `Policy does not permit ${current.state} -> ${to}`);
   validateEvidenceForRow(row, evidence);
+  validateReferenceEvidence(policy, row, evidence, rootDir, io);
   return policy;
 }
 function activeShardPath(rootDir, taskId) { if (!taskId || !/^[a-z0-9_-]+$/.test(taskId) || taskId === 'archive') throw error(taskId === 'archive' ? 'RESERVED_TASK_ID' : 'INVALID_TASK_ID', `Invalid expectedTaskId: ${taskId}`); return path.join(rootDir, 'docs/records/work-items', taskId, 'task-state.json'); }
@@ -161,7 +172,7 @@ export function mutateTaskStateOnDisk(rootDir, expectedTaskId, { to, actor = 'or
     validateEnvelopeSchema(current);
     if (current.workflow_id !== 'bug-fix' || current.change_type !== 'bug-fix') throw error('UNKNOWN_WORKFLOW', 'Durable mutation supports bug-fix only.');
     verifyCasAndComputeDigest(current, expected_digest);
-    const policy = validatePolicyTransition(current, to, evidence, mode === 'resume', io);
+    const policy = validatePolicyTransition(current, to, evidence, mode === 'resume', io, rootDir);
     const candidate = mode === 'resume'
       ? makeTransition(current, { to, actor, evidence, expected_digest, stop_reason, next_route, resume: true, policy, clock: io.clock })
       : makeTransition(current, { to, actor, expected_digest, evidence, stop_reason, next_route, policy, clock: io.clock });
