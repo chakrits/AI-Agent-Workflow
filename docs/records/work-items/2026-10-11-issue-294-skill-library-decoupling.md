@@ -18,6 +18,7 @@
 - [Implementation Plan](../implementation-plan/2026-10-11-issue-294-skill-library-decoupling.md)
 - [Test Plan](../qa/2026-10-11-issue-294-skill-library-decoupling-test-plan.md)
 - [Evidence / readiness](../qa/2026-10-11-issue-294-skill-library-decoupling-evidence.md)
+- [Human-review handoff](../HANDOFF-2026-10-11-issue-294-design-review.md)
 - ADR: proposed ADR-0036 in `DECISIONS.md`; no previous ADR is rewritten.
 - PRs / Closeout / Postmortem: N/A — no PR created and no implementation delivered.
 

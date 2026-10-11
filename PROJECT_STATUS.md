@@ -1,7 +1,7 @@
 # PROJECT_STATUS.md
 
 ## Current Work Item
-- No active work item. Issue #283 — Astra skill metadata/catalog rationalization — completed via PR #289 (`8cc2705`). Issue #284 remains planned independently. SEC-004 runtime evidence for Issue #277 remains explicitly `DEFERRED_BY_HUMAN` under ADR-0033.
+- Issue #294 — skill-library CI decoupling — Draft requirements/design package on `codex/skill-library-decoupling-design`, awaiting Human design approval. Issue #283 remains completed via PR #289 (`8cc2705`); #284 remains separate. SEC-004 remains `DEFERRED_BY_HUMAN` under ADR-0033.
 
 ## Active Work Items
 <!-- active-work-items-table-start -->
@@ -12,13 +12,14 @@
 <!-- active-work-items-table-end -->
 
 ## Planned Framework Work
+- Issue #294 — independent instruction-library contribution without catalog/mirror/hash dependencies. Requirements, SDD, TDD, implementation/test plans and baseline evidence are Draft; ADR-0036 is Proposed. No implementation or spec-ready milestone is claimed. Work item: `docs/records/work-items/2026-10-11-issue-294-skill-library-decoupling.md`.
 - Issue #280 — GPT-6 Astra instruction, skill, and autonomy modernization — #281 is complete through PR #285; #282 is complete through PR #287; #283 is complete through PR #289; #284 remains planned independently. Parent SDD and ADR-0034 are Human-approved. Issue #290 is a separate CI defect repair and does not change the modernization scope.
 
 ## Current Stage
-- Issue #283 completed via PR #289 (`8cc2705`); independent review and QA passed AC-01–AC-06, and hosted readiness and CI checks passed. PR #291 also merged and readiness protection remains active. Issue #284 is the next planned modernization item. SEC-004 remains deferred and is not a security-complete claim.
+- Issue #294 design review: concrete documents prepared for Human approval before changing validators/core context. Issue #284 remains a separate planned behavior-evaluation item; its expected-context corpus should reflect the eventual approved #294 policy. PR #291 remains merged and readiness protection active. SEC-004 remains deferred, not security-complete.
 
 ## Change Classification
-- Issue #283 is a framework/meta change with medium risk. The separate Issue #290 GitHub Actions repair merged via PR #291.
+- Issue #294 is a Medium-risk framework/meta change; current branch is documentation only. Later implementation requires independent QA and targeted Security Reviewer review of retained validation boundaries. Generic Issue/PR readiness is outside the proposed change.
 
 ## Completed
 - Issue #283 — **merged via PR #289** (merge commit `8cc2705b1a4bc53a50a8b4ce82f775c4fbd44307`). Rationalized the 39 skill descriptions and catalog domains, added derived inventory validation, enforced it in GitHub Actions and GitLab CI, and preserved mirror parity. Independent QA passed AC-01–AC-06; hosted default-branch audit passed. QA evidence: https://github.com/chakrits/AI-Agent-Workflow/issues/283#issuecomment-5912691239. Post-merge documentation closeout is tracked separately.
@@ -81,6 +82,7 @@
 - Minor from Issue #210's round-3 review: the "yielded no comparable commands" error message in `scripts/validate-ci-parity.mjs` says "if the job was restructured... into a composite action," which is misleading for a job that legitimately runs only ignored commands (`npm test`/`npm ci`). Cosmetic wording only, not fixed.
 
 ## Required Artifacts
+- Issue #294 design bundle: `docs/records/work-items/2026-10-11-issue-294-skill-library-decoupling.md` links requirements, SDD/TDD, implementation/test plans, and evidence.
 - Self-review record (#208): `docs/records/qa/2026-09-05-issue-208-decision-log-preservation-code-review.md`
 - Self-review record (#210): `docs/records/qa/2026-09-05-issue-210-ci-parity-code-review.md`
 - Self-review record (#214): `docs/records/qa/2026-09-05-issue-214-risk-register-preservation-code-review.md`
@@ -89,7 +91,7 @@
 - Framework assessment: `docs/records/misc/2026-09-05-framework-sdlc-assessment.md`
 
 ## Next Quality Gate
-- Human Maintainer decision on the SEC-004 runtime evidence gap after Security re-review; merge remains blocked until the required evidence route is supplied or a documented Human decision accepts the residual.
+- Human Maintainer reviews Issue #294 Draft requirements/SDD/TDD/implementation/test plans and proposed ADR-0036. Implementation remains unapproved and `status:spec-ready` absent. SEC-004 stays separately deferred under ADR-0033; this issue does not close that residual.
 
 ## Recommended Next Agent
 - Human Maintainer.

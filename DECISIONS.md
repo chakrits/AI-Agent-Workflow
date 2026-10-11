@@ -7,6 +7,19 @@ Restored on 2026-09-05 under Issue #208. The blank-template resets of 2026-08-12
 that currently-open issues cite; ADR-0002 through ADR-0016 and ADR-0018 remain recoverable via
 `git show afe8091:DECISIONS.md` and were left out by Human Maintainer decision.
 
+### ADR-0036: Separate optional instruction libraries from mandatory core validation
+
+- Date: 2026-10-11
+- Work Item: [Issue #294](https://github.com/chakrits/AI-Agent-Workflow/issues/294)
+- Status: Proposed — documentation preparation authorized; design/implementation approval pending.
+- Context: Survey at `87a0917` reproduced library mirror/catalog/vault/text-test and SHA coupling. Removing only the catalog CI invocation also fails a test that requires that invocation. Contributors need independently editable skills and work instructions.
+- Proposed decision: Make supported skill trees and existing portable work-instruction markdown optional extensions; make catalog/vault skill indexes advisory; remove their live content/inventory/budget/hash dependencies from mandatory CI/tests/hooks/reset. Keep explicit manual audits with truthful diagnostics. Migrate current context matrix to core-only v3 and preserve core hash/path/authority, workflow/state, security, and readiness controls.
+- Scope boundary: No skill-only linked-Issue/readiness exemption, native-loader redesign, core policy precedence change, or blanket executable-code/docs exemption. Core duties remain mandatory when a supporting skill is unavailable.
+- Alternatives: CI-line-only removal cannot satisfy the goal (EV-05); larger budgets or required generators retain dependency; continue-on-error obscures the boundary; disabling all validation exceeds scope. These assessments are proposed for Human review, not accepted rejections yet.
+- Consequences: Optional-library drift no longer blocks contribution. Platform-native loading is assessed separately. Historical #283 and ADR-0034/0035 records remain intact; only the approved future library-enforcement requirement would be superseded.
+- Rollback: Revert owning slices in reverse dependency order; restore matching matrix/validator versions; retain readiness protection and historical evidence.
+- Approval: Pending Human Maintainer review of the [SDD](docs/records/sdd/2026-10-11-issue-294-skill-library-decoupling-sdd.md), TDD, requirements, and implementation/test plans.
+
 ### ADR-0035: Define Safe Autonomy Through a Completion Contract and Risk-Based Verification
 
 - **Status:** Accepted
