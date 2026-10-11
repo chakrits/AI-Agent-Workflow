@@ -11,9 +11,9 @@ const MARKER_NAME = 'reset-verification-owner.json';
 const SENTINEL_PATH = 'docs/records/qa/reset-verification-sentinel.txt';
 const VERIFY_COMMANDS = [
   ['npm', ['test']], ['npm', ['run', 'validate:contracts']],
-  ['npm', ['run', 'validate:project-state']], ['npm', ['run', 'validate:skill-parity']],
+  ['npm', ['run', 'validate:project-state']],
   ['npm', ['run', 'adr:audit']], ['npm', ['run', 'validate:risk-register']],
-  ['npm', ['run', 'validate:review-gate']], ['npm', ['run', 'validate:skill-usage']],
+  ['npm', ['run', 'validate:review-gate']],
   ['npm', ['run', 'validate:metrics']], ['npm', ['run', 'validate:context-budget']],
   ['git', ['diff', '--check']]
 ];

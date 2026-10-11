@@ -1,0 +1,44 @@
+import assert from 'node:assert/strict';
+import test from 'node:test';
+import { readFileSync, readdirSync } from 'node:fs';
+import path from 'node:path';
+
+const root = path.resolve(import.meta.dirname, '..');
+const read = (file) => readFileSync(path.join(root, file), 'utf8');
+const optionalInvocation = /(?:validate:skill-(?:catalog|parity|usage)|audit:skills|audit:skill-usage|scripts\/validate-skill-(?:catalog|parity|usage)\.mjs)/;
+
+test('mandatory CI, hooks and reset verification never invoke optional skill audits', () => {
+  const files = [
+    ...readdirSync(path.join(root, '.github/workflows')).map((file) => `.github/workflows/${file}`),
+    ...readdirSync(path.join(root, '.githooks')).map((file) => `.githooks/${file}`),
+    '.gitlab-ci.yml', '.claude/settings.json', 'scripts/verify-reset-template.mjs',
+    'scripts/setup-hooks.mjs', 'scripts/validate-edit-guards.mjs'
+  ];
+  for (const file of files) assert.doesNotMatch(read(file), optionalInvocation, file);
+});
+
+test('npm exposes truthful manual audits, not automatic skill validator aliases', () => {
+  const { scripts } = JSON.parse(read('package.json'));
+  assert.equal(scripts['audit:skills'], 'node scripts/validate-skill-catalog.mjs && node scripts/validate-skill-parity.mjs');
+  assert.equal(scripts['audit:skill-usage'], 'node scripts/validate-skill-usage.mjs');
+  for (const [name, command] of Object.entries(scripts)) {
+    if (name.startsWith('audit:')) continue;
+    assert.doesNotMatch(name, /^validate:skill-/);
+    assert.doesNotMatch(command, optionalInvocation, name);
+  }
+});
+
+test('core CI, PR hook and reset safety validators remain configured', () => {
+  const github = read('.github/workflows/validate-contracts.yml');
+  const gitlab = read('.gitlab-ci.yml');
+  for (const command of ['validate:contracts', 'validate:adapter-parity', 'validate:review-gate',
+    'validate:dispatch-receipts', 'validate:context-budget', 'validate:ci-parity']) {
+    assert.ok(github.includes(`npm run ${command}`), command);
+    assert.ok(gitlab.includes(`npm run ${command}`), command);
+  }
+  const settings = JSON.parse(read('.claude/settings.json'));
+  assert.match(settings.hooks.PreToolUse[0].hooks[0].command, /validate:pr-readiness -- --hook$/);
+  assert.match(settings.hooks.SubagentStop[0].hooks[0].command, /validate:dispatch-receipts \|\| true$/);
+  assert.match(read('scripts/verify-reset-template.mjs'), /validate:risk-register/);
+  assert.match(read('scripts/verify-reset-template.mjs'), /validate:review-gate/);
+});
