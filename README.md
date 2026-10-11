@@ -26,6 +26,23 @@ The shared process is not tied to one tool. Codex, Claude Code, Antigravity, and
 
 ## Project Structure
 
+### Core workflow playbooks
+
+These core routes remain discoverable without an optional skill library:
+
+- [Feature discovery](./docs/workflows/feature-discovery-to-plan.md)
+- [New feature](./docs/workflows/new-feature.md)
+- [Bug fix](./docs/workflows/bug-fix.md)
+- [Bug debugging](./docs/workflows/bug-debug-fix.md)
+- [CI failure debugging](./docs/workflows/ci-failure-debug.md)
+- [Validated bug postmortem](./docs/workflows/validated-bug-postmortem.md)
+- [Config change](./docs/workflows/config-change.md)
+- [Data change](./docs/workflows/data-change.md)
+- [TDD implementation](./docs/workflows/tdd-implementation-flow.md)
+- [Code review](./docs/workflows/code-review-gate.md)
+- [Functional test design](./docs/workflows/functional-test-design.md)
+- [Framework stabilization](./docs/workflows/stabilize-core.md)
+
 ```text
 AI-Agent-Workflow/
 ├── README.md                 # Start here: overview and quick start

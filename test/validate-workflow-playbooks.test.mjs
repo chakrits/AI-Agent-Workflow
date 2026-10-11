@@ -5,6 +5,27 @@ import test from 'node:test';
 
 const WORKFLOWS_DIR = 'docs/workflows';
 
+function isOptionalLibraryTarget(resolved) {
+  const relative = path.relative(process.cwd(), resolved).split(path.sep).join('/');
+  return relative === 'docs/operating-model/SKILL_CATALOG.md' ||
+    ['.agents/skills/', '.claude/skills/', '.agent/skills/', '.agents/workflows/']
+      .some((prefix) => relative.startsWith(prefix));
+}
+
+test('optional link classification never exempts core or lookalike paths', () => {
+  for (const file of ['.agents/skills/example/SKILL.md', '.claude/skills/example/template.md',
+    '.agent/skills/example/reference.md', '.agents/workflows/example.md',
+    'docs/operating-model/SKILL_CATALOG.md']) {
+    assert.equal(isOptionalLibraryTarget(path.resolve(file)), true, file);
+  }
+  for (const file of ['AGENTS.md', 'docs/workflow/quality-gates.md',
+    'docs/contracts/bug-fix-workflow.yaml', 'docs/templates/HANDOFF.md',
+    '.agents/skills-lookalike/SKILL.md', '.claude/agents/qa-agent.md',
+    'docs/operating-model/SKILL_CATALOG.md.backup']) {
+    assert.equal(isOptionalLibraryTarget(path.resolve(file)), false, file);
+  }
+});
+
 async function listPlaybooks() {
   const entries = await readdir(WORKFLOWS_DIR, { withFileTypes: true });
   return entries
@@ -38,6 +59,7 @@ test('every wiki-link target in docs/workflows/ resolves to a file on disk', asy
     while ((match = linkPattern.exec(content)) !== null) {
       const target = match[1];
       const resolved = path.resolve(dir, target);
+      if (isOptionalLibraryTarget(resolved)) continue;
       totalLinksChecked += 1;
       await assert.doesNotReject(
         () => readFile(resolved, 'utf8'),
@@ -78,19 +100,8 @@ test('every playbook in docs/workflows/ has at least one inbound reference from 
     'AGENTS.md',
     'docs/workflow/dynamic-routing.md'
   ];
-  const skillDirs = ['.agents/skills'];
-  const skillFiles = [];
-  for (const dir of skillDirs) {
-    const entries = await readdir(dir, { withFileTypes: true });
-    for (const entry of entries) {
-      if (entry.isDirectory()) {
-        skillFiles.push(path.join(dir, entry.name, 'SKILL.md'));
-      }
-    }
-  }
-
   const consumerContents = await Promise.all(
-    [...consumerFiles, ...skillFiles].map(async (file) => {
+    consumerFiles.map(async (file) => {
       try {
         return await readFile(file, 'utf8');
       } catch {
@@ -123,7 +134,7 @@ test('every playbook in docs/workflows/ has at least one inbound reference from 
     const basename = path.basename(playbook);
     assert.ok(
       haystack.includes(basename),
-      `${playbook} has no inbound reference from README.md, AGENTS.md, dynamic-routing.md, any skill SKILL.md, or a playbook reachable from one of those`
+      `${playbook} has no inbound reference from README.md, AGENTS.md, dynamic-routing.md, or a playbook reachable from one of those`
     );
   }
 });
