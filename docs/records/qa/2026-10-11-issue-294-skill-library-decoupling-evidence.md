@@ -1,7 +1,7 @@
 # Evidence and Specification Completion Check — Issue #294
 
 ## 1. Completion Claim
-Specification bundle accepted by Human Maintainer on 2026-10-11 at `def7008ce9e4676605cee4ab94c4af1accb28369`; OQ-01–04 and all artifacts are approved. Current implementation reaches IMP-003: assertion splits, core safety/discovery preservation, core-only current matrix v3, budget and edit guards. CI/hooks/reset/readiness remain unchanged. All implementation acceptance remains Pending in https://github.com/chakrits/AI-Agent-Workflow/issues/294.
+Specification bundle accepted by Human Maintainer on 2026-10-11 at `def7008ce9e4676605cee4ab94c4af1accb28369`; OQ-01–04 and all artifacts are approved. Current implementation reaches IMP-004: assertion splits, core-only matrix/budget/guards and automatic skill-audit caller migration. Core/readiness retained; broad policy alignment remains pending. All implementation acceptance remains Pending in https://github.com/chakrits/AI-Agent-Workflow/issues/294.
 
 Baseline reviewed: `87a0917f1c56859926097468c99023918dd314a7` on 2026-10-11. Baseline survey experiments were executed in disposable archive copies under `/private/tmp`; those copies were not candidate commits and are not independent QA. Evidence below distinguishes commands/output observed in this conversation from future evidence requirements.
 
@@ -36,7 +36,7 @@ Probe recipe: reproduce EV-02–05 only in a temporary baseline checkout, add na
 - Existing validators exited 0: contracts, project-state, CI parity, skill catalog/parity/usage, context budget/compatibility, status projection, clearable refs, and ADR audit. Catalog still reports 39 skills / 4,352 code points; projection digest remains `4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945`; ADR ratio 2.15:1. `git diff --check` also passed.
 - Locked dependency installation used `npm ci --ignore-scripts --offline --no-audit --no-fund`. The first sandboxed install could not create this managed worktree's node_modules; the authorized escalated retry succeeded. No dependency versions changed.
 - Native platform activation: Not Run; no native activation claim.
-- Final independent implementation QA/Security review: Not Run; scoped IMP-002/003 code reviews recorded separately, not full acceptance.
+- Final independent implementation QA/Security review: Not Run; scoped IMP-002–004 code reviews recorded separately, not full acceptance.
 - Hosted PR/default-branch candidate checks: Not Run; no PR/merge exists for this issue.
 - Historical specification branch-push evidence at `def7008ce9e4676605cee4ab94c4af1accb28369`: [run 38113491394](https://github.com/chakrits/AI-Agent-Workflow/actions/runs/38113491394) succeeded, 808 tests/pass, 0 fail/skipped. This is not decoupling implementation acceptance.
 - Human approval authority and decisions: [approval record](../HANDOFF-2026-10-11-issue-294-design-approval.md).
@@ -60,5 +60,7 @@ Implementation continuation authorized 2026-10-11. [IMP-001 checkpoint](2026-10-
 [IMP-002 completion](2026-10-11-issue-294-imp002-completion.md): remaining content/mixed/consumer/playbook splits implemented. Focused110/110, no-library probe80/80, full768/768; [independent scoped review](2026-10-11-issue-294-imp002-code-review.md) PASS at `fc72f6949c9b28d18d9d2e0596960d6062846294`. Next IMP-003; no overall QA/merge acceptance.
 
 [IMP-003 completion / CP-1](2026-10-11-issue-294-imp003-completion.md): core-only v3/budget/edit guards implemented; full773/773, core budget24481/30000; [independent scoped review](2026-10-11-issue-294-imp003-code-review.md)49/49 PASS at `940be1a203c8688d1a77c4816340c2ff85f25ccc`.17 validators pass; local housekeeping exits1 for six old worktrees, no cleanup or all-checks-green claim. Next planned IMP-004; all acceptance remains Pending.
+
+[IMP-004 completion](2026-10-11-issue-294-imp004-completion.md): audits opt-in, CI/hooks/reset callers migrated; [review and fix](2026-10-11-issue-294-imp004-code-review.md) records gpt-6-luna78/78 and Minor stale-command finding corrected by author regression at `5d7bc2267c8b2196a5348f7fe3619c9334024d4c`. Final full776/776;13 CI-derived commands plus context compatibility pass; local housekeeping still fails, none deleted. Next planned IMP-005; no final QA/merge acceptance.
 
 Design and ASM/OQ decisions are approved; record spec-ready based on explicit Human approval and follow the implementation plan. Do not add development-done/verification-done based on baseline evidence. Issue #284 should adopt the new approved discovery expectations before its scenario corpus is frozen; do not silently amend its ACs or mark it implemented.
