@@ -1,0 +1,16 @@
+# IMP-006 verification experiment ledger — Issue #294
+
+This is an evidence ledger, not a claim of deterministic root cause for every environmental failure. No existing test or required gate was suppressed.
+
+| Experiment | Observation / disposition |
+|---|---|
+| Initial full harness, `1ae3974` | Stopped at description-160 ASCII: full suite 780, 778 pass / 2 reset-template failures. A temporary clone's `.git/config` disappeared and global temporary-directory snapshots differed. Report `/var/folders/c2/yxsn81f52t79y9pl_3h5cl340000gn/T/skill-decoupling-evidence-XXLyvL/report.json`. |
+| Fail-path trace | Reset-template cleanup-failure test scans shared `os.tmpdir()` for `reset-template-verify-*` and removes entries absent from its snapshot. Security confirmed overlapping full runs. Cross-run cleanup interference is plausible; a controlled paired run passed 14/14 each, so the race was not deterministically reproduced. |
+| Isolation fix | Each case receives private TMPDIR and locked npm ci; setup/execution/cleanup failure state preserved. Parent full suite at revised candidate 782/782. Existing reset tests unchanged; shared global cleanup ownership outside isolated execution remains a limitation, not a silently fixed unrelated defect. |
+| QA nested clone, `3d32a924` | Core corpus source commit `3258f6fbd1e2d67b3a1bfc6c3868d9cbbafd5f38` missing: no-local transport omits unreachable history. Baseline log `/private/tmp/issue294-qa-Q5R5xy9X/tmp/skill-decoupling-evidence-ULzDrK/baseline-logs/1.log`, SHA256 `ce839df634fd25646918413dd224f08ea90fb7c70a91db34d1f13e254582d018`. |
+| Historical-object RED/GREEN | Regression fixture proves no-local transport loses the commit. Local no-hardlinks copying retains it without sharing object storage; final unit 6/6. Corpus manifest/validator unchanged. Intermediate fixture failure is recorded in the review record. |
+| QA sandbox, `321055c` | Baseline npm test passed; housekeeping read-only git fetch failed exit128 under network restriction. Preserved report `/private/tmp/issue294-qa-Q5R5xy9X/tmp/skill-decoupling-evidence-wWbYxA/report.json`; baseline log5 SHA256 `25326af0ddbd3d4223a9f907dfe948ef553a56030e78ee68e5cca0c58c3896cc`. Authorized read-only network fetch succeeded; final matrix rerun under that permission, not by skipping checks. |
+| Rollback environment | Baseline clone-local origin produced six readiness-test failures; retained `/private/tmp/issue294-qa-Q5R5xy9X/rollback-test.log`. With expected GitHub origin, baseline full tests and matching contract/compatibility/parity/budget/catalog/mirror validators passed in clean detached rollback clone. |
+
+## Boundaries / evidence preservation
+Failed reports and raw logs retained at the listed local paths, not represented as immutable hosted URLs. Shared-temp reproduction logs: `/private/tmp/issue294-shared-a.log`, `/private/tmp/issue294-shared-b.log`. History RED/GREEN logs: `/private/tmp/issue294-imp006-history-red-real.log`, `/private/tmp/issue294-imp006-history-green.log`. Final independent matrix evidence is separate. Existing unrelated worktrees were not removed. Native loaders, external deployment and postmerge acceptance are not covered by these experiments.
