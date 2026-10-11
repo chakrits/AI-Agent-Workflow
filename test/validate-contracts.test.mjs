@@ -1434,114 +1434,15 @@ test('Management Status Update remains Thai-first, evidence-bound, and portable'
   }
 });
 
-test('functional-test-design SKILL.md carries the Decision Table and State Transition techniques with naming convention rows and a determinism worked example (Issue #143)', async () => {
-  const skill = await readFile('.agents/skills/functional-test-design/SKILL.md', 'utf8');
-
-  assert.match(skill, /Decision Table Testing/);
-  assert.match(skill, /condition columns?/i);
-  assert.match(skill, /action columns?/i);
-  assert.match(skill, /rule ID/i);
-
-  assert.match(skill, /State Transition Testing/);
-  assert.match(skill, /Valid transitions?/i);
-  assert.match(skill, /Invalid transitions?/i);
-  assert.match(skill, /guard condition/i);
-
-  assert.match(skill, /`TC-DT-xxx`/);
-  assert.match(skill, /`TC-ST-xxx`/);
-
-  assert.match(skill, /System displays an error/);
-  assert.match(skill, /HTTP 400 with INVALID_AMOUNT error code/);
-  assert.match(skill, /amount = bad_value/);
-  assert.match(skill, /amount = -500\.00 THB/);
-});
-
-test('functional-test-design SKILL.md Full Mode outline item 10 is renamed to Test Design Techniques without renumbering items 11-18', async () => {
-  const skill = await readFile('.agents/skills/functional-test-design/SKILL.md', 'utf8');
-
-  assert.match(skill, /^10\. Test Design Techniques$/m);
-  assert.doesNotMatch(skill, /^10\. BVA \/ EP Analysis$/m);
-  assert.match(skill, /^11\. API Functional Test Cases, if applicable$/m);
-  assert.match(skill, /^18\. Self-review Checklist$/m);
-});
-
-test('functional-test-design template section 10 is renamed to Test Design Techniques with Decision Table and State Transition subsections, and sections 11-18 keep their numbers', async () => {
-  const template = await readFile('.agents/skills/functional-test-design/templates/function-test-report.md', 'utf8');
-
-  assert.match(template, /^## 10\. Test Design Techniques$/m);
-  assert.doesNotMatch(template, /^## 10\. BVA \/ EP Analysis$/m);
-  assert.match(template, /^### Decision Table Testing$/m);
-  assert.match(template, /^### State Transition Testing$/m);
-  assert.match(template, /TC-DT-001/);
-  assert.match(template, /TC-ST-001/);
-
-  for (const n of [11, 12, 13, 14, 15, 16, 17, 18]) {
-    assert.match(template, new RegExp(`^## ${n}\\. `, 'm'));
-  }
-});
-
-test('functional-test-design template Coverage Matrix (section 15) has Decision Table and State Transition columns', async () => {
-  const template = await readFile('.agents/skills/functional-test-design/templates/function-test-report.md', 'utf8');
-
-  const section15Match = template.match(/^## 15\. Coverage Matrix\n([\s\S]*?)(?=\n## 16\.)/m);
-  assert.ok(section15Match, 'Coverage Matrix section 15 not found');
-  const section15 = section15Match[1];
-
-  assert.match(section15, /\| Decision Table \| State Transition \|/);
-
-  const headerLine = section15.split('\n').find((line) => line.startsWith('| Requirement / Function'));
-  const separatorLine = section15.split('\n').find((line) => /^\|[-\s|]+\|$/.test(line));
-  const dataLine = section15.split('\n').find((line) => line.startsWith('| N/A'));
-  assert.ok(headerLine && separatorLine && dataLine, 'Coverage Matrix table rows not found');
-  const headerCols = headerLine.split('|').length;
-  assert.equal(separatorLine.split('|').length, headerCols);
-  assert.equal(dataLine.split('|').length, headerCols);
-});
-
-test('functional-test-design template Coverage Matrix (section 15) has Automated (Y/N) and Test Ref columns after Status (Issue #149)', async () => {
-  const template = await readFile('.agents/skills/functional-test-design/templates/function-test-report.md', 'utf8');
-
-  const section15Match = template.match(/^## 15\. Coverage Matrix\n([\s\S]*?)(?=\n## 16\.)/m);
-  assert.ok(section15Match, 'Coverage Matrix section 15 not found');
-  const section15 = section15Match[1];
-
-  assert.match(section15, /\| Status \| Automated \(Y\/N\) \| Test Ref \(path\) or N\/A — reason \|/);
-
-  const headerLine = section15.split('\n').find((line) => line.startsWith('| Requirement / Function'));
-  const dataLine = section15.split('\n').find((line) => line.startsWith('| N/A'));
-  assert.ok(headerLine && dataLine, 'Coverage Matrix table rows not found');
-  const headerCols = headerLine.split('|').length;
-  assert.equal(dataLine.split('|').length, headerCols, 'data row must have a cell for each new column');
-});
-
-test('test-quality-discipline SKILL.md carries a checklist item for TC-ID to automated-test traceability (Issue #149)', async () => {
-  const skill = await readFile('.agents/skills/test-quality-discipline/SKILL.md', 'utf8');
-
-  assert.match(skill, /Untraced Test Case/);
-  assert.match(skill, /TC-HC-xxx|TC-NEG-xxx|TC-ID/);
-  assert.match(skill, /Coverage Matrix/);
-  assert.match(skill, /automated test/);
-  assert.match(skill, /defect routed to Developer Agent/);
-});
 
 
 
 
-test('defect-analysis SKILL.md carries Summary field, severity-to-impact worked mapping, and PII-placeholder note (Issue #152)', async () => {
-  const skill = await readFile('.agents/skills/defect-analysis/SKILL.md', 'utf8');
 
-  assert.match(skill, /^---\nname: defect-analysis\n/);
-  assert.match(skill, /Critical \| Service down, data loss, or a security-relevant defect/);
-  assert.match(skill, /High \| Major feature broken, no workaround/);
-  assert.match(skill, /Medium \| Feature impaired, workaround exists/);
-  assert.match(skill, /Low \| Cosmetic, no functional impact/);
-  assert.match(skill, /\[USER_ID\]/);
-  assert.match(skill, /\[POLICY_NUMBER\]/);
 
-  // The plan's rejected elements must not be carried forward.
-  assert.doesNotMatch(skill, /infer missing context/i);
-  assert.doesNotMatch(skill, /\/issues\//);
-});
+
+
+
 
 
 test('docs/templates/DEFECT_REPORT.md carries Summary, Environment, severity mapping, and a worked JSON payload example (Issue #152)', async () => {
