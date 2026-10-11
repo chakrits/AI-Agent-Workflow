@@ -16,7 +16,7 @@
 - Issue #280 — GPT-6 Astra instruction, skill, and autonomy modernization — #281 is complete through PR #285; #282 is complete through PR #287; #283 is complete through PR #289; #284 remains planned independently. Parent SDD and ADR-0034 are Human-approved. Issue #290 is a separate CI defect repair and does not change the modernization scope.
 
 ## Current Stage
-- Issue #294 verification: independent27-case harness executes488 commands with no companion drift, including mandatory housekeeping in isolated clones. Code/Security PASS; QA PASS_PREMERGE_LOCAL. Core budget24877/30000, boot1767/2500. Next: Orchestrator publishes evidence and Draft PR, verifies hosted checks, then Human merge review. AC11 postmerge/default-branch milestone stays pending; no release/native activation claim.
+- Issue #294 human-review preparation: independent27-case harness executes488 commands with no companion drift; Code/Security PASS, QA PASS_PREMERGE_LOCAL. [PR #295](https://github.com/chakrits/AI-Agent-Workflow/pull/295) created; contracts/runtime/documentation hosted checks passed at `c549a4b`. Final record-only head/readiness evidence is resolved externally in Issue/PR before ready handoff. Core budget24877/30000, boot1767/2500. Next owner Human Maintainer; AC11 postmerge/default-branch and closeout pending, no merge/release/native claim.
 
 ## Change Classification
 - Issue #294 is a Medium-risk framework/meta change; implementation changes tests/discovery/core policy and its current SHA pins. Final implementation requires independent QA and targeted Security Reviewer review of retained validation boundaries. Generic Issue/PR readiness remains outside scope.

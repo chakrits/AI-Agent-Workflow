@@ -7,7 +7,7 @@
 
 ## Classification
 - Change type: Framework / Meta Change; risk: Medium.
-- Lifecycle phase: `phase:verification` (independent premerge local QA/Code/Security PASS; hosted checks pending); specification readiness: Human-approved, 2026-10-11.
+- Lifecycle phase: `phase:human-review` (independent premerge local QA/Code/Security PASS; hosted/final-head readiness tracked externally); specification readiness: Human-approved, 2026-10-11.
 - Workflow route: Orchestrator/SA → Documentation/Developer after design approval → independent QA/Security Reviewer → Human Maintainer.
 - Current branch content: IMP-001–006 implementation and independent local contributor/QA/Security evidence. Audits opt-in; core/readiness retained. Hosted PR and postmerge/default-branch milestones pending.
 
@@ -21,7 +21,7 @@
 - [Human-review handoff](../HANDOFF-2026-10-11-issue-294-design-review.md)
 - [Human design approval](../HANDOFF-2026-10-11-issue-294-design-approval.md)
 - ADR: Accepted ADR-0036 in `DECISIONS.md`; no previous ADR is rewritten.
-- PR: Orchestrator creates authorized Draft after evidence publishing; URL resolved by GitHub linked PR. Closeout/merge pending. Postmortem N/A; verification experiment ledger records failures without unsupported RCA.
+- PR: https://github.com/chakrits/AI-Agent-Workflow/pull/295; [Human handoff](../HANDOFF-2026-10-11-issue-294-human-review.md). Closeout/merge pending. Postmortem N/A; verification experiment ledger records failures without unsupported RCA.
 
 ## Sub-tasks
 - IMP-001 classification/RED recorded. IMP-002 implemented: catalog/mirror/content/mixed/AC-14/playbook coupling split; [completion](../qa/2026-10-11-issue-294-imp002-completion.md), [independent scoped review](../qa/2026-10-11-issue-294-imp002-code-review.md).
