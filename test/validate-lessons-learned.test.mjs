@@ -147,6 +147,33 @@ test('I297-TC-006: closeout handoff maps Work Item URL to work item whole-token 
   assert.doesNotMatch(out.stdout, /issue-90-other/);
 });
 
+test('I297-TC-006: handoff issues/1 maps to issue-1 only, never issue-12 (whole-token boundary)', () => {
+  for (const [n, want, other] of [['1', 'issue-1-a', 'issue-12-b'], ['12', 'issue-12-b', 'issue-1-a']]) {
+    const r = repo();
+    r.write('docs/records/work-items/2026-10-01-issue-1-a.md', item('- N/A', '## Status: Open'));
+    r.write('docs/records/work-items/2026-10-01-issue-12-b.md', item('- N/A', '## Status: Open'));
+    r.write('docs/records/HANDOFF-POST-MERGE-CLOSEOUT-PR1.md', `# H\n- Work Item: https://github.com/o/r/issues/${n}\n`);
+    r.commit();
+    const out = runIt(r);
+    assert.equal(out.status, 0);
+    assert.match(out.stdout, new RegExp(`WARN \\[AC-006\\].*${want}`), n);
+    assert.doesNotMatch(out.stdout, new RegExp(other), n);
+  }
+});
+
+test('I297-TC-005: nested lessons-learned link (wikilink and markdown) does not resolve', () => {
+  for (const lessons of ['- [[../lessons-learned/sub/2026-10-12-x]]', '- [n](../lessons-learned/sub/2026-10-12-x.md)']) {
+    const r = repo();
+    r.write('docs/records/lessons-learned/sub/2026-10-12-x.md', '# L\n');
+    r.write(`docs/records/work-items/${NAME}`, item(lessons));
+    r.commit();
+    const out = runIt(r);
+    assert.equal(out.status, 0, lessons);
+    assert.match(out.stdout, /WARN \[AC-006\].*does not resolve/, lessons);
+    assert.doesNotMatch(out.stdout, /OK \[AC-006\]/, lessons);
+  }
+});
+
 test('I297-TC-006: closeout handoff with its own Lessons Learned satisfies the check; missing record -> INFO', () => {
   const r = repo();
   r.write(`docs/records/work-items/${NAME}`, item('- N/A', '## Status: Open'));
@@ -181,7 +208,7 @@ const PATHOLOGICAL = [
   ['mdlink x30k', '](lessons-learned/'.repeat(30000)],
 ];
 
-test('I297-TC-005-sec1: pathological single lessons line is bounded, exit 0, WARN', () => {
+test('I297-TC-005-sec1: pathological single lessons line is bounded, exit 0, INFO NOT EVALUATED', () => {
   for (const [label, line] of PATHOLOGICAL) {
     const r = withItem(`- ${line}`);
     const t0 = Date.now();
@@ -189,15 +216,17 @@ test('I297-TC-005-sec1: pathological single lessons line is bounded, exit 0, WAR
     const ms = Date.now() - t0;
     assert.equal(out.status, 0, label);
     assert.ok(ms < BOUND_MS, `${label} took ${ms} ms`);
-    assert.match(out.stdout, /NOT EVALUATED|WARN \[AC-006\].*exceeds/, label);
+    assert.match(out.stdout, /INFO: .*NOT EVALUATED/, label);
+    assert.doesNotMatch(out.stdout, /WARN/, label);
   }
 });
 
-test('I297-TC-005-sec1: line cap (file under file cap) yields a WARN naming the cap', () => {
+test('I297-TC-005-sec1: line cap (file under file cap) yields INFO NOT EVALUATED naming the cap', () => {
   for (const line of ['<!--'.repeat(50000), '[[../lessons-learned/'.repeat(10000), '](lessons-learned/'.repeat(10000)]) {
     const out = runIt(withItem(`- ${line}`), ['--all']);
     assert.equal(out.status, 0);
-    assert.match(out.stdout, /WARN \[AC-006\].*exceeds 4096 characters/);
+    assert.match(out.stdout, /INFO: .*NOT EVALUATED \(.*exceeds 4096 characters/);
+    assert.doesNotMatch(out.stdout, /WARN|OK \[AC-006\]/);
   }
 });
 

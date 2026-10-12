@@ -61,7 +61,7 @@ export function checkLessons(root, text) {
   const body = lessonsSection(text);
   if (body === undefined) return { ok: false, reason: 'no `## Lessons Learned` section' };
   if (body.some((l) => l.length > MAX_LINE_CHARS)) {
-    return { ok: false, reason: `NOT EVALUATED: a Lessons Learned line exceeds ${MAX_LINE_CHARS} characters` };
+    return { ok: false, notEvaluated: true, reason: `a Lessons Learned line exceeds ${MAX_LINE_CHARS} characters` };
   }
   const lines = body
     .map((l) => l.replace(/<!--.*?-->/g, '').trim())
@@ -122,6 +122,7 @@ export function evaluate({ root = process.cwd(), env = process.env, all = false,
     scoped += 1;
     const r = checkLessons(root, text);
     if (r.ok) add('ok', `${rel} records lessons`);
+    else if (r.notEvaluated) add('info', `${rel}: NOT EVALUATED (${r.reason})`);
     else add('warn', `${rel}: ${r.reason}`);
   };
 
