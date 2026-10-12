@@ -63,7 +63,7 @@ test('I297-TC-007: behavior file changed without plan reference warns and exits 
 
 test('I297-TC-007b: docs-only change reports no behavior files and no AC-001 warning', () => {
   const r = repo();
-  r.write('docs/notes.md', 'n\n'); r.write('test/t.test.mjs', 't\n'); r.write('package-lock.json', '{}\n'); r.write('.obsidian/a.json', '{}\n');
+  r.write('docs/notes.md', 'n\n'); r.write('docs/assets/a.svg', '<svg/>\n'); r.write('test/t.test.mjs', 't\n'); r.write('package-lock.json', '{}\n'); r.write('.obsidian/a.json', '{}\n');
   r.commit();
   const res = runIt(r, { PR_BODY: '' });
   assert.equal(res.status, 0);
