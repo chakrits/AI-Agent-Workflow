@@ -29,3 +29,7 @@ jobs:
       - run: npm run validate:status-projection
       - run: npm run validate:ci-parity
       - run: npm run validate:lessons-learned
+      - run: npm run validate:execution-discipline
+        env:
+          # Untrusted PR text: env only, never interpolated into a run: line.
+          PR_BODY: ${{ github.event.pull_request.body }}

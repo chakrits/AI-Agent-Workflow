@@ -20,6 +20,13 @@ if [ -n "$EDIT_GUARD_PAYLOAD_FILE" ] && [ -f "$EDIT_GUARD_PAYLOAD_FILE" ]; then
   npm run --silent validate:edit-guards < "$EDIT_GUARD_PAYLOAD_FILE" || true
 fi
 
+# Advisory plan-reference and size check (Issue #297). Result ignored; the rule
+# lives in scripts/validate-execution-discipline.mjs. Runs before the early exit
+# below so ordinary pushes reach it.
+if grep -q '"validate:execution-discipline"' package.json 2>/dev/null; then
+  npm run --silent validate:execution-discipline || true
+fi
+
 if [ -z "$PR_BODY_FILE" ]; then
   echo "[pre-push] No PR_BODY_FILE set — skipping PR readiness pre-flight."
   echo "[pre-push] Before opening a PR, run: PR_BODY_FILE=<draft.md> npm run validate:pr-readiness"

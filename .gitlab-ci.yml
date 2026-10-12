@@ -229,3 +229,21 @@ validate_lessons_learned:
   rules:
     - if: $CI_PIPELINE_SOURCE == "push"
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+
+validate_execution_discipline:
+  stage: validate
+  variables:
+    GIT_DEPTH: 0
+    PR_BODY: $CI_MERGE_REQUEST_DESCRIPTION
+  cache:
+    key:
+      files:
+        - package-lock.json
+    paths:
+      - .npm/
+  script:
+    - npm ci --cache .npm --prefer-offline
+    - npm run validate:execution-discipline
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "push"
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
