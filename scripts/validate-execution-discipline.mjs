@@ -1,11 +1,13 @@
 import { readFileSync, realpathSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { changedFiles, makeGit, resolveBase } from './lib/diff-scope.mjs';
+import { changedFiles, makeGit, numstat, resolveBase } from './lib/diff-scope.mjs';
 
 // AC-001 / AC-002 (Issue #297): advisory execution-discipline check.
 //   AC-001: behavior files changed but the PR text cites no existing plan,
 //           Task Brief or SDD (AGENTS.md Implementation Planning Rule).
+//   AC-002: diff size against AGENTS.md Change Sizing, and (only when a Task
+//           Brief is cited) changed files outside its `- Write set:`.
 // Always exits 0. Findings print `WARN [AC-00x] ...`; anything that cannot be
 // evaluated prints `NOT EVALUATED: ...` or `INFO: ...`, never a false pass.
 // The rule is originated here (CI step); .githooks/pre-push is a thin caller.
@@ -25,9 +27,15 @@ import { changedFiles, makeGit, resolveBase } from './lib/diff-scope.mjs';
 // as possibly truncated. In both cases a missing reference degrades to
 // NOT EVALUATED instead of a WARN.
 
+// Thresholds mirror AGENTS.md "Change Sizing"; a test pins them to that sentence.
+export const SIZE_ACCEPTABLE = 300;
+export const SIZE_TOO_LARGE = 1000;
+
 export const MAX_LINE_CHARS = 4096;
 export const MAX_FILE_BYTES = 256 * 1024;
 const GITLAB_TRUNCATION_CHARS = 2700;
+const MAX_REPORTED = 20;
+const MAX_PATTERNS = 100;
 
 // Single constant list of non-behavior paths (docs/contracts data files are re-included below).
 const NON_BEHAVIOR = [
@@ -35,10 +43,12 @@ const NON_BEHAVIOR = [
   /(^|\/)package-lock\.json$/, /(^|\/)yarn\.lock$/, /(^|\/)pnpm-lock\.yaml$/, /(^|\/)npm-shrinkwrap\.json$/, /\.lock$/,
 ];
 const CONTRACT_DATA = /^docs\/contracts\/.+\.(yaml|json)$/;
+const SIZE_EXCLUDED = [/^package-lock\.json$/, /^docs\/records\//, /^test\/fixtures\//];
 
 const REF_RE = /(?<![A-Za-z0-9_.\/-])docs\/records\/(implementation-plan|task-brief|sdd)\/([A-Za-z0-9][A-Za-z0-9_-]*)\.md(?![A-Za-z0-9_.\/-])/g;
 
 export const isBehaviorFile = (f) => CONTRACT_DATA.test(f) || !NON_BEHAVIOR.some((re) => re.test(f));
+const sizeCounted = (f) => !SIZE_EXCLUDED.some((re) => re.test(f));
 
 /** Strip control characters (incl. CR/LF, ESC) and cap length for anything printed. */
 export function clean(s) {
@@ -67,6 +77,31 @@ export function scanReferences(body) {
     for (const m of line.matchAll(REF_RE)) refs.add(`docs/records/${m[1]}/${m[2]}.md`);
   }
   return { refs, skippedLines };
+}
+
+/** Convert a repo glob (`*`, `**`) to a RegExp; undefined when unsafe. */
+function globToRegExp(glob) {
+  if (glob.length > 200 || (glob.match(/\*+/g) ?? []).length > 4) return undefined;
+  let g = glob.replace(/^\.\//, '');
+  if (g.endsWith('/')) g += '**';
+  const src = g.split(/(\*\*|\*)/).map((p) => (p === '**' ? '.*' : p === '*' ? '[^/]*' : p.replace(/[.+^${}()|[\]\\?]/g, '\\$&'))).join('');
+  return new RegExp(`^${src}$`);
+}
+
+/** Best-effort parse of `- Write set:`; returns RegExp[] or undefined when missing/unparsable. */
+export function parseWriteSet(text) {
+  const all = text.split('\n');
+  const i = all.findIndex((l) => l.length <= MAX_LINE_CHARS && /^\s*[-*]\s*Write set\s*:/i.test(l));
+  if (i < 0) return undefined;
+  const parts = [all[i].replace(/^\s*[-*]\s*Write set\s*:/i, '')];
+  for (const l of all.slice(i + 1)) {
+    if (l.length > MAX_LINE_CHARS || !/^\s{2,}[-*]\s+/.test(l)) break;
+    parts.push(l.replace(/^\s+[-*]\s+/, ''));
+  }
+  const items = parts.join(',').split(',').map((s) => s.replace(/`/g, '').trim())
+    .filter((s) => /^[A-Za-z0-9_.\/*@+-]+$/.test(s)).slice(0, MAX_PATTERNS);
+  const res = items.map(globToRegExp).filter(Boolean);
+  return res.length > 0 ? res : undefined;
 }
 
 function readCapped(file) {
@@ -117,6 +152,34 @@ export function evaluate({ root = process.cwd(), env = process.env, git = makeGi
   else if (refs.length > 0) add('ok', `[AC-001] PR text cites ${refs.length} existing plan/Task Brief/SDD reference(s)`);
   else if (truncated) add('info', 'NOT EVALUATED: PR description may be truncated by the host');
   else add('warn', `[AC-001] behavior files changed (${behavior.length}) but the PR text cites no existing plan/Task Brief/SDD (AGENTS.md Implementation Planning Rule)`);
+
+  // AC-002 size
+  const size = numstat(git, range.mergeBase).filter((e) => sizeCounted(e.file)).reduce((n, e) => n + e.added + e.deleted, 0);
+  if (size > SIZE_TOO_LARGE) add('warn', `[AC-002] ${size} counted changed lines exceeds ~${SIZE_TOO_LARGE} (too large; must be split, AGENTS.md Change Sizing)`);
+  else if (size > SIZE_ACCEPTABLE) add('warn', `[AC-002] ${size} counted changed lines exceeds ~${SIZE_ACCEPTABLE} (acceptable for one logical change; consider splitting)`);
+  else add('ok', `[AC-002] ${size} counted changed lines within ~${SIZE_ACCEPTABLE}`);
+
+  // AC-002 write set, only when a Task Brief is cited
+  const briefs = refs.filter((r) => r.startsWith('docs/records/task-brief/'));
+  if (briefs.length === 0) {
+    add('info', '[AC-002] no Task Brief cited; write-set comparison skipped (size only)');
+  } else {
+    const patterns = [];
+    for (const brief of briefs) {
+      let set;
+      try {
+        const text = readCapped(path.join(root, brief));
+        set = text === undefined ? undefined : parseWriteSet(text);
+      } catch { set = undefined; }
+      if (set) patterns.push(...set);
+      else add('warn', `[AC-002] write set not parseable; not compared (${brief})`);
+    }
+    if (patterns.length > 0) {
+      const outside = files.filter((f) => !patterns.some((re) => re.test(f)));
+      for (const f of outside.slice(0, MAX_REPORTED)) add('warn', `[AC-002] ${clean(f)} is outside the Task Brief write set`);
+      if (outside.length > MAX_REPORTED) add('warn', `[AC-002] ${outside.length - MAX_REPORTED} more file(s) outside the Task Brief write set`);
+    }
+  }
   return { findings };
 }
 

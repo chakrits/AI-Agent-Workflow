@@ -112,6 +112,85 @@ test('I297-TC-008: symlink escaping the repo does not satisfy AC-001 (realpath c
   assert.match(res.stdout, /WARN \[AC-001\]/);
 });
 
+test('I297-TC-009: more than 300 counted lines warns AC-002 and exits 0', () => {
+  const r = repo();
+  r.write('scripts/big.mjs', lines(350));
+  r.commit();
+  const res = runIt(r, { PR_BODY: PLAN });
+  assert.equal(res.status, 0);
+  assert.match(res.stdout, /WARN \[AC-002\].*~300/);
+  assert.doesNotMatch(res.stdout, /must be split/);
+});
+
+test('I297-TC-009b: more than 1000 counted lines says must be split', () => {
+  const r = repo();
+  r.write('scripts/big.mjs', lines(1100));
+  r.commit();
+  assert.match(runIt(r, { PR_BODY: PLAN }).stdout, /WARN \[AC-002\].*~1000.*must be split/);
+});
+
+test('I297-TC-009c: lines in excluded paths are not counted', () => {
+  const r = repo();
+  r.write('scripts/ok.mjs', lines(10));
+  r.write('package-lock.json', lines(900));
+  r.write('docs/records/big.md', lines(900));
+  r.write('test/fixtures/big.json', lines(900));
+  r.commit();
+  const res = runIt(r, { PR_BODY: PLAN });
+  assert.doesNotMatch(res.stdout, /WARN \[AC-002\]/);
+});
+
+test('I297-TC-009d: thresholds are pinned to the AGENTS.md Change Sizing sentence', async () => {
+  const agents = readFileSync(path.join(ROOT, 'AGENTS.md'), 'utf8');
+  const sentence = agents.split('\n').find((l) => l.includes('is acceptable for a single logical change'));
+  assert.ok(sentence, 'AGENTS.md Change Sizing sentence not found');
+  const acceptable = Number(/~(\d+) is acceptable/.exec(sentence)[1]);
+  const tooLarge = Number(/~(\d+) is too large/.exec(sentence)[1]);
+  const mod = await import(SCRIPT);
+  assert.equal(mod.SIZE_ACCEPTABLE, acceptable);
+  assert.equal(mod.SIZE_TOO_LARGE, tooLarge);
+});
+
+test('I297-TC-010: cited Task Brief write set flags files outside it', () => {
+  const r = repo();
+  r.write('scripts/in.mjs', 'a\n'); r.write('docs/a.md', 'a\n'); r.write('src/out.mjs', 'a\n');
+  r.commit();
+  const res = runIt(r, { PR_BODY: `Brief: ${BRIEF}` });
+  assert.equal(res.status, 0);
+  assert.match(res.stdout, /WARN \[AC-002\] src\/out\.mjs is outside the Task Brief write set/);
+  assert.doesNotMatch(res.stdout, /scripts\/in\.mjs is outside/);
+  assert.doesNotMatch(res.stdout, /docs\/a\.md is outside/);
+});
+
+test('I297-TC-010b: indented bullet write set is parsed', () => {
+  const r = repo();
+  r.write(BRIEF, '- Write set:\n  - `lib/*.mjs`\n  - scripts/x.mjs\n- Out of scope:\n');
+  r.write('lib/a.mjs', 'a\n'); r.write('lib/sub/b.mjs', 'a\n');
+  r.commit();
+  const res = runIt(r, { PR_BODY: BRIEF });
+  assert.doesNotMatch(res.stdout, /lib\/a\.mjs is outside/);
+  assert.match(res.stdout, /lib\/sub\/b\.mjs is outside/);
+});
+
+test('I297-TC-010c: unparsable write set warns explicitly and does not compare', () => {
+  const r = repo();
+  r.write(BRIEF, '# brief\n\n- Write set:\n- Out of scope:\n');
+  r.write('src/out.mjs', 'a\n');
+  r.commit();
+  const res = runIt(r, { PR_BODY: BRIEF });
+  assert.match(res.stdout, /WARN \[AC-002\] write set not parseable; not compared/);
+  assert.doesNotMatch(res.stdout, /is outside the Task Brief write set/);
+});
+
+test('I297-TC-010d: no Task Brief cited skips the write-set comparison with one INFO line', () => {
+  const r = repo();
+  r.write('src/out.mjs', 'a\n');
+  r.commit();
+  const res = runIt(r, { PR_BODY: PLAN });
+  assert.doesNotMatch(res.stdout, /outside the Task Brief write set|write set not parseable/);
+  assert.equal(res.stdout.split('\n').filter((l) => /^INFO:.*Task Brief/.test(l)).length, 1);
+});
+
 test('I297-TC-011: no PR body is NOT EVALUATED for AC-001, not a warning', () => {
   const r = repo();
   r.write('scripts/x.mjs', 'a\n'); r.commit();
@@ -184,6 +263,14 @@ test('I297-TC-015: body text is never echoed; annotations are single-line and sa
   assert.doesNotMatch(res.stdout, /PWNED|::error|set-output/);
   for (const l of res.stdout.split('\n').filter((x) => x.startsWith('::'))) assert.match(l, /^::warning::\[AC-00[12]\] [^\r\x00-\x1f]*$/);
   assert.match(res.stdout, /::warning::\[AC-001\]/);
+});
+
+test('I297-TC-015b: Task Brief content is not echoed beyond sanitized changed-file names', () => {
+  const r = repo();
+  r.write(BRIEF, '- Write set: `a.mjs`, ::error::PWNED\n- Out of scope:\n');
+  r.write('src/out.mjs', 'a\n'); r.commit();
+  const res = runIt(r, { PR_BODY: BRIEF, GITHUB_ACTIONS: 'true' });
+  assert.doesNotMatch(res.stdout, /PWNED/);
 });
 
 test('I297-TC-016: pre-push calls the advisory script before the PR_BODY_FILE early exit', () => {
