@@ -17,6 +17,16 @@ test('mandatory CI, hooks and reset verification never invoke optional skill aud
   for (const file of files) assert.doesNotMatch(read(file), optionalInvocation, file);
 });
 
+test('live metrics and worktree diagnostics stay opt-in outside informational hooks', () => {
+  const automaticCi = `${read('.github/workflows/validate-contracts.yml')}\n${read('.gitlab-ci.yml')}`;
+  assert.doesNotMatch(automaticCi, /npm run (?:validate:metrics|housekeeping:worktrees)/);
+  assert.doesNotMatch(read('scripts/verify-reset-template.mjs'), /validate:metrics/);
+  const { scripts } = JSON.parse(read('package.json'));
+  assert.equal(scripts['validate:metrics'], 'node scripts/validate-metrics.mjs');
+  assert.equal(scripts['housekeeping:worktrees'], 'node scripts/housekeeping-worktrees.mjs');
+  assert.match(read('.githooks/post-merge'), /housekeeping:worktrees.*\|\| true/);
+});
+
 test('npm exposes truthful manual audits, not automatic skill validator aliases', () => {
   const { scripts } = JSON.parse(read('package.json'));
   assert.equal(scripts['audit:skills'], 'node scripts/validate-skill-catalog.mjs && node scripts/validate-skill-parity.mjs');

@@ -1,6 +1,6 @@
 # Framework Metrics Dashboard
 
-The dashboard is a compatibility projection captured by `scripts/validate-metrics.mjs` and surfaced in CI via `npm run validate:metrics`. Structured evidence defined by the IMP-001 measurement specification is the future authority; TASK_LOG parsing remains historical until that evidence exists.
+The dashboard is a compatibility projection captured by `scripts/validate-metrics.mjs` and generated on demand with `npm run validate:metrics`. It is descriptive historical information, not merge-readiness evidence. Structured evidence defined by the IMP-001 measurement specification is the future authority; TASK_LOG parsing remains historical until that evidence exists.
 
 ## How to regenerate
 
@@ -8,7 +8,7 @@ The dashboard is a compatibility projection captured by `scripts/validate-metric
 npm run validate:metrics
 ```
 
-The script reads `TASK_LOG.md`, `package.json`, `test/`, `DECISIONS.md`, `RISKS.md`, `docs/contracts/`, and `.agents/skills/` and prints a framework health dashboard. No side effects; safe to run locally and in CI.
+The script reads `TASK_LOG.md`, `package.json`, `test/`, `DECISIONS.md`, `RISKS.md`, `docs/contracts/`, and `.agents/skills/` and prints a framework health dashboard. No side effects; run it manually when a trend snapshot is useful.
 
 ## Historical baseline (2026-07-25)
 
@@ -51,9 +51,8 @@ The snapshot is historical compatibility evidence. It must not be used as author
 - **Contracts = 8**: one machine-checkable contract per workflow type (Bug Fix, New Feature, Config, Data, API Contract, Release, Hotfix, Documentation). Two exist today; the remaining six are prioritized by the project roadmap.
 - **Track trend** items have no hard ceiling; the dashboard exists to surface drift, not to gate a pass/fail.
 
-## CI integration
+## CI status
 
-- **GitHub Actions**: `.github/workflows/validate-contracts.yml` runs `npm run validate:metrics` after the other validators.
-- **GitLab CI**: `.gitlab-ci.yml` runs `validate_metrics` as a separate `validate`-stage job.
+Metrics are not an automatic CI or reset gate. Unit tests for the parser and its fixture behavior remain part of the project test suite.
 
 The script exits 0 unconditionally today (dashboard is informational); a future iteration may introduce thresholds that fail CI.

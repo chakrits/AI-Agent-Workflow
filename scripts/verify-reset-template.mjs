@@ -14,7 +14,7 @@ const VERIFY_COMMANDS = [
   ['npm', ['run', 'validate:project-state']],
   ['npm', ['run', 'adr:audit']], ['npm', ['run', 'validate:risk-register']],
   ['npm', ['run', 'validate:review-gate']],
-  ['npm', ['run', 'validate:metrics']], ['npm', ['run', 'validate:context-budget']],
+  ['npm', ['run', 'validate:context-budget']],
   ['git', ['diff', '--check']]
 ];
 

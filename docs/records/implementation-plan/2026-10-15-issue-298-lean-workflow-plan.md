@@ -97,10 +97,10 @@ Paths ต้องรวมทั้ง old/new names ของ rename และ
 
 **Consumes:** baseline source/run samples. **Produces:** approved disposition และ mapping ของ light/governed/executable/unknown changes ให้ A2–A4
 
-- [ ] List every direct/indirect automatic caller, enforced/diagnostic status, owner, defect class และ relevant changed paths
-- [ ] ตรวจ samples: ordinary doc, optional skill, state/parser change, CI policy change; แยก genuine defect, paperwork-only blocker และ unknown
-- [ ] ให้ maintainer ยืนยันรายการย้ายเป็น diagnostic กับ protected paths; หากยังไม่อนุมัติให้คง caller เดิม
-- [ ] Commit เฉพาะ inventory/decision notes: `docs: record validation applicability for issue 298`
+- [x] List every direct/indirect automatic caller, enforced/diagnostic status, owner, defect class และ relevant changed paths
+- [x] ตรวจ samples: ordinary doc, optional skill, state/parser change, CI policy change; แยก genuine defect, paperwork-only blocker และ unknown
+- [x] ผู้ใช้อนุมัติ Track A/B plan แล้ว; ยืนยันย้ายเฉพาะ `validate:metrics` และ `housekeeping:worktrees` live audits; protected/correctness paths ยังคง governed
+- [x] Commit inventory/decision notes ใน `e84643e`: `docs: record issue 298 validation inventory`
 
 **Verification:** inventory มีทั้ง hooks/GitHub/GitLab/default tests/reset; ไม่มี pending disposition ถูกนับเป็น approved removal ไม่มี TDD เพราะยังไม่แก้ behavior
 
@@ -110,13 +110,13 @@ Paths ต้องรวมทั้ง old/new names ของ rename และ
 
 **Consumes:** A1 approved diagnostic list. **Produces:** commands เดิมที่เรียกเองได้ โดย live audit ไม่เป็น automatic merge blocker
 
-- [ ] เพิ่ม failing caller test ใน `test/skill-decoupling-contract.test.mjs` สำหรับ metric/worktree live audit ตาม approved list; fixture unit tests ต้องยังอยู่
-- [ ] Run `node --test test/skill-decoupling-contract.test.mjs test/hook-containment.test.mjs`; expected FAIL เพราะยังมี automatic caller ที่กำหนด
-- [ ] แก้เฉพาะ callers/config/docs ให้ diagnostic opt-in และรักษา isolated unit tests ของ tool
-- [ ] Run focused tests เดิม; expected exit 0 ตรวจ manual diagnostic ทั้ง valid/invalid fixture และผลจริงไม่ถูกกลบ
-- [ ] Commit: `chore: separate approved diagnostics from automatic validation`
+- [x] เพิ่ม caller regression test ใน `test/skill-decoupling-contract.test.mjs`; fixture unit tests คงอยู่
+- [x] RED: `node --test test/skill-decoupling-contract.test.mjs` ล้มตามคาดเมื่อยังพบ CI callers
+- [x] ย้าย live diagnostics ออกจาก GitHub/GitLab CI และ reset verification; คง commands/manual docs, post-merge informational hook และ isolated unit tests
+- [x] GREEN: focused contract test 6/6, `validate:ci-parity`, `validate:contracts`, `npm test` 784/784, metrics command และ isolated housekeeping valid/stale-branch dry-run fixtures ผ่าน; invalid fixture แสดง exit 1 จริงโดยไม่มี deletion
+- [x] Commit: `chore: separate approved diagnostics from automatic validation`
 
-Checkpoint: ทดสอบ known invalid contract/evidence ด้วย retained suites แล้วต้องถูกปฏิเสธ; ห้ามใช้ green diagnostics แทน correctness evidence
+Checkpoint: retained contract/evidence suites still reject invalid inputs; a green descriptive diagnostic is not correctness evidence. Worktree CLI validation used a disposable local bare-remote fixture because the real command performs `git fetch --prune` on the caller repository.
 
 ## Task A3: ให้ full suite มี owner เดียว
 
