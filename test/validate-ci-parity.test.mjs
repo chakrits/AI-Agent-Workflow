@@ -3,6 +3,8 @@ import test from 'node:test';
 import { mkdtempSync, rmSync, mkdirSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
+import { readFileSync } from 'node:fs';
+import { parse } from 'yaml';
 import {
   githubJobCommands,
   findMissingFromGitlab,
@@ -17,6 +19,30 @@ function makeRepo({ github, gitlab }) {
   writeFileSync(path.join(root, '.gitlab-ci.yml'), gitlab);
   return root;
 }
+
+test('PR full-suite ownership is singular and event rules avoid duplicate candidate pipelines', () => {
+  const readYaml = (file) => parse(readFileSync(file, 'utf8'));
+  const github = readYaml('.github/workflows/validate-contracts.yml');
+  const runtime = readYaml('.github/workflows/status-runtime-matrix.yml');
+  const gitlab = readYaml('.gitlab-ci.yml');
+
+  assert.deepEqual(github.on.push.branches, ['main']);
+  assert.ok(Object.hasOwn(github.on, 'pull_request'), 'PR candidates must retain the validate job');
+  assert.equal(github.concurrency['cancel-in-progress'], true);
+  assert.equal(github.jobs.validate.steps.filter((step) => step.run === 'npm test').length, 1);
+  assert.deepEqual(github.jobs.validate.permissions, {
+    contents: 'read', issues: 'read', 'pull-requests': 'read'
+  });
+  assert.equal(github.jobs.validate.steps.some((step) => /write-token|contents: write/.test(JSON.stringify(step))), false);
+  assert.equal(runtime.jobs['node-status'].steps.some((step) => step.run === 'npm test'), false);
+  assert.ok(runtime.jobs['node-status'].steps.some((step) => step.run === 'node --test test/status-loader.test.mjs'));
+  assert.ok(runtime.jobs['python-jcs-reference'].steps.some((step) => step.run?.includes('test_status_jcs_reference.py')));
+
+  assert.equal(gitlab.workflow.rules[0].if, '$CI_PIPELINE_SOURCE == "merge_request_event"');
+  assert.equal(gitlab.workflow.rules[1].if, '$CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS');
+  assert.equal(gitlab.workflow.rules[1].when, 'never');
+  assert.equal(gitlab.workflow.rules[2].if, '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH');
+});
 
 const GH = `name: v
 jobs:

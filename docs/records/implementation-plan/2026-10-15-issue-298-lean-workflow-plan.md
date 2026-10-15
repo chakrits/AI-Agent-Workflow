@@ -124,11 +124,11 @@ Checkpoint: retained contract/evidence suites still reject invalid inputs; a gre
 
 **Consumes:** A1 event policy + A2 callers. **Produces:** PR heavy run หนึ่งเจ้าของ; default-branch audit เป็นอีก candidate ที่บันทึกแยก
 
-- [ ] เพิ่ม workflow-fixture tests ใน `test/validate-ci-parity.test.mjs`: PR main owns full suite; runtime job มีเพียง focused status/JCS suites; default-branch push ไม่ซ้ำ feature-branch heavy lane
-- [ ] Run `node --test test/validate-ci-parity.test.mjs`; expected FAIL ที่ duplicate ownership/event policy
-- [ ] ปรับ triggers/jobs/concurrency ให้ตรง fixtures; keep required `work-item-readiness-freshness`; testing jobs ใช้ read-only permissions และไม่รัน PR code ผ่าน write-token workflow
-- [ ] Run focused tests + `npm run validate:ci-parity`; expected exit 0 ตรวจ hosted sample candidate/event/commands โดยไม่บวก parallel job time เป็น user latency
-- [ ] Commit: `ci: remove duplicate full-suite execution`
+- [x] เพิ่ม workflow-fixture tests ใน `test/validate-ci-parity.test.mjs`: PR main owns full suite; runtime job มีเพียง focused status/JCS suites; default-branch push ไม่ซ้ำ feature-branch heavy lane
+- [x] RED: workflow fixture ล้มก่อนแก้เพราะ GitHub push trigger ยังไม่มี branch scope
+- [x] จำกัด GitHub push เป็น `main`, เก็บ PR job id `validate`, ใช้ concurrency cancel สำหรับ candidate เก่า, permissions เป็น read-only และเอา full suite ซ้ำจาก runtime matrix; GitLab เลือก MR ก่อน branch pipeline เมื่อมี MR; ไม่มีการแก้ branch rules หรือ required-check identity
+- [x] GREEN: focused workflow/runtime/contract tests 93/93, `validate:ci-parity`, `validate:contracts`, full suite 785/785 และ diff check ผ่าน. Hosted sample เลื่อนไปตรวจพร้อม A4 บน final PR candidate เพื่อไม่รัน CI ซ้ำบน workflow surface เดียวกัน
+- [x] Commit: `ci: remove duplicate full-suite execution`
 
 ## Task A4: เลือก checks ตาม affected scope
 
@@ -151,6 +151,8 @@ assert.equal(selectValidationChecks({ changedPaths: [], comparisonComplete: fals
 - [ ] Implement pure helper ตาม mapping และต่อเข้าทั้งสอง host จาก trusted changed-path data; empty complete diff คืน no applicable work แต่ incomplete diff เลือก conservative core checks
 - [ ] Run new test + parity/caller suites; expected exit 0 รัน `npm test` หนึ่งครั้งที่ candidate สุดท้ายของ slice และ `git diff --check`
 - [ ] ตรวจ hosted docs/skill/core/unknown scenarios ว่า applicable failures fail จริงและ required context ไม่ค้าง; commit `ci: select validation by affected framework scope`
+
+Ruling: ตรวจ hosted event/run candidate ครั้งเดียวหลัง A4 รวม workflow changes เสร็จ เพราะ A4 แก้ caller ชุดเดียวกัน; การรัน A3 แยก PR ก่อนหน้านั้นจะเป็น duplicate CI ที่ไม่เพิ่มหลักฐานของ final candidate.
 
 ## 4. Acceptance / measurement
 

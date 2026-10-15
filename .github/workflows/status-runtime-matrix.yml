@@ -24,8 +24,6 @@ jobs:
         run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Run focused status tests
         run: node --test test/status-loader.test.mjs
-      - name: Run full test suite
-        run: npm test
 
   python-jcs-reference:
     name: Python 3.12 JCS reference (Ubuntu)
