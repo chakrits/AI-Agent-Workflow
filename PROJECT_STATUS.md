@@ -1,7 +1,7 @@
 # PROJECT_STATUS.md
 
 ## Current Work Item
-- Idle — Issue #294 implementation merged via PR #295; default-branch tests/audit passed. Documentation closeout pending integration. #284 remains separate; SEC-004 remains `DEFERRED_BY_HUMAN` under ADR-0033.
+- Issue #298 — lean validation and single-agent-first assessment/plan drafted on `codex/lean-validation-single-agent`; awaiting Human review of proposed direction. Planning documents only; no implementation or enforcement changes. #297 remains separate.
 
 ## Active Work Items
 <!-- active-work-items-table-start -->
@@ -12,14 +12,15 @@
 <!-- active-work-items-table-end -->
 
 ## Planned Framework Work
+- Issue #298 — proposed lean validation and single-executor workflow; plan: `docs/records/implementation-plan/2026-10-15-issue-298-lean-workflow-plan.md`; work item: `docs/records/work-items/2026-10-15-issue-298.md`. Next owner: Human Maintainer to review before implementation.
 - Issue #294 — implementation complete via PR #295; final documentation closeout pending. Work item and historical handoff retain premerge snapshots; current merge/default-branch evidence is in the post-merge closeout record and Issue matrix.
 - Issue #280 — GPT-6 Astra instruction, skill, and autonomy modernization — #281 is complete through PR #285; #282 is complete through PR #287; #283 is complete through PR #289; #284 remains planned independently. Parent SDD and ADR-0034 are Human-approved. Issue #290 is a separate CI defect repair and does not change the modernization scope.
 
 ## Current Stage
-- Idle / documentation closeout — PR #295 merged as `24cb8f5744c18be114cdd692dfbb62b237ded0fa`. Exact-main contracts783/783 and project-state audit passed; AC11 default-branch evidence available. Closeout PR requires Human review/merge before Issue #294 closure and automatic source-label removal. No native activation claim; #284 unaffected.
+- Planning / proposal review — Issue #298 has evidence-backed validation disposition, agent execution policy proposal, five implementation slices and measurable acceptance criteria. No specification approval, QA verdict, merge or release claim.
 
 ## Change Classification
-- Issue #294 is a Medium-risk framework/meta change; implementation changes tests/discovery/core policy and its current SHA pins. Final implementation requires independent QA and targeted Security Reviewer review of retained validation boundaries. Generic Issue/PR readiness remains outside scope.
+- Issue #298 is a Framework/Meta improvement; future enforcement changes are Medium risk and require independent review of retained correctness/security/human boundaries. This slice is documentation-only assessment and planning.
 
 ## Completed
 - Issue #294 — **implementation merged via PR #295** (`24cb8f5744c18be114cdd692dfbb62b237ded0fa`): optional skill/work-instruction libraries decoupled from mandatory CI, core source pins and budgets; manual audits retained, core/security/readiness enforced. Independent contributor27/27,488 commands, negatives193/193 and rollback808/808. Exact-main CI783/783 passed: https://github.com/chakrits/AI-Agent-Workflow/actions/runs/38134960733; state audit passed: https://github.com/chakrits/AI-Agent-Workflow/actions/runs/38134960726. Documentation closeout/Issue closure pending closeout merge; native activation unavailable, #284 remains independent.
