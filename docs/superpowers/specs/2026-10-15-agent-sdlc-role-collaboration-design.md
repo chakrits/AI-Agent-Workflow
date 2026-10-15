@@ -4,7 +4,7 @@
 
 Issue: [#298](https://github.com/chakrits/AI-Agent-Workflow/issues/298)
 
-สถานะ: ผู้ใช้ยืนยันทิศทางในบทสนทนาแล้ว; written design/implementation details รอ review ก่อน execution
+สถานะ: ผู้ใช้อนุมัติ written design และ Track A/B plans วันที่ 15 ตุลาคม 2026; implementation ดำเนินการตาม scope และ gates ในแผน
 
 ## 1. Intent และขอบเขต
 
@@ -82,7 +82,7 @@ Direction accepted by user on 2026-10-15: คง Agent SDLC + role ownership + s
 
 Superseded proposal: single-agent-first default และ benchmark ที่ใช้จำนวน agents เป็นเป้าหมายของทั้ง framework ทางเลือก universal executor ไม่ตรง intent; ทางเลือกบังคับทุก role spawn ทุกงานคง overhead เดิม จึงเลือก task/risk-based collaboration การตัดสินใจนี้เป็น design record ของข้อเสนอ ไม่แก้ accepted ADR หรือ runtime policy ที่มีอยู่
 
-Written implementation details, check-by-check removals, security/branch-protection changes และ live runtime activation ยังไม่อนุมัติ ต้อง review หลักฐานและเงื่อนไขของ slice นั้นก่อนใช้
+อนุมัติ implementation ตาม dispositions และ acceptance criteria ในแผนแล้ว; การเปลี่ยน branch protection/required-check identity และ live runtime activation ยังอยู่นอก scope และต้องมีการตัดสินใจแยก
 
 ## 10. Traceability
 

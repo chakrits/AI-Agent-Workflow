@@ -10,7 +10,7 @@
 
 **Spec:** [Design v2](../../superpowers/specs/2026-10-15-agent-sdlc-role-collaboration-design.md) · [Roadmap](../../../ROADMAP-SDLC-FRAMEWORK.md) · [Issue #298](https://github.com/chakrits/AI-Agent-Workflow/issues/298)
 
-Revision 2 — 15 ตุลาคม 2026. Direction accepted; written implementation details/dispositions pending review. Branch name `codex/lean-validation-single-agent` เป็นชื่อเดิม ไม่ใช่ single-agent-first policy
+Revision 2 — 15 ตุลาคม 2026. Written plan approved by user on 2026-10-15; implementation authorized within listed scope/gates. Branch name `codex/lean-validation-single-agent` เป็นชื่อเดิม ไม่ใช่ single-agent-first policy
 
 ## Global Constraints
 
@@ -58,6 +58,26 @@ Ruleset observation วันที่ 15 ตุลาคม: `Protect main` ID 
 | #297 advisory checks | Coordinate separately | ถ้า merge ระหว่างงาน ให้ reconcile callers ไม่เพิ่ม serial gates |
 
 การมี cost/benefit ยังไม่ทราบให้ระบุ unknown ไม่ตัด check ด้วยเหตุว่าไม่มี web/DB
+
+### A1 inventory and approved disposition — 15 ตุลาคม 2026
+
+ผู้ใช้อนุมัติ roadmap และ implementation plan ทั้งสอง track ในบทสนทนา 15 ตุลาคม 2026 และสั่งให้ดำเนินงานต่อ รายการนี้เป็น disposition สำหรับ Track A ตามแผน; ไม่เปลี่ยน branch protection หรือสิทธิ token
+
+| Caller / trigger | สิ่งที่ทำและชั้น enforcement | เจ้าของ / defect class | Disposition |
+|---|---|---|---|
+| `.github/workflows/validate-contracts.yml` — `push` + `pull_request` | `npm test` กับ 13 validators; run เดียวกันอาจเกิดทั้ง push และ PR สำหรับ SHA เดียว | Framework/Orchestrator; behavior, contract, evidence, policy integrity | Keep applicable checks; A3 จำกัด push เป็น default branch ส่วน PR candidate ใช้ PR event; A4 เลือกตาม paths |
+| `.github/workflows/status-runtime-matrix.yml` — `pull_request` | Node status test + `npm test` + independent Python JCS tests | QA; status/JCS correctness | Keep Node focused status test และ Python JCS tests; เอา `npm test` ซ้ำออกเมื่อ main workflow เป็น full-suite owner |
+| `.gitlab-ci.yml` — push + merge request | Full `npm test`/contracts job และ validators แยก job; push กับ MR อาจสร้าง candidate ซ้ำ | Framework/Orchestrator; correctness และ policy | Keep applicable evidence; A3 ให้ MR pipeline ชนะและเปิด branch pipeline เมื่อไม่มี MR; A4 เลือก checks จาก diff |
+| GitHub/GitLab live `validate:metrics` | อ่าน TASK_LOG เพื่อสร้าง trend projection; ไม่พิสูจน์ behavior ของ candidate | Documentation/PM; descriptive trend only | Approved diagnostic: เอาออกจาก automatic CI และ reset verification; เก็บ command, docs และ fixture unit tests ให้เรียกตามต้องการ |
+| GitHub/GitLab `housekeeping:worktrees` | ตรวจ worktree ปัจจุบันของ runner; มีผลต่างตาม ephemeral checkout/credentials | Developer/Release; local workspace hygiene | Approved diagnostic: เอาออกจาก automatic CI; เก็บ manual audit และ unit tests; `.githooks/post-merge` เป็น informational `|| true` จึงคงไว้ |
+| `scripts/verify-reset-template.mjs` | reset integration ใช้ชุดตรวจ candidate ชั่วคราว รวม metrics; test suite ปัจจุบันใช้ simulated reset และ `skipVerification` | Developer; reset integrity | เอา metrics diagnostic ออกจากชุด verification; คง behavior/state/contract checks ที่เกี่ยวข้องและ `git diff --check` |
+| `.githooks/pre-push`, `.claude/settings.json` | PR readiness ทำงานเมื่อมี body/ก่อน `gh pr create`; edit guard เลือกเฉพาะ path; receipt hook เป็น advisory `|| true` | Orchestrator/Documentation; PR completeness, scoped integrity, receipt evidence | Keep as scoped/advisory behavior; ไม่เพิ่ม push-wide gate |
+| `test/validate-metrics.test.mjs`, `test/housekeeping-worktrees.test.mjs` | ตรวจ parser/classifier/prune logic ด้วย fixture/temp repo | Developer/QA; tool correctness | Keep in `npm test`; ไม่ใช่ live audits และไม่ตัดออก |
+| `scripts/verify-skill-decoupling.mjs` | harness สำหรับ manual candidate experiment; ไม่มี package/CI/hook caller; `npm test` ทดสอบ harness functions | Developer/QA; experiment integrity | Keep manual; ไม่เพิ่มเป็น default gate |
+| `validate:project-state`, `validate:status-projection`, `validate:contracts`, dispatch/workflow evidence, adapter parity, ADR/risk/review/clearable refs, context budget, CI parity | ตรวจ state, contract, provenance, policy หรือ cross-host consistency | Role owner ตาม artifact; correctness/trust/policy integrity | Keep; A4 จำกัดตาม dependency เมื่อ diff complete; unknown/core changes ใช้ conservative checks |
+| `validate:context-compatibility` | เรียกใน manual skill-decoupling harness; ไม่เป็น direct CI command | Developer; context contract integrity | Keep integrity suite เมื่อ context source/contract เปลี่ยน; ไม่เรียกสำหรับทุก docs-only candidate |
+
+หลักฐาน inventory มาจาก caller search ใน package/workflows/hooks/settings/tests/scripts และการอ่านแต่ละ entry point ที่ HEAD `c2a14fe`; ไม่ได้วัด CI population, median latency, token cost หรือ queue time จึงยังไม่มีข้อสรุปเชิงสถิติ
 
 ## 3. File responsibilities / interfaces
 

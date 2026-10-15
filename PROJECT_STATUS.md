@@ -1,7 +1,7 @@
 # PROJECT_STATUS.md
 
 ## Current Work Item
-- Issue #298 — Agent SDLC role-owned collaboration and proportional validation roadmap/plans revised on `codex/lean-validation-single-agent`; user confirmed revised direction; written details awaiting Human review. Planning documents only; no implementation or enforcement changes. #297 remains separate.
+- Issue #298 — user approved revised Agent SDLC design and Track A/B plans; implementation underway on `codex/lean-validation-single-agent`. A1 approved diagnostics: live metrics and worktree audits only; core correctness/policy/evidence checks remain. #297 remains separate.
 
 ## Active Work Items
 <!-- active-work-items-table-start -->
@@ -17,10 +17,10 @@
 - Issue #280 — GPT-6 Astra instruction, skill, and autonomy modernization — #281 is complete through PR #285; #282 is complete through PR #287; #283 is complete through PR #289; #284 remains planned independently. Parent SDD and ADR-0034 are Human-approved. Issue #290 is a separate CI defect repair and does not change the modernization scope.
 
 ## Current Stage
-- Planning / proposal review — Issue #298 v2 preserves 11 roles, skills, targeted specialists, shared business context and independent verification; separate Track A/B plans and roadmap are drafted. Direction accepted; written details pending review. No written-spec approval, implementation QA verdict, merge or release claim.
+- Implementation — Issue #298 v2 preserves 11 roles, skills, targeted specialists, shared business context and independent verification. Written plans approved; Track A inventory complete and A2–A4 are in progress. Independent QA/security review and human merge approval remain required.
 
 ## Change Classification
-- Issue #298 is a Framework/Meta improvement; future enforcement changes are Medium risk and require independent review of retained correctness/security/human boundaries. This slice is documentation-only assessment and planning.
+- Issue #298 is a Framework/Meta improvement with Medium risk. CI/policy/role changes require independent review; branch protection, required-check identity and connected runtime remain outside this authorization.
 
 ## Completed
 - Issue #294 — **implementation merged via PR #295** (`24cb8f5744c18be114cdd692dfbb62b237ded0fa`): optional skill/work-instruction libraries decoupled from mandatory CI, core source pins and budgets; manual audits retained, core/security/readiness enforced. Independent contributor27/27,488 commands, negatives193/193 and rollback808/808. Exact-main CI783/783 passed: https://github.com/chakrits/AI-Agent-Workflow/actions/runs/38134960733; state audit passed: https://github.com/chakrits/AI-Agent-Workflow/actions/runs/38134960726. Documentation closeout/Issue closure pending closeout merge; native activation unavailable, #284 remains independent.

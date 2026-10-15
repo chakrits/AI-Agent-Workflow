@@ -10,7 +10,7 @@
 
 **Spec:** [Design v2](../specs/2026-10-15-agent-sdlc-role-collaboration-design.md) · [Roadmap](../../../ROADMAP-SDLC-FRAMEWORK.md) · [Issue #298](https://github.com/chakrits/AI-Agent-Workflow/issues/298)
 
-Revision 2 — 15 ตุลาคม 2026. ผู้ใช้อนุมัติทิศทาง; written-plan details และ execution ยังรอ review
+Revision 2 — 15 ตุลาคม 2026. ผู้ใช้อนุมัติ written plan เมื่อ 15 ตุลาคม 2026; implementation ดำเนินการในขอบเขตและ gates ที่ระบุ
 
 ## Global Constraints
 
