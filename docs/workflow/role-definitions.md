@@ -8,6 +8,8 @@ All skill references in these roles, role contexts, and platform adapters are co
 
 Coordinates routing, reads project state, classifies work, selects the minimum safe workflow, checks quality gates, and updates state. Does not normally implement feature code.
 
+Task ownership and collaboration modes are defined in [Dynamic Routing Policy](dynamic-routing.md#accountable-role-and-collaboration-modes). Keep one accountable role for each work item; use its skills within scope, consult specialists for bounded expertise, and invoke specialists only when bounded expertise, a specialist deliverable, or independent identity requires it.
+
 ### Unclassified Request Rule
 
 Every incoming request must match one of the change types defined in the Dynamic Routing Rules section of `AGENTS.md`. When a request matches none of them, classify it as `Unclassified`, do not guess a route, and escalate to Human with a proposed new routing rule for review. Record the escalation and its outcome in `TASK_LOG.md`.

@@ -50,10 +50,10 @@ Revision 2 — 15 ตุลาคม 2026. ผู้ใช้อนุมัต�
 
 **Consumes:** approved design v2. **Produces:** decision table และ existing packet fields ที่ระบุ role/scope/output ได้โดยไม่เพิ่ม mandatory dispatch schema
 
-- [ ] บันทึก golden oracle ก่อนแก้ guidance: simple BA refinement → BA+skills; SA integration question → SA consultation; bounded DB deliverable → Data delivery; state/auth change → independent verifier
-- [ ] Dry-run canonical guidance ปัจจุบันกับ cases และบันทึก ambiguous/conflicting rules ที่ต้องแก้; ไม่สร้าง automated tests ที่แค่ตรวจคำใหม่อยู่ใน Markdown
-- [ ] ปรับ rule owner ให้ระบุ accountable task role, skill use ภายในขอบเขต และ specialist trigger; คง Orchestrator coordination responsibility
-- [ ] Clarify ว่า explicit role transition ใน session เดิมทำได้เฉพาะเมื่อไม่ชน authority/independence; actual child dispatch ใช้ existing contract; no child → ไม่มี fabricated receipt
+- [x] บันทึก golden oracle ก่อนแก้ guidance: simple BA refinement → BA+skills; SA integration question → SA consultation; bounded DB deliverable → Data delivery; state/auth change → independent verifier
+- [x] Dry-run canonical guidance ก่อนแก้: BA ใช้ skill และ owner ยังเป็น BA แต่เดิมไม่มี no-spawn rule; SA ระบุ integration ownership ได้แต่ไม่มี specialist trigger/consult output; Data เป็น route สำหรับ DB change แต่ยังไม่มี bounded-delivery acceptance; Security/QA เป็น gates แต่ persona-switch independence ยังไม่ชัด
+- [x] ปรับ canonical routing/role/operating/handoff guidance ให้ระบุ accountable task role, skill use ภายในขอบเขต และ specialist trigger; คง Orchestrator coordination responsibility
+- [x] ระบุว่า role perspective ใน session เดิมใช้สร้าง artifact ได้แต่ห้าม self-approve/อ้าง independent review; child dispatch ใช้ contract เดิม และไม่มี child ก็ไม่มี receipt
 - [ ] ให้ reviewer ตรวจ cases unavailable/conflicting owners/self-approval และตรวจ core adapter/context compatibility ตาม files ที่เปลี่ยน
 - [ ] Commit `docs: clarify role-owned specialist collaboration`
 
