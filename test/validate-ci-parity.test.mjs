@@ -29,11 +29,13 @@ test('PR full-suite ownership is singular and event rules avoid duplicate candid
   assert.deepEqual(github.on.push.branches, ['main']);
   assert.ok(Object.hasOwn(github.on, 'pull_request'), 'PR candidates must retain the validate job');
   assert.equal(github.concurrency['cancel-in-progress'], true);
-  assert.equal(github.jobs.validate.steps.filter((step) => step.run === 'npm test').length, 1);
+  assert.ok(github.jobs.validate.steps.some((step) => step.run === 'node scripts/run-scoped-validations.mjs'));
+  assert.equal(github.jobs.validate.steps.filter((step) => step.run === 'npm test').length, 0);
   assert.deepEqual(github.jobs.validate.permissions, {
     contents: 'read', issues: 'read', 'pull-requests': 'read'
   });
   assert.equal(github.jobs.validate.steps.some((step) => /write-token|contents: write/.test(JSON.stringify(step))), false);
+  assert.deepEqual(runtime.on.pull_request.paths.includes('test/compile-status-projection.test.mjs'), true);
   assert.equal(runtime.jobs['node-status'].steps.some((step) => step.run === 'npm test'), false);
   assert.ok(runtime.jobs['node-status'].steps.some((step) => step.run === 'node --test test/status-loader.test.mjs'));
   assert.ok(runtime.jobs['python-jcs-reference'].steps.some((step) => step.run?.includes('test_status_jcs_reference.py')));

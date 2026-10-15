@@ -1,7 +1,7 @@
 # PROJECT_STATUS.md
 
 ## Current Work Item
-- Issue #298 — user approved revised Agent SDLC design and Track A/B plans; implementation underway on `codex/lean-validation-single-agent`. A1 disposition and A2 diagnostic cleanup are complete; live metrics/worktree audits are manual, with correctness/policy/evidence checks retained. A3 event ownership is implemented; hosted final-candidate evidence follows A4, which is next. #297 remains separate.
+- Issue #298 — user approved revised Agent SDLC design and Track A/B plans; implementation underway on `codex/lean-validation-single-agent`. A1 disposition and A2 diagnostic cleanup are complete; live metrics/worktree audits are manual, with correctness/policy/evidence checks retained. A3 event ownership and A4 affected-path selection are implemented; local full suite passes 798/798. Hosted final-candidate evidence follows Track B integration. #297 remains separate.
 
 ## Active Work Items
 <!-- active-work-items-table-start -->
@@ -12,12 +12,12 @@
 <!-- active-work-items-table-end -->
 
 ## Planned Framework Work
-- Issue #298 — revised role/skill/specialist collaboration plus separate validation workstream; plan: `docs/records/implementation-plan/2026-10-15-issue-298-lean-workflow-plan.md`; work item: `docs/records/work-items/2026-10-15-issue-298.md`. Next owner: Human Maintainer to review before implementation.
+- Issue #298 — revised role/skill/specialist collaboration plus separate validation workstream; plan: `docs/records/implementation-plan/2026-10-15-issue-298-lean-workflow-plan.md`; work item: `docs/records/work-items/2026-10-15-issue-298.md`. Next owner: Framework/Documentation Agent for Track B; independent QA/Security review follows integrated candidate.
 - Issue #294 — implementation complete via PR #295; final documentation closeout pending. Work item and historical handoff retain premerge snapshots; current merge/default-branch evidence is in the post-merge closeout record and Issue matrix.
 - Issue #280 — GPT-6 Astra instruction, skill, and autonomy modernization — #281 is complete through PR #285; #282 is complete through PR #287; #283 is complete through PR #289; #284 remains planned independently. Parent SDD and ADR-0034 are Human-approved. Issue #290 is a separate CI defect repair and does not change the modernization scope.
 
 ## Current Stage
-- Implementation — Issue #298 v2 preserves 11 roles, skills, targeted specialists, shared business context and independent verification. Written plans approved; Track A inventory and A2 diagnostic cleanup complete; A3 event ownership is implemented; final hosted evidence follows A4 path selection. Independent QA/security review and human merge approval remain required.
+- Implementation — Issue #298 v2 preserves 11 roles, skills, targeted specialists, shared business context and independent verification. Written plans approved; Track A inventory and A2 diagnostic cleanup complete; A3 event ownership and A4 path selection are implemented; full suite passes 798/798. Hosted final candidate and independent QA/security review remain required before human merge approval.
 
 ## Change Classification
 - Issue #298 is a Framework/Meta improvement with Medium risk. CI/policy/role changes require independent review; branch protection, required-check identity and connected runtime remain outside this authorization.

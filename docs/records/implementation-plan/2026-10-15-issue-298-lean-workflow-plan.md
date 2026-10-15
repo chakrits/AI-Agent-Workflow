@@ -136,7 +136,7 @@ Checkpoint: retained contract/evidence suites still reject invalid inputs; a gre
 
 **Consumes:** A1 mapping, A3 single full-suite owner. **Produces:** deterministic selection ที่ testing jobs ใช้ร่วมกัน ไม่มี new required-check identity
 
-- [ ] เขียน failing tests ของ `selectValidationChecks` พร้อม assertions ขั้นต่ำ:
+- [x] เขียน failing tests ของ `selectValidationChecks` พร้อม assertions ขั้นต่ำ:
 
 ```js
 assert.equal(selectValidationChecks({ changedPaths: ['docs/guide.md'], comparisonComplete: true }).fullSuite, false);
@@ -146,17 +146,18 @@ assert.equal(selectValidationChecks({ changedPaths: ['AGENTS.md'], comparisonCom
 assert.equal(selectValidationChecks({ changedPaths: [], comparisonComplete: false }).fullSuite, true);
 ```
 
-- [ ] เพิ่ม cases: mixed docs+code, old/new protected rename, deleted schema, optional-prefix lookalike, malformed paths; check `commands` กับ A1 mapping และ unknown reasonCode `DIFF_UNAVAILABLE`
-- [ ] Run `node --test test/validation-scope.test.mjs`; expected FAIL เพราะ helper/behavior ยังไม่มี
-- [ ] Implement pure helper ตาม mapping และต่อเข้าทั้งสอง host จาก trusted changed-path data; empty complete diff คืน no applicable work แต่ incomplete diff เลือก conservative core checks
-- [ ] Run new test + parity/caller suites; expected exit 0 รัน `npm test` หนึ่งครั้งที่ candidate สุดท้ายของ slice และ `git diff --check`
-- [ ] ตรวจ hosted docs/skill/core/unknown scenarios ว่า applicable failures fail จริงและ required context ไม่ค้าง; commit `ci: select validation by affected framework scope`
+- [x] เพิ่ม cases: mixed docs+code, old/new protected rename, deleted schema, optional-prefix lookalike, malformed paths; check `commands` กับ A1 mapping และ unknown reasonCode `DIFF_UNAVAILABLE`
+- [x] Run `node --test test/validation-scope.test.mjs`; expected FAIL เพราะ helper/behavior ยังไม่มี
+- [x] Implement pure helper ตาม mapping และต่อเข้าทั้งสอง host จาก trusted changed-path data; empty complete diff คืน no applicable work แต่ incomplete diff เลือก conservative core checks
+- [x] Run new test + parity/caller suites; expected exit 0 รัน `npm test` หนึ่งครั้งที่ candidate สุดท้ายของ slice และ `git diff --check`
+- [ ] ตรวจ hosted docs/skill/core/unknown scenarios ว่า applicable failures fail จริงและ required context ไม่ค้างบน integrated PR candidate หลัง Track B
+- [x] Commit local implementation as `ci: select validation by affected framework scope`; hosted observation remains a pre-merge follow-up
 
 Ruling: ตรวจ hosted event/run candidate ครั้งเดียวหลัง A4 รวม workflow changes เสร็จ เพราะ A4 แก้ caller ชุดเดียวกัน; การรัน A3 แยก PR ก่อนหน้านั้นจะเป็น duplicate CI ที่ไม่เพิ่มหลักฐานของ final candidate.
 
 ## 4. Acceptance / measurement
 
-Track A ครอบคลุม Issue AC-A1–AC-A4 ใน revision ใหม่: inventory, diagnostics isolation, dedupe, safe applicability การทดสอบ implementation ทั้งหมดตอนนี้ **not run**
+Track A implementation covers Issue AC-A1–AC-A4: inventory, diagnostic isolation, deduplication and safe applicability. Local suite evidence is recorded per task; hosted final-candidate observation remains pending
 
 วัด heavy execution count/candidate, queue/run/active-human time, unrelated blockers และ seeded invalid-case rejection เทียบ baseline ไม่บังคับ double agent execution หรือเพิ่ม KPI merge gate การลด overhead ≥30% เป็นเพียง candidate target ที่ต้องยืนยันหลัง A1 ไม่เป็นผลรับรองล่วงหน้า
 
@@ -164,4 +165,4 @@ Track A ครอบคลุม Issue AC-A1–AC-A4 ใน revision ใหม�
 
 Revert slice ย้อน A4 → A3 → A2 คืน callers ก่อนถอด replacement; รัน invalid contract/state/evidence cases ให้ reject อีกครั้ง ไม่ disable branch protection หรือคืนไฟล์เก่าทับงาน #297
 
-Next action: Human review ของ written plan/dispositions; owner: Project owner/Maintainer. Runtime/application tests: N/A ใน Track A; independent review ของ CI trust/correctness changes ต้องเสร็จก่อน merge เอกสารนี้ไม่อนุญาต execution โดยลำพัง
+Next action: complete Track B, then collect one integrated hosted candidate and independent QA/Security review before the human merge gate. Runtime/application tests: N/A in Track A

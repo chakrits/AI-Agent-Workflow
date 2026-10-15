@@ -2,6 +2,22 @@ name: Status runtime matrix
 
 on:
   pull_request:
+    paths:
+      - 'scripts/compile-status-projection.mjs'
+      - 'scripts/verify_status_jcs.py'
+      - 'scripts/lib/status-*.mjs'
+      - 'test/status-*.test.mjs'
+      - 'test/compile-status-projection.test.mjs'
+      - 'test/test_status_jcs_reference.py'
+      - 'test/fixtures/status/**'
+      - 'test/fixtures/status-audit/**'
+      - 'test/fixtures/work-item-status/**'
+      - 'test/fixtures/status-cas/**'
+      - 'docs/contracts/schemas/*status*.json'
+      - 'docs/contracts/schemas/status-*.json'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/status-runtime-matrix.yml'
 
 permissions:
   contents: read

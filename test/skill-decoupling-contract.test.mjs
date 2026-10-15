@@ -41,10 +41,12 @@ test('npm exposes truthful manual audits, not automatic skill validator aliases'
 test('core CI, PR hook and reset safety validators remain configured', () => {
   const github = read('.github/workflows/validate-contracts.yml');
   const gitlab = read('.gitlab-ci.yml');
+  assert.match(github, /node scripts\/run-scoped-validations\.mjs/);
+  assert.match(gitlab, /node scripts\/run-scoped-validations\.mjs/);
+  const scope = read('scripts/lib/validation-scope.mjs');
   for (const command of ['validate:contracts', 'validate:adapter-parity', 'validate:review-gate',
     'validate:dispatch-receipts', 'validate:context-budget', 'validate:ci-parity']) {
-    assert.ok(github.includes(`npm run ${command}`), command);
-    assert.ok(gitlab.includes(`npm run ${command}`), command);
+    assert.ok(scope.includes(`npm run ${command}`), command);
   }
   const settings = JSON.parse(read('.claude/settings.json'));
   assert.match(settings.hooks.PreToolUse[0].hooks[0].command, /validate:pr-readiness -- --hook$/);
