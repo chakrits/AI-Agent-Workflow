@@ -1,7 +1,7 @@
 # PROJECT_STATUS.md
 
 ## Current Work Item
-- Issue #298 — user approved revised Agent SDLC design and Track A/B plans; implementation underway on `codex/lean-validation-single-agent`. A1 disposition and A2 diagnostic cleanup are complete; live metrics/worktree audits are manual, with correctness/policy/evidence checks retained. A3 event ownership and A4 affected-path selection are implemented; local full suite passes 798/798. Hosted final-candidate evidence follows Track B integration. #297 remains separate.
+- Issue #298 — user approved revised Agent SDLC design and Track A/B plans; implementation underway on `codex/lean-validation-single-agent`. A1 disposition and A2 diagnostic cleanup are complete; live metrics/worktree audits are manual, with correctness/policy/evidence checks retained. A3 event ownership and A4 affected-path selection are implemented; local full suite passes 798/798. B1 role modes are implemented with independent review pending; B2 synthetic shared baseline is ready. C1–C4 evaluation is next. Hosted final-candidate evidence follows Track B integration. #297 remains separate.
 
 ## Active Work Items
 <!-- active-work-items-table-start -->
@@ -17,7 +17,7 @@
 - Issue #280 — GPT-6 Astra instruction, skill, and autonomy modernization — #281 is complete through PR #285; #282 is complete through PR #287; #283 is complete through PR #289; #284 remains planned independently. Parent SDD and ADR-0034 are Human-approved. Issue #290 is a separate CI defect repair and does not change the modernization scope.
 
 ## Current Stage
-- Implementation — Issue #298 v2 preserves 11 roles, skills, targeted specialists, shared business context and independent verification. Written plans approved; Track A inventory and A2 diagnostic cleanup complete; A3 event ownership and A4 path selection are implemented; full suite passes 798/798. Hosted final candidate and independent QA/security review remain required before human merge approval.
+- Implementation — Issue #298 v2 preserves 11 roles, skills, targeted specialists, shared business context and independent verification. Written plans approved; Track A inventory and A2 diagnostic cleanup complete; A3 event ownership and A4 path selection are implemented; full suite passes 798/798. B1 guidance is implemented, B2 synthetic baseline is ready, and B3 scenarios are next. Hosted final candidate and independent QA/security review remain required before human merge approval.
 
 ## Change Classification
 - Issue #298 is a Framework/Meta improvement with Medium risk. CI/policy/role changes require independent review; branch protection, required-check identity and connected runtime remain outside this authorization.

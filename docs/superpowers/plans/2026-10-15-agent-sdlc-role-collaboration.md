@@ -54,7 +54,7 @@ Revision 2 — 15 ตุลาคม 2026. ผู้ใช้อนุมัต�
 - [x] Dry-run canonical guidance ก่อนแก้: BA ใช้ skill และ owner ยังเป็น BA แต่เดิมไม่มี no-spawn rule; SA ระบุ integration ownership ได้แต่ไม่มี specialist trigger/consult output; Data เป็น route สำหรับ DB change แต่ยังไม่มี bounded-delivery acceptance; Security/QA เป็น gates แต่ persona-switch independence ยังไม่ชัด
 - [x] ปรับ canonical routing/role/operating/handoff guidance ให้ระบุ accountable task role, skill use ภายในขอบเขต และ specialist trigger; คง Orchestrator coordination responsibility
 - [x] ระบุว่า role perspective ใน session เดิมใช้สร้าง artifact ได้แต่ห้าม self-approve/อ้าง independent review; child dispatch ใช้ contract เดิม และไม่มี child ก็ไม่มี receipt
-- [ ] ให้ reviewer ตรวจ cases unavailable/conflicting owners/self-approval และตรวจ core adapter/context compatibility ตาม files ที่เปลี่ยน
+- [ ] ให้ independent reviewer ตรวจ cases unavailable/conflicting owners/self-approval และ core adapter/context compatibility พร้อม integrated B3 candidate
 - [ ] Commit `docs: clarify role-owned specialist collaboration`
 
 **Expected outcome:** ทั้งสี่ modes ใช้ได้จริงตาม boundaries; ไม่มี role ถูกลบหรือ universal executor default งานเอกสารนี้ไม่มี product-code behavior change จึง TDD N/A ใช้ scenario/review evidence; ถ้าพบว่าต้องเปลี่ยน executable routing ให้แตก task behavior-change พร้อม RED/GREEN ก่อนลงมือ
@@ -65,12 +65,12 @@ Revision 2 — 15 ตุลาคม 2026. ผู้ใช้อนุมัต�
 
 **Consumes:** business/process owner + pilot topic หรือ technical synthetic fixture ที่ติดป้ายชัด. **Produces:** source register ที่ BA/SA/Dev/QA ใช้อ้าง baseline เดียวกัน
 
-- [ ] เลือก scope/owners ของ knowledge pilot; หากยังไม่มี domain owner ใช้ technical fixture เพื่อพิสูจน์ workflow composition และระบุว่า business fit ยัง blocked
-- [ ] ระบุแต่ละ source: ID/type, owner, URI/path, revision/hash, status, scope/classification/access reference, effective interval, approval reference และ supersedes ถ้ามี
-- [ ] แยก rule/glossary/catalog, episodic notes และ proposals; approved synthetic labels ไม่ถูกอ้างว่าเป็น approved business rules ขององค์กร
-- [ ] ทำ role-specific selection record ที่ชี้ baseline เดียวกัน ใช้ context-pack/v1 เดิมสำหรับ core policy refs; business source register เป็น attachment แยก ไม่ปลอม authority field
-- [ ] ตรวจ missing/conflict/stale/revoked sources: owner ต้อง route/stop dependent work; file metadata ไม่เท่ากับ live ACL enforcement
-- [ ] Commit `docs: add scoped knowledge baseline for collaboration pilot`
+- [x] เลือก synthetic technical fixture เพราะไม่มี business/process owner; business fit ระบุเป็น BLOCKED / NOT EVALUATED
+- [x] ระบุ source ID/type, steward, URI, revision/hash, status, scope/classification/access reference, effective interval, approval reference และ supersedes
+- [x] แยก synthetic rule/glossary/catalog, episodic scenario records และ proposals; synthetic approval ไม่ถูกอ้างเป็น business rule
+- [x] เพิ่ม planned role-specific selections ให้ BA/SA/Developer/QA ใช้ baseline เดียวกัน; context-pack/v1/schema คงเดิมและ synthetic register เป็น attachment แยก
+- [x] ระบุ stop behavior/next owner สำหรับ conflict, draft, stale, denied/revoked context และ unavailable specialist; ระบุชัดว่า file metadata ไม่ใช่ live ACL
+- [x] Commit `docs: add scoped knowledge baseline for collaboration pilot`
 
 **Expected outcome:** source-backed artifacts ใช้ revisions ตรงกันและไม่เลื่อน draft เป็น truth ข้อมูลที่ยังไม่อนุญาตส่ง model ไม่ถูกใส่ prompt; ถ้าต้องการ runtime retrieval/ACL/versioned context schema ใหม่ เปิด follow-up design แยก
 
