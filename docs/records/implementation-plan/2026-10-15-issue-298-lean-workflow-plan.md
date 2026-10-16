@@ -150,6 +150,7 @@ assert.equal(selectValidationChecks({ changedPaths: [], comparisonComplete: fals
 - [x] Run `node --test test/validation-scope.test.mjs`; expected FAIL เพราะ helper/behavior ยังไม่มี
 - [x] Implement pure helper ตาม mapping และต่อเข้าทั้งสอง host จาก trusted changed-path data; empty complete diff คืน no applicable work แต่ incomplete diff เลือก conservative core checks
 - [x] Run new test + parity/caller suites; expected exit 0 รัน `npm test` หนึ่งครั้งที่ candidate สุดท้ายของ slice และ `git diff --check`
+- [x] Add regression coverage that context compatibility runs for pinned context sources, the context-pack contract, source fixtures, and injector/validator implementation while unrelated schemas stay light; focused selector test passes 12/12 and `validate:context-compatibility` passes after initial independent review found the omission
 - [ ] ตรวจ hosted docs/skill/core/unknown scenarios ว่า applicable failures fail จริงและ required context ไม่ค้างบน integrated PR candidate หลัง Track B
 - [x] Commit local implementation as `ci: select validation by affected framework scope`; hosted observation remains a pre-merge follow-up
 

@@ -8,6 +8,7 @@ const FULL_VALIDATORS = [
   'npm run validate:review-gate',
   'npm run validate:clearable-refs',
   'npm run validate:context-budget',
+  'npm run validate:context-compatibility',
   'npm run validate:status-projection',
   'npm run validate:ci-parity',
   'npm run validate:project-state'
@@ -28,6 +29,39 @@ const PROJECT_STATE_PATHS = [
   'PROJECT_STATUS.md',
   'TASK_LOG.md'
 ];
+
+// Keep the context integrity check tied to its real source-matrix dependencies,
+// compatibility fixtures, and runtime loader. Unrelated contracts/docs stay light.
+const CONTEXT_COMPATIBILITY_PATHS = new Set([
+  'AGENTS.md',
+  'docs/workflow/core-bootloader.md',
+  'docs/workflow/role-definitions.md',
+  'docs/workflow/quality-gates.md',
+  'docs/workflow/handoff-contract.md',
+  'docs/operating-model/AGENT_EVALUATION_CHECKLIST.md',
+  'docs/workflow/dispatch-packet-contract.md',
+  'docs/contracts/new-feature-workflow.yaml',
+  'docs/workflow/testing-conventions.md',
+  'docs/workflow/task-execution-mode.md',
+  'docs/contracts/config-change-workflow.yaml',
+  'docs/contracts/data-change-workflow.yaml',
+  'docs/workflow/platform-readiness.md',
+  'docs/workflow/reset-to-template.md',
+  'docs/contracts/schemas/context-pack-v1.schema.json',
+  'test/fixtures/context-pack-v1/required-source-matrix.json',
+  'test/fixtures/context-compatibility-v1.json',
+  'test/fixtures/context-compatibility-v1.manifest.json',
+  'scripts/inject-role-context.mjs',
+  'scripts/validate-context-compatibility.mjs',
+  'scripts/lib/context-compatibility-v1.mjs',
+  'scripts/lib/context-compatibility.mjs',
+  'scripts/lib/context-shadow-adapter.mjs',
+  'scripts/repin-source-matrix.mjs',
+  'test/validate-context-compatibility.test.mjs',
+  'test/context-compatibility.test.mjs',
+  'test/context-shadow-adapter.test.mjs',
+  'test/core-source-matrix.test.mjs'
+]);
 
 function isWithin(file, prefix) {
   return file === prefix || file.startsWith(`${prefix}/`);
@@ -75,6 +109,11 @@ export function selectValidationChecks({ changedPaths, comparisonComplete } = {}
   };
 
   for (const file of changedPaths) {
+    if (CONTEXT_COMPATIBILITY_PATHS.has(file) || isWithin(file, 'test/fixtures/context-pack-v1')) {
+      commands.add('npm run validate:context-compatibility');
+      reasons.add('CONTEXT_COMPATIBILITY');
+    }
+
     if (OPTIONAL_LIBRARY_PREFIXES.some((prefix) => file === prefix.slice(0, -1) || file.startsWith(prefix))) {
       reasons.add('OPTIONAL_LIBRARY_ONLY');
       continue;

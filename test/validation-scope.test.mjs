@@ -75,6 +75,25 @@ test('deleted schemas keep contract validation and the full suite', () => {
   assert.ok(result.commands.includes('npm run validate:contracts'));
 });
 
+test('context compatibility runs for pinned context sources, contracts, fixtures, and injector changes', () => {
+  for (const path of [
+    'AGENTS.md',
+    'docs/workflow/core-bootloader.md',
+    'docs/contracts/new-feature-workflow.yaml',
+    'docs/contracts/schemas/context-pack-v1.schema.json',
+    'test/fixtures/context-pack-v1/required-source-matrix.json',
+    'test/fixtures/context-compatibility-v1.json',
+    'scripts/inject-role-context.mjs',
+    'scripts/lib/context-compatibility-v1.mjs'
+  ]) {
+    const result = select([path]);
+    assert.ok(result.commands.includes('npm run validate:context-compatibility'), path);
+  }
+
+  const unrelatedSchema = select(['docs/contracts/schemas/bug-fix-workflow.schema.json']);
+  assert.ok(!unrelatedSchema.commands.includes('npm run validate:context-compatibility'));
+});
+
 test('an optional-prefix lookalike is unknown and fails conservatively', () => {
   const result = select(['.agents/skills-evil/changed.md']);
   assert.equal(result.fullSuite, true);
