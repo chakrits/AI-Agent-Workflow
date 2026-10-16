@@ -22,7 +22,7 @@ const OPTIONAL_LIBRARY_PREFIXES = [
 ];
 
 const ROOT_DOCUMENTS = new Set([
-  'README.md', 'CHANGELOG.md', 'CONTRIBUTING.md', 'ROADMAP-SDLC-FRAMEWORK.md'
+  'README.md', 'PROJECT_INDEX.md', 'CHANGELOG.md', 'CONTRIBUTING.md', 'ROADMAP-SDLC-FRAMEWORK.md'
 ]);
 
 const PROJECT_STATE_PATHS = [
@@ -195,6 +195,9 @@ export function selectValidationChecks({ changedPaths, comparisonComplete } = {}
 
     if (isWithin(file, 'docs') || ROOT_DOCUMENTS.has(file) || file === 'README.md') {
       reasons.add('DOCS_ONLY');
+      if (file === 'README.md' || file === 'PROJECT_INDEX.md') {
+        commands.add('npm run validate:root-doc-links');
+      }
       continue;
     }
 
@@ -210,7 +213,7 @@ export function selectValidationChecks({ changedPaths, comparisonComplete } = {}
   return {
     fullSuite,
     commands: [
-      'git diff --check', 'npm test', ...FULL_VALIDATORS
+      'git diff --check', 'npm test', ...FULL_VALIDATORS, 'npm run validate:root-doc-links'
     ].filter((command) => commands.has(command)),
     reasonCodes: uniqueReasons
   };

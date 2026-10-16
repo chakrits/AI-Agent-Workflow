@@ -6,7 +6,7 @@ import { buildSessionContext, formatSessionContext } from '../scripts/show-sessi
 test('AC-09: displays the current work item and stage with real git location', () => {
   const context = buildSessionContext(process.cwd());
   assert.ok(
-    /Issue #\d+/.test(context.workItem) || context.workItem === 'None — awaiting next assignment.',
+    /Issue #\d+/.test(context.workItem) || context.workItem === 'None yet.',
     `unexpected current work item: ${context.workItem}`
   );
   assert.notEqual(context.stage, '(not recorded)');
