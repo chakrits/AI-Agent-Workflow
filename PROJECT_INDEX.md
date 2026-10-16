@@ -1,94 +1,128 @@
 # Project Index
 
-This file is the navigation map for the repository. Prefer the linked sections below over a flat file list when orienting a human or agent.
+Navigation guide for the AI Agent Dynamic Workflow repository. The canonical process lives in docs/workflow/; platform files adapt that process to individual agent hosts.
 
-## Start Here
+## Start here
 
-- [README.md](./README.md) - Project overview and recommended structure.
-- [AGENTS.md](./AGENTS.md) - Cross-platform agent rules and routing policy.
-- [CLAUDE.md](./CLAUDE.md) - Claude-specific entry point and delegation to `AGENTS.md`.
-- [PROJECT_STATUS.md](./PROJECT_STATUS.md) - Current stage, blockers, classification, and next agent.
-- [TASK_LOG.md](./TASK_LOG.md) - Work history and handoff trail.
-- [DECISIONS.md](./DECISIONS.md) - Architecture and process decisions.
-- [RISKS.md](./RISKS.md) - Known project risks.
-- [CHANGELOG.md](./CHANGELOG.md) - Human-facing change history.
-- [THIRD_PARTY_NOTICES.md](./THIRD_PARTY_NOTICES.md) - Source attribution and license notices for incorporated or adapted third-party material.
+- [README.md](README.md) — framework purpose, structure, and quick start
+- [AGENTS.md](AGENTS.md) — repository-wide instructions
+- [ROADMAP-SDLC-FRAMEWORK.md](ROADMAP-SDLC-FRAMEWORK.md) — framework direction and planned development
+- [PROJECT_STATUS.md](PROJECT_STATUS.md) — current status template
+- [TASK_LOG.md](TASK_LOG.md) — work log template
+- [DECISIONS.md](DECISIONS.md) — decision register template
+- [RISKS.md](RISKS.md) — risk register template
+- [CHANGELOG.md](CHANGELOG.md) — change history
+- [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) — third-party notices
 
-## Canonical Operating Model
+## Operating model
 
-These documents define the shared source of truth for agent behavior.
+- [Operating model overview](docs/operating-model/README.md)
+- [Agent operating model](docs/operating-model/AGENT_OPERATING_MODEL.md) — lifecycle, approval gates, and state-update rules
+- [Agent personas](docs/operating-model/AGENT_PERSONAS.md)
+- [Agent evaluation checklist](docs/operating-model/AGENT_EVALUATION_CHECKLIST.md)
+- [Skill catalog](docs/operating-model/SKILL_CATALOG.md)
+- [Context budget policy](docs/operating-model/CONTEXT_BUDGET.md)
+- [Metrics](docs/operating-model/METRICS.md)
 
-- [docs/operating-model/README.md](./docs/operating-model/README.md) - Read order and operating-model guidance.
-- [docs/operating-model/AGENT_OPERATING_MODEL.md](./docs/operating-model/AGENT_OPERATING_MODEL.md) - Agent autonomy, roles, routing, and stop conditions.
-- [docs/operating-model/SKILL_CATALOG.md](./docs/operating-model/SKILL_CATALOG.md) - Skill selection rules, triggers, outputs, and boundaries.
-- [docs/operating-model/AGENT_EVALUATION_CHECKLIST.md](./docs/operating-model/AGENT_EVALUATION_CHECKLIST.md) - Completion and quality checklist.
-- [docs/operating-model/AGENT_PERSONAS.md](./docs/operating-model/AGENT_PERSONAS.md) - Canonical collaboration personas for all 11 roles; subordinate to operating policy and human gates.
+## Canonical workflow policy
 
-## Workflow Source Of Truth
+- [Core bootloader](docs/workflow/core-bootloader.md) — required first read for repository tasks
+- [Dynamic routing](docs/workflow/dynamic-routing.md) — task classification, lifecycle labels, and route selection
+- [Role definitions](docs/workflow/role-definitions.md)
+- [Dispatch packet contract](docs/workflow/dispatch-packet-contract.md)
+- [Handoff contract](docs/workflow/handoff-contract.md)
+- [Quality gates](docs/workflow/quality-gates.md)
+- [Task execution mode](docs/workflow/task-execution-mode.md)
+- [Testing conventions](docs/workflow/testing-conventions.md)
+- [Platform readiness](docs/workflow/platform-readiness.md)
+- [Template reset policy](docs/workflow/reset-to-template.md)
 
-Use these files for dynamic routing, role ownership, quality gates, and handoff structure.
+Role-specific instructions are in [docs/workflow/roles](docs/workflow/roles/).
 
-- [docs/workflow/dynamic-routing.md](./docs/workflow/dynamic-routing.md) - Change classification, risk levels, and routing algorithm.
-- [docs/workflow/role-definitions.md](./docs/workflow/role-definitions.md) - Responsibilities for PM, BA, SA, Dev, QA, Security, Config, Data, Release, and Documentation agents.
-- [docs/workflow/quality-gates.md](./docs/workflow/quality-gates.md) - Stage gates and required evidence.
-- [docs/workflow/handoff-contract.md](./docs/workflow/handoff-contract.md) - Required handoff fields and rules.
-- [docs/workflow/task-execution-mode.md](./docs/workflow/task-execution-mode.md) - Optional task-execution mode: entry/exit criteria, task artifact contracts, bounded review loop, and the runtime-dispatch versus receipt-ledger state glossary.
-- [docs/workflow/testing-conventions.md](./docs/workflow/testing-conventions.md) - Test folder-structure convention for target apps.
-- [docs/workflow/dispatch-packet-contract.md](./docs/workflow/dispatch-packet-contract.md) - Required shape and discipline rules for the dispatch packet a parent agent writes when spawning a child agent.
+## Workflow playbooks
 
-## Workflow Playbooks
+End-to-end procedures are in [docs/workflows](docs/workflows/):
 
-Use these when a task matches a specific work pattern.
+- [Feature discovery to plan](docs/workflows/feature-discovery-to-plan.md)
+- [New feature](docs/workflows/new-feature.md)
+- [Bug fix](docs/workflows/bug-fix.md)
+- [Bug debug and fix](docs/workflows/bug-debug-fix.md)
+- [CI failure debugging](docs/workflows/ci-failure-debug.md)
+- [Config change](docs/workflows/config-change.md)
+- [Data change](docs/workflows/data-change.md)
+- [TDD implementation](docs/workflows/tdd-implementation-flow.md)
+- [Functional test design](docs/workflows/functional-test-design.md)
+- [Code review gate](docs/workflows/code-review-gate.md)
+- [Validated bug postmortem](docs/workflows/validated-bug-postmortem.md)
+- [Stabilize the framework core](docs/workflows/stabilize-core.md)
 
-- [docs/workflows/new-feature.md](./docs/workflows/new-feature.md) - New feature workflow.
-- [docs/workflows/feature-discovery-to-plan.md](./docs/workflows/feature-discovery-to-plan.md) - Requirement discovery through implementation planning.
-- [docs/workflows/bug-fix.md](./docs/workflows/bug-fix.md) - Standard bug-fix workflow.
-- [docs/workflows/bug-debug-fix.md](./docs/workflows/bug-debug-fix.md) - Debugging discipline for bugs and regressions.
-- [docs/workflows/ci-failure-debug.md](./docs/workflows/ci-failure-debug.md) - CI failure investigation workflow.
-- [docs/workflows/validated-bug-postmortem.md](./docs/workflows/validated-bug-postmortem.md) - RCA/postmortem after a validated fix.
-- [docs/workflows/config-change.md](./docs/workflows/config-change.md) - Configuration change workflow.
-- [docs/workflows/data-change.md](./docs/workflows/data-change.md) - Reference data or DB data change workflow.
-- [docs/workflows/functional-test-design.md](./docs/workflows/functional-test-design.md) - Functional test design workflow.
-- [docs/workflows/tdd-implementation-flow.md](./docs/workflows/tdd-implementation-flow.md) - TDD implementation workflow.
-- [docs/workflows/code-review-gate.md](./docs/workflows/code-review-gate.md) - Code review gate workflow.
-- [docs/workflows/stabilize-core.md](./docs/workflows/stabilize-core.md) - Core stabilization workflow.
+## Workflow contracts
+
+Contracts, schemas, and examples are under [docs/contracts](docs/contracts/).
+
+| Contract | Purpose |
+| --- | --- |
+| [New Feature](docs/contracts/new-feature-workflow.yaml) | Feature lifecycle and readiness evidence |
+| [Bug Fix](docs/contracts/bug-fix-workflow.yaml) | Reproduction, fix, verification, and bounded rework |
+| [Config Change](docs/contracts/config-change-workflow.yaml) | Configuration change planning and validation |
+| [Data Change](docs/contracts/data-change-workflow.yaml) | Data/reference-data change and rollback evidence |
+| [Schemas](docs/contracts/schemas/) | Shared contract schemas |
+| [Examples](docs/contracts/examples/) | Example contract instances |
 
 ## Templates
 
-Use these files as artifact starters when a workflow requires structured output.
+Reusable work artifacts are in [docs/templates](docs/templates/).
 
-- [docs/templates/PROJECT_BRIEF.md](./docs/templates/PROJECT_BRIEF.md) - Project brief template.
-- [docs/templates/REQUIREMENT_DISCOVERY.md](./docs/templates/REQUIREMENT_DISCOVERY.md) - Requirement discovery template.
-- [docs/templates/REQUIREMENTS.md](./docs/templates/REQUIREMENTS.md) - Deprecated compatibility redirect to the canonical requirement discovery template.
-- [docs/templates/SDD.md](./docs/templates/SDD.md) - Software design document template.
-- [docs/templates/TECHNICAL_DESIGN.md](./docs/templates/TECHNICAL_DESIGN.md) - Technical design document template.
-- [docs/templates/IMPLEMENTATION_PLAN.md](./docs/templates/IMPLEMENTATION_PLAN.md) - Implementation plan template.
-- [docs/templates/TDD_CHECKLIST.md](./docs/templates/TDD_CHECKLIST.md) - TDD checklist template.
-- [docs/templates/TEST_PLAN.md](./docs/templates/TEST_PLAN.md) - Test plan template.
-- [docs/templates/FUNCTION_TEST_REPORT.md](./docs/templates/FUNCTION_TEST_REPORT.md) - Functional test report template.
-- [docs/templates/FOCUSED_FUNCTIONAL_TEST_PACK.md](./docs/templates/FOCUSED_FUNCTIONAL_TEST_PACK.md) - Focused functional test pack template.
-- [docs/templates/TEST_REPORT.md](./docs/templates/TEST_REPORT.md) - Test report template.
-- [docs/templates/DEBUG_LEDGER.md](./docs/templates/DEBUG_LEDGER.md) - Debugging experiment ledger template.
-- [docs/templates/HYPOTHESIS_MATRIX.md](./docs/templates/HYPOTHESIS_MATRIX.md) - Debugging hypothesis matrix template.
-- [docs/templates/REPRO_STEPS.md](./docs/templates/REPRO_STEPS.md) - Reproduction steps template.
-- [docs/templates/BUG_POSTMORTEM.md](./docs/templates/BUG_POSTMORTEM.md) - Bug postmortem template.
-- [docs/templates/POSTMORTEM_CHECKLIST.md](./docs/templates/POSTMORTEM_CHECKLIST.md) - Postmortem quality checklist.
-- [docs/templates/CODE_REVIEW_REQUEST.md](./docs/templates/CODE_REVIEW_REQUEST.md) - Code review request template.
-- [docs/templates/CODE_REVIEW_FINDINGS.md](./docs/templates/CODE_REVIEW_FINDINGS.md) - Code review findings template.
-- [docs/templates/SECURITY_REVIEW.md](./docs/templates/SECURITY_REVIEW.md) - Security review template.
-- [docs/templates/CONFIG_CHANGE_PLAN.md](./docs/templates/CONFIG_CHANGE_PLAN.md) - Config change plan template.
-- [docs/templates/DATA_CHANGE_PLAN.md](./docs/templates/DATA_CHANGE_PLAN.md) - Data change plan template.
-- [docs/templates/HANDOFF.md](./docs/templates/HANDOFF.md) - Agent handoff template.
-- [docs/templates/COMPLETION_CHECK.md](./docs/templates/COMPLETION_CHECK.md) - Completion evidence template.
-- [docs/templates/POST_MERGE_DOCUMENTATION_REVIEW.md](./docs/templates/POST_MERGE_DOCUMENTATION_REVIEW.md) - Documentation-state audit exception record after a failed `main` validation.
-- [docs/templates/RELEASE_PLAN.md](./docs/templates/RELEASE_PLAN.md) - Release plan template.
+**Discovery and requirements:** [PROJECT_BRIEF](docs/templates/PROJECT_BRIEF.md), [REQUIREMENT_DISCOVERY](docs/templates/REQUIREMENT_DISCOVERY.md), [REQUIREMENTS](docs/templates/REQUIREMENTS.md), [TASK_BRIEF](docs/templates/TASK_BRIEF.md), [WORK_ITEM](docs/templates/WORK_ITEM.md), [SDD](docs/templates/SDD.md), [TECHNICAL_DESIGN](docs/templates/TECHNICAL_DESIGN.md), [AC_TRACEABILITY](docs/templates/AC_TRACEABILITY.md), [IMPLEMENTATION_PLAN](docs/templates/IMPLEMENTATION_PLAN.md).
 
-## Platform Adapter Layers
+**Implementation and handoff:** [HANDOFF](docs/templates/HANDOFF.md), [IMPLEMENTER_REPORT](docs/templates/IMPLEMENTER_REPORT.md), [COMPLETION_CHECK](docs/templates/COMPLETION_CHECK.md), [TDD_CHECKLIST](docs/templates/TDD_CHECKLIST.md), [PLATFORM_ACTIVATION](docs/templates/PLATFORM_ACTIVATION.md).
 
-These directories are shareable project adapters for specific agent platforms. They are not secrets. Keep the canonical source of truth in `docs/workflow/` and `docs/operating-model/`.
+**Testing and defects:** [TEST_PLAN](docs/templates/TEST_PLAN.md), [TEST_REPORT](docs/templates/TEST_REPORT.md), [FOCUSED_FUNCTIONAL_TEST_PACK](docs/templates/FOCUSED_FUNCTIONAL_TEST_PACK.md), [FUNCTION_TEST_REPORT](docs/templates/FUNCTION_TEST_REPORT.md), [DEFECT_REPORT](docs/templates/DEFECT_REPORT.md), [REPRO_STEPS](docs/templates/REPRO_STEPS.md), [DEBUG_LEDGER](docs/templates/DEBUG_LEDGER.md), [HYPOTHESIS_MATRIX](docs/templates/HYPOTHESIS_MATRIX.md).
 
-- [.agents/skills](./.agents/skills) - Portable skills for Codex, Antigravity, and compatible agents.
-- [.agents/workflows](./.agents/workflows) - Portable workflow adapters.
-- [.claude/agents](./.claude/agents) - Claude Code native agent wrappers.
-- [.claude/skills](./.claude/skills) - Claude Code skill adapters.
-- [.agent/skills](./.agent/skills) - Antigravity CLI skill adapters.
+**Review, security, and release:** [CODE_REVIEW_REQUEST](docs/templates/CODE_REVIEW_REQUEST.md), [CODE_REVIEW_FINDINGS](docs/templates/CODE_REVIEW_FINDINGS.md), [TASK_REVIEW](docs/templates/TASK_REVIEW.md), [TASK_REVIEW_REREVIEW](docs/templates/TASK_REVIEW_REREVIEW.md), [SECURITY_REVIEW](docs/templates/SECURITY_REVIEW.md), [CONFIG_CHANGE_PLAN](docs/templates/CONFIG_CHANGE_PLAN.md), [DATA_CHANGE_PLAN](docs/templates/DATA_CHANGE_PLAN.md), [RELEASE_PLAN](docs/templates/RELEASE_PLAN.md).
+
+**Learning and closeout:** [BUG_POSTMORTEM](docs/templates/BUG_POSTMORTEM.md), [POSTMORTEM_CHECKLIST](docs/templates/POSTMORTEM_CHECKLIST.md), [LESSONS_LEARNED](docs/templates/LESSONS_LEARNED.md), [POST_MERGE_DOCUMENTATION_REVIEW](docs/templates/POST_MERGE_DOCUMENTATION_REVIEW.md).
+
+## Project state, records, and knowledge
+
+- Root lifecycle files ([PROJECT_STATUS](PROJECT_STATUS.md), [TASK_LOG](TASK_LOG.md), [DECISIONS](DECISIONS.md), [RISKS](RISKS.md)) are reset to blank project templates.
+- [docs/records](docs/records/) is the evidence archive. It currently includes preserved QA records, selected historical handoffs and work records, and empty category placeholders for future work.
+- [docs/vault/00-Index.md](docs/vault/00-Index.md) is the knowledge-vault entry point.
+- [docs/superpowers/specs](docs/superpowers/specs/) and [docs/superpowers/plans](docs/superpowers/plans/) are optional planning/spec workspaces.
+
+The reset policy at [docs/workflow/reset-to-template.md](docs/workflow/reset-to-template.md) defines what is cleared and preserved. Check its current inventory before making assumptions about historical records.
+
+## Framework tooling
+
+The executable tooling is under [scripts](scripts/) and commands are declared in [package.json](package.json).
+
+- **Reset and housekeeping:** [reset-to-template.mjs](scripts/reset-to-template.mjs), [housekeeping-worktrees.mjs](scripts/housekeeping-worktrees.mjs), [setup-hooks.mjs](scripts/setup-hooks.mjs)
+- **Workflow and state:** [task-machine-cli.mjs](scripts/task-machine-cli.mjs), [compile-status-projection.mjs](scripts/compile-status-projection.mjs), [archive-work-item.mjs](scripts/archive-work-item.mjs), [show-session-context.mjs](scripts/show-session-context.mjs), [inject-role-context.mjs](scripts/inject-role-context.mjs)
+- **Validation orchestration:** [run-scoped-validations.mjs](scripts/run-scoped-validations.mjs), [validation scripts](scripts/), [shared libraries](scripts/lib/)
+- **Contract and record maintenance:** [backfill-work-item-records.mjs](scripts/backfill-work-item-records.mjs), [backfill-task-state-v2.mjs](scripts/backfill-task-state-v2.mjs), [adr-audit.mjs](scripts/adr-audit.mjs), [repin-source-matrix.mjs](scripts/repin-source-matrix.mjs)
+
+The scripts are repository tooling; they do not start an application server or provision infrastructure.
+
+## Agent platform adapters
+
+- [Portable agents](.agents/agents/), [portable skills](.agents/skills/), and [portable workflows](.agents/workflows/)
+- [Antigravity agents](.agent/agents/) and [Antigravity skills](.agent/skills/)
+- [Claude Code agents](.claude/agents/) and [Claude Code skills](.claude/skills/)
+- [Claude Code settings](.claude/settings.json)
+- [Codex supervision guidance](.codex/orchestrator-supervision.md)
+- [Claude Code entry point](CLAUDE.md)
+
+These are adapter and instruction libraries. Their availability and activation depend on the host platform; see [platform readiness](docs/workflow/platform-readiness.md).
+
+## CI, templates, and tests
+
+- [GitHub Actions workflows](.github/workflows/)
+- [GitHub issue templates](.github/ISSUE_TEMPLATE/)
+- [GitHub pull request template](.github/pull_request_template.md)
+- [GitLab CI](.gitlab-ci.yml) and [GitLab issue templates](.gitlab/issue_templates/)
+- [GitLab merge request templates](.gitlab/merge_request_templates/)
+- [Git hooks](.githooks/)
+- [Test suite and fixtures](test/)
+- [Obsidian vault settings](.obsidian/)
+
+CI runs selected, scoped checks. Consult the workflow configuration and package.json for the current command set and execution conditions.
