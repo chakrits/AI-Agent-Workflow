@@ -38,7 +38,7 @@ The reviewer reported no remaining code-correctness findings.
 - `npm run validate:contracts` — passed.
 - `git diff --check` — passed.
 - `npm test` — 801/802 passed locally; the unrelated readiness test attempting to create `ac08-decoy.md` in the worktree root was blocked by sandbox `EPERM`. Hosted CI is the authoritative full-suite result for this candidate.
-- GitHub Actions results for candidate `6c74b9e5a079742747f2e3f8459c1638ec2dcb5b` are pending.
+- GitHub Actions on candidate `37c4dc6259e7a8b166705ad624f08ec61a1c0631`: `Validate documentation impact` (run 510), `Validate workflow contracts` (run 1019), and `Status runtime matrix` (run 208) all passed.
 
 ## Review Decision
 
@@ -48,5 +48,5 @@ Approved for the reviewed candidate. The review-gate record is now supplied and 
 
 | Item | Owner | Tracking |
 |---|---|---|
-| Run review-gate and confirm documentation-impact/workflow-contract CI on the latest PR head | Framework Maintainer | PR #302 |
+| Maintain the passing CI checks and obtain human approval before merge | Human Maintainer | PR #302 |
 | Human approval before merge | Human Maintainer | PR #302 |
