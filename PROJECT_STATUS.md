@@ -1,7 +1,7 @@
 # PROJECT_STATUS.md
 
 ## Current Work Item
-- Issue #298 — user approved revised Agent SDLC design and Track A/B plans; implementation underway on `codex/lean-validation-single-agent`. A1 disposition and A2 diagnostic cleanup are complete; live metrics/worktree audits are manual, with correctness/policy/evidence checks retained. A3 event ownership and A4 affected-path selection are implemented; local full suite passes 798/798. B1 role modes are implemented with independent review pending; B2 synthetic shared baseline is ready. C1–C4 evaluation is next. Hosted final-candidate evidence follows Track B integration. #297 remains separate.
+- Issue #298 — approved Track A/B implementation and synthetic collaboration evaluation completed on `codex/lean-validation-single-agent`; `npm test` passes 799/799. A1–A4 and B1–B3 are implemented/evaluated; B4 pilot prerequisites are drafted. Independent review fixed and rechecked the context-compatibility scope omission; review record is present. Pilot readiness is NOT READY and connected runtime/business data remain unapproved. Hosted final-candidate evidence and human merge decision are pending. #297 remains separate.
 
 ## Active Work Items
 <!-- active-work-items-table-start -->
@@ -12,12 +12,12 @@
 <!-- active-work-items-table-end -->
 
 ## Planned Framework Work
-- Issue #298 — revised role/skill/specialist collaboration plus separate validation workstream; plan: `docs/records/implementation-plan/2026-10-15-issue-298-lean-workflow-plan.md`; work item: `docs/records/work-items/2026-10-15-issue-298.md`. Next owner: Framework/Documentation Agent for Track B; independent QA/Security review follows integrated candidate.
+- Issue #298 — revised role/skill/specialist collaboration plus separate validation workstream; plan: `docs/records/implementation-plan/2026-10-15-issue-298-lean-workflow-plan.md`; work item: `docs/records/work-items/2026-10-15-issue-298.md`. Next owner: Human Maintainer for hosted-candidate and connected-runtime scope decisions.
 - Issue #294 — implementation complete via PR #295; final documentation closeout pending. Work item and historical handoff retain premerge snapshots; current merge/default-branch evidence is in the post-merge closeout record and Issue matrix.
 - Issue #280 — GPT-6 Astra instruction, skill, and autonomy modernization — #281 is complete through PR #285; #282 is complete through PR #287; #283 is complete through PR #289; #284 remains planned independently. Parent SDD and ADR-0034 are Human-approved. Issue #290 is a separate CI defect repair and does not change the modernization scope.
 
 ## Current Stage
-- Implementation — Issue #298 v2 preserves 11 roles, skills, targeted specialists, shared business context and independent verification. Written plans approved; Track A inventory and A2 diagnostic cleanup complete; A3 event ownership and A4 path selection are implemented; full suite passes 798/798. B1 guidance is implemented, B2 synthetic baseline is ready, and B3 scenarios are next. Hosted final candidate and independent QA/security review remain required before human merge approval.
+- Human review — Issue #298 v2 preserves 11 roles, skills, targeted specialists, shared business context and independent verification. Track A/B local implementation and synthetic evaluation are complete; full suite passes 799/799 and independent QA/Security review is recorded. Hosted final-candidate evidence and human merge approval remain pending. Connected pilot readiness is NOT READY and requires a separate approved scope.
 
 ## Change Classification
 - Issue #298 is a Framework/Meta improvement with Medium risk. CI/policy/role changes require independent review; branch protection, required-check identity and connected runtime remain outside this authorization.
@@ -94,7 +94,7 @@
 - Framework assessment: `docs/records/misc/2026-09-05-framework-sdlc-assessment.md`
 
 ## Next Quality Gate
-- Issue #298 revision 2: Human review of written design and separate Track A/B plans. The user accepted the Agent SDLC direction; implementation details, check removals, independent QA/Security evidence and merge remain future gates. No `status:spec-ready` claim.
+- Issue #298: human review of the local integrated candidate. A hosted PR/run is not yet available; request/creation remains a human next action. No connected runtime, real business data, release, or merge is authorized by this local completion record.
 
 ## Recommended Next Agent
 - Human Maintainer / project owner reviews roadmap/design/plans and selects the first slice and execution method. Role owners then use skills and targeted specialist/reviewer support; do not dispatch every role or resume unrelated #294 implementation from this proposal.

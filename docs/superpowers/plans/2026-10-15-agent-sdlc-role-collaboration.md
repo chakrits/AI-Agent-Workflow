@@ -54,8 +54,8 @@ Revision 2 — 15 ตุลาคม 2026. ผู้ใช้อนุมัต�
 - [x] Dry-run canonical guidance ก่อนแก้: BA ใช้ skill และ owner ยังเป็น BA แต่เดิมไม่มี no-spawn rule; SA ระบุ integration ownership ได้แต่ไม่มี specialist trigger/consult output; Data เป็น route สำหรับ DB change แต่ยังไม่มี bounded-delivery acceptance; Security/QA เป็น gates แต่ persona-switch independence ยังไม่ชัด
 - [x] ปรับ canonical routing/role/operating/handoff guidance ให้ระบุ accountable task role, skill use ภายในขอบเขต และ specialist trigger; คง Orchestrator coordination responsibility
 - [x] ระบุว่า role perspective ใน session เดิมใช้สร้าง artifact ได้แต่ห้าม self-approve/อ้าง independent review; child dispatch ใช้ contract เดิม และไม่มี child ก็ไม่มี receipt
-- [ ] ให้ independent reviewer ตรวจ cases unavailable/conflicting owners/self-approval และ core adapter/context compatibility พร้อม integrated B3 candidate
-- [ ] Commit `docs: clarify role-owned specialist collaboration`
+- [x] ให้ independent reviewer ตรวจ cases unavailable/conflicting owners/self-approval และ core adapter/context compatibility พร้อม integrated B3 candidate; no further B1 findings
+- [x] Commit `docs: clarify role-owned specialist collaboration` (`2a06814`)
 
 **Expected outcome:** ทั้งสี่ modes ใช้ได้จริงตาม boundaries; ไม่มี role ถูกลบหรือ universal executor default งานเอกสารนี้ไม่มี product-code behavior change จึง TDD N/A ใช้ scenario/review evidence; ถ้าพบว่าต้องเปลี่ยน executable routing ให้แตก task behavior-change พร้อม RED/GREEN ก่อนลงมือ
 
@@ -80,12 +80,12 @@ Revision 2 — 15 ตุลาคม 2026. ผู้ใช้อนุมัต�
 
 **Consumes:** B1 rules + B2 baseline. **Produces:** observed role outputs/verdicts พร้อม scope/limits และ independent review evidence ตาม risk
 
-- [ ] เขียน oracle ก่อน execution ตามตารางด้านล่าง; mark ทุก observed-result เป็น not-run
-- [ ] เลือก execution method สำหรับ pilot กับเจ้าของโครงการ; spawn เฉพาะ specialist ที่กรณีนั้นต้องใช้จริง ไม่รันทุก role เพื่อให้ครบจำนวน
-- [ ] Execute cases ใน authorized environment; บันทึก role/skill/source versions, artifacts, actual dispatch receipts ถ้ามี และเวลารอ/ทำงาน
-- [ ] Reviewer ที่แยกจากผู้ทำใช้ rubric เดียวกันตรวจ source correctness, completeness, boundary/negative coverage และ scope discipline
-- [ ] บันทึก fail/blocked/not-run และ route เจ้าของปัญหา; ไม่แก้ expected business outcome เพื่อทำให้ demo ผ่าน
-- [ ] Commit `docs: record role-collaboration pilot evidence` เมื่อมีผลจริง; incomplete cases คง not-run/blocked
+- [x] เขียน oracle ก่อน execution ตามตารางด้านล่าง; mark ทุก observed-result เป็น not-run
+- [x] เลือก owner-led execution และเรียก Integration/Data specialist เฉพาะ C2/C3 ที่ต้องใช้ expert input; C1 ไม่ spawn
+- [x] Execute C1–C4 ในขอบเขต synthetic ที่อนุมัติ; C1–C3 ใช้ผล owner/specialist จริง, C4 independent reviewer ปฏิเสธ stale SHA และ self-approval ตาม oracle. บันทึก roles, skills, source versions, receipts และ telemetry ที่หาได้
+- [x] Reviewer ที่แยกจากผู้ทำตรวจ source correctness, completeness, boundary/negative coverage, scope discipline, C4 และ Track A/B; ปิด finding เรื่อง scoped context compatibility แล้ว ไม่มี finding ค้าง
+- [x] บันทึกผลจริงและ route ข้อจำกัด: C1 owner PASS/implementation BLOCKED, C2 consultation PASS, C3 BLOCKED; ไม่แก้ expected business outcome เพื่อทำให้ demo ผ่าน
+- [x] Commit `docs: record collaboration evaluation and pilot readiness` (`8a2282c`); incomplete context variants คง not-run/blocked
 
 | Case | Mode / input | Measurable expected outcome |
 |---|---|---|
@@ -102,10 +102,10 @@ Revision 2 — 15 ตุลาคม 2026. ผู้ใช้อนุมัต�
 
 **Consumes:** B3 observed outputs; Track A CI measurements เป็นข้อมูลประกอบ ไม่ใช่ dependency ที่บังคับให้ delay B3
 
-- [ ] สรุป accepted output quality, useful specialist findings, missed/false findings, human effort, handoff/wait/rework และ cost เมื่อมี usage telemetry
-- [ ] เทียบ matched cases เมื่อมีข้อมูล ไม่บังคับทุกงานทำซ้ำ single/multi; ไม่มีข้อมูลให้แสดง unavailable ไม่สรุปว่าแบบใดชนะ
-- [ ] เสนอ M4 pilot brief: application/repos/interfaces, business/system owners, runtime candidate, model/data policy, sandbox/test data และ unit/functional/contract/SIT/UAT/regression evidence ที่ต้องใช้
-- [ ] ให้ project owner ตัดสินว่า pattern ใดใช้ต่อ/ต้องปรับ และอนุมัติ connected-runtime scope แยก; commit `docs: report collaboration outcomes and connected-pilot prerequisites`
+- [x] สรุป output quality ตาม observable rubric และประโยชน์จาก specialist; บันทึก C3 blocked/C4 rejection, human effort, wait/handoff/rework และ cost เป็น unavailable เมื่อไม่มี telemetry
+- [x] ระบุว่าไม่มี matched single-agent/multi-agent data จึงยังสรุปผู้ชนะหรือการลดเวลา/ต้นทุนไม่ได้
+- [x] เสนอ M4 pilot prerequisites ครอบคลุม application/repos/interfaces, business/system owners, runtime candidate, model/data policy, sandbox/test data และ unit/functional/contract/SIT/UAT/regression evidence
+- [x] Draft and record M4 prerequisites in the evaluation; project-owner decision on pattern adoption and approval of connected-runtime scope remain pending as a separate human gate
 
 ## 2. Verification commands / evidence
 
