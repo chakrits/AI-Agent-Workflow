@@ -42,9 +42,12 @@ test('CI runs install, tests, contract validation, and a dedicated main-state au
     readFile('.github/workflows/validate-contracts.yml', 'utf8'),
     readFile('.github/workflows/documentation-sync.yml', 'utf8')
   ]);
-  assert.match(ci, /npm ci/);
-  assert.match(ci, /npm test/);
-  assert.match(ci, /npm run validate:contracts/);
+  assert.match(ci, /node scripts\/run-scoped-validations\.mjs/);
+  assert.doesNotMatch(ci, /npm ci|npm test|npm run validate:contracts/);
+  const runner = await readFile('scripts/run-scoped-validations.mjs', 'utf8');
+  const scope = await readFile('scripts/lib/validation-scope.mjs', 'utf8');
+  assert.match(scope, /validate:contracts/);
+  assert.match(scope, /validate:project-state/);
   assert.doesNotMatch(ci, /npm run validate:project-state/);
   assert.match(documentationSync, /npm run validate:project-state/);
   assert.match(documentationSync, /branches:\s*\[main\]/);

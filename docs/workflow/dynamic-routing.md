@@ -19,6 +19,23 @@ Route work by change type, risk, and required artifacts instead of forcing a lin
 10. Update PROJECT_STATUS.md and TASK_LOG.md
 ```
 
+## Accountable Role and Collaboration Modes
+
+Each work item has one accountable task role, selected from the change type and risk. That owner accepts the source/acceptance criteria, chooses the applicable skills, integrates contributions, and reports the result. Orchestrator coordinates routing and gates; coordination alone does not transfer task ownership.
+
+Use the lightest mode that preserves expertise and independence:
+
+| Mode | When to use | Output and ownership |
+|---|---|---|
+| Owner uses skills | The owner has the required role authority and the selected skill supplies a method or checklist | The owner produces and accepts the role artifact. Skill use does not add authority or require a child dispatch. |
+| Specialist consultation | A bounded question needs expertise outside the owner's depth, while the owner retains the deliverable | The specialist returns sourced advice, risks, and recommendations. No implementation or scope change is implied; the task owner decides how to use the advice. |
+| Specialist delivery | A bounded artifact or change belongs to a specialist role | State the output, write scope, inputs, acceptance criteria, and dependencies. The task owner remains accountable for integration and the applicable review. |
+| Independent verification | Risk or a quality gate requires a verifier separate from the implementer | A distinct agent identity reviews the pinned candidate and records evidence. Switching personas in the same agent does not establish independence. |
+
+Do not dispatch a specialist merely to repeat work the owner can complete with an applicable skill. Consult or deliver to a specialist when the required judgment, artifact, or authority belongs to that role. If that specialist is unavailable, the owner may continue only with work inside their own authority; do not invent the missing judgment or pass a required gate. Route unresolved business meaning to BA/PM, technical design to SA, security concerns to Security Reviewer, and unclear ownership or approval to Human.
+
+An explicit role perspective in the same active session may help produce an in-scope artifact, but it cannot approve the owner's work, act as an independent verifier, or create evidence of a child dispatch. A real child invocation follows the dispatch packet, receipt, and in-turn wait rules in [Terminal Routing and Dispatch Receipt](#terminal-routing-and-dispatch-receipt). If no child was invoked, no dispatch receipt is created. A consultation does not change the accountable task owner; a specialist delivery changes the producing role only for its bounded output.
+
 ## Backward Routing and QA Skip Policy
 
 Use these rules when a handoff must move backward or when selecting stages to skip:

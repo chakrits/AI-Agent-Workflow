@@ -17,6 +17,16 @@ test('mandatory CI, hooks and reset verification never invoke optional skill aud
   for (const file of files) assert.doesNotMatch(read(file), optionalInvocation, file);
 });
 
+test('live metrics and worktree diagnostics stay opt-in outside informational hooks', () => {
+  const automaticCi = `${read('.github/workflows/validate-contracts.yml')}\n${read('.gitlab-ci.yml')}`;
+  assert.doesNotMatch(automaticCi, /npm run (?:validate:metrics|housekeeping:worktrees)/);
+  assert.doesNotMatch(read('scripts/verify-reset-template.mjs'), /validate:metrics/);
+  const { scripts } = JSON.parse(read('package.json'));
+  assert.equal(scripts['validate:metrics'], 'node scripts/validate-metrics.mjs');
+  assert.equal(scripts['housekeeping:worktrees'], 'node scripts/housekeeping-worktrees.mjs');
+  assert.match(read('.githooks/post-merge'), /housekeeping:worktrees.*\|\| true/);
+});
+
 test('npm exposes truthful manual audits, not automatic skill validator aliases', () => {
   const { scripts } = JSON.parse(read('package.json'));
   assert.equal(scripts['audit:skills'], 'node scripts/validate-skill-catalog.mjs && node scripts/validate-skill-parity.mjs');
@@ -31,10 +41,12 @@ test('npm exposes truthful manual audits, not automatic skill validator aliases'
 test('core CI, PR hook and reset safety validators remain configured', () => {
   const github = read('.github/workflows/validate-contracts.yml');
   const gitlab = read('.gitlab-ci.yml');
+  assert.match(github, /node scripts\/run-scoped-validations\.mjs/);
+  assert.match(gitlab, /node scripts\/run-scoped-validations\.mjs/);
+  const scope = read('scripts/lib/validation-scope.mjs');
   for (const command of ['validate:contracts', 'validate:adapter-parity', 'validate:review-gate',
     'validate:dispatch-receipts', 'validate:context-budget', 'validate:ci-parity']) {
-    assert.ok(github.includes(`npm run ${command}`), command);
-    assert.ok(gitlab.includes(`npm run ${command}`), command);
+    assert.ok(scope.includes(`npm run ${command}`), command);
   }
   const settings = JSON.parse(read('.claude/settings.json'));
   assert.match(settings.hooks.PreToolUse[0].hooks[0].command, /validate:pr-readiness -- --hook$/);

@@ -35,6 +35,10 @@ The goal is not to make one agent do everything. The goal is to make agents work
    - AI can draft, analyze, implement, test, and summarize.
    - AI must not silently approve scope, major architecture, security exceptions, production data changes, or release decisions.
 
+## Role Ownership and Specialist Use
+
+Select one accountable task role for each work item. That owner can use the role's applicable skills without creating a child dispatch. Use specialist consultation for bounded expertise and specialist delivery for a bounded artifact or change; keep acceptance and integration with the task owner. Independent verification requires a distinct agent identity. The canonical mode table and unavailable-specialist rules live in [Dynamic Routing Policy](../workflow/dynamic-routing.md#accountable-role-and-collaboration-modes).
+
 ## Autonomy Levels
 
 | Level | Name | Allowed Behavior | Requires Human Approval |

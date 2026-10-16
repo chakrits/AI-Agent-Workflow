@@ -1,0 +1,131 @@
+# Role-owned Agent SDLC Collaboration — Track B Implementation Plan
+
+> **For agentic workers:** Use `superpowers:executing-plans` for the assigned owner role; choose `superpowers:subagent-driven-development` only when scoped specialist work and execution method call for it. Checkboxes track steps; no automatic per-task spawning is required by this plan.
+
+**Goal:** ให้ Agent SDLC ใช้ role ownership, skills, targeted specialists และ shared business baseline โดยคง independent QA และ human decisions
+
+**Architecture:** ปรับ canonical guidance และทดลองผ่าน artifacts/records/context tools เดิม ไม่สร้าง universal executor, role registry ใหม่ หรือ runtime/KMS server ใน repo นี้
+
+**Tech Stack:** Existing Markdown role/workflow packs, context-pack/v1, Git records, native agent hosts และ application test tools ใน pilot ที่เลือกภายหลัง
+
+**Spec:** [Design v2](../specs/2026-10-15-agent-sdlc-role-collaboration-design.md) · [Roadmap](../../../ROADMAP-SDLC-FRAMEWORK.md) · [Issue #298](https://github.com/chakrits/AI-Agent-Workflow/issues/298)
+
+Revision 2 — 15 ตุลาคม 2026. ผู้ใช้อนุมัติ written plan เมื่อ 15 ตุลาคม 2026; implementation ดำเนินการในขอบเขตและ gates ที่ระบุ
+
+## Global Constraints
+
+- Canonical roles 11 บทบาทและ role boundaries เดิม
+- Integration/UAT/Knowledge specialties อยู่ใต้ role เดิม; ไม่เพิ่ม canonical role/process ใหม่
+- สี่ modes: owner uses skills, specialist consultation, specialist delivery, independent verification
+- Skill fallback ไม่ข้าม permissions/approval หรือทำให้งานที่ต้อง specialist judgment ผ่านเอง
+- Independent review ต้องแยกจากผู้ทำ; persona switching ไม่นับ
+- `context-pack/v1` และ authority semantics เดิมไม่เปลี่ยน
+- Actual spawn ใช้ packet/receipt/in-turn await ตาม host contract; ไม่อ้าง automatic cross-turn resume
+
+## Review Focus
+
+1. Owner สวมหลาย persona แล้วอ้าง independent QA — oracle ใน B1/B3
+2. Specialist unavailable แต่ task เดินต่อข้าม gate — fallback oracle ใน B1/B3
+3. BA/SA/QA ใช้ rule คนละ revision หรือไม่ทราบ source — context cases ใน B2/B3
+4. Draft/lesson ถูกเลื่อนเป็น approved fact หรือ restricted context หลุด — source-policy cases ใน B2/B3
+5. ลด handoff จนไม่มี accountable owner/output acceptance — delivery oracle ใน B1/B3
+
+## 1. File responsibilities และ contract boundaries
+
+| Area | Exact paths / responsibility |
+|---|---|
+| Role selection | `docs/workflow/dynamic-routing.md`, `docs/workflow/role-definitions.md`: four modes + owner/trigger rules |
+| Operating boundaries | `docs/operating-model/AGENT_OPERATING_MODEL.md`, `AGENTS.md`: role ownership และอนุญาต skill use ภายในอำนาจ ไม่มี single-agent-first rule |
+| Real handoff | `docs/workflow/task-execution-mode.md`, `docs/workflow/handoff-contract.md`, `docs/workflow/dispatch-packet-contract.md`: clarify applicability; ไม่ลด actual-dispatch evidence |
+| Context | `docs/contracts/schemas/context-pack-v1.schema.json`, `scripts/inject-role-context.mjs`: reuse unchanged; ไม่มี schema field mutation ใน scope นี้ |
+| Knowledge pilot | Create `docs/records/misc/issue-298-knowledge-baseline.md`: scoped source register; ไม่เป็น global mandatory artifact |
+| Scenario oracle | Create `docs/records/qa/issue-298-collaboration-evaluation.md`: cases/rubric/observed results; ใช้ not-run ก่อน execution |
+| Native adapters | `.claude/agents/`, `.agent/` และ `.codex/orchestrator-supervision.md`: แตะเฉพาะ core-role adapters ที่ต้องตาม canonical change ตาม parity rules; optional skill libraries ไม่ต้อง mirror |
+
+หาก edits แตะ SHA-pinned core source ให้ repin/update budget ตามกติกาปัจจุบันอย่างจำกัด ห้ามใช้แผนนี้ waive existing integrity checks การเปลี่ยน source hash ไม่ใช่การเพิ่ม skill inventory gate
+
+## Task B1: ระบุ role ownership และ collaboration modes
+
+**Files:** canonical role/routing/operating/handoff sources ด้านบน; modify เฉพาะ owner of each rule แล้วใช้ pointers ไม่คัดข้อความซ้ำทุกไฟล์
+
+**Consumes:** approved design v2. **Produces:** decision table และ existing packet fields ที่ระบุ role/scope/output ได้โดยไม่เพิ่ม mandatory dispatch schema
+
+- [x] บันทึก golden oracle ก่อนแก้ guidance: simple BA refinement → BA+skills; SA integration question → SA consultation; bounded DB deliverable → Data delivery; state/auth change → independent verifier
+- [x] Dry-run canonical guidance ก่อนแก้: BA ใช้ skill และ owner ยังเป็น BA แต่เดิมไม่มี no-spawn rule; SA ระบุ integration ownership ได้แต่ไม่มี specialist trigger/consult output; Data เป็น route สำหรับ DB change แต่ยังไม่มี bounded-delivery acceptance; Security/QA เป็น gates แต่ persona-switch independence ยังไม่ชัด
+- [x] ปรับ canonical routing/role/operating/handoff guidance ให้ระบุ accountable task role, skill use ภายในขอบเขต และ specialist trigger; คง Orchestrator coordination responsibility
+- [x] ระบุว่า role perspective ใน session เดิมใช้สร้าง artifact ได้แต่ห้าม self-approve/อ้าง independent review; child dispatch ใช้ contract เดิม และไม่มี child ก็ไม่มี receipt
+- [x] ให้ independent reviewer ตรวจ cases unavailable/conflicting owners/self-approval และ core adapter/context compatibility พร้อม integrated B3 candidate; no further B1 findings
+- [x] Commit `docs: clarify role-owned specialist collaboration` (`2a06814`)
+
+**Expected outcome:** ทั้งสี่ modes ใช้ได้จริงตาม boundaries; ไม่มี role ถูกลบหรือ universal executor default งานเอกสารนี้ไม่มี product-code behavior change จึง TDD N/A ใช้ scenario/review evidence; ถ้าพบว่าต้องเปลี่ยน executable routing ให้แตก task behavior-change พร้อม RED/GREEN ก่อนลงมือ
+
+## Task B2: เตรียม shared business baseline แบบเล็ก
+
+**Files:** create `docs/records/misc/issue-298-knowledge-baseline.md`; link จาก work item/pilot artifacts เดิม ไม่เพิ่มฐานข้อมูลหรือ mandatory form ทุก task
+
+**Consumes:** business/process owner + pilot topic หรือ technical synthetic fixture ที่ติดป้ายชัด. **Produces:** source register ที่ BA/SA/Dev/QA ใช้อ้าง baseline เดียวกัน
+
+- [x] เลือก synthetic technical fixture เพราะไม่มี business/process owner; business fit ระบุเป็น BLOCKED / NOT EVALUATED
+- [x] ระบุ source ID/type, steward, URI, revision/hash, status, scope/classification/access reference, effective interval, approval reference และ supersedes
+- [x] แยก synthetic rule/glossary/catalog, episodic scenario records และ proposals; synthetic approval ไม่ถูกอ้างเป็น business rule
+- [x] เพิ่ม planned role-specific selections ให้ BA/SA/Developer/QA ใช้ baseline เดียวกัน; context-pack/v1/schema คงเดิมและ synthetic register เป็น attachment แยก
+- [x] ระบุ stop behavior/next owner สำหรับ conflict, draft, stale, denied/revoked context และ unavailable specialist; ระบุชัดว่า file metadata ไม่ใช่ live ACL
+- [x] Commit `docs: add scoped knowledge baseline for collaboration pilot`
+
+**Expected outcome:** source-backed artifacts ใช้ revisions ตรงกันและไม่เลื่อน draft เป็น truth ข้อมูลที่ยังไม่อนุญาตส่ง model ไม่ถูกใส่ prompt; ถ้าต้องการ runtime retrieval/ACL/versioned context schema ใหม่ เปิด follow-up design แยก
+
+## Task B3: ทดลองสี่ scenarios และ specialist evaluation
+
+**Files:** `docs/records/qa/issue-298-collaboration-evaluation.md`; reuse actual issue/PR/evidence ของ pilot ไม่สร้าง code/test results จำลอง
+
+**Consumes:** B1 rules + B2 baseline. **Produces:** observed role outputs/verdicts พร้อม scope/limits และ independent review evidence ตาม risk
+
+- [x] เขียน oracle ก่อน execution ตามตารางด้านล่าง; mark ทุก observed-result เป็น not-run
+- [x] เลือก owner-led execution และเรียก Integration/Data specialist เฉพาะ C2/C3 ที่ต้องใช้ expert input; C1 ไม่ spawn
+- [x] Execute C1–C4 ในขอบเขต synthetic ที่อนุมัติ; C1–C3 ใช้ผล owner/specialist จริง, C4 independent reviewer ปฏิเสธ stale SHA และ self-approval ตาม oracle. บันทึก roles, skills, source versions, receipts และ telemetry ที่หาได้
+- [x] Reviewer ที่แยกจากผู้ทำตรวจ source correctness, completeness, boundary/negative coverage, scope discipline, C4 และ Track A/B; ปิด finding เรื่อง scoped context compatibility แล้ว ไม่มี finding ค้าง
+- [x] บันทึกผลจริงและ route ข้อจำกัด: C1 owner PASS/implementation BLOCKED, C2 consultation PASS, C3 BLOCKED; ไม่แก้ expected business outcome เพื่อทำให้ demo ผ่าน
+- [x] Commit `docs: record collaboration evaluation and pilot readiness` (`8a2282c`); incomplete context variants คง not-run/blocked
+
+| Case | Mode / input | Measurable expected outcome |
+|---|---|---|
+| C1 | BA ใช้ skills; source glossary/rules ครบ | AC ทุกข้อมี expected outcome/source revision; ไม่ spawn เพราะเปลี่ยนหมวก; owner=BA |
+| C2 | SA ขอ Integration consult เรื่อง duplicate request | specialist ชี้ contract/risk/test recommendation พร้อม source; ไม่มี code/scope change จาก consultation; SA รับผิดชอบ design |
+| C3 | มอบ Data migration plan ให้ specialist; missing data rule variant | deliverable มี validation/recovery และ owner; missing rule → blocked พร้อม Data/business owner ไม่เดาความหมาย |
+| C4 | QA/Security ตรวจ state/evidence change; seeded stale evidence/self-approval | seeded defect ถูกพบ; independent identity ตรวจได้; persona switch ไม่ผ่าน และ human gate ไม่ถูก bypass |
+
+เพิ่ม context variants ใน C1–C4: conflicting revision, draft source, denied/revoked source และ specialist unavailable ทุก variant ระบุ expected stop/next owner; synthetic demonstration ไม่ถูกนับเป็น executed application SIT/UAT
+
+## Task B4: สรุปผลและเตรียม connected-SDLC pilot
+
+**Files:** existing work item/issue, evaluation record, roadmap; runtime follow-up brief ใช้ record เดียวถ้ามีผู้รับผิดชอบแล้ว
+
+**Consumes:** B3 observed outputs; Track A CI measurements เป็นข้อมูลประกอบ ไม่ใช่ dependency ที่บังคับให้ delay B3
+
+- [x] สรุป output quality ตาม observable rubric และประโยชน์จาก specialist; บันทึก C3 blocked/C4 rejection, human effort, wait/handoff/rework และ cost เป็น unavailable เมื่อไม่มี telemetry
+- [x] ระบุว่าไม่มี matched single-agent/multi-agent data จึงยังสรุปผู้ชนะหรือการลดเวลา/ต้นทุนไม่ได้
+- [x] เสนอ M4 pilot prerequisites ครอบคลุม application/repos/interfaces, business/system owners, runtime candidate, model/data policy, sandbox/test data และ unit/functional/contract/SIT/UAT/regression evidence
+- [x] Draft and record M4 prerequisites in the evaluation; project-owner decision on pattern adoption and approval of connected-runtime scope remain pending as a separate human gate
+
+## 2. Verification commands / evidence
+
+Traceability: B1 พิสูจน์ AC-B1/B2 (ownership และ specialist modes), B2 พิสูจน์ AC-B4 (shared baseline), B3 พิสูจน์ AC-B3/B5 (independence และ quality evaluation), B4 ส่งต่อ full-SDLC/runtime prerequisites ตาม AC-B5 ทุกข้อยัง not implemented/not verified ในรอบปรับแผนนี้
+
+```sh
+# Run only when the corresponding canonical sources/adapters changed.
+npm run validate:adapter-parity
+npm run validate:context-budget
+npm run validate:context-compatibility
+npm run validate:contracts
+git diff --check
+```
+
+ใช้ manual scenario rubric สำหรับ prose/role outcomes ไม่เพิ่ม wording/inventory tests เพียงเพื่อให้ CI รับรู้ทุกเอกสาร ถ้า core pins เปลี่ยนให้ใช้ existing repin procedure หลัง review และตรวจไม่มี unrelated fields เปลี่ยน คำสั่งนี้เป็นแผน ยังไม่ได้รันเป็นหลักฐาน implementation
+
+## 3. Risks / rollback / handoff
+
+Rollback B1 guidance แยกจาก records; ไม่ลบ approval/decision/evaluation history หาก source ถูก revoke ให้หยุดใช้และ invalidate dependent artifacts ไม่ restore restricted content เข้า prompt
+
+Knowledge metadata/file-backed pilot ไม่ใช่ production KMS; live ACL/retrieval, crash-safe orchestration และ authenticated CI evidence integration ต้องผ่าน qualification ใน work item ของ runtime แยก
+
+Next action: Human review ของ written plan แล้วเลือก execution method; owner: Project owner. Recommend owner-led execution สำหรับ edits ที่เป็นลำดับ เรียก specialist สำหรับ expertise/independent review ตามแต่ละ slice ไม่แนะนำ spawn fresh worker ทุก checkbox

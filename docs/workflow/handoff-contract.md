@@ -60,6 +60,8 @@ Completion-contract field meaning and safe-assumption limits are defined in `doc
 
 ## Handoff Rules
 
+A same-owner skill use or consultation that does not invoke a child is not a dispatch and creates no dispatch receipt. A real specialist child invocation must follow the dispatch evidence and in-turn completion rules below; the accountable task owner remains responsible for integrating a bounded specialist deliverable.
+
 1. The receiving agent must verify that required inputs exist.
 2. If required inputs are missing, route backward instead of guessing.
 3. If the work touches security-sensitive areas, include Security Reviewer.

@@ -1,30 +1,31 @@
 name: Validate workflow contracts
-on: [push, pull_request]
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: validate-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   validate:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: read
+      pull-requests: read
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: npm }
-      - run: npm ci
-      - run: npm test
-      - run: npm run validate:contracts
-      - run: npm run validate:dispatch-receipts
+      - name: Select and run applicable validations
+        run: node scripts/run-scoped-validations.mjs
         env:
-          # ADR-0013 Control 3.3: live-verifies GitHub-comment-URL terminal_result_id
-          # evidence via the GitHub API. Read-only, same-repository comments only.
+          VALIDATION_PROVIDER: github
+          VALIDATION_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          VALIDATION_HEAD_SHA: ${{ github.sha }}
+          # Only validate:dispatch-receipts receives this read-only token.
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: npm run validate:workflow-evidence
-      - run: npm run housekeeping:worktrees
-      - run: npm run validate:adapter-parity
-      - run: npm run adr:audit
-      - run: npm run validate:risk-register
-      - run: npm run validate:review-gate
-      - run: npm run validate:clearable-refs
-      - run: npm run validate:metrics
-      - run: npm run validate:context-budget
-      - run: npm run validate:status-projection
-      - run: npm run validate:ci-parity

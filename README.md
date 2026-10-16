@@ -18,7 +18,7 @@ The shared process is not tied to one tool. Codex, Claude Code, Antigravity, and
 - An in-repo, merge-gated dispatch-receipt ledger for cross-turn agent handoffs, with CI-enforced matching and a loop-safety circuit breaker.
 - Work Item records (`docs/records/work-items/`) that link each GitHub Issue to its SDD, PRs, postmortem, and lessons learned — bidirectional traceability in the Obsidian vault.
 - A Lessons Learned vault (`docs/records/lessons-learned/`) with a structured template for session retrospectives.
-- A Framework Metrics dashboard (`npm run validate:metrics`) that parses TASK_LOG and reports rework rate, subagent timeout rate, test growth trend, and more.
+- A manual Framework Metrics snapshot (`npm run validate:metrics`) that parses TASK_LOG and reports historical trends; it is descriptive evidence, not a merge gate.
 - A Context Budget validator (`npm run validate:context-budget`) for seven core policy files, excluding optional skill/catalog/work-instruction content.
 - 12 Architecture Decision Records (ADRs) with a CI-enforced 10:1 ratio check against TASK_LOG decisions.
 - 7 tracked risks with a CI-enforced validation gate.
@@ -237,9 +237,9 @@ Portable validation checks include the following; the CI configurations define t
 | Review gate | `npm run validate:review-gate` | PRs with `.mjs`/`.js` changes have a code review record |
 | ADR audit | `npm run adr:audit` | ADR-to-decision ratio ≤ 10:1 |
 | Risk register | `npm run validate:risk-register` | RISKS.md is current |
-| Worktree audit | `npm run housekeeping:worktrees` | No ghost worktrees |
 | Context budget | `npm run validate:context-budget` | Canonical reading files ≤ 30,000 tokens |
-| Framework metrics | `npm run validate:metrics` | Dashboard: rework rate, timeout rate, test trend |
+
+Worktree housekeeping and Framework Metrics are manual diagnostics; neither runs as an automatic CI or reset gate. Use the commands in [Housekeeping](#housekeeping) and [Framework Metrics](./docs/operating-model/METRICS.md) when their information is useful.
 
 ## Optional Skill Audits
 

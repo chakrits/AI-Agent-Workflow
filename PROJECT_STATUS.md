@@ -1,7 +1,7 @@
 # PROJECT_STATUS.md
 
 ## Current Work Item
-- Idle — Issue #294 implementation merged via PR #295; default-branch tests/audit passed. Documentation closeout pending integration. #284 remains separate; SEC-004 remains `DEFERRED_BY_HUMAN` under ADR-0033.
+- Issue #298 — approved Track A/B implementation and synthetic collaboration evaluation completed on `codex/lean-validation-single-agent`; `npm test` passes 799/799. A1–A4 and B1–B3 are implemented/evaluated; B4 pilot prerequisites are drafted. Independent review fixed and rechecked the context-compatibility scope omission; review record is present. Pilot readiness is NOT READY and connected runtime/business data remain unapproved. Hosted final-candidate evidence and human merge decision are pending. #297 remains separate.
 
 ## Active Work Items
 <!-- active-work-items-table-start -->
@@ -12,14 +12,15 @@
 <!-- active-work-items-table-end -->
 
 ## Planned Framework Work
+- Issue #298 — revised role/skill/specialist collaboration plus separate validation workstream; plan: `docs/records/implementation-plan/2026-10-15-issue-298-lean-workflow-plan.md`; work item: `docs/records/work-items/2026-10-15-issue-298.md`. Next owner: Human Maintainer for hosted-candidate and connected-runtime scope decisions.
 - Issue #294 — implementation complete via PR #295; final documentation closeout pending. Work item and historical handoff retain premerge snapshots; current merge/default-branch evidence is in the post-merge closeout record and Issue matrix.
 - Issue #280 — GPT-6 Astra instruction, skill, and autonomy modernization — #281 is complete through PR #285; #282 is complete through PR #287; #283 is complete through PR #289; #284 remains planned independently. Parent SDD and ADR-0034 are Human-approved. Issue #290 is a separate CI defect repair and does not change the modernization scope.
 
 ## Current Stage
-- Idle / documentation closeout — PR #295 merged as `24cb8f5744c18be114cdd692dfbb62b237ded0fa`. Exact-main contracts783/783 and project-state audit passed; AC11 default-branch evidence available. Closeout PR requires Human review/merge before Issue #294 closure and automatic source-label removal. No native activation claim; #284 unaffected.
+- Human review — Issue #298 v2 preserves 11 roles, skills, targeted specialists, shared business context and independent verification. Track A/B local implementation and synthetic evaluation are complete; full suite passes 799/799 and independent QA/Security review is recorded. Hosted final-candidate evidence and human merge approval remain pending. Connected pilot readiness is NOT READY and requires a separate approved scope.
 
 ## Change Classification
-- Issue #294 is a Medium-risk framework/meta change; implementation changes tests/discovery/core policy and its current SHA pins. Final implementation requires independent QA and targeted Security Reviewer review of retained validation boundaries. Generic Issue/PR readiness remains outside scope.
+- Issue #298 is a Framework/Meta improvement with Medium risk. CI/policy/role changes require independent review; branch protection, required-check identity and connected runtime remain outside this authorization.
 
 ## Completed
 - Issue #294 — **implementation merged via PR #295** (`24cb8f5744c18be114cdd692dfbb62b237ded0fa`): optional skill/work-instruction libraries decoupled from mandatory CI, core source pins and budgets; manual audits retained, core/security/readiness enforced. Independent contributor27/27,488 commands, negatives193/193 and rollback808/808. Exact-main CI783/783 passed: https://github.com/chakrits/AI-Agent-Workflow/actions/runs/38134960733; state audit passed: https://github.com/chakrits/AI-Agent-Workflow/actions/runs/38134960726. Documentation closeout/Issue closure pending closeout merge; native activation unavailable, #284 remains independent.
@@ -83,6 +84,7 @@
 - Minor from Issue #210's round-3 review: the "yielded no comparable commands" error message in `scripts/validate-ci-parity.mjs` says "if the job was restructured... into a composite action," which is misleading for a job that legitimately runs only ignored commands (`npm test`/`npm ci`). Cosmetic wording only, not fixed.
 
 ## Required Artifacts
+- Issue #298 revision 2: `ROADMAP-SDLC-FRAMEWORK.md`, design under `docs/superpowers/specs/`, Track A under `docs/records/implementation-plan/`, Track B under `docs/superpowers/plans/`; linked by `docs/records/work-items/2026-10-15-issue-298.md`.
 - Issue #294 design bundle: `docs/records/work-items/2026-10-11-issue-294-skill-library-decoupling.md` links requirements, SDD/TDD, implementation/test plans, and evidence.
 - Self-review record (#208): `docs/records/qa/2026-09-05-issue-208-decision-log-preservation-code-review.md`
 - Self-review record (#210): `docs/records/qa/2026-09-05-issue-210-ci-parity-code-review.md`
@@ -92,10 +94,10 @@
 - Framework assessment: `docs/records/misc/2026-09-05-framework-sdlc-assessment.md`
 
 ## Next Quality Gate
-- Issue #294 follows approved IMP-001–IMP-006 with scoped red/green evidence, independent QA and targeted Security Reviewer validation; Human merge approval remains required. Design approval/OQ decisions are resolved. SEC-004 stays separately deferred under ADR-0033.
+- Issue #298: human review of the local integrated candidate. A hosted PR/run is not yet available; request/creation remains a human next action. No connected runtime, real business data, release, or merge is authorized by this local completion record.
 
 ## Recommended Next Agent
-- Developer role continues IMP-003; checkpoint: `docs/records/qa/2026-10-11-issue-294-imp002-completion.md`; scoped review PASS recorded separately. Final independent QA/Security remains pending; no global acceptance claim.
+- Human Maintainer / project owner reviews roadmap/design/plans and selects the first slice and execution method. Role owners then use skills and targeted specialist/reviewer support; do not dispatch every role or resume unrelated #294 implementation from this proposal.
 
 ## Notes
 - Reset to template baseline by `npm run reset:template`.
