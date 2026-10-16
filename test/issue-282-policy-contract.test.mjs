@@ -9,7 +9,7 @@ const [operatingModel, bootloader, agents, handoffContract, handoffTemplate, wor
   readFile('docs/workflow/handoff-contract.md', 'utf8'),
   readFile('docs/templates/HANDOFF.md', 'utf8'),
   readFile('docs/templates/WORK_ITEM.md', 'utf8'),
-  readFile('docs/records/work-items/2026-09-21-issue-282-safe-autonomy-proportional-verification.md', 'utf8'),
+  readFile('test/fixtures/issue-282-acceptance-criteria.md', 'utf8'),
   readFile('docs/workflow/quality-gates.md', 'utf8'),
   readFile('docs/operating-model/AGENT_EVALUATION_CHECKLIST.md', 'utf8')
 ]);

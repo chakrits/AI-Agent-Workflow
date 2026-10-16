@@ -58,12 +58,21 @@ The repository also includes issue and pull-request templates, Git hooks, GitLab
 Prerequisites: Git and Node.js 22 or later.
 
     npm install
+    npm run setup:hooks
     npm test
     npm run validate:contracts
 
-npm test runs the repository test suite. The project reset leaves active project-state files at their template baseline; some legacy checks still depend on historical record examples, so inspect the reported test output rather than assuming a clean result. Contract validation can be run independently.
+npm run setup:hooks configures Git's `core.hooksPath` to `.githooks`, enabling the repository's local hooks. npm test runs the repository test suite. The project reset leaves active project-state files at their template baseline; some legacy checks still depend on historical record examples, so inspect the reported test output rather than assuming a clean result. Contract validation can be run independently.
 
 For available commands, see [package.json](package.json), and for the checks used by CI, see [GitHub workflows](.github/workflows/) and [GitLab CI](.gitlab-ci.yml).
+
+## CI Validation Checks
+
+GitHub Actions selects validations from the changed paths through `scripts/run-scoped-validations.mjs`. Changes to code, tests, or package metadata run the test suite and applicable contract checks; documentation-only changes run `git diff --check`. CI also has dedicated gates for documentation impact and pull-request work-item readiness. The path rules and command allowlist are defined in [validation-scope.mjs](scripts/lib/validation-scope.mjs).
+
+## Optional Library Audits
+
+Skill catalog and skill-usage audits are opt-in checks. They are not part of the mandatory CI validation set; run `npm run audit:skills` or `npm run audit:skill-usage` when those libraries change or need review.
 
 ## How work flows
 
@@ -79,6 +88,8 @@ The framework does not force every task through a fixed PM → BA → SA → Dev
 | Framework/process change | Orchestrator and documentation review → applicable validation → human approval |
 
 Routes are risk-based; the canonical policies define when to skip or add a stage. Human approval remains required at the gates defined in the [operating model](docs/operating-model/AGENT_OPERATING_MODEL.md#human-approval-gates).
+
+Workflow playbooks: [Feature discovery to plan](docs/workflows/feature-discovery-to-plan.md), [New feature](docs/workflows/new-feature.md), [Bug fix](docs/workflows/bug-fix.md), [Bug debug and fix](docs/workflows/bug-debug-fix.md), [CI failure debugging](docs/workflows/ci-failure-debug.md), [Config change](docs/workflows/config-change.md), [Data change](docs/workflows/data-change.md), [TDD implementation](docs/workflows/tdd-implementation-flow.md), [Functional test design](docs/workflows/functional-test-design.md), [Code review gate](docs/workflows/code-review-gate.md), [Validated bug postmortem](docs/workflows/validated-bug-postmortem.md), and [Stabilize the framework core](docs/workflows/stabilize-core.md).
 
 ## Workflow contracts and reusable artifacts
 

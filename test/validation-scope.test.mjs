@@ -6,11 +6,13 @@ const select = (changedPaths, comparisonComplete = true) =>
   selectValidationChecks({ changedPaths, comparisonComplete });
 
 test('ordinary documentation changes run only the whitespace check', () => {
-  assert.deepEqual(select(['docs/guide.md']), {
-    fullSuite: false,
-    commands: ['git diff --check'],
-    reasonCodes: ['DOCS_ONLY']
-  });
+  for (const path of ['docs/guide.md', 'README.md', 'PROJECT_INDEX.md']) {
+    assert.deepEqual(select([path]), {
+      fullSuite: false,
+      commands: ['git diff --check'],
+      reasonCodes: ['DOCS_ONLY']
+    }, path);
+  }
 });
 
 test('optional skill and workflow libraries stay outside unrelated suites', () => {
