@@ -68,7 +68,7 @@ For available commands, see [package.json](package.json), and for the checks use
 
 ## CI Validation Checks
 
-GitHub Actions selects validations from the changed paths through `scripts/run-scoped-validations.mjs`. Changes to code, tests, or package metadata run the test suite and applicable contract checks; documentation-only changes run `git diff --check`. CI also has dedicated gates for documentation impact and pull-request work-item readiness. The path rules and command allowlist are defined in [validation-scope.mjs](scripts/lib/validation-scope.mjs).
+GitHub Actions selects validations from the changed paths through `scripts/run-scoped-validations.mjs`. Changes to code, tests, or package metadata run the test suite and applicable contract checks; ordinary documentation-only changes run `git diff --check`, while changes to README.md or PROJECT_INDEX.md also check their local links. CI also has dedicated gates for documentation impact and pull-request work-item readiness. The path rules and command allowlist are defined in [validation-scope.mjs](scripts/lib/validation-scope.mjs).
 
 ## Optional Library Audits
 

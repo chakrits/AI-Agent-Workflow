@@ -9,6 +9,7 @@
     "test": "node --test",
     "setup:hooks": "node scripts/setup-hooks.mjs",
     "validate:contracts": "node scripts/validate-contracts.mjs",
+    "validate:root-doc-links": "node scripts/validate-root-doc-links.mjs",
     "validate:ci-parity": "node scripts/validate-ci-parity.mjs",
     "validate:project-state": "node scripts/validate-project-state.mjs",
     "validate:dispatch-receipts": "node scripts/validate-dispatch-receipts.mjs",

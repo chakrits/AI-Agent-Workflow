@@ -195,6 +195,9 @@ export function selectValidationChecks({ changedPaths, comparisonComplete } = {}
 
     if (isWithin(file, 'docs') || ROOT_DOCUMENTS.has(file) || file === 'README.md') {
       reasons.add('DOCS_ONLY');
+      if (file === 'README.md' || file === 'PROJECT_INDEX.md') {
+        commands.add('npm run validate:root-doc-links');
+      }
       continue;
     }
 
@@ -210,7 +213,7 @@ export function selectValidationChecks({ changedPaths, comparisonComplete } = {}
   return {
     fullSuite,
     commands: [
-      'git diff --check', 'npm test', ...FULL_VALIDATORS
+      'git diff --check', 'npm test', ...FULL_VALIDATORS, 'npm run validate:root-doc-links'
     ].filter((command) => commands.has(command)),
     reasonCodes: uniqueReasons
   };
