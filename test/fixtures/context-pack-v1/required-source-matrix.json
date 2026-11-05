@@ -281,7 +281,7 @@
         },
         {
           "path": "docs/contracts/new-feature-workflow.yaml",
-          "sha256": "cec45cec7b799e17a62ee462129a4fba321aeb300cd39209a6f8b8f0a93cc036"
+          "sha256": "7c84484624ac5a0d0ed513802ecd56c5ae12d1621c93bcf65955fdcb0be2ab30"
         }
       ],
       "allowedTriggerReasons": [
@@ -320,7 +320,7 @@
         },
         {
           "path": "docs/contracts/new-feature-workflow.yaml",
-          "sha256": "cec45cec7b799e17a62ee462129a4fba321aeb300cd39209a6f8b8f0a93cc036"
+          "sha256": "7c84484624ac5a0d0ed513802ecd56c5ae12d1621c93bcf65955fdcb0be2ab30"
         }
       ],
       "allowedTriggerReasons": [
@@ -476,7 +476,7 @@
         },
         {
           "path": "docs/contracts/new-feature-workflow.yaml",
-          "sha256": "cec45cec7b799e17a62ee462129a4fba321aeb300cd39209a6f8b8f0a93cc036"
+          "sha256": "7c84484624ac5a0d0ed513802ecd56c5ae12d1621c93bcf65955fdcb0be2ab30"
         }
       ],
       "allowedTriggerReasons": [

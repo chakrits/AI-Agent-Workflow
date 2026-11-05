@@ -94,6 +94,32 @@ Developer must not begin implementation until `status:spec-ready` is present.
 - Documentation-only work follows the Documentation Agent route without an invented SDD.
 - Bug Fix work keeps `docs/contracts/bug-fix-workflow.yaml` as its task-state policy; use these labels only when a separate feature/design route is selected.
 
+### Compressed-Spec Eligibility and Recovery
+
+Use [INTENT](../templates/INTENT.md) → [SPEC](../templates/SPEC.md) → existing [IMPLEMENTATION_PLAN](../templates/IMPLEMENTATION_PLAN.md) only when all six gates pass:
+
+| Gate | Required evidence / otherwise route |
+|---|---|
+| Risk | `risk_level: low`, top-level/evidence agree; otherwise SA/SDD |
+| Security | `security_boundary_impact: none`, actual diff checked; otherwise Security + SA + Human |
+| API/architecture | `api_contract_impact: none`; no new/changed HTTP/RPC/CLI/event/schema contract, even additive, or cross-boundary impact; otherwise SA/SDD |
+| Data | `data_migration_impact: none`, no production-data/migration/backfill; otherwise SA/Data + Human |
+| Clarity | Questions resolved or explicit clear-scope decision; otherwise BA/PM/Human |
+| Verification | `status:spec-ready` before implementation, distinct verifier identity; otherwise block |
+
+Declared eligibility needs independent path/diff evidence. Pin source repository, full commit SHA and artifact paths. The [New Feature contract/playbook](../workflows/new-feature.md) owns branch/evidence rules: standard SA selection uses only earlier `designing -> planning` in the current discovery episode; re-entering discovery invalidates old design authority. Historical snapshots do not approve escalated scope. Record the escalation reason, route through SA design and standard implementation approval, preserving Security/Human gates.
+
+For adopted fast-track sunset, retain reader/schema and audit history. Set `historical_only: true` on both fast branches with `sunset_effective_at`; reject post-cutoff or invalid timestamps using parsed instants. Completed pre/equal-cutoff histories remain readable. Unremediated in-flight records may hold only in discovery/designing/rework/blocked; advancement needs subsequent SA design and standard implementation approval. Never rewrite history to recover.
+
+### Parallel Worktrees versus Scoped Subagents
+
+| Mode | Boundary |
+|---|---|
+| Parallel worktree sessions | Separate Git worktrees/branches, Human supervision and disjoint write sets; follow AGENTS.md creation/audit/removal rules, including cleanup within24h of merge |
+| In-session scoped subagents | Explicit disjoint shared-tree writes or host isolation; Packet/Task Brief, same-turn invocation/wait/receipt consumption; no isolation or independence inferred from persona switching |
+
+Both require accountable integration and distinct verification; neither grants merge/release approval.
+
 ### Standard and Backward Paths
 
 ```text
