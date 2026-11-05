@@ -15,6 +15,9 @@
 - Issue #294 — implementation complete via PR #295; final documentation closeout pending. Work item and historical handoff retain premerge snapshots; current merge/default-branch evidence is in the post-merge closeout record and Issue matrix.
 - Issue #280 — GPT-6 Astra instruction, skill, and autonomy modernization — #281 is complete through PR #285; #282 is complete through PR #287; #283 is complete through PR #289; #284 remains planned independently. Parent SDD and ADR-0034 are Human-approved. Issue #290 is a separate CI defect repair and does not change the modernization scope.
 
+## Advisory Proposals
+- 2026-10-15 — SDLC agent framework exploration and roadmap draft produced for the project owner: `ROADMAP-SDLC-FRAMEWORK.md` and `docs/records/misc/2026-10-15-sdlc-framework-exploration.md`. Advisory/documentation only; no new implementation work item, architecture adoption, connected execution, or release approval. Next owner: project owner to review direction and select pilot scope. Existing work-item lifecycle and pending closeout remain unchanged.
+
 ## Current Stage
 - Idle / documentation closeout — PR #295 merged as `24cb8f5744c18be114cdd692dfbb62b237ded0fa`. Exact-main contracts783/783 and project-state audit passed; AC11 default-branch evidence available. Closeout PR requires Human review/merge before Issue #294 closure and automatic source-label removal. No native activation claim; #284 unaffected.
 
