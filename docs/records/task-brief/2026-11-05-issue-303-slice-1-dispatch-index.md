@@ -59,3 +59,12 @@ Both initial briefs use the same immutable approved base and disjoint write sets
 - `node scripts/validate-clearable-refs.mjs`: exit 0 for the range it reports; direct source-path checks above cover the newly created local brief references.
 - `git diff --check`: exit 0. No full regression suite was run because this preparation changes records only.
 - Terminal Result ID: `issue303-initial-briefs-61b88e7-20261105-01`.
+
+## Active Execution — Supersedes Preparation Preconditions Above
+- User authorized Slice 1 implementation dispatch, issue-scoped commit/push and lifecycle label publication; exact decision is in the linked approval record.
+- GitHub read-back: `enhancement`, `phase:development`, `status:spec-ready`; label operation exit 0.
+- Preparation baseline commit: `d28ac8cc44170dab0bfa95ddc85751c7c3cce09c`; template candidate commit: `b6cdcd7ba4b18529a7d9e042f0c213281d3aa5b6`.
+- Documentation child `/root/issue303_orchestrator/templates`: Packet v1 invoked and acknowledged; native `collaboration.wait_agent` delivered terminal `issue303-templates-d28ac8c-20261105-01`; Orchestrator consumed once. INTENT/SPEC integrated in the template candidate. Independent QA task_review `/root/issue303_orchestrator/task_qa` is invoked/acknowledged and in-turn wait registered; acceptance pending.
+- Developer child `/root/issue303_orchestrator/contracts_red`: Packet v1 invoked/acknowledged with baseline `d28ac8c`; native wait registered. RED tests remain uncommitted pending separate QA artifact review; no known-failing RED-only commit is created. Green requires reviewed immutable RED patch identity first.
+- Shared current feature tree has explicit disjoint write ownership; no branch/worktree change or removal. Commit ownership remains Orchestrator.
+- Parent `/root` supervises this Orchestrator in the same active turn. No cross-turn automatic continuation is claimed.

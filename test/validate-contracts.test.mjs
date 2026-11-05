@@ -3,11 +3,247 @@ import { readFile, mkdtemp, mkdir, writeFile, rm, cp } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
+import YAML from 'yaml';
 import { validateContracts } from '../scripts/validate-contracts.mjs';
 
 const adapterPaths = [
   '.claude/agents/orchestrator-agent.md'
 ];
+
+// Approved Issue #303 contract examples use the real validator and copied policy/schema.
+// Only sunset metadata is changed in fixtures; fast-track branches must exist in production.
+const issue303Low = {
+  risk_level: 'low', security_boundary_impact: 'none',
+  api_contract_impact: 'none', data_migration_impact: 'none'
+};
+const issue303FastDiscovery = ['user_stories', 'acceptance_criteria', 'business_rules',
+  'compressed_spec_reference', 'security_boundary_impact', 'api_contract_impact',
+  'data_migration_impact', 'pm_ba_gate_result'];
+const issue303FastImplement = ['spec_readiness_checklist', 'implementation_plan',
+  'compressed_spec_reference', 'spec_readiness_gate_result'];
+
+async function issue303State(route, { high = false, snapshots = false } = {}) {
+  const state = YAML.parse(await readFile('docs/contracts/examples/new-feature-pass.yaml', 'utf8'));
+  const policy = YAML.parse(await readFile('docs/contracts/new-feature-workflow.yaml', 'utf8'));
+  state.risk_level = high ? 'high' : 'low';
+  Object.assign(state.evidence, issue303Low, {
+    risk_level: state.risk_level, compressed_spec_reference: 'SPEC.md@approved-sha',
+    spec_readiness_gate_result: 'approved', rework_scope: 'correct scope',
+    rework_route: 'sa-agent', verification_failed: 'API impact found', plan_update: 'replanned',
+    spec_gap: 'new integration', redesign_scope: 'design integration', design_gap: 'API boundary',
+    requirement_gap: 'changed scope', risk_escalation_reason: 'new security boundary',
+    stop_reason: 'await design approval'
+  });
+  if (high) state.evidence.security_boundary_impact = 'authz';
+  let designed = false;
+  state.history = route.slice(1).map((to, index) => {
+    const from = route[index];
+    if (to === 'discovery') designed = false;
+    const isFastDiscovery = from === 'discovery' && to === 'planning';
+    const isFastImplement = from === 'planning' && to === 'implementing' && !designed;
+    const refs = isFastDiscovery ? issue303FastDiscovery : isFastImplement ? issue303FastImplement
+      : policy.transitions.find((transition) => transition.from === from && transition.to === to)?.requires;
+    assert.ok(refs, `fixture has a declared transition: ${from} -> ${to}`);
+    const event = { from, to, at: `2026-11-05T00:${String(index).padStart(2, '0')}:00Z`,
+      actor: 'issue-303-test', evidence_refs: [...refs] };
+    if (snapshots && (isFastDiscovery || isFastImplement)) event.classification_snapshot = { ...issue303Low };
+    if (from === 'designing' && to === 'planning') designed = true;
+    return event;
+  });
+  state.state = route.at(-1);
+  state.rework_count = state.history.filter((event) => event.to === 'rework').length;
+  state.stop_reason = state.state === 'blocked' ? 'await design approval' : null;
+  return state;
+}
+
+async function issue303Validate(state, { sunset = false, cutoff = '2026-11-05T12:00:00Z' } = {}) {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'issue-303-contract-'));
+  try {
+    await cp('docs/contracts', path.join(root, 'docs/contracts'), { recursive: true });
+    if (sunset) {
+      const file = path.join(root, 'docs/contracts/new-feature-workflow.yaml');
+      const policy = YAML.parse(await readFile(file, 'utf8'));
+      policy.sunset_effective_at = cutoff;
+      for (const transition of policy.transitions) {
+        if ((transition.from === 'discovery' && transition.to === 'planning') ||
+            (transition.from === 'planning' && transition.to === 'implementing' && transition.when)) {
+          transition.historical_only = true;
+        }
+      }
+      await writeFile(file, YAML.stringify(policy));
+    }
+    await writeFile(path.join(root, 'state.yaml'), YAML.stringify(state));
+    return await validateContracts(root, ['state.yaml']);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+}
+
+const issue303FastRelease = ['intake', 'discovery', 'planning', 'implementing', 'verifying', 'human-review', 'release'];
+
+test('issue-303: TC-001 fast-track completes and all 10 canonical examples stay valid', async () => {
+  assert.deepEqual(await issue303Validate(await issue303State(issue303FastRelease)), []);
+  assert.deepEqual(await validateContracts(process.cwd()), []);
+});
+
+for (const [top, evidence] of [['high', 'low'], ['low', 'high'], ['low', undefined]]) {
+  test(`issue-303: TC-002 risk parity ${top}/${evidence}`, async () => {
+    const state = await issue303State(['intake', 'discovery', 'designing', 'planning', 'implementing']);
+    state.risk_level = top;
+    if (evidence === undefined) delete state.evidence.risk_level;
+    else state.evidence.risk_level = evidence;
+    const errors = await issue303Validate(state);
+    assert.ok(errors.some((error) => /top-level risk_level.*does not match evidence.risk_level|evidence risk_level must (have a meaningful value|exist in evidence map)/.test(error)), errors.join('\n'));
+  });
+}
+
+test('issue-303: TC-002 config-change authoritative risk_tier cannot contradict evidence', async () => {
+  const state = YAML.parse(await readFile('docs/contracts/examples/config-change-pass.yaml', 'utf8'));
+  state.risk_tier = 'medium';
+  const errors = await issue303Validate(state);
+  assert.ok(errors.some((error) => /top-level risk_tier.*does not match evidence.risk_tier/.test(error)), errors.join('\n'));
+});
+
+for (const [field, value] of [['security_boundary_impact', 'authz'], ['api_contract_impact', 'additive-endpoint'], ['data_migration_impact', 'schema-migration']]) {
+  test(`issue-303: TC-003.1 rejects fast-track ${field}`, async () => {
+    const state = await issue303State(issue303FastRelease);
+    state.evidence[field] = value;
+    const errors = await issue303Validate(state);
+    assert.ok(errors.some((error) => error.includes(field) && error.includes('none')), errors.join('\n'));
+  });
+}
+
+for (const [id, route] of [
+  ['TC-003A', ['intake', 'discovery', 'planning', 'designing', 'planning', 'implementing', 'verifying', 'human-review', 'release']],
+  ['TC-003B', ['intake', 'discovery', 'planning', 'implementing', 'verifying', 'rework', 'designing', 'planning', 'implementing', 'verifying', 'human-review', 'release']],
+  ['TC-003C', ['intake', 'discovery', 'designing', 'planning', 'implementing', 'verifying', 'rework', 'planning', 'implementing', 'verifying', 'human-review', 'release']]
+]) {
+  test(`issue-303: ${id} accepts completed SA remediation and standard replanning`, async () => {
+    assert.deepEqual(await issue303Validate(await issue303State(route, { high: true, snapshots: true })), []);
+  });
+}
+
+for (const end of ['planning', 'implementing', 'verifying', 'human-review', 'release']) {
+  test(`issue-303: TC-003D unremediated escalation cannot advance to ${end}`, async () => {
+    const route = issue303FastRelease.slice(0, issue303FastRelease.indexOf(end) + 1);
+    const errors = await issue303Validate(await issue303State(route, { high: true, snapshots: true }));
+    assert.ok(errors.some((error) => error.includes('unremediated fast-track escalation')), errors.join('\n'));
+  });
+}
+
+test('issue-303: TC-003D rework cannot skip design after escalation', async () => {
+  const route = ['intake', 'discovery', 'planning', 'implementing', 'verifying', 'rework', 'implementing'];
+  const errors = await issue303Validate(await issue303State(route, { high: true, snapshots: true }));
+  assert.ok(errors.some((error) => error.includes('unremediated fast-track escalation')), errors.join('\n'));
+});
+
+test('issue-303: TC-003D future design does not authorize an earlier standard implementation', async () => {
+  const route = ['intake', 'discovery', 'planning', 'implementing', 'verifying', 'rework', 'designing', 'planning', 'implementing'];
+  const state = await issue303State(route);
+  state.history[2].evidence_refs = ['spec_readiness_checklist', 'implementation_plan', 'sa_dev_gate_result'];
+  const errors = await issue303Validate(state);
+  assert.ok(errors.some((error) => /planning -> implementing requires evidence compressed_spec_reference/.test(error)), errors.join('\n'));
+});
+
+test('issue-303: TC-003D discovery resets design authority from an earlier episode', async () => {
+  const route = ['intake', 'discovery', 'designing', 'planning', 'implementing', 'verifying', 'rework', 'discovery', 'planning', 'implementing'];
+  const state = await issue303State(route);
+  state.history.at(-1).evidence_refs = ['spec_readiness_checklist', 'implementation_plan', 'sa_dev_gate_result'];
+  const errors = await issue303Validate(state);
+  assert.ok(errors.some((error) => /planning -> implementing requires evidence compressed_spec_reference/.test(error)), errors.join('\n'));
+});
+
+test('issue-303: snapshot escalation requires a meaningful reason', async () => {
+  const state = await issue303State(['intake', 'discovery', 'planning', 'designing'], { high: true, snapshots: true });
+  for (const field of ['risk_escalation_reason', 'redesign_scope', 'design_gap', 'requirement_gap']) state.evidence[field] = ' ';
+  // Keep the planning->designing transition evidence meaningful independently.
+  state.evidence.redesign_scope = 'design needed';
+  state.history = state.history.slice(0, 2);
+  state.state = 'planning';
+  delete state.evidence.redesign_scope;
+  const errors = await issue303Validate(state);
+  assert.ok(errors.some((error) => /escalation.*reason|risk_escalation_reason/.test(error)), errors.join('\n'));
+});
+
+for (const hold of ['designing', 'rework', 'blocked', 'discovery']) {
+  test(`issue-303: TC-003E1 sunset allows existing remediation hold in ${hold}`, async () => {
+    const route = hold === 'designing' ? ['intake', 'discovery', 'planning', 'designing']
+      : hold === 'blocked' ? ['intake', 'discovery', 'planning', 'blocked']
+      : ['intake', 'discovery', 'planning', 'implementing', 'verifying', 'rework', ...(hold === 'discovery' ? ['discovery'] : [])];
+    assert.deepEqual(await issue303Validate(await issue303State(route), { sunset: true }), []);
+  });
+}
+
+test('issue-303: TC-003E1 sunset recovery validates each handoff through standard implementation', async () => {
+  const route = ['intake', 'discovery', 'planning', 'designing', 'planning', 'implementing'];
+  for (const length of [4, 5, 6]) {
+    assert.deepEqual(await issue303Validate(await issue303State(route.slice(0, length)), { sunset: true }), []);
+  }
+});
+
+for (const end of ['planning', 'implementing', 'verifying', 'human-review']) {
+  test(`issue-303: TC-003E2 sunset blocks unremediated ${end}`, async () => {
+    const route = issue303FastRelease.slice(0, issue303FastRelease.indexOf(end) + 1);
+    const errors = await issue303Validate(await issue303State(route), { sunset: true });
+    assert.ok(errors.some((error) => error.includes('is marked historical_only') && error.includes(`before state "${end}"`)), errors.join('\n'));
+  });
+}
+
+test('issue-303: TC-003E3 completed pre-sunset history remains readable without mutation', async () => {
+  const state = await issue303State(issue303FastRelease);
+  const original = structuredClone(state);
+  assert.deepEqual(await issue303Validate(state, { sunset: true }), []);
+  assert.deepEqual(state, original);
+});
+
+for (const [label, at, accepted] of [
+  ['before', '2026-11-05T11:59:59Z', true],
+  ['equal', '2026-11-05T12:00:00Z', true],
+  ['fractional-after', '2026-11-05T12:00:00.500Z', false],
+  ['second-after', '2026-11-05T12:00:01Z', false],
+  ['offset-equal', '2026-11-05T19:00:00+07:00', true],
+  ['offset-after', '2026-11-05T19:00:00.500+07:00', false],
+  ['invalid', 'not-a-timestamp', false]
+]) {
+  test(`issue-303: TC-003E4 cutoff ${label} uses chronological instants`, async () => {
+    const state = await issue303State(issue303FastRelease);
+    // Move all subsequent events with the tested instant; ordering cannot mask cutoff behavior.
+    for (const event of state.history.slice(1)) event.at = at;
+    const errors = await issue303Validate(state, { sunset: true });
+    if (accepted) assert.deepEqual(errors, []);
+    else assert.ok(errors.some((error) => label === 'invalid'
+      ? /invalid.*timestamp/.test(error) : error.includes('after sunset_effective_at')), errors.join('\n'));
+  });
+}
+
+test('issue-303: invalid sunset policy timestamp fails closed', async () => {
+  const errors = await issue303Validate(await issue303State(issue303FastRelease), { sunset: true, cutoff: 'invalid' });
+  assert.ok(errors.some((error) => error.includes('invalid policy.sunset_effective_at')), errors.join('\n'));
+});
+
+for (const mutation of [
+  (snapshot) => { delete snapshot.risk_level; },
+  (snapshot) => { snapshot.risk_level = 'unclassified'; },
+  (snapshot) => { snapshot.api_contract_impact = ''; },
+  (snapshot) => { snapshot.unapproved_override = true; }
+]) {
+  test(`issue-303: classification_snapshot schema rejects ${mutation.toString()}`, async () => {
+    const state = await issue303State(['intake', 'discovery'], { snapshots: false });
+    state.history[0].classification_snapshot = { ...issue303Low };
+    mutation(state.history[0].classification_snapshot);
+    const errors = await issue303Validate(state);
+    assert.notDeepEqual(errors, [], 'invalid optional snapshots must be rejected by schema');
+  });
+}
+
+for (const [field, wrong] of [['contains_pii', 'yes'], ['data_change_kind', ['migration']]]) {
+  test(`issue-303: TC-002 data-change ${field} parity is authoritative`, async () => {
+    const state = YAML.parse(await readFile('docs/contracts/examples/data-change-pass.yaml', 'utf8'));
+    state[field] = wrong;
+    const errors = await issue303Validate(state);
+    assert.ok(errors.some((error) => error.includes(`top-level ${field}`) && error.includes(`does not match evidence.${field}`)), errors.join('\n'));
+  });
+}
 
 
 
