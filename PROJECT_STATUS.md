@@ -25,20 +25,20 @@
 - Security Review Required: Yes (bounded `security-reviewer` gate-eligibility & escalation audit in Slice 1)
 
 ## Completed
-- Completed forensic verification of Round-1 (`#6650818869`), Round-2 (`#6651546438`), Round-3 (`#6653541297`), and Round-4 (`#6654686480`) review findings with reproducible Node.js verification & fault-injection harnesses (`RR-01`–`RR-05`, `R3-01`–`R3-04`, `V4-01a`–`V4-01b`, `V4-02a`–`V4-02c`).
-- Hardened lifecycle contracts for mid-flight risk escalation, Two-Regime Rollback with in-flight remediation hold (`REMEDIATION_HOLD_STATES`) & cutoff timestamp (`sunset_effective_at`), resilient 3-phase `--emit-intent` I/O failure semantics with write-all loop & honest residual reporting, legacy `TASK_LOG` flag isolation, and accurate 9-file Slice 2 scope.
+- Completed forensic verification of Round-1 (`#6650818869`), Round-2 (`#6651546438`), Round-3 (`#6653541297`), Round-4 (`#6654686480`), and Round-5 review findings (`#6655743281`: `P5-01` chronological instant cutoff comparison) with reproducible Node.js verification & fault-injection harnesses (`RR-01`–`RR-05`, `R3-01`–`R3-04`, `V4-01a`–`V4-01b`, `V4-02a`–`V4-02c`, `P5-01`).
+- Hardened lifecycle contracts for mid-flight risk escalation, Two-Regime Rollback with in-flight remediation hold (`REMEDIATION_HOLD_STATES`) & chronological instant cutoff (`Date.parse(event.at) > Date.parse(policy.sunset_effective_at)`), resilient 3-phase `--emit-intent` I/O failure semantics with write-all loop & honest residual reporting, legacy `TASK_LOG` flag isolation, and accurate 9-file Slice 2 scope.
 
 ## In Progress
 - Human Maintainer review of the 4 policy approval items on Issue #303 to unlock `status:spec-ready`.
 
 ## Blockers / Open Questions
-- Human Approval Gate (`stop_reason: human_review_required`): Requires Maintainer approval on Issue #303 for (1) low-risk non-API `SPEC.md` fast-track + parity + `classification_snapshot` escalation remediation + `historical_only` sunset with remediation hold & cutoff timestamp, (2) deliberate 9-file 3-Pass review & reference `5-Nit Cap`, (3) `--source structured` cohort metrics + legacy flag isolation + Dual-Digest resilient 3-phase safe `--emit-intent` CLI, and (4) 4-Slice Stacked PR delivery.
+- Human Approval Gate (`stop_reason: human_review_required`): Requires Maintainer approval on Issue #303 for (1) low-risk non-API `SPEC.md` fast-track + parity + `classification_snapshot` escalation remediation + `historical_only` sunset with remediation hold & chronological cutoff timestamp, (2) deliberate 9-file 3-Pass review & reference `5-Nit Cap`, (3) `--source structured` cohort metrics + legacy flag isolation + Dual-Digest resilient 3-phase safe `--emit-intent` CLI, and (4) 4-Slice Stacked PR delivery.
 
 ## Required Artifacts
 - Work Item record at `docs/records/work-items/2026-11-05-issue-303.md` (updated for v5).
-- Specification v5 record at `docs/records/sdd/2026-11-05-issue-303-rebuttal-and-executive-spec-v5.md` (created).
-- Implementation Plan v5 record at `docs/records/implementation-plan/2026-11-05-issue-303-ai-native-sdlc-plan-v5.md` (created).
-- Lessons Learned record at `docs/records/lessons-learned/2026-11-05-issue-303-review-lessons.md` (updated with `L-08`–`L-13`).
+- Specification v5 record at `docs/records/sdd/2026-11-05-issue-303-rebuttal-and-executive-spec-v5.md` (updated with P5-01 fix).
+- Implementation Plan v5 record at `docs/records/implementation-plan/2026-11-05-issue-303-ai-native-sdlc-plan-v5.md` (updated with TC-003E4 regression scope).
+- Lessons Learned record at `docs/records/lessons-learned/2026-11-05-issue-303-review-lessons.md` (updated with `L-08`–`L-14`).
 
 ## Next Quality Gate
 - Specification Readiness Gate (`status:spec-ready` + Human Maintainer approval on Issue #303).

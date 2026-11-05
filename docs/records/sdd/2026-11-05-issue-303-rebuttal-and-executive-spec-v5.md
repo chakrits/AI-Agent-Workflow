@@ -92,12 +92,13 @@
 #### 4.1.4 สัญญาความเข้ากันได้ของการปิดทางด่วนและการฟื้นฟูข้อมูลสถานะ (`V4-01a` & `V4-01b` Sunset & Recovery Contract)
 
 เพื่อแก้ไขข้อขัดแย้งเชิงออกแบบและกำหนด Enforcement Boundary ของการปิดทางด่วนอย่างแม่นยำ:
-1. **การกำหนด `sunset_effective_at` ใน Policy Contract (`V4-01b`)**:
+1. **การกำหนด `sunset_effective_at` ใน Policy Contract (`V4-01b` & `P5-01`)**:
    - เมื่อต้องการปิดทางด่วน ให้เพิ่มฟิลด์ `sunset_effective_at: "<ISO-8601-Timestamp>"` ใน `docs/contracts/new-feature-workflow.yaml` ควบคู่กับการตั้งค่า `historical_only: true` บนกิ่งทางด่วนทั้งสอง
-   - **New Entry Boundary Enforcement**: หากเหตุการณ์ทางด่วนใดมี `event.at > policy.sunset_effective_at` ด่าน `validate-contracts.mjs` จะปฏิเสธทันทีด้วยรหัสข้อผิดพลาด:
+   - **Chronological Instant Enforcement (`P5-01`)**: การเปรียบเทียบเวลาต้องแปลง/วิเคราะห์ค่าเป็น **Chronological Epoch Milliseconds (`Date.parse()`)** เสมอ ไม่ใช้การเปรียบเทียบข้อความ (Lexicographical String Comparison) เพื่อป้องกันข้อผิดพลาดกรณี Fractional Seconds (เช่น `.500Z` vs `Z`) หรือ Timezone Offsets (เช่น `+07:00`) และต้องปฏิเสธ Timestamp ที่ไม่ถูกต้อง (Invalid Date/Unparseable) แบบ Fail-Closed ทันที
+   - **New Entry Boundary Enforcement**: หากเหตุการณ์ทางด่วนใดเกิดขึ้นตามเวลาจริงหลังเส้นตาย (`Date.parse(event.at) > Date.parse(policy.sunset_effective_at)`) ด่าน `validate-contracts.mjs` จะปฏิเสธทันทีด้วยรหัสข้อผิดพลาด:
      `<path>: <from> -> <to> at history[<i>] occurred at <at>, after sunset_effective_at (<cutoff>); fast-track is disabled for new entries`
 2. **การรองรับ In-Flight Recovery Hold States (`V4-01a`)**:
-   - สำหรับระเบียนที่มีอยู่เดิม (`event.at <= policy.sunset_effective_at` หรือยังไม่ได้ระบุ Cutoff):
+   - สำหรับระเบียนที่มีอยู่เดิม (`Date.parse(event.at) <= Date.parse(policy.sunset_effective_at)` หรือยังไม่ได้ระบุ Cutoff):
      - **กรณีที่ 1: งานที่จบสมบูรณ์แล้ว (`state.state === "release"`)**: ตรวจผ่าน `validateContracts()` และ `validate-metrics.mjs --source structured` ได้อย่างสมบูรณ์โดยไม่ต้องแก้ไขประวัติย้อนหลัง
      - **กรณีที่ 2: งาน In-Flight เดิมที่กำลังเข้าสู่กระบวนการแก้ไข (Under Remediation)**: หากสถานะปัจจุบันของงานอยู่ใน **`REMEDIATION_HOLD_STATES = {"discovery", "designing", "rework", "blocked"}`** ระบบจะอนุญาตให้ตรวจผ่าน เพื่อให้เป็นไปตามกฎ `validate-before-handoff` ใน `new-feature.md:18` และส่งมอบงานให้ SA ดำเนินการออกแบบ `SDD.md` ต่อได้อย่างราบรื่น
      - **กรณีที่ 3: งาน In-Flight ที่พยายามข้ามขั้นตอน**: หากงานนั้นพยายามค้างอยู่ใน `planning` หรือเดินหน้าเข้าสู่ `implementing`, `verifying`, `human-review`, หรือ `release` โดยยังไม่ผ่าน `designing -> planning` จะถูกปฏิเสธทันทีด้วยข้อความ:
@@ -171,7 +172,7 @@
 |---|---|---|---|---|
 | **TC-001** | AC-002 | Contract Happy Path | `new-feature` เดินครบสายทางด่วน `intake -> discovery -> planning -> implementing -> verifying -> human-review -> release` (`risk_level: low`, impacts `"none"`) และตรวจตัวอย่างมาตรฐานเดิมทั้ง 10 ไฟล์ | `validateContracts()` คืน `[]` ทั้งสายทางด่วนและตัวอย่างเดิมทั้ง 10 ไฟล์ |
 | **TC-002** | AC-002 | Cross-Field Parity Guard (`RR-01`) | ทดสอบ `top-level: high` + `evidence: low`, `top-level: low` + `evidence: high`, ลบ `evidence.risk_level`, และ `config-change` `risk_tier` mismatch | ทุกกรณีถูกปฏิเสธแบบ Fail-Closed พร้อมข้อความ `top-level <field> ... does not match evidence.<field>` |
-| **TC-003** | AC-002 | Impact Exit, Temporal Escalation & Sunset Recovery (`RR-01`, `R3-01`, `R3-02`, `V4-01a`, `V4-01b`) | - **TC-003.1**: `low`-risk แต่แตะ `authz`, `additive-endpoint`, หรือ `schema-migration`<br>- **TC-003A (`R3-01` Plan Escalation)**: `discovery -> planning` (`low` snapshot) → พบ `high` risk → `planning -> designing -> planning -> implementing` (`sa_dev_gate_result`) → `release`<br>- **TC-003B (`R3-01` Rework Escalation)**: ทางด่วนถึง `verifying` → พบผลกระทบ API/Authz (`high`) → `verifying -> rework -> designing -> planning -> implementing` (`sa_dev_gate_result`) → `release`<br>- **TC-003C (`R3-01` Standard Replan)**: สาย `designing` มาตรฐาน → `verifying -> rework -> planning -> implementing`<br>- **TC-003D (`R3-01` Negative Escalation / Prefix / Episode Reset)**: ยกระดับเป็น `high` แล้วข้าม `designing`, อ้าง `designing` ในอนาคตย้อนหลัง, หรืออ้าง `designing` ข้ามรอบ `rework -> discovery`<br>- **TC-003E.1 (`V4-01a` Sunset Recovery Hold)**: งาน In-Flight เดิมที่ถูก Sunset พักรอในสถานะ `designing`, `rework`, หรือ `blocked` เพื่อจัดทำ `SDD.md`<br>- **TC-003E.2 (`V4-01a` Sunset Unremediated Implementing)**: งาน In-Flight เดิมที่ถูก Sunset พยายามข้ามไป `implementing` โดยไม่ผ่าน `designing -> planning`<br>- **TC-003E.3 (`V4-01b` Pre-Sunset Completed)**: ระเบียนทางด่วนที่จบงานแล้ว (`release` และ `event.at <= sunset_effective_at`)<br>- **TC-003E.4 (`V4-01b` Post-Sunset New Entry)**: สร้างรายการทางด่วนใหม่หลัง `sunset_effective_at` | - **TC-003A, TC-003B, TC-003C**: `validateContracts()` คืน `[]`<br>- **TC-003.1 & TC-003D**: ถูกปฏิเสธทั้งหมด (`unremediated fast-track escalation`, Prefix/Episode mismatch)<br>- **TC-003E.1 (`V4-01a`)**: **`validateContracts()` คืน `[]` (ผ่านการตรวจรับรองขณะพักรอใน `designing` เพื่อให้ผ่านกฎ Handoff)**<br>- **TC-003E.2**: ถูกบล็อกด้วย `is marked historical_only ... route through designing -> planning before state "implementing"`<br>- **TC-003E.3 (`V4-01b`)**: **`validateContracts()` คืน `[]` (ระเบียนประวัติเดิมที่จบแล้วตรวจผ่าน 100%)**<br>- **TC-003E.4 (`V4-01b`)**: **ถูกบล็อกด้วย `occurred at ..., after sunset_effective_at; fast-track is disabled for new entries`** |
+| **TC-003** | AC-002 | Impact Exit, Temporal Escalation & Sunset Recovery (`RR-01`, `R3-01`, `R3-02`, `V4-01a`, `V4-01b`, `P5-01`) | - **TC-003.1**: `low`-risk แต่แตะ `authz`, `additive-endpoint`, หรือ `schema-migration`<br>- **TC-003A (`R3-01` Plan Escalation)**: `discovery -> planning` (`low` snapshot) → พบ `high` risk → `planning -> designing -> planning -> implementing` (`sa_dev_gate_result`) → `release`<br>- **TC-003B (`R3-01` Rework Escalation)**: ทางด่วนถึง `verifying` → พบผลกระทบ API/Authz (`high`) → `verifying -> rework -> designing -> planning -> implementing` (`sa_dev_gate_result`) → `release`<br>- **TC-003C (`R3-01` Standard Replan)**: สาย `designing` มาตรฐาน → `verifying -> rework -> planning -> implementing`<br>- **TC-003D (`R3-01` Negative Escalation / Prefix / Episode Reset)**: ยกระดับเป็น `high` แล้วข้าม `designing`, อ้าง `designing` ในอนาคตย้อนหลัง, หรืออ้าง `designing` ข้ามรอบ `rework -> discovery`<br>- **TC-003E.1 (`V4-01a` Sunset Recovery Hold)**: งาน In-Flight เดิมที่ถูก Sunset พักรอในสถานะ `designing`, `rework`, หรือ `blocked` เพื่อจัดทำ `SDD.md`<br>- **TC-003E.2 (`V4-01a` Sunset Unremediated Implementing)**: งาน In-Flight เดิมที่ถูก Sunset พยายามข้ามไป `implementing` โดยไม่ผ่าน `designing -> planning`<br>- **TC-003E.3 (`V4-01b` Pre-Sunset Completed)**: ระเบียนทางด่วนที่จบงานแล้ว (`release` และ `event.at <= sunset_effective_at`)<br>- **TC-003E.4 (`V4-01b` & `P5-01` Sunset Cutoff Chronological Instant Regression)**: ตรวจสอบการเปรียบเทียบเวลาแบบ Epoch Instant ครอบคลุม: (1) ก่อน Cutoff, (2) เท่ากันพอดี (Equal Instant / Equivalent Timezone), (3) หลัง Cutoff 500ms (`.500Z`), (4) หลัง Cutoff 1 วินาที, (5) Timezone offset equivalent instants (`+07:00`), และ (6) Invalid timestamp fail-closed | - **TC-003A, TC-003B, TC-003C**: `validateContracts()` คืน `[]`<br>- **TC-003.1 & TC-003D**: ถูกปฏิเสธทั้งหมด (`unremediated fast-track escalation`, Prefix/Episode mismatch)<br>- **TC-003E.1 (`V4-01a`)**: **`validateContracts()` คืน `[]` (ผ่านการตรวจรับรองขณะพักรอใน `designing` เพื่อให้ผ่านกฎ Handoff)**<br>- **TC-003E.2**: ถูกบล็อกด้วย `is marked historical_only ... route through designing -> planning before state "implementing"`<br>- **TC-003E.3 (`V4-01b`)**: **`validateContracts()` คืน `[]` (ระเบียนประวัติเดิมที่จบแล้วตรวจผ่าน 100%)**<br>- **TC-003E.4 (`V4-01b` & `P5-01`)**: **ก่อน Cutoff หรือเท่ากันผ่าน; หลัง Cutoff (รวมเศษวินาที .500Z และ offset timezone) ถูกบล็อกด้วย `occurred at ..., after sunset_effective_at`; timestamp ผิดรูปแบบถูกปฏิเสธแบบ Fail-Closed** |
 | **TC-004** | AC-004 | Default & Legacy CLI Isolation (`R3-04`) | รัน: (ก) ไม่มี flag, (ข) `--source legacy-task-log` เดี่ยวๆ, (ค) `--source legacy-task-log --check-thresholds`, (ง) `--source legacy-task-log --emit-intent <path>`, (จ) `--check-thresholds` โดยไม่ใส่ `--source structured` | (ก)–(ข) แสดงตารางเดิม `exit 0`; **(ค)–(จ) ถูกปฏิเสธด้วย `INCOMPATIBLE_SOURCE_FLAGS` (`exit 2`, ไม่เขียนไฟล์ใดๆ)** |
 | **TC-005** | AC-004 | Ledger Expiry Semantics (`RR-02`) | ทดสอบ `dispatch-receipts`: (ก) `1` `expired` + `19` `consumed` + `10` `registered`, (ข) `2` `expired` + `18` `consumed` | ตัวหารนับเฉพาะ `closedReceipts` (`20`); (ก) ได้ `5.0%` (`WITHIN_TARGET`); (ข) ได้ `10.0%` (`BREACH_DETECTED`) |
 | **TC-006** | AC-004 | Rework Cohort & Intake Dilution Immunity (`RR-03`) | ทดสอบ `task-state.json`: (ก) `1` งาน `verifying -> rework` + `9` งาน `intake`, (ข) `1` งาน `verifying -> rework` + `4` งาน `verifying -> handoff` + `50` งาน `intake` | (ก) `evaluatedItems = 1 (< 5)` คืน `INSUFFICIENT_DATA`; (ข) `evaluatedItems = 5` คืน `20.0%` (`BREACH_DETECTED`) |
@@ -204,6 +205,7 @@ const AUTHORITATIVE_FIELDS = ['change_type', 'risk_level', 'risk_tier', 'contain
 const HOLD_STATES = new Set(['discovery', 'designing', 'rework', 'blocked']);
 const eventKey = (e) => `${e.from} -> ${e.to}`;
 const meaningful = (v) => v !== null && v !== false && v !== undefined && (typeof v !== 'string' || v.trim().length > 0);
+const parseIsoInstant = (s) => (typeof s === 'string' && s ? (Number.isNaN(Date.parse(s)) ? NaN : Date.parse(s)) : NaN);
 
 function selectBranch(candidates, prefix, event) {
   if (!candidates || candidates.length <= 1) return candidates?.[0] ?? null;
@@ -236,11 +238,25 @@ function validateHistoryV5(policy, state, displayPath) {
     const t = selectBranch(map.get(eventKey(ev)), prefix, ev);
     if (!t) { errors.push(`${displayPath}: illegal transition: ${eventKey(ev)}`); continue; }
     const remediated = suffix.some((l) => l.from === 'designing' && l.to === 'planning');
-    
-    // V4-01a & V4-01b Sunset Rule & Cutoff Boundary
+
+    // V4-01a, V4-01b & P5-01 Sunset Rule, Remediation Hold & Chronological Cutoff Boundary
     if (t.historical_only === true) {
-      if (policy.sunset_effective_at && ev.at && ev.at > policy.sunset_effective_at) {
-        errors.push(`${displayPath}: ${eventKey(ev)} at history[${idx}] occurred at ${ev.at}, after sunset_effective_at (${policy.sunset_effective_at}); fast-track is disabled for new entries`);
+      if (policy.sunset_effective_at) {
+        const cutoffMs = parseIsoInstant(policy.sunset_effective_at);
+        const eventMs = parseIsoInstant(ev.at);
+        if (Number.isNaN(cutoffMs)) {
+          errors.push(`${displayPath}: invalid policy.sunset_effective_at "${policy.sunset_effective_at}"`);
+        } else if (Number.isNaN(eventMs)) {
+          errors.push(`${displayPath}: invalid event timestamp "${ev.at}" at history[${idx}]`);
+        } else if (eventMs > cutoffMs) {
+          errors.push(`${displayPath}: ${eventKey(ev)} at history[${idx}] occurred at ${ev.at}, after sunset_effective_at (${policy.sunset_effective_at}); fast-track is disabled for new entries`);
+        } else {
+          const isHoldState = HOLD_STATES.has(state.state);
+          const isCompleted = state.state === 'release';
+          if (!remediated && !isHoldState && !isCompleted) {
+            errors.push(`${displayPath}: ${eventKey(ev)} at history[${idx}] is marked historical_only (fast-track disabled for active/new work items; route through designing -> planning before state "${state.state}")`);
+          }
+        }
       } else {
         const isHoldState = HOLD_STATES.has(state.state);
         const isCompleted = state.state === 'release';
@@ -343,6 +359,19 @@ const stateHold = {
 const errHold = validateHistoryV5(policy, stateHold, 'sunset-hold');
 assert.deepEqual(errHold, []); // V4-01a PASSED: hold state in designing validates cleanly!
 
+// V4-01b & P5-01: Fractional post-cutoff counterexample strictly rejected
+const completedBeforeSunset = structuredClone(stateHold);
+completedBeforeSunset.state = 'release';
+completedBeforeSunset.history = [
+  ...completedBeforeSunset.history.slice(0, 4),
+  { from: 'verifying', to: 'human-review', at: '2026-11-05T01:00:00Z' },
+  { from: 'human-review', to: 'release', at: '2026-11-05T02:00:00Z' }
+];
+const fractional = structuredClone(completedBeforeSunset);
+fractional.history[1].at = '2026-11-05T12:00:00.500Z';
+const errFractional = validateHistoryV5(policy, fractional, 'fractional');
+assert.ok(errFractional.some((e) => e.includes('after sunset_effective_at')), 'P5-01 PASSED: fractional post-cutoff rejected');
+
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'harness-v5-'));
 try {
   // V4-02a: Short write loop
@@ -365,7 +394,7 @@ try {
   assert.equal(renameErr.code, 'TARGET_UNCHANGED_BEFORE_COMMIT'); // V4-02c PASSED!
   assert.equal(fs.readdirSync(tmp).filter(f => f.startsWith('.tmp-')).length, 0);
 
-  console.log('REPRODUCIBLE HARNESS PASS: V4-01a, V4-02a, V4-02b, V4-02c verified exit 0');
+  console.log('REPRODUCIBLE HARNESS PASS: V4-01a, V4-01b, V4-02a, V4-02b, V4-02c, P5-01 verified exit 0');
 } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
 NODE
 ```
