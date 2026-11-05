@@ -4,12 +4,12 @@
 |---|---|
 | Work Item / Task ID | Issue #303 / Slice 1 / `IMP-303-01` |
 | Objective | Produce the approved INTENT and SPEC templates with canonical artifact equivalence and advisory-source/header fields, preserving every baseline template. |
-| Base SHA | `61b88e78e1ae1bb8720f71cd029fc9308f476ed1` |
+| Base SHA | `d28ac8cc44170dab0bfa95ddc85751c7c3cce09c` |
 | Dependencies | Approved plan v5 and [Human decision](../approvals/2026-11-05-issue-303-plan-v5-human-approval.md). No dependency on IMP-303-02/03; dispatch prerequisites below still apply. |
 | Required reviewer mode | Distinct `qa-agent` in `task_review` mode; spec verdict PASS/FAIL/CANNOT_VERIFY and quality verdict APPROVED/NEEDS_FIX; `task_review_rework_count` starts at 0. |
 | Human decision evidence (addressable URL) | [Local Human approval record — issue303-plan-v5-human-approval-20261105-01](../approvals/2026-11-05-issue-303-plan-v5-human-approval.md). Source is the active Codex chat, not a fabricated GitHub URL. |
 | Implementation owner | `documentation-agent`; Orchestrator owns integration. Reviewer must be a distinct identity from the writer. |
-| Current dispatch status | **Brief prepared; not dispatched.** No template is created by preparation of this document. |
+| Current dispatch status | **Authorized for current in-turn dispatch.** No template is created by preparation of this document. |
 
 ## Allowed Scope
 
@@ -34,8 +34,12 @@
   - `test -f docs/templates/INTENT.md && test -f docs/templates/SPEC.md` → exit 0.
   - `git diff --check` → exit 0.
   - `node scripts/validate-clearable-refs.mjs` → exit 0; permanent templates must not depend on clearable records for policy meaning.
-  - Compare all `git ls-tree -r --name-only 61b88e78e1ae1bb8720f71cd029fc9308f476ed1 -- docs/templates` baseline paths to their `git show <base>:<path>` bytes → **34 original paths, zero modified/deleted originals**. Include untracked new files in the changed-path report; unstaged `git diff` alone does not enumerate them.
+  - Compare all `git ls-tree -r --name-only d28ac8cc44170dab0bfa95ddc85751c7c3cce09c -- docs/templates` baseline paths to their `git show <base>:<path>` bytes → **34 original paths, zero modified/deleted originals**. Include untracked new files in the changed-path report; unstaged `git diff` alone does not enumerate them.
 - Independent review must inspect the equivalence mapping, source linkage, advisory headers, and eligibility meaning against the cited sources. File presence alone is not acceptance.
 - Before any future dispatch: Orchestrator verifies `status:spec-ready`, approved decision provenance, an authorized implementation request, and baseline/worktree ownership. Current local intake/status edits must not be overwritten.
 - Stop and route to: Orchestrator for a write-set/dependency/HEAD conflict; SA for a substantive template/design ambiguity; Human only for a new scope/policy decision, not repeat approval of the unchanged v5 plan.
 - A future source conflict returns CANNOT_VERIFY/BLOCKED with the exact conflicting source; do not expand this task to edit core policy.
+
+## Execution preflight
+- Actual dispatch baseline: `d28ac8cc44170dab0bfa95ddc85751c7c3cce09c` (preparation commit). Human execution authority and actual `status:spec-ready` / `phase:development` verified.
+- This addendum supersedes future-preflight wording above. Parent owns commits; child must preserve shared-tree disjoint write ownership and return an Implementer Report.

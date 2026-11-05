@@ -4,12 +4,12 @@
 |---|---|
 | Work Item / Task ID | Issue #303 / Slice 1 / `IMP-303-02` (TDD Red only) |
 | Objective | Add production-seam contract regression tests for approved v5 parity, fast-track, temporal remediation, sunset recovery, and chronological cutoff behavior; demonstrate the expected RED failures before production implementation. |
-| Base SHA | `61b88e78e1ae1bb8720f71cd029fc9308f476ed1` |
+| Base SHA | `d28ac8cc44170dab0bfa95ddc85751c7c3cce09c` |
 | Dependencies | Approved plan v5 and [Human decision](../approvals/2026-11-05-issue-303-plan-v5-human-approval.md). Test design reads the approved specification, not outputs of IMP-303-01; these initial tasks have disjoint write sets. |
 | Required reviewer mode | Distinct `qa-agent` in `task_review` mode for requirement/test quality; `task_review_rework_count` starts at 0. Runtime/security acceptance remains at the integrated Slice 1 review. |
 | Human decision evidence (addressable URL) | [Local Human approval record — issue303-plan-v5-human-approval-20261105-01](../approvals/2026-11-05-issue-303-plan-v5-human-approval.md). Active-chat approval is recorded locally; no external approval URL is claimed. |
 | Implementation owner | `developer-agent`; SA consulted only for an actual source/design conflict. Distinct QA identity reviews the test artifact. |
-| Current dispatch status | **Brief prepared; not dispatched.** No test or runtime change is made by preparation of this document. |
+| Current dispatch status | **Authorized for current in-turn dispatch.** No test or runtime change is made by preparation of this document. |
 
 ## Allowed Scope
 
@@ -40,6 +40,10 @@
   4. `git diff --check` → exit 0.
 - Return actual commands/output and a scenario-to-test mapping. Keep the standard 10-example coverage intact. Do not add a source assertion that merely checks the proposal text exists in a file.
 - If a required negative scenario already fails closed on baseline, retain that evidence; do not manufacture a failing implementation solely to produce RED.
-- Before future dispatch: verify `status:spec-ready`, active implementation authorization, approval evidence, exact baseline, isolated write ownership, and the task packet. Current user authorization is brief preparation only.
+- Before future dispatch: verify `status:spec-ready`, active implementation authorization, approval evidence, exact baseline, isolated write ownership, and the task packet. Latest Human authorization permits implementation dispatch; see superseding execution decision in the approval record.
 - Stop and route to: Orchestrator for a baseline/write-set collision; SA for a genuine contract conflict; QA for test-method concerns. Do not ask Human to reapprove unchanged plan v5.
 - End this task at an evidenced Red report. Green work belongs to IMP-303-03, whose exact base is pinned after the reviewed Red artifact has an actual head SHA. Do not create a future SHA or mark the whole slice QA-ready.
+
+## Execution preflight
+- Actual dispatch baseline: `d28ac8cc44170dab0bfa95ddc85751c7c3cce09c` (preparation commit). Human execution authority and actual `status:spec-ready` / `phase:development` verified.
+- This addendum supersedes future-preflight wording above. Parent owns commits; child must preserve shared-tree disjoint write ownership and return an Implementer Report.
