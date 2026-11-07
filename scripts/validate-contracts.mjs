@@ -78,7 +78,7 @@ function eventKey(event) {
 }
 
 function hasMeaningfulValue(value) {
-  if (value === null || value === false) {
+  if (value === undefined || value === null || value === false) {
     return false;
   }
   if (typeof value === 'string') {
@@ -110,13 +110,13 @@ function reworkSourceStates(policy) {
 // `_excludes` suffix forms). This catches an instance that takes a branch
 // inconsistent with its own recorded evidence (e.g. risk_tier: medium but
 // took the low-risk fast-track transition anyway).
-function validateWhenClause(transition, event, state, displayPath) {
+function validateWhenClause(transition, event, state, displayPath, snapshot = null) {
   if (!transition.when) return [];
   const errors = [];
   for (const [key, expected] of Object.entries(transition.when)) {
     if (key.endsWith('_includes')) {
       const field = key.slice(0, -'_includes'.length);
-      const actual = state.evidence[field];
+      const actual = (snapshot ?? state.evidence)[field];
       if (!Array.isArray(actual) || !actual.includes(expected)) {
         errors.push(
           `${displayPath}: ${eventKey(event)} requires evidence ${field} to include "${expected}" (got ${JSON.stringify(actual)})`
@@ -124,27 +124,86 @@ function validateWhenClause(transition, event, state, displayPath) {
       }
     } else if (key.endsWith('_excludes')) {
       const field = key.slice(0, -'_excludes'.length);
-      const actual = state.evidence[field];
+      const actual = (snapshot ?? state.evidence)[field];
       if (Array.isArray(actual) && actual.includes(expected)) {
         errors.push(`${displayPath}: ${eventKey(event)} requires evidence ${field} to exclude "${expected}"`);
       }
     } else {
-      const actual = state.evidence[key];
+      const actual = (snapshot ?? state.evidence)[key];
       if (actual !== expected) {
         errors.push(
           `${displayPath}: ${eventKey(event)} requires evidence ${key} to equal "${expected}" (got ${JSON.stringify(actual)})`
         );
       }
     }
+    const field = key.replace(/_(includes|excludes)$/, '');
+    if (!snapshot && Object.hasOwn(state, field)) {
+      const actual = state[field];
+      const matches = key.endsWith('_includes') ? Array.isArray(actual) && actual.includes(expected)
+        : key.endsWith('_excludes') ? !Array.isArray(actual) || !actual.includes(expected)
+          : actual === expected;
+      if (!matches) errors.push(`${displayPath}: ${eventKey(event)} top-level ${field} does not satisfy when-clause ${key}`);
+    }
+  }
+  return errors;
+}
+
+const AUTHORITATIVE_FIELDS = ['change_type', 'risk_level', 'risk_tier', 'contains_pii', 'data_change_kind'];
+const REMEDIATION_HOLD_STATES = new Set(['discovery', 'designing', 'rework', 'blocked']);
+
+function validateTopLevelEvidenceParity(state, displayPath) {
+  const normalize = (value) => Array.isArray(value) ? [...new Set(value)].sort() : value;
+  return AUTHORITATIVE_FIELDS.flatMap((field) => {
+    if (!Object.hasOwn(state, field) || !Object.hasOwn(state.evidence, field)) return [];
+    if (JSON.stringify(normalize(state[field])) === JSON.stringify(normalize(state.evidence[field]))) return [];
+    return [`${displayPath}: top-level ${field} (${JSON.stringify(state[field])}) does not match evidence.${field} (${JSON.stringify(state.evidence[field])})`];
+  });
+}
+
+function selectTransitionBranch(candidates, prefix, event, workflowId) {
+  if (!candidates || candidates.length <= 1) return candidates?.[0];
+  if (workflowId !== 'new-feature' || event.from !== 'planning' || event.to !== 'implementing') return candidates[0];
+  const episodeStart = prefix.findLastIndex((item) => item.to === 'discovery');
+  const hasDesign = prefix.slice(episodeStart + 1).some((item) => item.from === 'designing' && item.to === 'planning');
+  return candidates.find((candidate) => hasDesign ? !candidate.when : Boolean(candidate.when));
+}
+
+function validateFastTrackHistory(policy, transition, event, index, state, displayPath) {
+  const errors = [];
+  const remediated = state.history.slice(index + 1).some((later) => later.from === 'designing' && later.to === 'planning');
+  const held = REMEDIATION_HOLD_STATES.has(state.state);
+  if (transition.historical_only === true) {
+    if (policy.sunset_effective_at !== undefined) {
+      const cutoff = Date.parse(policy.sunset_effective_at);
+      const instant = Date.parse(event.at);
+      if (!Number.isFinite(cutoff)) errors.push(`${displayPath}: invalid policy.sunset_effective_at "${policy.sunset_effective_at}"`);
+      else if (!Number.isFinite(instant)) errors.push(`${displayPath}: invalid event timestamp "${event.at}" at history[${index}]`);
+      else if (instant > cutoff) errors.push(`${displayPath}: ${eventKey(event)} at history[${index}] occurred at ${event.at}, after sunset_effective_at (${policy.sunset_effective_at}); fast-track is disabled for new entries`);
+    }
+    if (!remediated && !held && state.state !== 'release') {
+      errors.push(`${displayPath}: ${eventKey(event)} at history[${index}] is marked historical_only (fast-track disabled for active/new work items; route through designing -> planning before state "${state.state}")`);
+    }
+  }
+  const currentErrors = validateWhenClause(transition, event, state, displayPath);
+  if (!event.classification_snapshot) return [...errors, ...currentErrors];
+  errors.push(...validateWhenClause(transition, event, state, displayPath, event.classification_snapshot));
+  if (currentErrors.length) {
+    const hasReason = ['risk_escalation_reason', 'redesign_scope', 'design_gap', 'requirement_gap']
+      .some((field) => hasMeaningfulValue(state.evidence[field]));
+    if (!hasReason) errors.push(`${displayPath}: fast-track escalation requires a meaningful risk_escalation_reason, redesign_scope, design_gap, or requirement_gap`);
+    if (!remediated && !held) errors.push(`${displayPath}: unremediated fast-track escalation at history[${index}] (${eventKey(event)}): current classification no longer satisfies fast-track when-clause and requires routing through designing -> planning before state "${state.state}"`);
   }
   return errors;
 }
 
 function validateHistory(policy, state, displayPath) {
-  const errors = [];
-  const transitions = new Map(
-    policy.transitions.map((transition) => [`${transition.from} -> ${transition.to}`, transition])
-  );
+  const errors = validateTopLevelEvidenceParity(state, displayPath);
+  const transitions = new Map();
+  for (const transition of policy.transitions) {
+    const key = eventKey(transition);
+    if (!transitions.has(key)) transitions.set(key, []);
+    transitions.get(key).push(transition);
+  }
   const reworkSources = reworkSourceStates(policy);
   const reworks = state.history.filter(
     (event) => reworkSources.has(event.from) && event.to === 'rework'
@@ -162,12 +221,14 @@ function validateHistory(policy, state, displayPath) {
     if (previousEvent && previousEvent.to !== event.from) {
       errors.push(`${displayPath}: history must be continuous`);
     }
-    const transition = transitions.get(eventKey(event));
+    const transition = selectTransitionBranch(transitions.get(eventKey(event)), state.history.slice(0, index), event, policy.workflow_id);
     if (!transition) {
       errors.push(`${displayPath}: illegal transition: ${eventKey(event)}`);
       continue;
     }
-    errors.push(...validateWhenClause(transition, event, state, displayPath));
+    errors.push(...(policy.workflow_id === 'new-feature' && transition.when
+      ? validateFastTrackHistory(policy, transition, event, index, state, displayPath)
+      : validateWhenClause(transition, event, state, displayPath)));
     for (const evidence of transition.requires) {
       if (!event.evidence_refs.includes(evidence)) {
         errors.push(`${displayPath}: ${eventKey(event)} requires evidence ${evidence}`);

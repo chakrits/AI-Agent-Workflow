@@ -6,10 +6,18 @@ transitions:
   - { from: intake, to: discovery, requires: [change_type, risk_level, initial_scope] }
   - { from: intake, to: blocked, requires: [stop_reason] }
   - { from: discovery, to: designing, requires: [user_stories, acceptance_criteria, business_rules, pm_ba_gate_result] }
+  - from: discovery
+    to: planning
+    requires: [user_stories, acceptance_criteria, business_rules, compressed_spec_reference, security_boundary_impact, api_contract_impact, data_migration_impact, pm_ba_gate_result]
+    when: { risk_level: low, security_boundary_impact: none, api_contract_impact: none, data_migration_impact: none }
   - { from: discovery, to: blocked, requires: [stop_reason] }
   - { from: designing, to: planning, requires: [sdd_reference, api_contract, data_impact, ba_sa_gate_result] }
   - { from: designing, to: blocked, requires: [stop_reason] }
   - { from: planning, to: implementing, requires: [spec_readiness_checklist, implementation_plan, sa_dev_gate_result] }
+  - from: planning
+    to: implementing
+    requires: [spec_readiness_checklist, implementation_plan, compressed_spec_reference, spec_readiness_gate_result]
+    when: { risk_level: low, security_boundary_impact: none, api_contract_impact: none, data_migration_impact: none }
   - { from: planning, to: blocked, requires: [stop_reason] }
   - { from: implementing, to: verifying, requires: [changed_files, test_evidence, dev_qa_gate_result] }
   - { from: implementing, to: blocked, requires: [stop_reason] }

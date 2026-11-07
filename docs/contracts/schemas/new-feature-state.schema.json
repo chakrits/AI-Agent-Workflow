@@ -45,6 +45,17 @@
           "to": { "enum": ["intake", "discovery", "designing", "planning", "implementing", "verifying", "rework", "human-review", "blocked", "release"] },
           "at": { "type": "string", "minLength": 1 },
           "actor": { "type": "string", "minLength": 1 },
+          "classification_snapshot": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["risk_level", "security_boundary_impact", "api_contract_impact", "data_migration_impact"],
+            "properties": {
+              "risk_level": { "enum": ["low", "medium", "high", "critical"] },
+              "security_boundary_impact": { "type": "string", "minLength": 1 },
+              "api_contract_impact": { "type": "string", "minLength": 1 },
+              "data_migration_impact": { "type": "string", "minLength": 1 }
+            }
+          },
           "evidence_refs": {
             "type": "array",
             "items": { "type": "string", "minLength": 1 }
