@@ -23,7 +23,7 @@ Approved / Approved with comments / Changes requested / Blocked
 
 Run all three passes: (1) Bugs & Logic, including edge cases and regressions; (2) Security & Trust, including authorization, injection, secrets and guardrails; and (3) Spec & Plan Compliance, including acceptance criteria and approved design/plan.
 
-- **Blocking**: Critical or Major findings affecting behavior, security, data correctness or acceptance criteria block progress and require correction.
+- **Blocking**: All Critical and Major findings block progress and require correction.
 - **Human Judgment Required**: architecture or business trade-offs outside agent authority block progress until the Human approval gate decides; present the alternatives and evidence.
 - **Non-blocking Nit**: Minor style, naming or formatting observations with no behavior, security or acceptance impact. Report at most five useful nits per review round; record `Suppressed Nits Count: +N` for the remaining observations.
 
