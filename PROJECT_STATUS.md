@@ -4,7 +4,7 @@
 - ID: Issue #303
 - Title: End-to-End AI-Native SDLC Playbook Integration (Compressed Artifact Route, 3-Pass Review & Structured Cohort Metrics)
 - URL: https://github.com/chakrits/AI-Agent-Workflow/issues/303
-- Status: Slice 1 candidate `a75a01f` passed independent Code, Security and QA review; draft PR #304 is open for Human review after hosted checks.
+- Status: Slice 1 candidate `a75a01f` passed independent Code, Security and QA review. PR #304 is being reconciled to scoped Slice 1 work item #305; #303 remains the four-slice initiative.
 
 ## Active Work Items
 <!-- active-work-items-table-start -->
@@ -32,6 +32,7 @@
 - Hardened lifecycle contracts for mid-flight risk escalation, Two-Regime Rollback with in-flight remediation hold (`REMEDIATION_HOLD_STATES`) & chronological instant cutoff (`Date.parse(event.at) > Date.parse(policy.sunset_effective_at)`), resilient 3-phase `--emit-intent` I/O failure semantics with write-all loop & honest residual reporting, legacy `TASK_LOG` flag isolation, and accurate 9-file Slice 2 scope.
 
 ## In Progress
+- Slice-specific Work Items #305–#308 separate QA acceptance and lifecycle milestones from parent Issue #303; PR #304 targets #305 while advancing #303.
 - Independent Code and Security review artifacts and formal QA approve candidate `a75a01f`. QA reports 846/846 tests and review gate passing after review records were committed at `6edf4cc`. Human merge approval and hosted CI remain separate.
 
 ## Blockers / Open Questions
@@ -47,7 +48,7 @@
 - Lessons Learned record at `docs/records/lessons-learned/2026-11-05-issue-303-review-lessons.md` (updated with `L-08`–`L-14`).
 
 ## Next Quality Gate
-- Hosted CI and Human review on draft PR #304. No merge/release authorization is inferred.
+- Synchronize Slice 1 QA evidence and lifecycle milestones to #305 and PR #304; recheck hosted readiness, then Human review. No merge/release authorization is inferred.
 
 ## Recommended Next Agent
 - Human Maintainer: review the concrete Slice 1 PR after its publication; no automatic future dispatch is claimed.

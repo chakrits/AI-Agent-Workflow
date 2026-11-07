@@ -21,3 +21,8 @@
 - Dispatched independent QA `/root/issue303_resume_orchestrator/qa_slice1`; native `collaboration.wait_agent` delivered terminal result `issue303-qa-slice1-a75a01f-20261107-01` in this active turn. Consumed once: `spec_verdict: PASS`, `quality_verdict: APPROVED`, rework count 0; evidence `docs/records/qa/2026-11-07-issue-303-slice-1-integrated-task-review.md`.
 - Boss event `issue303-slice1-qa-20261107`: 846/846 tests passed; review gate passed at `6edf4cc`; hosted CI and Human merge remain pending. Route: prepare draft PR; no merge/release authorization inferred.
 - Draft PR: https://github.com/chakrits/AI-Agent-Workflow/pull/304 (`advances-only`); draft PR body preflight passed. Hosted CI must be checked on the final PR head before readiness or merge.
+
+## 2026-11-07 — Issue #303 slice work-item boundary
+- User directed Orchestrator to create scoped work items and link PR #304 to Slice 1, preserving central QA rules. Created #305–#308; parent #303 remains open.
+- Dispatched independent QA `/root/issue303_slice_workitems/qa_slice1_lifecycle`; native `collaboration.wait_agent` delivered terminal result `issue303-slice1-lifecycle-qa-a75a01f-20261107-01`, consumed once. Evidence: `docs/records/qa/2026-11-07-issue-305-slice-1-lifecycle-qa.md`. QA separated live readiness from S1-AC6 to prevent a circular gate.
+- Boss event `issue303-slice-workitems-qa-20261107`: Slice 1 criteria supported at candidate `a75a01f`; synchronize issue/PR evidence and labels, then check live readiness. No full-parent acceptance or merge approval inferred.
