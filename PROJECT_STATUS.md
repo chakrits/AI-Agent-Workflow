@@ -4,7 +4,7 @@
 - ID: Issue #303
 - Title: End-to-End AI-Native SDLC Playbook Integration (Compressed Artifact Route, 3-Pass Review & Structured Cohort Metrics)
 - URL: https://github.com/chakrits/AI-Agent-Workflow/issues/303
-- Status: Slice 1 candidate `a75a01f` passed independent Code, Security and QA review; PR preparation in progress.
+- Status: Slice 1 candidate `a75a01f` passed independent Code, Security and QA review; draft PR #304 is open for Human review after hosted checks.
 
 ## Active Work Items
 <!-- active-work-items-table-start -->
@@ -47,7 +47,7 @@
 - Lessons Learned record at `docs/records/lessons-learned/2026-11-05-issue-303-review-lessons.md` (updated with `L-08`–`L-14`).
 
 ## Next Quality Gate
-- Prepare a concrete PR and observe hosted CI for Human merge review. No merge/release authorization is inferred.
+- Hosted CI and Human review on draft PR #304. No merge/release authorization is inferred.
 
 ## Recommended Next Agent
 - Human Maintainer: review the concrete Slice 1 PR after its publication; no automatic future dispatch is claimed.
